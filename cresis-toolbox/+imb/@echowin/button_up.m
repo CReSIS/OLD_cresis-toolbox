@@ -9,9 +9,7 @@ mouse_pos = get(obj.h_fig,'CurrentPoint');
 
 % Check to make sure mouse clicked inside of obj.right_panel.handle
 %   Since extends the full y-length, just check to the right of minimum x
-set(obj.right_panel.handle,'Units','normalized');
 uipanel_pos = get(obj.right_panel.handle,'Position');
-set(obj.right_panel.handle,'Units','Points');
 if mouse_pos(1) <= uipanel_pos(1)
   return
 end
@@ -19,9 +17,7 @@ end
 % Check to make sure mouse clicked inside of obj.right_panel.axes_panel
 %   Since extends the full x-length of obj.right_panel.handle, just check 
 %   up of minimum y
-set(obj.right_panel.axes_panel,'Units','normalized');
 uipanel_pos = get(obj.right_panel.axes_panel,'Position');
-set(obj.right_panel.axes_panel,'Units','Points');
 if mouse_pos(2) <= uipanel_pos(2)
   return
 end
@@ -88,20 +84,7 @@ if obj.control_pressed
   return;
 elseif obj.shift_pressed
   %% Shift + any click: Set cursor
-  % get absolute cursor position
-  obj.cursor.gps_time = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,...
-    x,'linear','extrap');
-  obj.cursor.x = interp1(obj.eg.map_gps_time,obj.eg.map_x,obj.cursor.gps_time,'linear','extrap');
-  obj.cursor.y = interp1(obj.eg.map_gps_time,obj.eg.map_y,obj.cursor.gps_time,'linear','extrap');
-  
-  % (re)draw cursor in this echogram window
-  obj.plot_cursors();
-
-  str = obj.status_text_cursor();
-  obj.status_text_set(str,'replace');
-  
-  % tell the map to redraw all cursors
-  notify(obj,'update_cursors');
+  obj.update_cursor(x,y,true);
   return;
 end
 
@@ -121,7 +104,7 @@ if obj.zoom_mode
     % final clicks are both outside the same axis boundary)
     if x_min > x_max || x_max < x_min || y_min > y_max || y_max < y_min
       return;
-    end   
+    end
     
     % Convert x_min, x_max to GPS time
     xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,[x_min x_max],'linear','extrap');
@@ -168,6 +151,8 @@ else
   %% Populate param structure
   % ====================================================================
   
+  param = [];
+  param.echowin = obj;
   % Current quality
   param.cur_quality = get(obj.left_panel.qualityPM,'Value');
   % Current layers
@@ -184,7 +169,6 @@ else
   %% Find proper param window position (for browse tool)
   if ~obj.tool.accessed
     param.keep_tool_pos = false;
-    set(obj.h_fig,'Units','Pixels');
     this_pos = get(obj.h_fig,'Position');
     param.tool_x = this_pos(1);
     param.tool_y = this_pos(2)+this_pos(4); % still need to subtract the tool window's height for proper y pos
@@ -229,9 +213,17 @@ else
         % Push the new command(s) to the stack
         obj.undo_stack.push(obj.cmds_convert_units(cmds));
       end
+    else
+      %% Right click: Apply tool to a point
+      set(obj.right_panel.echoCM,'visible','off');
+      param.x = sort([obj.click_x x]);
+      param.y = sort([obj.click_y y]);
+      param.point_path_id = obj.eg.map_id;
+      cmds = obj.tool.right_click_fh(param);
+      if ~isempty(cmds)
+        % Push the new command(s) to the stack
+        obj.undo_stack.push(obj.cmds_convert_units(cmds));
+      end
     end
   end
 end
-
-return
-

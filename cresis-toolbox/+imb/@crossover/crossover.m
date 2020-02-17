@@ -106,8 +106,8 @@ classdef crossover < handle
 
       % Create menu strings
       menuString = {};
-      for idx = 1:length(obj.crossovers.frame_name)
-        menuString{end+1} = sprintf('%s: %d %6.4g m %6.4g deg ', obj.crossovers.frame_name{idx}, obj.crossovers.layer_id(idx), obj.crossovers.abs_error(idx), obj.crossovers.angle(idx));
+      for idx = 1:length(obj.crossovers.frm_str)
+        menuString{end+1} = sprintf('%s: %d %6.4g m %6.4g deg ', obj.crossovers.frm_str{idx}, obj.crossovers.layer_id(idx), obj.crossovers.abs_error(idx), obj.crossovers.angle(idx));
       end
       
       mode = get(obj.h_gui.sort_orderCB,'Value');
@@ -213,8 +213,8 @@ classdef crossover < handle
     function sortPM_callback(obj,varargin)
       % Create menu strings
       menuString = {};
-      for idx = 1:length(obj.crossovers.frame_name)
-        menuString{end+1} = sprintf('%s: %d %6.4g m %6.4g deg', obj.crossovers.frame_name{idx}, obj.crossovers.layer_id(idx), obj.crossovers.abs_error(idx), obj.crossovers.angle(idx));
+      for idx = 1:length(obj.crossovers.frm_str)
+        menuString{end+1} = sprintf('%s: %d %6.4g m %6.4g deg', obj.crossovers.frm_str{idx}, obj.crossovers.layer_id(idx), obj.crossovers.abs_error(idx), obj.crossovers.angle(idx));
       end
       
       mode = get(obj.h_gui.sort_orderCB,'Value');
@@ -249,7 +249,7 @@ classdef crossover < handle
     % opened.
     function cur_frame = get_crossover(obj)
       cur_idx = obj.h_gui.crossoverLB.cur_value;
-      cur_frame.frame_name = obj.crossovers.frame_name{cur_idx};
+      cur_frame.frm_str = obj.crossovers.frm_str{cur_idx};
       cur_frame.segment_id = obj.crossovers.segment_id(cur_idx);
       cur_frame.season_name = obj.crossovers.season_name{cur_idx};
     end

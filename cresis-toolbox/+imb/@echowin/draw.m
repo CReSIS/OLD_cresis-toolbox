@@ -17,6 +17,9 @@ obj.eg.layers.lyr_name = param.layers.lyr_name;
 obj.eg.layers.lyr_group_name = param.layers.lyr_group_name;
 obj.eg.layers.lyr_id = param.layers.lyr_id;
 obj.eg.layers.surf_id = param.layers.surf_id;
+obj.eg.layers.saved.lyr_name = obj.eg.layers.lyr_name;
+obj.eg.layers.saved.lyr_group_name = obj.eg.layers.lyr_group_name;
+obj.eg.layers.saved.lyr_id = obj.eg.layers.lyr_id;
 
 obj.eg.cur_sel.frm = param.cur_sel.frm;
 obj.eg.cur_sel.seg_id = param.cur_sel.seg_id;
@@ -98,16 +101,14 @@ set(obj.left_panel.frameLB,'String',obj.eg.frm_strs);
 
 %% Create variables for the layer list box
 % ===================================================================
-LB_strings = cell(1,length(obj.eg.layers.lyr_id));
-for idx = 1:length(obj.eg.layers.lyr_id)
-  LB_strings{idx} = sprintf('(%d) %s:%s',idx,obj.eg.layers.lyr_group_name{idx},obj.eg.layers.lyr_name{idx});
-end
-set(obj.left_panel.layerLB,'String',LB_strings);
 
 % set up state variables of radio buttons (selected layer) and checkboxes
 % (visible layers)
 obj.eg.layers.selected_layers = false(size(obj.eg.layers.lyr_id));
 obj.eg.layers.visible_layers = true(size(obj.eg.layers.lyr_id));
+
+obj.layerLB_str();
+
 
 %% Load flightlines, layers, crossovers and place the cursor
 % ===================================================================

@@ -92,11 +92,13 @@ classdef (HandleCompatible = true) echowin < handle
     % cursor.gps_time: GPS time of cursor location
     % cursor.lat: latitude of cursor location
     % cursor.lon: longitude of cursor location
-    % cursor.elev: elevation of cursor location
-    % cursor.surf_twtt: twtt to surface
-    % cursor.bottom_twtt: twtt to bottom
-    % cursor.lat: latitude of clutter locations
-    % cursor.lon: longitude of clutter locations
+    % cursor.target_elev: elevation of cursor location
+    % cursor.clutter_lat: latitude of clutter locations
+    % cursor.clutter_lon: longitude of clutter locations
+    % cursor.target_twtt: twtt of cursor location for the a-scope data
+    % cursor.surf_twtt: surface twtt for the a-scope data
+    % cursor.twtt: twtt axis for the a-scope data
+    % cursor.data: a-scope data signal
     % cursor.h: Cursor plot handle
     crossovers
     % crossovers.en: logical scalar determining whether or not crossovers are loaded
@@ -110,7 +112,7 @@ classdef (HandleCompatible = true) echowin < handle
     % crossovers.source_elev: elevation of platform for each crossover
     % crossovers.cross_elev: elevation of platform in crossover echogram for each crossover
     % crossovers.layer_id: layer ID for each crossover
-    % crossovers.frame_name: frame string ID of crossover echogram
+    % crossovers.frm_str: frame string ID of crossover echogram
     % crossovers.twtt: twtt of the layer in the crossover echogram
     % crossovers.angle: crossover angle (0 deg means crossover echogram is
     %   parallel to the currently loaded echogram)
@@ -121,8 +123,8 @@ classdef (HandleCompatible = true) echowin < handle
     control_pressed % Logical indicating the state of the ctrl-key
     shift_pressed % Logical indicating the state of the shift-key
     zoom_mode % Logical indicating the zoom mode
-    cursor_mode % Logical indicating the zoom mode for mouse pointer
-    busy_mode % Logical indicating the busy mode for mouse pointer
+    cursor_mode % Logical indicating the cursor mode (true causes cursor to constantly update with mouse motion)
+    busy_mode % Logical indicating the busy mode for mouse pointer, also disables some functions
     click_x % Last mouse click x-position
     click_y % Last mouse click y-position
     switch_layers % struct with fields for key_press switching layers feature
@@ -134,6 +136,7 @@ classdef (HandleCompatible = true) echowin < handle
     % tool.list: List of tool class objects
     % tool.left_click_fh % Current: left click tool function handle
     % tool.left_click_and_drag_fh: Current left click and drag tool function handle
+    % tool.right_click_fh: Current right click tool function handle
     % tool.right_click_and_drag_fh: Current right click and drag tool function handle
     % tool.accessed % True if any pick tool parameter window has been opened
     % tool.visible % True if tool parameter window is visible
@@ -141,6 +144,8 @@ classdef (HandleCompatible = true) echowin < handle
     % tool.layer_multiple: which layer multiple to track (the twtt of the mouse
     %   click is automatically converted based on this value to allow
     %   tracking of layers via their multiple)
+    % tool.old_visibility: Copy of old visibility settings (used by
+    % spacebar toggle)
     
     %% Echogram Properties
     % eg = Struct with image information, crossover information, and
@@ -180,9 +185,16 @@ classdef (HandleCompatible = true) echowin < handle
     % time: Fast time of data matrix, Nt by 1 double vector
     %
     % image_data: modified (image processed/resampled) Nt_img by Nx_img single data matrix
-    % image_xaxis: Nx_img double vector for x-axis of image_data
-    % image_gps_time: Nx_img double vector for gps-axis of image_data
-    % image_yaxis: Nx_img double vector for y-axis of image_data
+    % image_xaxis: Nx_img double vector for x-axis of image_data (units determined by x-axis choice)
+    % image_gps_time: Nx_img double vector for gps-axis of image_data (units of seconds since Jan 1, 1970)
+    % image_yaxis: Nx_img double vector for y-axis of image_data (units determined by x-axis choice)
+    % image_ecef: 3 by Nx_img double array for earth centered earth fixed coordinates (meters) of image_data
+    % image_yvec: 3 by Nx_img double array for unit y-vector (left looking) in earth centered earth fixed coordinates (meters) of image_data
+    % image_zvec: 3 by Nx_img double array for unit z-vector (left looking) in earth centered earth fixed coordinates (meters) of image_data
+    % image_surf_twtt: Nx_img double vector for surface twtt (sec) of image_data
+    % image_lat: Nx_img double vector for platform latitude (deg North) of image_data
+    % image_lon: Nx_img double vector for platform longitude (deg East) of image_data
+    % image_elev: Nx_img double vector for platform elevation (WGS-84 meters) of image_data
     % x_label: string containing x-axis label
     % y_label: string containing x-axis label
     % y_order: string containing "normal" or "reverse" for obj.h_axes
@@ -207,6 +219,9 @@ classdef (HandleCompatible = true) echowin < handle
     %   type: 1 by Nx vector of type values (1=
     %   x_curUnit: 1 by Nx vector of x-values in current x-axis units
     %   y_curUnit: 1 by Nx vector of y-values in current y-axis units
+    %   saved.lyr_name = {}; % Last saved version
+    %   saved.lyr_group_name = {}; % Last saved version
+    %   saved.lyr_id = {}; % Last saved version
     
     %% Undostack Properties
     undo_stack
@@ -251,7 +266,9 @@ classdef (HandleCompatible = true) echowin < handle
       if ~isfield(default_params,'max_frames')
         default_params.max_frames = 2;
       end
+      set(obj.h_fig,'Units','pixels');
       echowin_pos = get(h_fig,'Position');
+      set(obj.h_fig,'Units','normalized');
       if ~isfield(default_params,'x')
         default_params.x = echowin_pos(1);
       end
@@ -269,9 +286,9 @@ classdef (HandleCompatible = true) echowin < handle
       obj.alt_pressed = false; % Logical indicating the state of the alt-key
       obj.control_pressed = false; % Logical indicating the state of the ctrl-key
       obj.shift_pressed = false; % Logical indicating the state of the shift-key
-      obj.busy_mode = false; % Logical indicating the busy mode for mouse pointer
+      obj.busy_mode = true; % Logical indicating the busy mode for mouse pointer, also disables some functions
       obj.zoom_mode = true; % Logical indicating the zoom mode for mouse pointer
-      obj.cursor_mode = false; % Logical indicating the marker mode (true causes cursor to constantly update with mouse motion)
+      obj.cursor_mode = false; % Logical indicating the cursor mode (true causes cursor to constantly update with mouse motion)
       obj.click_x; % Last mouse click x-position
       obj.click_y; % Last mouse click y-position
       obj.switch_layers = []; % struct with fields for key_press switching layers feature
@@ -283,6 +300,7 @@ classdef (HandleCompatible = true) echowin < handle
       obj.tool.list = []; % List of tool class objects
       obj.tool.left_click_fh = []; % Current: left click tool function handle
       obj.tool.left_click_and_drag_fh = []; % Current left click and drag tool function handle
+      obj.tool.right_click_fh = []; % Current: right click tool function handle
       obj.tool.right_click_and_drag_fh = []; % Current right click and drag tool function handle
       obj.tool.accessed = false; % True if any pick tool parameter window has been opened
       obj.tool.visible = false; % True if tool parameter window is visible
@@ -333,18 +351,21 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.layers.quality_en = false; % Logical scalar, show quality layers if true
       obj.eg.layers.source = ''; % string containing "ops" or "layerdata"
       obj.eg.layers.layer_data_source = ''; % file path to layerdata if "layerdata" source being used
-      obj.eg.layers.lyr_name = {}; % Nlayer length cell array of layer names
-      obj.eg.layers.lyr_group_name = {}; % Nlayer length cell array of layer group names
-      obj.eg.layers.lyr_id = []; % Nlayer length numeric vector of layer IDs (OPS IDs or the index into the layer structure of layer files
-      obj.eg.layers.surf_id = []; % surface ID
-      obj.eg.layers.selected_layers = []; % Nlayer length logical vector, true means layer is selected (tools and operations will act on the layer)
-      obj.eg.layers.visible_layers = []; % Nlayer length logical vector, true means layer visible
-      obj.eg.layers.x = {}; % 1 by Nx vector of x-values in GPS time
-      obj.eg.layers.y = {}; % 1 by Nx vector of y-values in twtt
-      obj.eg.layers.qual = {}; % 1 by Nx vector of quality values (1=good,2=medium,3=bad,NaN=unassigned)
-      obj.eg.layers.type = {}; % 1 by Nx vector of type values (1=
-      obj.eg.layers.x_curUnit = {}; % 1 by Nx vector of x-values in current x-axis units
-      obj.eg.layers.y_curUnit = {}; % 1 by Nx vector of y-values in current y-axis units
+      obj.eg.layers.lyr_name = {}; % Nlayer length cell array of layer names (set in draw)
+      obj.eg.layers.lyr_group_name = {}; % Nlayer length cell array of layer group names (set in draw)
+      obj.eg.layers.lyr_id = []; % Nlayer length numeric vector of layer IDs (OPS IDs or the index into the layer structure of layer files (set in draw)
+      obj.eg.layers.surf_id = []; % surface ID (set in draw)
+      obj.eg.layers.selected_layers = []; % Nlayer length logical vector, true means layer is selected (tools and operations will act on the layer) (set in draw)
+      obj.eg.layers.visible_layers = []; % Nlayer length logical vector, true means layer visible (set in draw)
+      obj.eg.layers.x = {}; % 1 by Nx vector of x-values in GPS time (set in load_layers)
+      obj.eg.layers.y = {}; % 1 by Nx vector of y-values in twtt (set in load_layers)
+      obj.eg.layers.qual = {}; % 1 by Nx vector of quality values (1=good,2=medium,3=bad,NaN=unassigned) (set in load_layers)
+      obj.eg.layers.type = {}; % 1 by Nx vector of type values 1 (manual) or 2 (auto) (set in load_layers)
+      obj.eg.layers.x_curUnit = {}; % 1 by Nx vector of x-values in current x-axis units (set in plot_layers)
+      obj.eg.layers.y_curUnit = {}; % 1 by Nx vector of y-values in current y-axis units (set in plot_layers)
+      obj.eg.layers.saved.lyr_name = {}; % Last saved version
+      obj.eg.layers.saved.lyr_group_name = {}; % Last saved version
+      obj.eg.layers.saved.lyr_id = {}; % Last saved version
       
       %% Constructor: Undostack
       obj.undo_stack = [];
@@ -354,7 +375,6 @@ classdef (HandleCompatible = true) echowin < handle
       % default_params = Default parameters loaded from default parameters file
       %% Constructor: default_params
       obj.default_params = default_params;
-      
       
       %% Constructor: GUI
       obj.h_fig = h_fig;
@@ -386,7 +406,7 @@ classdef (HandleCompatible = true) echowin < handle
       obj.crossovers.source_elev = []; % elevation of platform for each crossover
       obj.crossovers.cross_elev = []; % elevation of platform in crossover echogram for each crossover
       obj.crossovers.layer_id = []; % layer ID for each crossover
-      obj.crossovers.frame_name = []; % frame string ID of crossover echogram
+      obj.crossovers.frm_str = []; % frame string ID of crossover echogram
       obj.crossovers.twtt = []; % twtt of the layer in the crossover echogram
       obj.crossovers.angle = []; % crossover angle (0 deg means crossover echogram is parallel to the currently loaded echogram)
       obj.crossovers.abs_error = []; % absolute difference between twtt to each layer
@@ -431,26 +451,26 @@ classdef (HandleCompatible = true) echowin < handle
     
     %% Echowin GUI callback Methods
     close_win(obj,varargin);
-    delete_layerPB_callback(obj,hObj,event);
+    crossoverPB_callback(obj,hObj,event);
     display_modePM_callback(obj,hObj,event);
     framesPM_callback(obj,hObj,event);
-    frameLB_callback(obj,hObj,event);
     frameCM_callback(obj,hObj,event);
-    layerLB_callback(obj,hObj,event);
+    frameLB_callback(obj,hObj,event);
     layerCM_callback(obj,source,event);
-    new_layerPB_callback(obj,hObj,event);
+    layerLB_callback(obj,hObj,event);
     paramPB_callback(obj,hObj,event);
+    qualityPM_callback(obj,source,event);
+    savePB_callback(obj,hObj,event);
+    sourceCM_callback(obj,source,event);
     sourceLB_callback(obj,hObj,event);
     toolPM_callback(obj,hObj,event);
     xaxisPM_callback(obj,hObj,event);
     yaxisPM_callback(obj,hObj,event);
-    savePB_callback(obj,hObj,event);
-    crossoverPB_callback(obj,hObj,event);
+    
     idx = crossovers_closest(obj,gps_time,twtt);
     open_crossover(obj,source,event);
     cursor_crossover(obj,source,event);
     cur_frame = get_crossover(pbj);
-    sourceCM_callback(obj,source,event);
     [fn,comment] = imagewin_fn_callback(obj,fn);
     imagewin_save_mat_callback(obj,h_obj,event);
     status_text_copy_callback(obj,source,event);
@@ -469,17 +489,18 @@ classdef (HandleCompatible = true) echowin < handle
     plot_crossovers(obj);
     plot_layers(obj);
     plot_cursors(obj);
-    set_cursor_by_map(obj,x,y);
+    rline = update_cursor(obj,x,y,notify_en);
+    set_cursor_by_map(obj,lat,lon,type,elev)
     update_source_fns_existence(obj);
     update_frame_and_sourceLB(obj,frm);
     
     set_visibility(obj,varargin); % Layer colors
     change_dynamic_range(obj);
     change_display_c(obj);
+    layerLB_str(obj);
     new_layerPB_OKbutton_callback(obj,hObj,event);
     new_layerPB_close_callback(obj,hObj,event);
     cancel_operation = undo_stack_modified_check(obj);
-    quality_menu_callback(obj,source,event);
     toggle_imagewin_visibility(obj,h_obj,event);
     update_layer_plots(obj); % Update layer plots, called from cmds_execute
     

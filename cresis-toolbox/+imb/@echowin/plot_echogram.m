@@ -46,6 +46,36 @@ elseif xaxis_choice == 3 % GPS time
   obj.eg.x_label = 'GPS time';
 end
 
+% Create the image_* variables for faster interpolation of cursor
+obj.eg.image_lat = interp1(obj.eg.gps_time,obj.eg.lat,obj.eg.image_gps_time,'linear');
+obj.eg.image_lon = interp1(obj.eg.gps_time,obj.eg.lon,obj.eg.image_gps_time,'linear');
+obj.eg.image_elev = interp1(obj.eg.gps_time,obj.eg.elev,obj.eg.image_gps_time,'linear');
+obj.eg.image_surf_twtt = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.image_gps_time,'linear');
+
+obj.eg.image_ecef = zeros(3,length(obj.eg.image_gps_time));
+[obj.eg.image_ecef(1,:),obj.eg.image_ecef(2,:),obj.eg.image_ecef(3,:)] ...
+  = geodetic2ecef(obj.eg.image_lat/180*pi,obj.eg.image_lon/180*pi,obj.eg.image_elev,WGS84.ellipsoid);
+[z_vec_x,z_vec_y,z_vec_z] = geodetic2ecef(obj.eg.image_lat/180*pi,obj.eg.image_lon/180*pi,obj.eg.image_elev-1,WGS84.ellipsoid);
+
+obj.eg.image_y_vec = zeros(3,length(obj.eg.image_gps_time));
+obj.eg.image_z_vec = zeros(3,length(obj.eg.image_gps_time));
+Nx = size(obj.eg.image_ecef,2);
+for rline = 1:Nx
+  % Construct x-vector (points along-track)
+  start_rline = max(1,rline-10);
+  stop_rline = min(Nx,rline+10);
+  x_vec = obj.eg.image_ecef(:,stop_rline) - obj.eg.image_ecef(:,start_rline);
+  % Construct z-vector (points up)
+  obj.eg.image_z_vec(:,rline) = [obj.eg.image_ecef(1,rline)-z_vec_x(rline); obj.eg.image_ecef(2,rline)-z_vec_y(rline); obj.eg.image_ecef(3,rline)-z_vec_z(rline)];
+  % Construct y-vector (points left)
+  obj.eg.image_y_vec(:,rline) = cross(x_vec,obj.eg.image_z_vec(:,rline));
+  % Normalize vectors
+  obj.eg.image_y_vec(:,rline) = obj.eg.image_y_vec(:,rline) ...
+    ./ sqrt(dot(obj.eg.image_y_vec(:,rline),obj.eg.image_y_vec(:,rline)));
+  obj.eg.image_z_vec(:,rline) = obj.eg.image_z_vec(:,rline) ...
+    ./ sqrt(dot(obj.eg.image_z_vec(:,rline),obj.eg.image_z_vec(:,rline)));
+end
+
 % ======================================================================
 %% Convert the data along the y-axis according to the units
 % perform y-axis conversion (from twtt)

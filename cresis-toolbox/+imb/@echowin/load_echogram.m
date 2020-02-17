@@ -139,7 +139,7 @@ for frame_idx = 1:length(loading_frame_idxs)
   tmp.Longitude = tmp.Longitude(valid_mask);
   tmp.Elevation = tmp.Elevation(valid_mask);
   tmp.GPS_time = tmp.GPS_time(valid_mask);
-  if isfield(tmp,'Surface')
+  if isfield(tmp,'Surface') && ~isempty(tmp.Surface)
     tmp.Surface = tmp.Surface(valid_mask);
   else
     tmp.Surface = NaN*tmp.GPS_time;

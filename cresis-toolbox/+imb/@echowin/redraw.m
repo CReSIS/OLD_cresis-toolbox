@@ -168,7 +168,6 @@ else
   drawnow;
   fprintf('START ECHOWIN REDRAW (%s)\n',datestr(now,'HH:MM:SS'));
   
-  load_new_data = 0;
   clipped = param.clipped;
   
   old_frame_idxs = obj.eg.frms;
@@ -192,21 +191,31 @@ else
     obj.plot_crossovers();
   else
     obj.load_flightline();
+    % Reset any layer changes since we are reloading layers
+    obj.eg.layers.lyr_name = obj.eg.layers.saved.lyr_name;
+    obj.eg.layers.lyr_group_name = obj.eg.layers.saved.lyr_group_name;
+    obj.eg.layers.lyr_id = obj.eg.layers.saved.lyr_id;
+    save_selected_layers = obj.eg.layers.selected_layers;
+    save_visible_layers = obj.eg.layers.visible_layers;
+    obj.eg.layers.selected_layers = false(size(obj.eg.layers.lyr_id));
+    obj.eg.layers.visible_layers = true(size(obj.eg.layers.lyr_id));
     obj.load_layers();
     obj.plot_echogram(x_min,x_max,y_min,y_max);
     obj.plot_layers();
     obj.crossovers.en = obj.crossovers.gui.crossovers_en();
     obj.load_crossovers();
     obj.plot_cursors();
+    
+    % Since we have reloaded the layers, we must resync to our undo stack
+    % to re-execute any un-saved changes
+    cmds_list = obj.undo_stack.get_save_cmds(false);
+    obj.cmds_execute(cmds_list,'redo');
+    obj.eg.layers.selected_layers = save_selected_layers;
+    obj.eg.layers.visible_layers = save_visible_layers;
   end
   
   % Change dynamic range
   obj.left_panel.imagewin.update_caxis();
-  
-  % Since we have reloaded the layers, we must resync to our undo stack
-  % to re-execute any un-saved changes
-  cmds_list = obj.undo_stack.get_save_cmds(false);
-  obj.cmds_execute(cmds_list,'redo');
   
   %% Set layer and cross over visibility
   obj.set_visibility();
@@ -238,5 +247,3 @@ end
 % Plot new selection on flight path (calls
 % mapwin.update_echowin_flightlines)
 notify(obj,'update_echowin_flightline');
-
-return;

@@ -72,6 +72,8 @@ end
 %% Plot layers
 %% WARNING: DO NOT IMPLEMENT WITH SCATTER... TOO SLOW RENDERING
 layer_data_x = obj.eg.layers.x;
+obj.eg.layers.x_curUnit = {};
+obj.eg.layers.y_curUnit = {};
 for idx = 1:length(layer_data_x)
   % Convert x-axis units
   layer_x_curUnit = interp1(obj.eg.image_gps_time,...

@@ -4,16 +4,12 @@ function button_motion(obj,src,event)
 % Called by echowin when mouse cursor is moved. Handles tracking mouse position
 % and mouse cursor changing when outside of axes
 
-set(obj.h_fig,'Units','normalized');
-mouse_pos = get(obj.h_fig,'CurrentPoint');
-set(obj.right_panel.handle,'Units','normalized');
-uipanel_pos = get(obj.right_panel.handle,'Position');
-set(obj.right_panel.handle,'Units','Points');
 if obj.busy_mode
-  set(obj.h_fig,'Pointer','watch');
+  set(obj.h_fig,'Pointer','watch'); drawnow;
 else
+  mouse_pos = get(obj.h_fig,'CurrentPoint');
+  uipanel_pos = get(obj.right_panel.handle,'Position');
   % check if inside status bar
-  set(obj.right_panel.status_panel.handle,'Units','normalized');
   status_pos = get(obj.right_panel.status_panel.handle,'Position');
   status_h = status_pos(4);
   if mouse_pos(1) < uipanel_pos(1) || mouse_pos(2) < status_h
@@ -22,65 +18,60 @@ else
   elseif obj.zoom_mode
     set(obj.h_fig,'Pointer','custom');
   end
-  if ~obj.busy_mode
-    % print current mouse position to status bar
-    axis_pos = get(obj.h_axes,'CurrentPoint');
-    axis_pos = axis_pos(1,:);
-    xlim = sort(get(obj.h_axes,'XLim'));
-    ylim = sort(get(obj.h_axes,'YLim'));
-    below_x = axis_pos(1) < xlim(1);
-    above_x = axis_pos(1) > xlim(2);
-    below_y = axis_pos(2) < ylim(1);
-    above_y = axis_pos(2) > ylim(2);
-    % correct edges
-    if below_x
-      x = xlim(1);
-    elseif above_x
-      x = xlim(2);
-    else
-      x = axis_pos(1);
-    end
-    if below_y
-      y = ylim(1);
-    elseif above_y
-      y = ylim(2);
-    else
-      y = axis_pos(2);
-    end
-    % get gps time
-    gps_t = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,x,'linear','extrap');
-    % get x and y positions
-    try
-      xpos = interp1(obj.eg.map_gps_time,obj.eg.map_x*obj.eg.map.scale,gps_t,'linear','extrap');
-      ypos = interp1(obj.eg.map_gps_time,obj.eg.map_y*obj.eg.map.scale,gps_t,'linear','extrap');
-    catch ME
-      warning(sprintf('Duplicate values in map''s GPS time, should be addressed (%s)',obj.eg.cur_sel.day_seg));
-      [unique_gps unique_idxs] = unique(obj.eg.map_gps_time);
-      xpos = interp1(unique_gps,obj.eg.map_x(unique_idxs)*obj.eg.map.scale,gps_t,'linear','extrap');
-      ypos = interp1(unique_gps,obj.eg.map_y(unique_idxs)*obj.eg.map.scale,gps_t,'linear','extrap');
-    end
-    loc = obj.eg.cur_sel.location;
-    if obj.eg.map.source == 1
-      [lat,lon] = google_map.world_to_latlon(xpos,256-ypos);
-    else
-      [lat,lon] = projinv(obj.eg.proj,xpos,ypos);
-    end
-    yaxis_unit = get(obj.left_panel.yaxisPM,'Value');
-    switch yaxis_unit
-      case 1
-        y_unit = 'us';
-      case 2
-        y_unit = 'm';
-      case 3
-        y_unit = 'm';
-      case 4
-        y_unit = '';
-      case 5
-        y_unit = 'm';
-    end
-    set(obj.right_panel.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW Y=%8.4f%s',lat,lon,y,y_unit));
+  
+  % Check limits and clamp point to be axes limits
+  axis_pos = get(obj.h_axes,'CurrentPoint');
+  axis_pos = axis_pos(1,:);
+  xlim = sort(get(obj.h_axes,'XLim'));
+  ylim = sort(get(obj.h_axes,'YLim'));
+  below_x = axis_pos(1) < xlim(1);
+  above_x = axis_pos(1) > xlim(2);
+  below_y = axis_pos(2) < ylim(1);
+  above_y = axis_pos(2) > ylim(2);
+  % correct edges
+  if below_x
+    x = xlim(1);
+  elseif above_x
+    x = xlim(2);
+  else
+    x = axis_pos(1);
   end
+  if below_y
+    y = ylim(1);
+  elseif above_y
+    y = ylim(2);
+  else
+    y = axis_pos(2);
+  end
+  
+  if obj.cursor_mode
+    rline = obj.update_cursor(x,y,true);
+  else
+    % Find the range line in the image closest to the x-value "x"
+    [~,rline] = min(abs(obj.eg.image_xaxis-x));
+  end
+  
+  % Get the CData
+  cdata = 10*log10(obj.eg.image_data(min(size(obj.eg.image_data,1),max(1,1+round((y-obj.eg.image_yaxis(1))/(obj.eg.image_yaxis(2)-obj.eg.image_yaxis(1))))), rline));
+  
+  % Print mouse position to status bar
+  set(obj.right_panel.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW (%.0f,%g,%.0f)',obj.eg.image_lat(rline),obj.eg.image_lon(rline),x,y,cdata));
+  
+  % OLD: Print mouse position to status bar
+  %       yaxis_unit = get(obj.left_panel.yaxisPM,'Value');
+  %       switch yaxis_unit
+  %         case 1
+  %           y_unit = 'us';
+  %         case 2
+  %           y_unit = 'm';
+  %         case 3
+  %           y_unit = 'm';
+  %         case 4
+  %           y_unit = '';
+  %         case 5
+  %           y_unit = 'm';
+  %       end
+  % set(obj.right_panel.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW Y=%8.4f%s',lat,lon,y,y_unit));
 end
 
-return
-
+end

@@ -1,4 +1,4 @@
-classdef picktool_browse < imb.picktool
+classdef picktool_browse < imb.picktool & handle
   
   properties
     % h_fig Inherited
@@ -9,6 +9,10 @@ classdef picktool_browse < imb.picktool
   properties (SetAccess = private, GetAccess = private)
   end
   
+  events
+    ascope_memory % Signalled by right click to write to a-scope memory 
+  end
+
   methods
     function obj = picktool_browse(h_fig)
       %%% Pre Initialization %%%
@@ -37,6 +41,7 @@ classdef picktool_browse < imb.picktool
     cmds = left_click(obj,h_image,layers,cur_layers,x,y,param);
     cmds = left_click_and_drag(obj,h_layer,h_image,layers,cur_layers,x,y,param);
     
+    cmds = right_click(obj,h_image,layers,cur_layers,x,y,param);
   end
   
 end

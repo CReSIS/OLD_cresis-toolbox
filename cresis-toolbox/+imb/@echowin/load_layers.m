@@ -36,7 +36,7 @@ if strcmpi(obj.eg.layers.source,'OPS')
   obj.eg.layers.y = {};
   obj.eg.layers.qual = {};
   obj.eg.layers.type = {};
-  for idx = 1:length(obj.eg.layers.lyr_id)
+  for idx = 1:length(obj.eg.layers.lyr_name)
     obj.eg.layers.x{idx} = double(obj.eg.map_gps_time); % gps-time
     obj.eg.layers.y{idx} = nan(size(obj.eg.map_id)); % twtt
     obj.eg.layers.qual{idx} = nan(size(obj.eg.map_id)); % integer 1-3
@@ -70,6 +70,10 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
   
   %% LayerData: Preallocate layer arrays
   fprintf(' Loading layer points from layerData (%s)\n',datestr(now));
+  obj.eg.layers.x = {};
+  obj.eg.layers.y = {};
+  obj.eg.layers.qual = {};
+  obj.eg.layers.type = {};
   for idx = 1:length(obj.eg.layers.lyr_id)
     obj.eg.layers.x{idx} = []; % gps time
     obj.eg.layers.y{idx} = []; % twtt
@@ -82,7 +86,7 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
     GPS_time = obj.undo_stack.user_data.layer_info(frm).GPS_time;
     lGPS = cat(2,lGPS,GPS_time); % concatenates the layer GPS time
     
-    for idx=1:length(obj.eg.layers.lyr_id)
+    for idx=1:length(obj.eg.layers.lyr_name)
       obj.eg.layers.x{idx} = cat(2,obj.eg.layers.x{idx},GPS_time); % gps time
       qual = obj.undo_stack.user_data.layer_info(frm).layerData{idx}.quality;
       obj.eg.layers.qual{idx} = cat(2,obj.eg.layers.qual{idx},qual); % quality (integer 1-3)

@@ -1,5 +1,9 @@
 function frameLB_callback(obj,hObj,event)
 
+% Ensure focus stays on figure to prevent hotkeys registering with this
+% uicontrol.
+uicontrol(obj.right_panel.status_panel.statusText);
+
 if strcmpi(get(obj.h_fig,'SelectionType'),'open')
   % Double click
   %  - On a double click, the callback is called twice: once with
@@ -25,14 +29,6 @@ if strcmpi(get(obj.h_fig,'SelectionType'),'open')
     obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',2));
   end
   
-  try
-    warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-    javaFrame = get(obj.h_fig,'JavaFrame');
-    javaFrame.getAxisComponent.requestFocus;
-  catch
-    obj.status_text_set(sprintf('Focus error, click inside echogram window before using key shortcuts'),'replace');
-  end
-  
 else
   % Regular click
   frame_idx = get(obj.left_panel.frameLB,'Value');
@@ -44,5 +40,3 @@ else
     notify(obj,'update_map_selection');
   end
 end
-
-return

@@ -6,12 +6,20 @@ classdef (HandleCompatible = true) mapwin < handle
     map_pref          % Preference window
     echowin_list      % Vector of imb.echowin class windows
     undo_stack_list   % Vector of imb.undo_stack class objects (one per segment that is modified)
+    map_ascope        % Ascope window
 
     % GUI handles and UI related objects
     h_fig             % Figure handle
     table             % Figure's top level table
     top_panel         % Top panel and handles
     map_panel         % Axes panel and handles
+    % map_panel.handle
+    % map_panel.h_axes
+    % map_panel.h_image
+    % map_panel.h_flightline
+    % map_panel.h_cur_sel
+    % map_panel.h_ascopes_selected
+    % map_panel.h_ascopes
     status_panel      % Bottom panel and status bar handles
     echowin_maps      % Struct vector of echowin map graphics:
                       % flightlines (h_line), labels (h_text), and cursors (h_cursor)
@@ -19,6 +27,7 @@ classdef (HandleCompatible = true) mapwin < handle
     % Status information for mouse/key board callbacks
     control_pressed
     shift_pressed
+    alt_pressed
     click_x
     click_y
     zoom_mode
@@ -51,7 +60,7 @@ classdef (HandleCompatible = true) mapwin < handle
     % map.yaxis_default % Current yaxis default bounds
     % map.xaxis % Current xaxis
     % map.yaxis % Current yaxis
-    % map.sel % map selection (red line): .frame_name, .season_name, .segment_id
+    % map.sel % map selection (red line): .frm_str, .season_name, .segment_id
     % map.sel.frm_str
     % map.sel.radar_name
     % map.sel.season_name
@@ -182,6 +191,9 @@ classdef (HandleCompatible = true) mapwin < handle
         obj.map_pref = imb.prefwin([],obj.default_params.prefwin);
         obj.cur_map_pref_settings = obj.map_pref.settings;
         addlistener(obj.map_pref,'StateChange',@obj.get_map);
+        obj.map_ascope = imb.ascopewin([]);
+        addlistener(obj.map_ascope,'StateChange',@obj.update_ascopewin_cursors);
+
       catch ME
         delete(obj);
         rethrow(ME);
@@ -193,6 +205,11 @@ classdef (HandleCompatible = true) mapwin < handle
       try
         % Delete the map preferences window
         delete(obj.map_pref);
+      end
+      
+      try
+        % Delete the map ascope window
+        delete(obj.map_ascope);
       end
       
       try
@@ -245,6 +262,7 @@ classdef (HandleCompatible = true) mapwin < handle
     update_echowin_flightlines(obj,src,event); % Called when echowin x-axis (i.e. flightline position) changes, updates the map
     update_echowin_cursors(obj,src,event); % Called when a echowin cursor position changes, causes all echowin cursors to be updated
     update_map_selection_echowin(obj,src,event); % Updates the currect flight line selection (from echowin frame selection)
+    ascope_memory(obj,h_obj,event); % Handles echowin/picktool_browse ascope_memory event
   end
   
 end

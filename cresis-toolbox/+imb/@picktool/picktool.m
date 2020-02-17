@@ -39,6 +39,7 @@ classdef (HandleCompatible = true) picktool < handle
 
     
     % param struct fields:
+    % echowin: pointer to parent echowin
     % x, y = click position or region relative to XData,YData
     %   click produces scalars, region (drag) provides 2x1 sorted bounds
     % cur_layers = currently selected layer indexes
@@ -68,9 +69,15 @@ classdef (HandleCompatible = true) picktool < handle
     % delete args: layer index, 4-element vector of [x-range y-range]
     
     function cmds = left_click(obj,param)
+      cmds = [];
     end
     
     function cmds = left_click_and_drag(obj,param)
+      cmds = [];
+    end
+    
+    function cmds = right_click(obj,param)
+      cmds = [];
     end
     
     cmds = right_click_and_drag(obj,param);

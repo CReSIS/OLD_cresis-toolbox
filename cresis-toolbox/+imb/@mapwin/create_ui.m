@@ -79,6 +79,8 @@ obj.map_panel.h_flightline = plot(1,1,'Parent',obj.map_panel.h_axes,'Color','blu
 set(obj.map_panel.h_flightline,'XData',[],'YData',[]);
 obj.map_panel.h_cur_sel = plot(1,1,'Parent',obj.map_panel.h_axes,'Color','red','LineWidth',4);
 set(obj.map_panel.h_cur_sel,'XData',[],'YData',[]);
+obj.map_panel.h_ascopes_selected = plot(NaN,NaN,'x','Parent',obj.map_panel.h_axes,'Color','red','LineWidth',4);
+obj.map_panel.h_ascopes = plot(NaN,NaN,'x','Parent',obj.map_panel.h_axes,'Color','blue','LineWidth',4);
 set(obj.map_panel.h_axes,'Visible','off');
 
 %----status panel (status bar)

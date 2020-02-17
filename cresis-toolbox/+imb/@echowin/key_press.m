@@ -16,6 +16,7 @@ function key_press(obj,src,event)
 %   Control: none
 % -----------------------------------------------------------------------
 
+current_object = gco;
 modifiers = get(event.Source,'CurrentModifier');
 obj.shift_pressed = ismember('shift',   modifiers);  % true/false
 obj.control_pressed  = ismember('control', modifiers);  % true/false
@@ -176,6 +177,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       set(obj.left_panel.toolPM,'Value',4);
       tmp = obj.tool.list{4}; obj.tool.left_click_fh = @tmp.left_click;
       tmp = obj.tool.list{4}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{4}; obj.tool.right_click_fh = @tmp.right_click;
       tmp = obj.tool.list{4}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();      
       
@@ -183,7 +185,8 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       if any(strcmp('control',event.Modifier))
         obj.status_text_copy_callback();
       elseif any(strcmp('shift',event.Modifier))
-        if ~obj.crossovers.en
+        if ~obj.crossovers.en && strcmp(obj.eg.layers.source,'OPS')
+          % Cross overs can only be enabled when using OPS layer data
           obj.crossovers.en = true;
           obj.load_crossovers();
         end
@@ -194,6 +197,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         set(obj.left_panel.toolPM,'Value',5);
         tmp = obj.tool.list{5}; obj.tool.left_click_fh = @tmp.left_click;
         tmp = obj.tool.list{5}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{5}; obj.tool.right_click_fh = @tmp.right_click;
         tmp = obj.tool.list{5}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();      
       end
@@ -202,6 +206,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       set(obj.left_panel.toolPM,'Value',1);
       tmp = obj.tool.list{1}; obj.tool.left_click_fh = @tmp.left_click;
       tmp = obj.tool.list{1}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{1}; obj.tool.right_click_fh = @tmp.right_click;
       tmp = obj.tool.list{1}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();      
       
@@ -217,11 +222,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       set(obj.left_panel.toolPM,'Value',1);
       tmp = obj.tool.list{1}; obj.tool.left_click_fh = @tmp.left_click;
       tmp = obj.tool.list{1}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{1}; obj.tool.right_click_fh = @tmp.right_click;
       tmp = obj.tool.list{1}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();
-      
-    case 'm'
-      %% Toggle marker mode
       
     case 'p'
       %% Toggle param window
@@ -232,8 +235,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         set(obj.left_panel.toolPM,'Value',2);
         tmp = obj.tool.list{2}; obj.tool.left_click_fh = @tmp.left_click;
         tmp = obj.tool.list{2}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{2}; obj.tool.right_click_fh = @tmp.right_click;
         tmp = obj.tool.list{2}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
-        obj.toolPM_callback();        
+        obj.toolPM_callback();
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         new_quality = 1+mod(get(obj.left_panel.qualityPM,'Value'), ...
           length(get(obj.left_panel.qualityPM,'String')));
@@ -249,6 +253,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         set(obj.left_panel.toolPM,'Value',3);
         tmp = obj.tool.list{3}; obj.tool.left_click_fh = @tmp.left_click;
         tmp = obj.tool.list{3}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{3}; obj.tool.right_click_fh = @tmp.right_click;
         tmp = obj.tool.list{3}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();        
       elseif ~obj.shift_pressed && ~obj.alt_pressed && obj.control_pressed
@@ -269,12 +274,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         print('-dpng',sprintf('-f%d',obj.h_fig),fn);
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         %% Save current layers
-        obj.busy_mode = true;
-        set(obj.h_fig,'Pointer','watch');
-        drawnow;
         obj.savePB_callback();
-        set(obj.h_fig,'Pointer','Arrow');
-        obj.busy_mode = false;
       end
       
     case 'v'
@@ -352,9 +352,13 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
           end
         end
       end
+      obj.layerLB_str();
       obj.set_visibility();
       
     case 'downarrow' % Down-arrow: Move Echogram Down
+      if current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB
+        return
+      end
       % check if echogram is selected
       cur_axis = [get(obj.h_axes,'Xlim') ...
         get(obj.h_axes,'YLim')];
@@ -373,6 +377,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
     case 'uparrow' % Up-arrow: Move Echogram Up
+      if current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB
+        return
+      end
       % check if echogram is selected
       cur_axis = [get(obj.h_axes,'Xlim') ...
         get(obj.h_axes,'YLim')];
@@ -394,11 +401,15 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       cur_axis = [get(obj.h_axes,'Xlim') ...
         get(obj.h_axes,'YLim')];
       
+      xlims_orig = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       x_extent = cur_axis(2) - cur_axis(1);
       cur_axis(1:2) = cur_axis(1:2) + x_extent*0.25;
       
       % Convert x_min, x_max to GPS time
       xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      if xlims(2) > obj.eg.stop_gps_time(end)
+        xlims = obj.eg.stop_gps_time(end) + [-diff(xlims_orig) 0];
+      end
       
       % Draw data with new axis
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
@@ -408,16 +419,17 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         get(obj.h_axes,'YLim')];
       
       x_extent = cur_axis(2) - cur_axis(1);
-      cur_axis(1:2) = cur_axis(1:2) - x_extent*0.25;
+      xlims_orig = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       
+      cur_axis(1:2) = cur_axis(1:2) - x_extent*0.25;
       % Convert x_min, x_max to GPS time
       xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      if xlims(1) < obj.eg.start_gps_time(1)
+        xlims = obj.eg.start_gps_time(1) + [0 diff(xlims_orig)];
+      end
       
       % Draw data with new axis
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
       
   end
-  obj.shift_pressed = false;
-  obj.control_pressed = false;
-  obj.alt_pressed = false;
 end

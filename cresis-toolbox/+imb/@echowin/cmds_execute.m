@@ -227,12 +227,7 @@ obj.h_quality(6*(idx-1)+6) = plot(obj.h_axes,1,1,'r--');
 set(obj.h_quality(6*(idx-1)+(1:6)),'Visible','off');
 set(obj.h_layer(2*(idx-1)+1),'Visible','on');  % manual
 
-
-LB_strings = cell(1,length(obj.eg.layers.lyr_id));
-for idx = 1:length(obj.eg.layers.lyr_id)
-  LB_strings{idx} = sprintf('(%d) %s:%s',idx,obj.eg.layers.lyr_group_name{idx},obj.eg.layers.lyr_name{idx});
-end
-set(obj.left_panel.layerLB,'String',LB_strings);
+obj.layerLB_str();
 set(obj.left_panel.layerLB,'Value',val);
 
 obj.plot_layers();
@@ -262,11 +257,7 @@ delete(obj.h_quality((val-1)*6+(1:6)));
 obj.h_layer = [obj.h_layer(1:2*(val-1)) obj.h_layer(2*(val+1)-1:end)];
 obj.h_quality = [obj.h_quality(1:6*(val-1)) obj.h_quality(6*(val+1)-5:end)];
 
-LB_strings = cell(1,length(obj.eg.layers.lyr_id));
-for idx = 1:length(obj.eg.layers.lyr_id)
-  LB_strings{idx} = sprintf('(%d) %s:%s',idx,obj.eg.layers.lyr_group_name{idx},obj.eg.layers.lyr_name{idx});
-end
-set(obj.left_panel.layerLB,'String',LB_strings);
+obj.layerLB_str();
 set(obj.left_panel.layerLB,'Value',[]);
 
 end
@@ -305,11 +296,7 @@ if new_val ~= val
   obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
 end
 
-LB_strings = cell(1,length(obj.eg.layers.lyr_id));
-for idx = 1:length(obj.eg.layers.lyr_id)
-  LB_strings{idx} = sprintf('(%d) %s:%s',idx,obj.eg.layers.lyr_group_name{idx},obj.eg.layers.lyr_name{idx});
-end
-set(obj.left_panel.layerLB,'String',LB_strings);
+obj.layerLB_str();
 set(obj.left_panel.layerLB,'Value',new_val);
 
 end

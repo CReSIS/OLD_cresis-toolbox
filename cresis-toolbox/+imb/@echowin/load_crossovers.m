@@ -34,7 +34,7 @@ else
   data.properties.source_elev = [];
   data.properties.cross_elev = [];
   data.properties.layer_id = [];
-  data.properties.frame_name = [];
+  data.properties.frm_str = [];
   data.properties.twtt = [];
   data.properties.angle = [];
   data.properties.abs_error = [];
@@ -51,7 +51,7 @@ obj.crossovers.gui.set_crossovers(data.properties);
 % source_elev = double array
 % cross_elev = double array
 % layer_id = integer array
-% frame_name = integer array
+% frm_str = integer array
 % properties.twtt = double array
 % properties.angle = double array
 % properties.abs_error = double array

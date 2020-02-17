@@ -7,7 +7,9 @@ function create_ui(obj)
 
 %% Echowin figure
 % =========================================================================
+set(obj.h_fig,'Units','pixels')
 set(obj.h_fig,'Position',[obj.default_params.x obj.default_params.y obj.default_params.w obj.default_params.h]);
+set(obj.h_fig,'Units','normalized')
 set(obj.h_fig,'DockControls','off')
 set(obj.h_fig,'NumberTitle','off');
 if strcmpi(class(obj.h_fig),'double')
@@ -177,6 +179,7 @@ clear menuString;
 set(obj.left_panel.toolPM,'Value',1);
 tmp = obj.tool.list{1}; obj.tool.left_click_fh = @tmp.left_click;
 tmp = obj.tool.list{1}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+tmp = obj.tool.list{1}; obj.tool.right_click_fh = @tmp.right_click;
 tmp = obj.tool.list{1}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
 
 set(obj.left_panel.toolPM,'Style','popupmenu');
@@ -206,7 +209,7 @@ clear menuString;
 set(obj.left_panel.qualityPM,'Style','popupmenu');
 set(obj.left_panel.qualityPM,'HorizontalAlignment','Center');
 set(obj.left_panel.qualityPM,'FontName','fixed');
-set(obj.left_panel.qualityPM,'callback',@obj.quality_menu_callback);
+set(obj.left_panel.qualityPM,'callback',@obj.qualityPM_callback);
 set(obj.left_panel.qualityPM,'TooltipString','Set the active quality level');
 
 %% left_panel.imagewin (Image Processing)
@@ -355,7 +358,7 @@ obj.left_panel.layerCM_new = uimenu(obj.left_panel.layerCM, 'Label', '&New layer
 obj.left_panel.layerCM_copy = uimenu(obj.left_panel.layerCM, 'Label', '&Copy layer', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_edit = uimenu(obj.left_panel.layerCM, 'Label', '&Edit layer', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_up = uimenu(obj.left_panel.layerCM, 'Label', '&Up', 'Callback', @obj.layerCM_callback);
-obj.left_panel.layerCM_down= uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_down = uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_top = uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_bottom = uimenu(obj.left_panel.layerCM, 'Label', '&Bottom', 'Callback', @obj.layerCM_callback);
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
@@ -454,7 +457,7 @@ obj.h_image = imagesc([],[],[],'parent',obj.h_axes);
 obj.left_panel.imagewin.set_img(obj.h_image);
 
 % Create cursor plot handle
-obj.cursor.h = plot(NaN,NaN,'k--','parent',obj.h_axes);
+obj.cursor.h = plot(NaN,NaN,'kx--','parent',obj.h_axes);
 
 % create statusbar panel
 obj.right_panel.status_panel.handle = uipanel('Parent',obj.right_panel.handle);
@@ -471,6 +474,7 @@ else
 end
 set(obj.right_panel.status_panel.statusText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.statusText,'String','');
+set(obj.right_panel.status_panel.statusText,'TooltipString','Right click to copy status bar text');
 
 % mouse coordinate info display
 obj.right_panel.status_panel.mouseCoordText = uicontrol('parent',obj.right_panel.status_panel.handle);
@@ -483,6 +487,7 @@ else
 end
 set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.mouseCoordText,'String','');
+set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Latitude deg, Longitude deg (X, Y, ColorData)');
 
 %----echogram context menu
 obj.right_panel.echoCM= uicontextmenu('parent',obj.h_fig);
@@ -531,3 +536,7 @@ obj.right_panel.table.height_margin(row,col)=0;
 obj.right_panel.table.false_height(row,col)=0;
 clear row col
 table_draw(obj.right_panel.table);
+
+% Set all units to normalized for doing calculations with mouse clicks later
+set(obj.right_panel.handle,'Units','normalized');
+set(obj.right_panel.status_panel.handle,'Units','normalized');
