@@ -24,7 +24,7 @@ if strcmpi(obj.eg.layers.source,'OPS')
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;
   ops_param.properties.season = obj.eg.cur_sel.season_name;
-  ops_param.properties.segment_id = obj.eg.cur_sel.segment_id;
+  ops_param.properties.segment_id = obj.eg.cur_sel.seg_id;
   ops_param.properties.start_gps_time = min_gps_time;
   ops_param.properties.stop_gps_time = max_gps_time;
   ops_param.properties.lyr_name = obj.eg.layers.lyr_name;

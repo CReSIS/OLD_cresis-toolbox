@@ -87,7 +87,6 @@ param.cur_sel.frm = str2num(param.cur_sel.frm_str(13:end));
 param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
 param.cur_sel.day_seg = param.cur_sel.frm_str(1:11);
 if strcmp(obj.cur_map_pref_settings.system,'layerdata')
-  param.segment_id = obj.map.sel.seg_id;
   param.system = param.cur_sel.radar_name;
   param.cur_sel.radar_name = param.cur_sel.radar_name;
   param.cur_sel.season_name = param.cur_sel.season_name;

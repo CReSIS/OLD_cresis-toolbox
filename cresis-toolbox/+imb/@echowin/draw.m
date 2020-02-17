@@ -2,8 +2,30 @@ function draw(obj,param)
 % draw(obj,param)
 %
 % Member function of imb.echowin class.
-%
 % Loads a new dataset into the pick window from the map window.
+%
+% param.layers.lyr_name;
+% param.layers.lyr_group_name;
+% param.layers.lyr_id;
+%
+% param.cur_sel.frm;
+% param.cur_sel.seg_id;
+% param.cur_sel.season_name;
+% param.cur_sel.radar_name;
+% param.cur_sel.location;
+% param.cur_sel.day_seg;
+% 
+% param.system;
+% param.layer_source;
+% param.layer_data_source;
+% 
+% param.map.source: 0 (OPS) or 1 (season layer data files)
+% param.map.scale: 1 (google maps) or 1000 (OPS/geotiff)
+% 
+% param.start_gps_time: Nfrm length vector with start time for each frame
+% param.stop_gps_time: Nfrm length vector with start time for each frame
+%
+% Author: John Paden
 
 obj.busy_mode = true;
 set(obj.h_fig,'Pointer','watch');
@@ -16,7 +38,7 @@ obj.eg.sources = param.sources;
 obj.eg.layers.lyr_name = param.layers.lyr_name;
 obj.eg.layers.lyr_group_name = param.layers.lyr_group_name;
 obj.eg.layers.lyr_id = param.layers.lyr_id;
-obj.eg.layers.surf_id = param.layers.surf_id;
+obj.eg.layers.surf_id = 1;
 obj.eg.layers.saved.lyr_name = obj.eg.layers.lyr_name;
 obj.eg.layers.saved.lyr_group_name = obj.eg.layers.lyr_group_name;
 obj.eg.layers.saved.lyr_id = obj.eg.layers.lyr_id;
@@ -32,8 +54,9 @@ obj.eg.system = param.system;
 obj.eg.layers.source = param.layer_source;
 obj.eg.layers.data_source = param.layer_data_source;
 
-% Get the projection for the current location
-obj.eg.map = param.map;
+% Get the map info and projection for the current location
+obj.eg.map.source = param.map.source;
+obj.eg.map.scale = param.map.scale;
 obj.eg.proj = imb.get_proj_info(obj.eg.cur_sel.location);
 
 %% Drop all currently loaded data
@@ -56,7 +79,7 @@ if strcmp(obj.eg.layers.source,'layerdata')
 else
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;
-  ops_param.properties.segment_id = obj.eg.cur_sel.segment_id;
+  ops_param.properties.segment_id = obj.eg.cur_sel.seg_id;
   [status,data] = opsGetSegmentInfo(obj.eg.system,ops_param);
   obj.eg.frm_strs = {};
   obj.eg.start_gps_time = [];

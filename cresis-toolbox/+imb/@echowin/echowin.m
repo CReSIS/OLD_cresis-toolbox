@@ -173,7 +173,7 @@ classdef (HandleCompatible = true) echowin < handle
     % source_fns_existence: logical array that is Nfrm by Nsrc where Nfrm
     %   is the number of frames in this segment and Nsrc is the number of
     %   echogram sources in eg.sources
-    
+    %
     % data: original Nt by Nx single data matrix (a copy must be kept in case operations
     %   are done on the matrix)
     % gps_time: GPS time of data matrix, represents seconds since Jan 1,
@@ -222,6 +222,15 @@ classdef (HandleCompatible = true) echowin < handle
     %   saved.lyr_name = {}; % Last saved version
     %   saved.lyr_group_name = {}; % Last saved version
     %   saved.lyr_id = {}; % Last saved version
+    %
+    % eg.map_id
+    % eg.map_gps_time
+    % eg.map_x
+    % eg.map_y
+    % eg.map_elev
+    % eg.map.source
+    % eg.map.scale
+
     
     %% Undostack Properties
     undo_stack
@@ -315,7 +324,7 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.system = ''; % string containing accum, kaband, kuband, rds, or snow
       obj.eg.cur_sel = []; % Current selection (originally comes from mapwin current selection)
       obj.eg.cur_sel.frm = []; % frame corresponding to the left side of the echogram display (this will be the active selection in the frameLB)
-      obj.eg.cur_sel.segment_id = []; % 2.0120e+09
+      obj.eg.cur_sel.seg_id = []; % 2.0120e+09
       obj.eg.cur_sel.season_name = ''; % '2012_Greenland_P3'
       obj.eg.cur_sel.radar_name = ''; % 'snow'
       obj.eg.cur_sel.location = ''; % 'arctic'

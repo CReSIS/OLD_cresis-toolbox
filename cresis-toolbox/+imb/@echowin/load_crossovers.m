@@ -11,7 +11,7 @@ if obj.crossovers.en
   ops_param.properties.lyr_name = obj.eg.layers.layer_names;
   ops_param.properties.frame = obj.eg.frm_strs(obj.eg.frms);
   ops_param.properties.segment_id = ones(size(ops_param.properties.frame)) ...
-    *double(obj.eg.cur_sel.segment_id);
+    *double(obj.eg.cur_sel.seg_id);
   
   [status,data] = opsGetCrossovers(obj.eg.system,ops_param);
   
