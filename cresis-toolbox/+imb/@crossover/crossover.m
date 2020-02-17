@@ -250,7 +250,7 @@ classdef crossover < handle
     function cur_frame = get_crossover(obj)
       cur_idx = obj.h_gui.crossoverLB.cur_value;
       cur_frame.frm_str = obj.crossovers.frm_str{cur_idx};
-      cur_frame.segment_id = obj.crossovers.segment_id(cur_idx);
+      cur_frame.seg_id = obj.crossovers.seg_id(cur_idx);
       cur_frame.season_name = obj.crossovers.season_name{cur_idx};
     end
     

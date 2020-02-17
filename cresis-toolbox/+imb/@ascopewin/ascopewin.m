@@ -40,12 +40,12 @@ classdef (HandleCompatible = true) ascopewin < handle
     %   table
     % table
     table
-    zoom_mode
-    zoom_mode_x
-    zoom_mode_y
-    xlims
-    ylims
-    cur_xaxis
+    zoom_mode % zoom mode (not really useful)
+    zoom_mode_x % x of last button down
+    zoom_mode_y % y of last button down
+    xlims % overall xlimits for all ascopes, starts [-inf inf]
+    ylims % overall xlimits for all ascopes, starts [-inf inf]
+    cur_xaxis % 1 == twtt, 2 == depth
     
     %% ascope Properties
     ascope % Structure with ascope information
@@ -59,10 +59,10 @@ classdef (HandleCompatible = true) ascopewin < handle
     % ascope.lat = []; % N_ascope length double vector of platform latitudes
     % ascope.lon = []; % N_ascope length double vector of platform longitude
     % ascope.target_twtt = []; % N_ascope length double vector of target elevations
+    % ascope.xlims = {}; xlimits for each ascope
+    % ascope.ylims = {}; ylimits for each ascope
     % ascope.visible = logical([]); % N_ascope length logical vector (plot is visible)
     % ascope.selected = logical([]); % N_ascope length logical vector (plot is selected)
-    % ascope.xlims = [inf -inf];
-    % ascope.ylims = [inf -inf];
     
     %% default_params Properties
     % default_params = Default parameters loaded from default parameters file
@@ -122,6 +122,8 @@ classdef (HandleCompatible = true) ascopewin < handle
       obj.h_cursor = []; % Cursor plot handle
       obj.zoom_mode = true;
       obj.cur_xaxis = 1;
+      obj.xlims = [inf -inf];
+      obj.ylims = [inf -inf];
     
       obj.ascope = [];
       obj.ascope.echowin = []; % N_ascope length vector of echo window figure numbers
@@ -135,6 +137,8 @@ classdef (HandleCompatible = true) ascopewin < handle
       obj.ascope.lat = []; % N_ascope length double vector of platform latitudes
       obj.ascope.lon = []; % N_ascope length double vector of platform longitude
       obj.ascope.target_twtt = []; % N_ascope length double vector of target twtt
+      obj.ascope.xlims = {};
+      obj.ascope.ylims = {};
       obj.ascope.visible = logical([]); % N_ascope length logical vector
       obj.ascope.selected = logical([]); % N_ascope length logical vector (plot is selected)
       

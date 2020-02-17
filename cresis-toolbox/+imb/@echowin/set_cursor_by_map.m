@@ -34,8 +34,8 @@ if ~obj.busy_mode
     surf_elev = obj.eg.elev(rline) - surf_range;
     slowness_ice = 2/c*sqrt(er_ice);
     if yaxis_choice == 1 % TWTT
-      y = min(obj.eg.image_surf_twtt(rline), (obj.eg.elev(rline)-elev)*slowness_air) ...
-        + min(0, surf_elev-elev)*slowness_ice;
+      y = 1e6*(min(obj.eg.image_surf_twtt(rline), (obj.eg.elev(rline)-elev)*slowness_air) ...
+        + max(0, surf_elev-elev)*slowness_ice);
     elseif yaxis_choice == 2 % WGS_84 Elevation
       y = elev;
     elseif yaxis_choice == 3 % Range

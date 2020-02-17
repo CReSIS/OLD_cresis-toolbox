@@ -8,7 +8,7 @@ if obj.crossovers.en
   %% Crossover management
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;
-  ops_param.properties.lyr_name = obj.eg.layers.layer_names;
+  ops_param.properties.lyr_name = obj.eg.layers.lyr_name;
   ops_param.properties.frame = obj.eg.frm_strs(obj.eg.frms);
   ops_param.properties.segment_id = ones(size(ops_param.properties.frame)) ...
     *double(obj.eg.cur_sel.seg_id);

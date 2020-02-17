@@ -2,7 +2,7 @@ function sourceLB_callback(obj,hObj,event)
 
 % Ensure focus stays on figure to prevent hotkeys registering with this
 % uicontrol.
-% uicontrol(obj.right_panel.status_panel.statusText);
+uicontrol(obj.right_panel.status_panel.statusText);
 
 if strcmpi(get(obj.h_fig,'SelectionType'),'open')
   % Double click

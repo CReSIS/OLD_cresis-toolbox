@@ -9,6 +9,8 @@ set(obj.h_ascope(~obj.ascope.selected),'Color','black');
 set(obj.h_ascope(obj.ascope.visible),'Visible','on');
 set(obj.h_ascope(~obj.ascope.visible),'Visible','off');
 
+first_plot = ~isfinite(obj.xlims(1));
+    
 % Update list box entries
 LB_strings = cell(1,length(obj.ascope.echowin));
 obj.xlims = [inf -inf];
@@ -45,6 +47,10 @@ if val == 2
   physical_constants;
   obj.xlims(obj.xlims<0) = obj.xlims(obj.xlims<0)/1e6 * c/2;
   obj.xlims(obj.xlims>0) = obj.xlims(obj.xlims>0)/1e6 * c/2/sqrt(er_ice);
+end
+if first_plot
+  xlim(obj.h_axes, obj.xlims);
+  ylim(obj.h_axes, obj.ylims);
 end
 
 notify(obj,'StateChange');

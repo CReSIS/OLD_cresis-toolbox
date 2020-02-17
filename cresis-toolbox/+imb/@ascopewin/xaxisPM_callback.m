@@ -48,7 +48,6 @@ if val == 2
   xlims(xlims>0) = xlims(xlims>0)/1e6 * c/2/sqrt(er_ice);
   obj.xlims(obj.xlims<0) = obj.xlims(obj.xlims<0)/1e6 * c/2;
   obj.xlims(obj.xlims>0) = obj.xlims(obj.xlims>0)/1e6 * c/2/sqrt(er_ice);
-  xlim(obj.xlims);
 end
-xlim(obj.xlims);
+xlim(obj.h_axes,obj.xlims);
 obj.cur_xaxis = val;
