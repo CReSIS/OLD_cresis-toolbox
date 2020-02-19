@@ -36,8 +36,14 @@ for cmd_idx = 1:length(cmds_list)
   for sub_idx = 1:length(cmds_list{cmd_idx})
     if strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'insert')
       cmd_type(end+1) = 'i';
-    else
+    elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'delete')
       cmd_type(end+1) = 'd';
+    elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_new')
+      cmd_type(end+1) = 'l';
+    elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_delete')
+      cmd_type(end+1) = 'r'; % remove/delete
+    elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_edit')
+      cmd_type(end+1) = 'e';
     end
     cmd_layers(end+1) = cmds_list{cmd_idx}(sub_idx).redo_args{1};
     cmd_args{end+1} = cmds_list{cmd_idx}(sub_idx).redo_args;
@@ -135,12 +141,12 @@ for cur_layer = unique_layers
     while cur_layer_cmd_idx <= length(cur_layer_cmds)
       cmd_idx = cur_cmd_idxs(cur_layer_cmd_idx);
       sub_idx = cur_sub_idxs(cur_layer_cmd_idx);
-      %% LayerData: Inserting Points
-      % gets information about which points are to be inserted and updates
-      % the layerData file accordingly. Performs necessary steps to convert
-      % from the unique point_path_id to a point number relative to that position
-      % in a single frame
       if cur_cmd_type(cur_layer_cmd_idx) == 'i'
+        %% LayerData: Inserting Points
+        % gets information about which points are to be inserted and updates
+        % the layerData file accordingly. Performs necessary steps to convert
+        % from the unique point_path_id to a point number relative to that position
+        % in a single frame
         % Get list of frames that were modified by this command
         frms = unique(undo_stack.user_data.frame(cmds_list{cmd_idx}(sub_idx).redo_args{2}));
         % Add list of frames to the layerdata_frms list
@@ -170,8 +176,8 @@ for cur_layer = unique_layers
         end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
+      elseif cur_cmd_type(cur_layer_cmd_idx) == 'd'
         %% LayerData: Deleting Points
-      else
         % gets information about which points are to be deleted and updates
         % the layerData file accordingly. Performs necessary steps to convert
         % from the unique point_path_id to a point number relative to that position
@@ -211,6 +217,61 @@ for cur_layer = unique_layers
           end
         end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
+        
+      elseif cur_cmd_type(cur_layer_cmd_idx) == 'l'
+        %% LayerData: Create New Layer
+        % 
+        val = cmds_list{cmd_idx}(sub_idx).redo_args{1};
+        name = cmds_list{cmd_idx}(sub_idx).redo_args{2};
+        group_name = cmds_list{cmd_idx}(sub_idx).redo_args{3};
+        desc = cmds_list{cmd_idx}(sub_idx).redo_args{4};
+        
+        for frm = 1:length(undo_stack.user_data.layer_info)
+          Nx = length(undo_stack.user_data.layer_info(frm).GPS_time);
+          new_layerData = struct('name',name,'quality',2*ones(1,Nx), ...
+            'value',{{struct('data',nan(1,Nx)),struct('data',nan(1,Nx))}});
+          
+          undo_stack.user_data.layer_info(frm).layerData ...
+            = [undo_stack.user_data.layer_info(frm).layerData(1:val-1) new_layerData undo_stack.user_data.layer_info(frm).layerData(val:end)];
+        end
+        layerdata_frms = 1:length(undo_stack.user_data.layer_info);
+        cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
+        
+      elseif cur_cmd_type(cur_layer_cmd_idx) == 'r'
+        %% LayerData: Delete Layer (remove)
+        % 
+        val = cmds_list{cmd_idx}(sub_idx).redo_args{1};
+        
+        for frm = 1:length(undo_stack.user_data.layer_info)
+          undo_stack.user_data.layer_info(frm).layerData ...
+            = [undo_stack.user_data.layer_info(frm).layerData(1:val-1) undo_stack.user_data.layer_info(frm).layerData(val+1:end)];
+        end
+        layerdata_frms = 1:length(undo_stack.user_data.layer_info);
+        cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
+        
+      elseif cur_cmd_type(cur_layer_cmd_idx) == 'e'
+        %% LayerData: Edit Layer
+        % 
+        val = cmds_list{cmd_idx}(sub_idx).redo_args{1};
+        name = cmds_list{cmd_idx}(sub_idx).redo_args{2};
+        group_name = cmds_list{cmd_idx}(sub_idx).redo_args{3};
+        desc = cmds_list{cmd_idx}(sub_idx).redo_args{4};
+        new_val = cmds_list{cmd_idx}(sub_idx).redo_args{5};
+        
+        for frm = 1:length(undo_stack.user_data.layer_info)
+          undo_stack.user_data.layer_info(frm).layerData{val}.name = name;
+          if new_val ~= val
+            % Reorder layers
+            Nlayers = length(undo_stack.user_data.layer_info(frm).layerData);
+            new_order = [1:val-1, val+1:Nlayers];
+            new_order = [new_order(1:new_val-1) val new_order(new_val:Nlayers-1)];
+            undo_stack.user_data.layer_info(frm).layerData ...
+              = undo_stack.user_data.layer_info(frm).layerData(new_order);
+          end
+        end
+        layerdata_frms = 1:length(undo_stack.user_data.layer_info);
+        cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
+        
       end % if insert/delete
     end% while cur_layer_cmd_idx
   end% layer_data end
@@ -228,4 +289,3 @@ if strcmpi(undo_stack.user_data.layer_source,'layerdata')
     save(layer_fn,'-append','layerData') % saving to layerData file
   end
 end
-

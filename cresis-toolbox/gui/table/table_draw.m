@@ -149,6 +149,7 @@ for row = 1:table.rows
         %end
         set(table.handles{row,col},'Units','Points');
         set(table.handles{row,col},'Position', newPos);
+        set(table.handles{row,col},'Units','Normalized');
       elseif isstruct(table.handles{row,col})
         % This is a table container
         table.handles{row,col}.size = newPos(3:4);

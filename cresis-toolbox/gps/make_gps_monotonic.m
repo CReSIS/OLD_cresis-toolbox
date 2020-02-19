@@ -59,6 +59,12 @@ if ~all(good_mask)
 end
 
 if isfield(gps,'radar_time')
+  [~,sort_idxs] = sort(radar_time);
+  if any(sort_idxs ~= 1:length(sort_idxs))
+    warning('Radar time is not monotonically increasing. Manual inspection is suggested.');
+    error_flag = true;
+  end
+
   good_mask = [true, (diff(gps.radar_time) > 0)];
   
   if ~all(good_mask)

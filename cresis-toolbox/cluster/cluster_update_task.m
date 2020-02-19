@@ -307,9 +307,9 @@ if update_mode && ctrl.error_mask(task_id)
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error)
     fprintf('  Max memory potentially exceeded\n');
-    fprintf('    Job max_mem is %.1f GB\n', max_mem/1e9);
+    fprintf('    Job max_mem used is %.1f GB\n', max_mem/1e9);
     fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
-    fprintf('    Task memory %.1f GB\n', ctrl.mem(task_id)/1e9);
+    fprintf('    Task memory requested %.1f GB\n', ctrl.mem(task_id)/1e9);
     fprintf('    Job''s last executed task id %d\n', last_task_id);
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id

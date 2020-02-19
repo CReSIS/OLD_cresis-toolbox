@@ -8,8 +8,8 @@ function loadPB_callback(obj,hObj,event)
 %% Setup
 
 % Check to make sure a frame has been selected before we load
-if isempty(obj.map.sel.frame_name)
-  uiwait(msgbox('No frame selected, select frames with ctrl+left-click','Error loading','modal'));
+if isempty(obj.map.sel.frm_str)
+  uiwait(msgbox('No frame selected, select frames with ctrl+left-click or using search','Error loading','modal'));
   return;
 end
 
@@ -28,7 +28,7 @@ if strcmpi(obj.cur_map_pref_settings.layer_source,'ops')
   end
 end
 
-% Change the pointer to a watch
+% Change the pointer to a watch/busy
 set(obj.h_fig,'Pointer','watch');
 drawnow;
 
@@ -71,6 +71,7 @@ else
   addlistener(obj.echowin_list(echo_idx),'update_cursors',@obj.update_echowin_cursors);
   addlistener(obj.echowin_list(echo_idx),'update_map_selection',@obj.update_map_selection_echowin);
   addlistener(obj.echowin_list(echo_idx),'open_crossover_event',@obj.open_crossover_echowin);
+  addlistener(obj.echowin_list(echo_idx).tool.list{4},'ascope_memory',@obj.ascope_memory);
   
   % Create a selection plot that identifies the echowin on the map
   obj.echowin_maps(echo_idx).h_cursor = plot(obj.map_panel.h_axes, [NaN],[NaN],'kx','LineWidth',2,'MarkerSize',10);
@@ -81,18 +82,23 @@ end
 %  Draw the echo class in the selected echowin
 param.sources = obj.cur_map_pref_settings.sources;
 param.layers = obj.cur_map_pref_settings.layers;
-ix = strfind(obj.map.sel.frame_name,'_');
-obj.map.sel.day_seg = obj.map.sel.frame_name(1:ix(2)-1); % to get the segment info
 param.cur_sel = obj.map.sel;
+param.cur_sel.frm = str2num(param.cur_sel.frm_str(13:end));
 param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
+param.cur_sel.day_seg = param.cur_sel.frm_str(1:11);
 if strcmp(obj.cur_map_pref_settings.system,'layerdata')
-  param.segment_id = obj.map.sel.segment_id;
   param.system = param.cur_sel.radar_name;
   param.cur_sel.radar_name = param.cur_sel.radar_name;
   param.cur_sel.season_name = param.cur_sel.season_name;
+  % Layerdata includes system and season because segment IDs are only
+  % unique for a particular system_season pair
+  system_name_full = [param.system '_' param.cur_sel.season_name];
 else
   param.system = obj.cur_map_pref_settings.system;
   param.cur_sel.radar_name = obj.cur_map_pref_settings.system;
+  % OPS includes only the system because segment IDs are unique for each
+  % system
+  system_name_full = obj.cur_map_pref_settings.system;
 end
 param.layer_source = obj.cur_map_pref_settings.layer_source;
 param.layer_data_source = obj.cur_map_pref_settings.layer_data_source;
@@ -105,16 +111,16 @@ param.layer_data_source = obj.cur_map_pref_settings.layer_data_source;
 % combination
 match_idx = [];
 for stack_idx = 1:length(obj.undo_stack_list)
-  if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},param.system) ...
-      && obj.undo_stack_list(stack_idx).unique_id{2} == obj.map.sel.segment_id
+  if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},system_name_full) ...
+      && obj.undo_stack_list(stack_idx).unique_id{2} == obj.map.sel.seg_id
     % An undo stack already exists for this system-segment pair
     match_idx = stack_idx;
     break;
   end
 end
 
-%% LayerData: Load layerdatainto undostack
-param.layer = [];
+%% LayerData: Load layerdata into undostack
+layer_info = [];
 param.frame = [];
 param.gps_time = [];
 param.twtt = [];
@@ -122,10 +128,11 @@ param.frame_idxes = [];
 param.filename = [];
 param.map = obj.map;
 if strcmpi(param.layer_source,'layerdata')
-  
-  frames_fn = ct_filename_support(param.cur_sel,'','frames');
-  load(frames_fn); % loads "frames" variable
-  num_frm = length(frames.frame_idxs);
+  % Find this season in the list of seasons
+  season_idx = find(strcmp(system_name_full,obj.cur_map_pref_settings.seasons));
+  % Create a mask that identifies the frames for the selected segment in this season
+  frm_idxs = find(param.cur_sel.seg_id == floor(obj.layerdata.frm_info(season_idx).frm_id/1000));
+  num_frm = length(frm_idxs);
 
   layer_names = {};
   for frm = 1:num_frm
@@ -146,15 +153,17 @@ if strcmpi(param.layer_source,'layerdata')
       end
     end
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
-    param.layer = cat(2, param.layer,lay); % stores the layer information for all frames in the segment
+    layer_info = cat(2, layer_info,lay); % stores the layer information for all frames in the segment
     param.gps_time = cat(2,param.gps_time,lay.GPS_time); % stores the GPS time for all the frames in the segment
     param.frame = cat(2, param.frame, frm*ones(size(lay.GPS_time))); % stores the frame number for each point path id in each frame
     param.frame_idxes = cat(2,param.frame_idxes,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
   
-  param.layers.lyr_id = 1 : length(layer_names);
+  % Populate layers
+  param.layers.lyr_id = 1:length(layer_names);
   param.layers.lyr_name = layer_names;
-  param.layers.surface = 1;
+  param.layers.lyr_group_name = cell(size(param.layers.lyr_name));
+  param.layers.surf_id = 1;
   
   % Force all layerData files to use the same layer sequence: this ensures
   % that all layerData files have the same layers and these layers are in
@@ -163,49 +172,47 @@ if strcmpi(param.layer_source,'layerdata')
     % Does frame conform to lyr_name list?
     conforms = true;
     for lay_idx = 1:length(param.layers.lyr_name)
-      if lay_idx > length(param.layer(frm).layerData) ...
-          || ~strcmpi(param.layers.lyr_name{lay_idx},param.layer(frm).layerData{lay_idx}.name)
+      if lay_idx > length(layer_info(frm).layerData) ...
+          || ~strcmpi(param.layers.lyr_name{lay_idx},layer_info(frm).layerData{lay_idx}.name)
         conforms = false;
       end
     end
     if ~conforms
-      layerData = cell(1,length(param.layers.lyr_name));
-      file_layer_names = cellfun(@(x) getfield(x,'name'),param.layer(frm).layerData,'UniformOutput',false);
+      new_layerData = cell(1,length(param.layers.lyr_name));
+      file_layer_names = cellfun(@(x) getfield(x,'name'),layer_info(frm).layerData,'UniformOutput',false);
       for lay_idx = 1:length(param.layers.lyr_name)
         layer_name = param.layers.lyr_name{lay_idx};
-        layerData{lay_idx}.name = layer_name;
+        new_layerData{lay_idx}.name = layer_name;
         match_idx = find(strcmp(layer_name,file_layer_names),1);
         if isempty(match_idx)
-          layerData{lay_idx}.value{1}.data = NaN(size(param.layer(frm).GPS_time));
-          layerData{lay_idx}.value{2}.data = NaN(size(param.layer(frm).GPS_time));
-          layerData{lay_idx}.quality = ones(size(param.layer(frm).GPS_time));
+          new_layerData{lay_idx}.value{1}.data = NaN(size(layer_info(frm).GPS_time));
+          new_layerData{lay_idx}.value{2}.data = NaN(size(layer_info(frm).GPS_time));
+          new_layerData{lay_idx}.quality = ones(size(layer_info(frm).GPS_time));
         else
-          layerData{lay_idx}.value{1}.data = param.layer(frm).layerData{match_idx}.value{1}.data;
-          layerData{lay_idx}.value{2}.data = param.layer(frm).layerData{match_idx}.value{2}.data;
-          layerData{lay_idx}.quality = param.layer(frm).layerData{match_idx}.quality;
+          new_layerData{lay_idx}.value{1}.data = layer_info(frm).layerData{match_idx}.value{1}.data;
+          new_layerData{lay_idx}.value{2}.data = layer_info(frm).layerData{match_idx}.value{2}.data;
+          new_layerData{lay_idx}.quality = layer_info(frm).layerData{match_idx}.quality;
         end
       end
-      param.layer(frm).layerData = layerData;
+      layer_info(frm).layerData = new_layerData;
     end
   end
   
-  records_fn = ct_filename_support(param.cur_sel,'','records');
-  records = load(records_fn,'gps_time'); % loads "records.gps_time" variable
-  param.start_gps_time = records.gps_time(frames.frame_idxs);
-  param.stop_gps_time = [param.start_gps_time(2:end) inf];
+  param.start_gps_time = obj.layerdata.frm_info(season_idx).start_gps_time(frm_idxs);
+  param.stop_gps_time = obj.layerdata.frm_info(season_idx).stop_gps_time(frm_idxs);
 end
 
 if isempty(match_idx)
   % An undo stack does not exist for this system-segment pair, so create a
   % new undo stack
-  param.id = {param.system obj.map.sel.segment_id};
+  param.id = {system_name_full obj.map.sel.seg_id};
   obj.undo_stack_list(end+1) = imb.undo_stack(param);
   match_idx = length(obj.undo_stack_list);
 end
 
 % Attach echowin to the undo stack
 obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(match_idx));
-obj.undo_stack_list(match_idx).user_data.layer_info=param.layer; % contains the layer information
+obj.undo_stack_list(match_idx).user_data.layer_info=layer_info; % contains the layer information
 obj.undo_stack_list(match_idx).user_data.frame = param.frame; % contains the frame number for each point path id
 obj.undo_stack_list(match_idx).user_data.layer_source = param.layer_source; % contains the layer source
 obj.undo_stack_list(match_idx).user_data.layer_data_source = param.layer_data_source; % contains the layerData source

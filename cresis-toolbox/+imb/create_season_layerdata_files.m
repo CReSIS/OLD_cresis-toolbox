@@ -9,23 +9,29 @@ function create_season_layerdata_files
 % Output filenames are of the form:
 % /cresis/snfs1/dataproducts/csarp_support/layer/layer_accum_2018_Antarctica_TObas.mat
 %
-% Output file variables are all 1 by Nx vectors of the same length,
-% segments are terminated with NaN:
+% Output file:
+% These variables are all 1 by Nx vectors of the same length, segments are
+% terminated with NaN:
+%   bottom: ice bottom two way travel time in seconds
+%   elev: elevation in meters
+%   frm_id: full frame ID 2019020401123
 %   lat: latitude in degrees
 %   lon: longitude in degrees
-%   frm: full frame ID 2019020401123
-%   elev: elevation in meters
-%   surf: surface two way travel time in seconds
-%   bottom: bottom two way travel time in seconds
+%   surf: ice surface two way travel time in seconds
 %   quality: integer enumeration of bottom quality, 1=good, 2=moderate,
 %     3=poor or derived from another source
+%  frm_info: structure containing frame information
+%    .frm_id: Nfrm element vector of frame IDs
+%    .start_gps_time: Nfrm element vector of start GPS times for each frame
+%    .stop_gps_time: Nfrm element vector of stop GPS times for each frame
+%   
 %
 % Author: John Paden, Rohan Choudhari
 
 %% Select season parameter files
 param_fns = {};
 % param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
-param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
+% param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_1993_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1995_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1996_Greenland_P3.xls';
@@ -78,13 +84,15 @@ param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
-% param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
+param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
 
 %% Setup layer load parameters
 if 1
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
   % layer_params(2).layerdata_source = 'CSARP_post/layerData';
+  layer_params.existence_check = true;
   layer_params(2).name = 'bottom';
   layer_params(2).source = 'layerdata';
   % layer_params(2).layerdata_source = 'CSARP_post/layerData';
@@ -95,15 +103,19 @@ else
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
   layer_params(1).layerdata_source = 'layerData_koenig';
+  layer_params(2).existence_check = true;
+  layer_params(1).fix_broken_layerdata = true; % Found some bad files
   layer_params(2).name = 'bottom';
   layer_params(2).source = 'layerdata';
   layer_params(2).layerdata_source = 'layerData_koenig';
   layer_params(2).existence_check = false;
+  layer_params(2).fix_broken_layerdata = true; % Found some bad files
   for lay_idx=2:30
     layer_params(lay_idx+1).name = sprintf('Koenig_%d',lay_idx);
     layer_params(lay_idx+1).source = 'layerdata';
     layer_params(lay_idx+1).layerdata_source = 'layerData_koenig';
     layer_params(lay_idx+1).existence_check = false;
+    layer_params(lay_idx+1).fix_broken_layerdata = true; % Found some bad files
   end
 end
 
@@ -114,24 +126,28 @@ for param_idx = 1:length(param_fns)
   % Initialize variables to be extracted from layers
   lat = [];
   lon = [];
-  frm = [];
+  frm_id = [];
   surf = [];
   bottom = [];
   elev = [];
   quality = [];
+  frm_info = [];
+  frm_info.frm_id = [];
+  frm_info.start_gps_time = [];
+  frm_info.stop_gps_time = [];
   
   % Read in parameter spreadsheet
   param_fn = ct_filename_param(param_fns{param_idx});
   params = read_param_xls(param_fn,'');
   if 1
-  params = ct_set_params(params,'cmd.generic',1);
-  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+    params = ct_set_params(params,'cmd.generic',1);
+    params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else
     % HACK!!!
     keyboard
-  params = ct_set_params(params,'cmd.generic',0);
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
-  params = ct_set_params(params,'debug',1);
+    params = ct_set_params(params,'cmd.generic',0);
+    params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+    params = ct_set_params(params,'debug',1);
   end
   disp(param_fns{param_idx})
   
@@ -162,9 +178,15 @@ for param_idx = 1:length(param_fns)
       continue;
     end;
     
+    frames_fn = ct_filename_support(param,'','frames');
+    load(frames_fn,'frames'); % loads "frames" variable
+    records_fn = ct_filename_support(param,'','records');
+    records = load(records_fn,'gps_time'); % loads "gps_time" variable
+    
     if any(isnan(layer(1).twtt))
       fprintf('%s\tsurface_NaN!!!\n', param.day_seg);
     end;
+    
     
     % Checking for inconsistent field lengths
     if length(layer(1).lat) ~= length(layer(1).lon) ...
@@ -183,11 +205,16 @@ for param_idx = 1:length(param_fns)
     lat = [lat layer(1).lat NaN];
     lon = [lon layer(1).lon NaN];
     % Store full frame ID number 20190204_01_003 --> 2019020401003
-    frm = [frm str2num(param.day_seg([1:8,10:11]))*1000+layer(1).frm NaN];
+    frm_id = [frm_id str2num(param.day_seg([1:8,10:11]))*1000+layer(1).frm NaN];
     elev = [elev layer(1).elev NaN];
     surf = [surf layer(1).twtt NaN];
     bottom = [bottom layer(2).twtt NaN];
     quality = [quality layer(2).quality NaN];
+
+    % Store frame GPS time boundaries
+    frm_info.frm_id = [frm_info.frm_id str2num(param.day_seg([1:8,10:11]))*1000+(1:length(frames.frame_idxs))];
+    frm_info.start_gps_time = [frm_info.start_gps_time records.gps_time(frames.frame_idxs)];
+    frm_info.stop_gps_time = [frm_info.stop_gps_time [records.gps_time(frames.frame_idxs(2:end)) records.gps_time(end)]];
   end
   
   %% Save output
@@ -198,5 +225,5 @@ for param_idx = 1:length(param_fns)
   if ~exist(out_fn_dir,'dir')
     mkdir(out_fn_dir);
   end
-  save(out_fn,'lat','lon','frm','elev','surf','bottom','quality');
+  ct_save(out_fn,'lat','lon','frm_id','elev','surf','bottom','quality','frm_info');
 end

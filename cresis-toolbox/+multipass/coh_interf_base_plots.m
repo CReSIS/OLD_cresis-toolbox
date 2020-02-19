@@ -8,25 +8,26 @@ fn2012_2013 = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_in
 fn2013_2014 = '/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/rds_thule_2013_2014_wf2_insar.mat';
 fn2014_2014 = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_2014_2Week_wf3_insar3.mat';
 fn20142 = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_2014_1Day_wf3_insar3.mat';
+fn2014allwf = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/rds_thule_2014_SameDay_allwf_multipass03.mat';
 
-fns = {fn2011_2014, fn2011_2012, fn2012_2014, fn2012_2013, fn2013_2014,fn2014_2014, fn20142};
-figtitle = {'2011 to 2014', '2011 to 2012', '2012 to 2014', '2012 to 2013', '2013 to 2014', '2014 2 Week','2014 1 Day'};
-saven = {'2011_2014','2011_2012','2012_2014', '2012_2013','2013_2014','2014_2Week_wf3','2014_1Day_wf3'};
+fns = {fn2014allwf};
+figtitle = {'2014 Same Day'};
+saven = {'2014_SameDay_allwf'};
 masterid = 8;
 %Settings 
-set1 = {1:15, 1:15, 1:15, 1:7, 1:15,1:15,1:15};
-set2 = {16:30, 16:30, 16:30, 8:22, 16:22, 16:30, 16:30};
+set1 = {1:15,1:15, 1:15, 1:15, 1:7, 1:15,1:15,1:15};
+set2 = {16:30,16:30, 16:30, 16:30, 8:22, 16:22, 16:30, 16:30};
 if 0 %7 Element Setting
   set1 = {5:11, 5:11, 5:11, 5:11, 5:11};
   set2 = {20:26, 20:26, 16:22, 20:26, 20:26};
   saven  = cellfun(@(c)[c '_7Elements'],saven,'UniformOutput',false);
 end
 rbins = [240:420];
-filt_x = 5; filt_y = 31;
+filt_x = 9; filt_y = 45;
 %Convert phase to physical length
 eps_ice = 3.15; wfuse = 2;
 cls = physconst('LightSpeed');
-savedir = '/cresis/snfs1/scratch/bmiller/MultiPass_Results_12_1/Official_Paper_Results';
+savedir = '/cresis/snfs1/scratch/bmiller/More_Multipass/Check_Figures/';
 
 for fn_id = 1:length(fns)
   if ~exist('tmp','var') || length(tmp)<fn_id
@@ -55,7 +56,7 @@ for fn_id = 1:length(fns)
   
   %% Plot the interferogram
   figure(fn_id + 30); clf;
-  imagesc(alongx,crossy,hsv_plot(insar_data_filt,-10));
+  imagesc(alongx,crossy,hsv_plot(insar_data_filt,-7));
   colormap(hsv(256))
   h_colorbar = colorbar;
   caxis([-pi pi])
@@ -100,8 +101,8 @@ for fn_id = 1:length(fns)
   plot(alongx,absbase2,'b')
   plot(alongx,absbase1(2:end,:),'r')
   hold off
-  leg = {sprintf('%s Elements',tmp{fn_id}.pass(set1{fn_id}(1)).frm(1:4))};
-  leg{end+1} = sprintf('%s Elements',tmp{fn_id}.pass(set2{fn_id}(1)).frm(1:4));
+  leg = {sprintf('%s Elements',tmp{fn_id}.pass(set1{fn_id}(1)).param_multipass.day_seg(1:4))};
+  leg{end+1} = sprintf('%s Elements',tmp{fn_id}.pass(set2{fn_id}(1)).param_multipass.day_seg(1:4));
   legend(leg)
   title(sprintf('%s Absolute Baselines',title_str))
   ylabel('Baseline to Reference Element (m)')

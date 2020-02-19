@@ -134,7 +134,7 @@ set(obj.h_gui.sourceLB,'Min',1); % One must always be selected
 set(obj.h_gui.sourceLB,'Max',1e9); % Allow multiple selections
 
 % Source list box context menu
-obj.h_gui.sourceCM = uicontextmenu;
+obj.h_gui.sourceCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
 obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Add', 'Callback', @obj.sourceLB_callback);
 obj.h_gui.sourceCM_item2 = uimenu(obj.h_gui.sourceCM, 'Label', 'Remove', 'Callback', @obj.sourceLB_callback);

@@ -6,13 +6,11 @@ function key_press(obj,src,event)
 if strcmpi(get(obj.map_panel.h_axes,'Visible'),'off')
   return;
 end
-
-if any(strcmp('control',event.Modifier))
-  obj.control_pressed = true;
-end
-if any(strcmp('shift',event.Modifier))
-  obj.shift_pressed = true;
-end
+current_object = gco;
+modifiers = get(event.Source,'CurrentModifier');
+obj.shift_pressed = ismember('shift',   modifiers);  % true/false
+obj.control_pressed  = ismember('control', modifiers);  % true/false
+obj.alt_pressed   = ismember('alt',     modifiers);  % true/false
 
 % Check to make sure that a key was pressed and not
 % just a modifier (e.g. shift, ctrl, alt)
@@ -131,7 +129,9 @@ if ~isempty(event.Key)
         
       case 'rightarrow' % Right arrow
         % move plot right
-        
+        if current_object == obj.top_panel.searchTB
+          return;
+        end
         
         % break if already at the limit
         if check_limits(obj,xaxis,yaxis,'r')          %break;
@@ -152,9 +152,9 @@ if ~isempty(event.Key)
         
       case 'leftarrow' % Left arrow
         % move plot left
-        %xaxis = get(gca,'XLim');
-        % get updated x axis
-        %x_extent = diff(xaxis);
+        if current_object == obj.top_panel.searchTB
+          return;
+        end
         
         % break if already at the limit
         if check_limits(obj,xaxis,yaxis,'l')

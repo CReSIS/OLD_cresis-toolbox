@@ -9,9 +9,9 @@ set(obj.left_panel.frameLB,'Value',frm);
 
 % Set the currently selected frame in the figure's title bar
 if strcmpi(class(obj.h_fig),'double')
-  set(obj.h_fig,'name',sprintf('%d: %s', obj.h_fig, obj.eg.frame_names{frm}));
+  set(obj.h_fig,'name',sprintf('%d: %s', obj.h_fig, obj.eg.frm_strs{frm}));
 else
-  set(obj.h_fig,'name',sprintf('%d: %s', obj.h_fig.Number, obj.eg.frame_names{frm}));
+  set(obj.h_fig,'name',sprintf('%d: %s', obj.h_fig.Number, obj.eg.frm_strs{frm}));
 end
 
 % Find the sources that are available for the currently selected frame

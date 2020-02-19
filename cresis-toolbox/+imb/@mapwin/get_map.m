@@ -288,8 +288,9 @@ if obj.map.fline_source == 1
   %% Plot flightlines
   obj.layerdata.x = [];
   obj.layerdata.y = [];
-  obj.layerdata.frms = [];
+  obj.layerdata.frm_id = [];
   obj.layerdata.season_idx = [];
+  obj.layerdata.frm_info = struct('frm_id',{},'start_gps_time',{},'stop_gps_time',{});
   
   % Looping through the seasons
   layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
@@ -306,15 +307,16 @@ if obj.map.fline_source == 1
     x = x/obj.map.scale; y = y/obj.map.scale;
     obj.layerdata.x = [obj.layerdata.x x];
     obj.layerdata.y = [obj.layerdata.y y];
-    obj.layerdata.frms = [obj.layerdata.frms S.frm];
+    obj.layerdata.frm_id = [obj.layerdata.frm_id S.frm_id];
     obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(x))];
+    obj.layerdata.frm_info(season_idx) = S.frm_info;
     
     % Plot flight lines
     set(obj.map_panel.h_flightline,'XData',obj.layerdata.x,'YData',obj.layerdata.y);
   end
   
 else
-    set(obj.map_panel.h_flightline,'XData',NaN,'YData',NaN);
+  set(obj.map_panel.h_flightline,'XData',NaN,'YData',NaN);
 end
 
 % Turn map axes on if this is the first time a map is being loaded
@@ -330,6 +332,16 @@ if isempty(obj.map.xaxis) || ~strcmpi(obj.ops.request.CoordRefSysCode,obj.map.Co
 end
 
 obj.query_redraw_map(obj.map.xaxis(1),obj.map.xaxis(end),obj.map.yaxis(1),obj.map.yaxis(end));
+
+% Reset selection
+obj.map.sel.frm_str = ''; % Current frame name
+obj.map.sel.seg_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
+obj.map.sel.season_name = ''; % Current season name
+obj.map.sel.radar_name = ''; % Current radar name
+% Update current frame selection map plot
+set(obj.map_panel.h_cur_sel,{'XData','YData'},{[],[]});
+% Change map title to the currently selected frame
+set(obj.top_panel.flightLabel,'String',obj.map.sel.frm_str);
 
 % Redraw table to ensure everything is the right size
 table_draw(obj.table);

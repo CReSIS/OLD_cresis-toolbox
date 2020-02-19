@@ -270,6 +270,26 @@ if isfield(tmp_gps,'lat_deg')
   end
   gps.lat = tmp_gps.lat_deg;
 end
+if isfield(tmp_gps,'lat_min')
+  if num_rows == -1
+    num_rows = length(tmp_gps.lat_min);
+  elseif length(tmp_gps.lat_min) < num_rows
+    tmp_gps.lat_min(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.lat_min) < num_rows
+    tmp_gps.lat_min = tmp_gps.lat_min(1:num_rows);
+  end
+  gps.lat = gps.lat + ((gps.lat>=0)*2-1) .* tmp_gps.lat_min/60;
+end
+if isfield(tmp_gps,'lat_sec')
+  if num_rows == -1
+    num_rows = length(tmp_gps.lat_sec);
+  elseif length(tmp_gps.lat_sec) < num_rows
+    tmp_gps.lat_sec(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.lat_sec) < num_rows
+    tmp_gps.lat_sec = tmp_gps.lat_sec(1:num_rows);
+  end
+  gps.lat = gps.lat + ((gps.lat>=0)*2-1) .* tmp_gps.lat_sec/3600;
+end
 if isfield(tmp_gps,'lat_dsm')
   if num_rows == -1
     num_rows = length(tmp_gps.lat_dsm);
@@ -281,7 +301,7 @@ if isfield(tmp_gps,'lat_dsm')
   gps.lat = zeros(1,num_rows);
   for idx = 1:num_rows
     tmp = sscanf(tmp_gps.lat_dsm{idx},'%f');
-    gps.lat(idx) = tmp(1) + sign(tmp(1))*(tmp(2)/60 + tmp(3)/3600);
+    gps.lat(idx) = tmp(1) + ((tmp(1)>=0)*2-1)*(tmp(2)/60 + tmp(3)/3600);
   end
 end
 if isfield(tmp_gps,'lon_deg')
@@ -294,6 +314,26 @@ if isfield(tmp_gps,'lon_deg')
   end
   gps.lon = tmp_gps.lon_deg;
 end
+if isfield(tmp_gps,'lon_min')
+  if num_rows == -1
+    num_rows = length(tmp_gps.lon_min);
+  elseif length(tmp_gps.lon_min) < num_rows
+    tmp_gps.lon_min(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.lon_min) < num_rows
+    tmp_gps.lon_min = tmp_gps.lon_min(1:num_rows);
+  end
+  gps.lon = gps.lon + ((gps.lon>=0)*2-1) .* tmp_gps.lon_min/60;
+end
+if isfield(tmp_gps,'lon_sec')
+  if num_rows == -1
+    num_rows = length(tmp_gps.lon_sec);
+  elseif length(tmp_gps.lon_sec) < num_rows
+    tmp_gps.lon_sec(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.lon_sec) < num_rows
+    tmp_gps.lon_sec = tmp_gps.lon_sec(1:num_rows);
+  end
+  gps.lon = gps.lon + ((gps.lon>=0)*2-1) .* tmp_gps.lon_sec/3600;
+end
 if isfield(tmp_gps,'lon_dsm')
   if num_rows == -1
     num_rows = length(tmp_gps.lon_dsm);
@@ -305,7 +345,7 @@ if isfield(tmp_gps,'lon_dsm')
   gps.lon = zeros(1,num_rows);
   for idx = 1:num_rows
     tmp = sscanf(tmp_gps.lon_dsm{idx},'%f');
-    gps.lon(idx) = tmp(1) + sign(tmp(1))*(tmp(2)/60 + tmp(3)/3600);
+    gps.lon(idx) = tmp(1) + ((tmp(1)>=0)*2-1)*(tmp(2)/60 + tmp(3)/3600);
   end
 end
 if isfield(tmp_gps,'elev_m')

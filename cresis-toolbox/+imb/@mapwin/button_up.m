@@ -64,15 +64,24 @@ elseif obj.shift_pressed && click_in_axis % shift click
     % Ctrl + Normal click: Get closest point to each echowin flightline and
     % move the echowin cursors to their respective closest points
     
+    if (obj.map.source == 1)
+      [lat, lon] = google_map.world_to_latlon(x*obj.map.scale, 256-y*obj.map.scale);
+    else
+      [lat,lon] = projinv(obj.map.proj,x*obj.map.scale,y*obj.map.scale);
+    end
     % Find closest point for each echowin and update cursor information
     for idx = 1:length(obj.echowin_list)
       % Update the echowin's cursor in the echogram (this finds the closest
       % point to the supplied x,y and that becomes the next cursor position
       % for this echowin)
-      obj.echowin_list(idx).set_cursor_by_map(x,y);
+      obj.echowin_list(idx).set_cursor_by_map(lat,lon,'mapwin_notify');
       % Update the echowin's cursor on the map
-      set(obj.echowin_maps(idx).h_cursor,'XData',obj.echowin_list(idx).cursor.x, ...
-        'YData',obj.echowin_list(idx).cursor.y);
+      if obj.map.source == 1
+        [x,y] = google_map.latlon_to_world(obj.echowin_list(idx).cursor.lat, obj.echowin_list(idx).cursor.lon); y = 256-y;
+      else
+        [x,y] = projfwd(obj.map.proj, obj.echowin_list(idx).cursor.lat, obj.echowin_list(idx).cursor.lon);
+      end
+      set(obj.echowin_maps(idx).h_cursor, 'XData', x/obj.map.scale, 'YData', y/obj.map.scale, 'Color', 'black');
       % Make the cursors be plotted on top
       uistack(obj.echowin_maps(idx).h_cursor,'top');
     end

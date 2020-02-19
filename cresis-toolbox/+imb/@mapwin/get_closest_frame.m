@@ -16,28 +16,29 @@ if obj.map.fline_source == 1
   
   % Find the frame of the closest point
   [~,idx] = min((obj.layerdata.y-param.y).^2+(obj.layerdata.x-param.x).^2);
-  frm_id = obj.layerdata.frms(idx);
+  % Extract out frame, system, and season name
+  frm_id = obj.layerdata.frm_id(idx);
   season_idx = obj.layerdata.season_idx(idx);
   season_name = obj.cur_map_pref_settings.seasons{season_idx};
   [sys,season_name] = strtok(season_name,'_');
   season_name = season_name(2:end);
   
   % Get a logical mask indicating all indices that match the frame
-  frm_mask = obj.layerdata.frms == frm_id;
+  frm_mask = obj.layerdata.frm_id == frm_id;
   
   % Generate frame string YYYYMMDD_SS_FFF
   frm_id = num2str(frm_id);
   day = frm_id(1:8);
   seg = frm_id(9:10);
   frm = frm_id(11:13);
-  frame_name = strcat(day,'_',seg,'_',frm);
+  frm_str = strcat(day,'_',seg,'_',frm);
   
   if strcmpi(obj.cur_map_pref_settings.layer_source,'layerdata')
     status = [];
     
     % Set data properties
     data = struct('properties',[]);
-    data.properties.frame = frame_name;
+    data.properties.frame = frm_str;
     data.properties.season = season_name;
     data.properties.segment_id = str2num(frm_id(1:10));
     data.properties.X = obj.layerdata.x(frm_mask);
@@ -46,20 +47,20 @@ if obj.map.fline_source == 1
   else
     % Get segment id from opsGetFrameSearch
     frame_search_param = struct('properties',[]);
-    frame_search_param.properties.search_str = frame_name;
+    frame_search_param.properties.search_str = frm_str;
     frame_search_param.properties.location = obj.cur_map_pref_settings.map_zone;
     frame_search_param.properties.season = season_name;
     [frm_status,frm_data] = opsGetFrameSearch(sys,frame_search_param);
     
     if frm_status ~= 1
-      error_str = sprintf('Frame %s does not exist in OPS for %s:%s.', frame_name, sys, season_name);
+      error_str = sprintf('Frame %s does not exist in OPS for %s:%s.', frm_str, sys, season_name);
       uiwait(msgbox(error_str,'Search error','modal'));
       warning(error_str);
       return;
     else
       % Set data properties
       data = struct('properties',[]);
-      data.properties.frame = frame_name;
+      data.properties.frame = frm_str;
       data.properties.season = frm_data.properties.season;
       data.properties.segment_id = frm_data.properties.segment_id;
       data.properties.X = obj.layerdata.x(frm_mask);
@@ -91,13 +92,17 @@ else
 end
 
 % Record current frame selection
-obj.map.sel.frame_name = data.properties.frame;
+obj.map.sel.frm_str = data.properties.frame;
 obj.map.sel.season_name = data.properties.season;
-obj.map.sel.segment_id = data.properties.segment_id;
+obj.map.sel.seg_id = data.properties.segment_id;
 obj.map.sel.radar_name = sys;
 
-% Update map selection plot
+% Update current frame selection map plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X,data.properties.Y});
 
 % Change map title to the currently selected frame
-set(obj.top_panel.flightLabel,'String',obj.map.sel.frame_name);
+if obj.map.fline_source==1
+  set(obj.top_panel.flightLabel,'String',[sys ' ' obj.map.sel.frm_str]);
+else
+  set(obj.top_panel.flightLabel,'String',obj.map.sel.frm_str);
+end

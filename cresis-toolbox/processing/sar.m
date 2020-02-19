@@ -237,7 +237,7 @@ if ~exist(sar_fn,'file') ...
   
   ctrl = cluster_new_batch(param);
   
-  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
+  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
     cpu_time_mult = 2e-3;
     mem_mult = 5;
     
@@ -386,7 +386,7 @@ cluster_compile({'sar_task.m','sar_coord_task'},ctrl.cluster.hidden_depend_funs,
 
 total_raw_num_sam = {};
 total_pc_num_sam = {};
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));

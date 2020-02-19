@@ -11,6 +11,12 @@ if strcmpi(cmds_direction,'redo')
         cmds_execute_insert(obj,cmds_list{cmd_idx}(sub_idx).redo_args);
       elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'delete')
         cmds_execute_delete(obj,cmds_list{cmd_idx}(sub_idx).redo_args);
+      elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_new')
+        cmds_execute_layer_new(obj,cmds_list{cmd_idx}(sub_idx).redo_args);
+      elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_delete')
+        cmds_execute_layer_delete(obj,cmds_list{cmd_idx}(sub_idx).redo_args);
+      elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_edit')
+        cmds_execute_layer_edit(obj,cmds_list{cmd_idx}(sub_idx).redo_args);
       end
     end
   end
@@ -23,6 +29,12 @@ else
         cmds_execute_insert(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
       elseif strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'delete')
         cmds_execute_delete(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
+      elseif strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'layer_new')
+        cmds_execute_layer_new(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
+      elseif strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'layer_delete')
+        cmds_execute_layer_delete(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
+      elseif strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'layer_edit')
+        cmds_execute_layer_edit(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
       end
     end
   end
@@ -33,8 +45,9 @@ obj.update_layer_plots();
 
 end
 
+%% cmds_execute_insert
 function args = cmds_execute_insert(obj,args)
-% Execute the insert command on obj.eg.layer
+% Execute the insert command on obj.eg.layers
 % args{1} = database layer IDs
 % args{2} = point IDs
 % args{3} = twtt
@@ -45,15 +58,15 @@ physical_constants;
 vel_air = c/2;
 vel_ice = c/(sqrt(er_ice)*2);
 
-%% Convert layer ID's to layer indices
-layer_idx = find(args{1} == obj.eg.layer_id);
+%% cmds_execute_insert: Convert layer ID's to layer indices
+layer_idx = find(args{1} == obj.eg.layers.lyr_id);
 
 if isempty(layer_idx)
   % This echowin does not have this layer shown, so no updates required
   return;
 end
 
-%% Convert point ID's to point indices
+%% cmds_execute_insert: Convert point ID's to point indices
 point_idxs = [];
 point_id_mask = logical(zeros(size(args{2})));
 for point_id_idx = 1:length(args{2})
@@ -64,61 +77,61 @@ for point_id_idx = 1:length(args{2})
     point_idxs(end+1) = new_point;
   end
 end
-%% Apply insert
-obj.eg.layer.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
-obj.eg.layer.type{layer_idx}(point_idxs) = args{4}(point_id_mask);
-obj.eg.layer.qual{layer_idx}(point_idxs) = args{5}(point_id_mask);
+%% cmds_execute_insert: Apply insert
+obj.eg.layers.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
+obj.eg.layers.type{layer_idx}(point_idxs) = args{4}(point_id_mask);
+obj.eg.layers.qual{layer_idx}(point_idxs) = args{5}(point_id_mask);
 
-%% Convert units from twtt to current units
+%% cmds_execute_insert: Convert units from twtt to current units
 yaxis_choice = get(obj.left_panel.yaxisPM,'Value');
 if yaxis_choice == 1 % TWTT
-  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = obj.eg.layer.y{layer_idx}(point_idxs) * 1e6;
+  obj.eg.layers.y_curUnit{layer_idx}(point_idxs) = obj.eg.layers.y{layer_idx}(point_idxs) * 1e6;
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
   elevation = interp1(obj.eg.gps_time,...
-    obj.eg.elevation,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.elev,...
+    obj.eg.layers.x{layer_idx},'linear','extrap');
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.surf_twtt,...
+    obj.eg.layers.x{layer_idx},'linear','extrap');
   for point_idx = point_idxs
-    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    if isnan(obj.eg.layers.y{layer_idx}(point_idx))
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      range = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = elevation(point_idx) - range;
+      range = min(obj.eg.layers.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = elevation(point_idx) - range;
     end
   end
   
 elseif yaxis_choice == 3 % Depth/Range
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.surf_twtt,...
+    obj.eg.layers.x{layer_idx},'linear','extrap');
   for point_idx = point_idxs
-    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    if isnan(obj.eg.layers.y{layer_idx}(point_idx))
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = min(obj.eg.layers.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
     end
   end
   
 elseif yaxis_choice == 4 % Range bin
-  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = interp1(obj.eg.time,...
+  obj.eg.layers.y_curUnit{layer_idx}(point_idxs) = interp1(obj.eg.time,...
     1:length(obj.eg.time),...
-    obj.eg.layer.y{layer_idx}(point_idxs),'linear');
+    obj.eg.layers.y{layer_idx}(point_idxs),'linear','extrap');
   
 elseif yaxis_choice == 5 % Surface flat
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.surf_twtt,...
+    obj.eg.layers.x{layer_idx},'linear','extrap');
   for point_idx = point_idxs
-    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    if isnan(obj.eg.layers.y{layer_idx}(point_idx))
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx))*vel_air ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = min(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
     end
   end
   
@@ -126,37 +139,164 @@ end
 
 end
 
+%% cmds_execute_delete
 function args = cmds_execute_delete(obj,args)
-% Execute the delete command on obj.eg.layer and updates the layer handles
-% obj.layer_h and obj.quality_h.
+% Execute the delete command on obj.eg.layers and updates the layer handles
+% obj.h_layer and obj.h_quality.
 %
 % args{1} = database layer IDs
 % args{2} = [x_min x_max y_min y_max] with x in gps-time and y in twtt
 %   units
 
-% obj.eg.layer.x{layer_idx} % gps-time
-% obj.eg.layer.y{layer_idx} % twtt
-% obj.eg.layer.qual{layer_idx} % integer 1-3
-% obj.eg.layer.type{layer_idx} % this is either 1 (manual) or 2 (auto)
-% obj.eg.layer.x_curUnit{layer_idx} % current x-axis units (e.g. along-track km)
-% obj.eg.layer.y_curUnit{layer_idx} % current y-axis units (e.g. WGS-84 m)
+% obj.eg.layers.x{layer_idx} % gps-time
+% obj.eg.layers.y{layer_idx} % twtt
+% obj.eg.layers.qual{layer_idx} % integer 1-3
+% obj.eg.layers.type{layer_idx} % this is either 1 (manual) or 2 (auto)
+% obj.eg.layers.x_curUnit{layer_idx} % current x-axis units (e.g. along-track km)
+% obj.eg.layers.y_curUnit{layer_idx} % current y-axis units (e.g. WGS-84 m)
 
 
-%% Convert layer ID's to layer indices
-layer_idx = find(args{1} == obj.eg.layer_id);
+%% cmds_execute_delete: Convert layer ID's to layer indices
+layer_idx = find(args{1} == obj.eg.layers.lyr_id);
 
 if isempty(layer_idx)
   % This echowin does not have this layer shown, so no updates required
   return;
 end
 
-%% Determine which point indices need to be updated
-point_idxs = find(obj.eg.layer.x{layer_idx} > args{2}(1) & obj.eg.layer.x{layer_idx} < args{2}(2) ...
-  & obj.eg.layer.y{layer_idx} > args{2}(3) & obj.eg.layer.y{layer_idx} < args{2}(4));
+%% cmds_execute_delete: Determine which point indices need to be updated
+point_idxs = find(obj.eg.layers.x{layer_idx} > args{2}(1) & obj.eg.layers.x{layer_idx} < args{2}(2) ...
+  & obj.eg.layers.y{layer_idx} > args{2}(3) & obj.eg.layers.y{layer_idx} < args{2}(4));
 
-obj.eg.layer.y{layer_idx}(point_idxs) = NaN;
-obj.eg.layer.qual{layer_idx}(point_idxs) = 1;
-obj.eg.layer.type{layer_idx}(point_idxs) = 1;
-obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = NaN;
+obj.eg.layers.y{layer_idx}(point_idxs) = NaN;
+obj.eg.layers.qual{layer_idx}(point_idxs) = 1;
+obj.eg.layers.type{layer_idx}(point_idxs) = 1;
+obj.eg.layers.y_curUnit{layer_idx}(point_idxs) = NaN;
+
+end
+
+%% cmds_execute_layer_new
+function args = cmds_execute_layer_new(obj,args)
+
+val = args{1};
+name = args{2};
+group_name = args{3};
+desc = args{4};
+
+obj.eg.layers.lyr_name = [obj.eg.layers.lyr_name(1:val-1) {name} obj.eg.layers.lyr_name(val:end)];
+obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) {''} obj.eg.layers.lyr_group_name(val:end)];
+obj.eg.layers.lyr_id = 1:length(obj.eg.layers.lyr_name);
+obj.eg.layers.selected_layers = false(1,length(obj.eg.layers.lyr_name));
+obj.eg.layers.selected_layers(val) = true;
+obj.eg.layers.visible_layers = [obj.eg.layers.visible_layers(1:val-1) true obj.eg.layers.visible_layers(val:end)];
+obj.eg.layers.x = [obj.eg.layers.x(1:val-1) obj.eg.layers.x(1) obj.eg.layers.x(val:end)];
+obj.eg.layers.y = [obj.eg.layers.y(1:val-1) {nan(size(obj.eg.layers.x{1}))} obj.eg.layers.y(val:end)];
+obj.eg.layers.qual = [obj.eg.layers.qual(1:val-1) {ones(size(obj.eg.layers.x{1}))} obj.eg.layers.qual(val:end)];
+obj.eg.layers.type = [obj.eg.layers.type(1:val-1) {2*ones(size(obj.eg.layers.x{1}))} obj.eg.layers.type(val:end)];
+obj.eg.layers.x_curUnit = [obj.eg.layers.x_curUnit(1:val-1) obj.eg.layers.x_curUnit(1) obj.eg.layers.x_curUnit(val:end)];
+obj.eg.layers.y_curUnit = [obj.eg.layers.y_curUnit(1:val-1) {nan(size(obj.eg.layers.x_curUnit{1}))} obj.eg.layers.y_curUnit(val:end)];
+
+obj.h_layer = [obj.h_layer(1:2*(val-1)) nan(1,2) obj.h_layer(2*val-1:end)];
+obj.h_quality = [obj.h_quality(1:6*(val-1)) nan(1,6) obj.h_quality(6*val-5:end)];
+
+idx = val;
+% Manual points (plot this way to handle empty XData or YData
+obj.h_layer(2*(idx-1)+1) = plot(obj.h_axes,NaN,NaN,'bx');
+% Auto and manual points
+obj.h_layer(2*(idx-1)+2) = plot(obj.h_axes, ...
+  NaN,NaN,'b--');
+
+% Good manual points (plot this way to handle empty XData or YData
+obj.h_quality(6*(idx-1)+1) = plot(obj.h_axes,1,1,'gx');
+
+% Good auto points (plot this way to handle empty XData or YData
+obj.h_quality(6*(idx-1)+2) = plot(obj.h_axes,1,1,'g--');
+
+% Moderate manual points (plot this way to handle empty XData or YData
+obj.h_quality(6*(idx-1)+3) = plot(obj.h_axes,1,1,'yx');
+
+% Moderate auto points (plot this way to handle empty XData or YData
+obj.h_quality(6*(idx-1)+4) = plot(obj.h_axes,1,1,'y--');
+
+% Derived manual points (plot this way to handle empty XData or YData
+obj.h_quality(6*(idx-1)+5) = plot(obj.h_axes,1,1,'rx');
+
+% Derived auto points (plot this way to handle empty XData or YData
+obj.h_quality(6*(idx-1)+6) = plot(obj.h_axes,1,1,'r--');
+
+set(obj.h_quality(6*(idx-1)+(1:6)),'Visible','off');
+set(obj.h_layer(2*(idx-1)+1),'Visible','on');  % manual
+
+obj.layerLB_str();
+set(obj.left_panel.layerLB,'Value',val);
+
+obj.plot_layers();
+obj.set_visibility();
+
+end
+
+%% cmds_execute_layer_delete
+function args = cmds_execute_layer_delete(obj,args)
+
+val = args{1};
+
+obj.eg.layers.lyr_name = [obj.eg.layers.lyr_name(1:val-1) obj.eg.layers.lyr_name(val+1:end)];
+obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) obj.eg.layers.lyr_group_name(val+1:end)];
+obj.eg.layers.lyr_id = 1:length(obj.eg.layers.lyr_name);
+obj.eg.layers.selected_layers = false(1,length(obj.eg.layers.lyr_name));
+obj.eg.layers.visible_layers = [obj.eg.layers.visible_layers(1:val-1) obj.eg.layers.visible_layers(val+1:end)];
+obj.eg.layers.x = [obj.eg.layers.x(1:val-1) obj.eg.layers.x(val+1:end)];
+obj.eg.layers.y = [obj.eg.layers.y(1:val-1) obj.eg.layers.y(val+1:end)];
+obj.eg.layers.qual = [obj.eg.layers.qual(1:val-1) obj.eg.layers.qual(val+1:end)];
+obj.eg.layers.type = [obj.eg.layers.type(1:val-1) obj.eg.layers.type(val+1:end)];
+obj.eg.layers.x_curUnit = [obj.eg.layers.x_curUnit(1:val-1) obj.eg.layers.x_curUnit(val+1:end)];
+obj.eg.layers.y_curUnit = [obj.eg.layers.y_curUnit(1:val-1) obj.eg.layers.y_curUnit(val+1:end)];
+
+delete(obj.h_layer((val-1)*2+(1:2)));
+delete(obj.h_quality((val-1)*6+(1:6)));
+obj.h_layer = [obj.h_layer(1:2*(val-1)) obj.h_layer(2*(val+1)-1:end)];
+obj.h_quality = [obj.h_quality(1:6*(val-1)) obj.h_quality(6*(val+1)-5:end)];
+
+obj.layerLB_str();
+set(obj.left_panel.layerLB,'Value',[]);
+
+end
+
+%% cmds_execute_layer_edit
+function args = cmds_execute_layer_edit(obj,args)
+
+val = args{1};
+name = args{2};
+group_name = args{3};
+desc = args{4};
+new_val = args{5};
+
+obj.eg.layers.lyr_name{val} = name;
+obj.eg.layers.lyr_group_name{val} = group_name;
+
+if new_val ~= val
+  % Reorder layers
+  Nlayers = length(obj.eg.layers.lyr_name);
+  new_order = [1:val-1, val+1:Nlayers];
+  new_order = [new_order(1:new_val-1) val new_order(new_val:Nlayers-1)];
+  
+  obj.eg.layers.lyr_name = obj.eg.layers.lyr_name(new_order);
+  obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
+  obj.eg.layers.lyr_id = 1:length(obj.eg.layers.lyr_name);
+  obj.eg.layers.selected_layers = obj.eg.layers.selected_layers(new_order);
+  obj.eg.layers.visible_layers = obj.eg.layers.visible_layers(new_order);
+  obj.eg.layers.x = obj.eg.layers.x(new_order);
+  obj.eg.layers.y = obj.eg.layers.y(new_order);
+  obj.eg.layers.qual = obj.eg.layers.qual(new_order);
+  obj.eg.layers.type = obj.eg.layers.type(new_order);
+  obj.eg.layers.x_curUnit = obj.eg.layers.x_curUnit(new_order);
+  obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
+  
+  obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
+  obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
+end
+
+obj.layerLB_str();
+set(obj.left_panel.layerLB,'Value',new_val);
 
 end

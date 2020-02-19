@@ -66,34 +66,34 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140429_01');
 % params = ct_set_params(params,'cmd.frms',[67]);
 % Multipass Summit
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20120330_03');
-params = ct_set_params(params,'cmd.frms',[8 9]);
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20120330_03');
+% params = ct_set_params(params,'cmd.frms',[8 9]);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140502_01');
 % params = ct_set_params(params,'cmd.frms',[41 42]);
 
 % -------------------------------------------------------------------------
 % 2018 Antarctica Ground
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181219_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181217');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181219');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181220');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181221');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181222');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181223');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181225');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181226');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181227');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181228');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181229');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181231');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190102');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190103');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190104');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190105');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190106');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190107');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190108');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181217');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181219');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181220');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181221');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181222');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181223');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181225');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181226');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181227');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181228');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181229');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181231');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190102');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190103');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190104');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190105');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190106');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190107');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190108');
+params = ct_set_params(params,['cmd.' cmd_method],0,'cmd.notes','do not process');
 
 % params = ct_set_params(params,'radar.wfs(1).deconv.en',true);
 % params = ct_set_params(params,'radar.wfs(2).deconv.en',true);

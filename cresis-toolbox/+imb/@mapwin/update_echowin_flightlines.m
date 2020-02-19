@@ -10,7 +10,7 @@ function update_echowin_flightlines(obj,src,event)
 
 % Get GPS time being displayed in echogram window to determine
 % flightline information
-xlimits = xlim(src.right_panel.axes.handle);
+xlimits = xlim(src.h_axes);
 start_gps = src.eg.image_gps_time(find(src.eg.image_xaxis>=xlimits(1),1));
 stop_gps = src.eg.image_gps_time(find(src.eg.image_xaxis<=xlimits(2),1,'last'));
 

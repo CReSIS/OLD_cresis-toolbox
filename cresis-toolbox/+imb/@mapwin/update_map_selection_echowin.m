@@ -7,7 +7,7 @@ function update_map_selection_echowin(obj,src,event)
 
 echowin_idx = find(obj.echowin_list == src);
 frames = get(obj.echowin_list(echowin_idx).left_panel.frameLB,'String');
-frame_name = frames{get(obj.echowin_list(echowin_idx).left_panel.frameLB,'Value')};
+frm_str = frames{get(obj.echowin_list(echowin_idx).left_panel.frameLB,'Value')};
 
 % Update map selection plot
 if obj.map.fline_source==1
@@ -15,18 +15,20 @@ if obj.map.fline_source==1
   % -----------------------------------------------------------------------
   
   % Find the first frame that matches the search string
-  frm_id = frame_name;
+  frm_id = frm_str;
   frm_id(regexp(frm_id,'_')) = [];
   frm_id = str2num(frm_id);
   
   % Get a logical mask indicating all indices that match the frame
-  frm_mask = obj.layerdata.frms == frm_id;
+  frm_mask = obj.layerdata.frm_id == frm_id;
+  % Find the first matching frame in the list
   idx = find(frm_mask,1);
   if isempty(idx)
     % No frames match, so just return
     return;
   end
-  frm_id = obj.layerdata.frms(idx);
+  % Extract out frame, system, and season name
+  frm_id = obj.layerdata.frm_id(idx);
   season_idx = obj.layerdata.season_idx(idx);
   season_name = obj.cur_map_pref_settings.seasons{season_idx};
   [sys,season_name] = strtok(season_name,'_');
@@ -37,12 +39,12 @@ if obj.map.fline_source==1
   day = frm_id(1:8);
   seg = frm_id(9:10);
   frame = frm_id(11:13);
-  frame_name = strcat(day,'_',seg,'_',frame);
+  frm_str = strcat(day,'_',seg,'_',frame);
 
   if strcmpi(obj.cur_map_pref_settings.layer_source,'layerdata')
     % Set data properties
     data = struct('properties',[]);
-    data.properties.frame = frame_name;
+    data.properties.frame = frm_str;
     data.properties.season = season_name;
     data.properties.segment_id = str2num(frm_id(1:10));
     data.properties.X = obj.layerdata.x(frm_mask);
@@ -52,7 +54,7 @@ if obj.map.fline_source==1
   else
     % Get segment id from opsGetFrameSearch
     frame_search_param = struct('properties',[]);
-    frame_search_param.properties.search_str = frame_name;
+    frame_search_param.properties.search_str = frm_str;
     frame_search_param.properties.location = obj.cur_map_pref_settings.map_zone;
     frame_search_param.properties.season = season_name;
     [frm_status,frm_data] = opsGetFrameSearch(sys,frame_search_param);
@@ -63,7 +65,7 @@ if obj.map.fline_source==1
     
     % Set data properties
     data = struct('properties',[]);
-    data.properties.frame = frame_name;
+    data.properties.frame = frm_str;
     data.properties.season = frm_data.properties.season;
     data.properties.segment_id = frm_data.properties.segment_id;
     data.properties.X = obj.layerdata.x(frm_mask);
@@ -76,7 +78,7 @@ else
   % OPS flineslines selected
   % -----------------------------------------------------------------------
   sys = obj.cur_map_pref_settings.system;
-  ops_param.properties.search_str = frame_name;
+  ops_param.properties.search_str = frm_str;
   ops_param.properties.season = obj.echowin_list(echowin_idx).eg.cur_sel.season_name;
   ops_param.properties.location = obj.cur_map_pref_settings.map_zone;
   
@@ -96,11 +98,12 @@ else
 end
 
 % Record current frame selection
-obj.map.sel.frame_name = data.properties.frame;
+obj.map.sel.frm_str = data.properties.frame;
 obj.map.sel.season_name = data.properties.season;
-obj.map.sel.segment_id = data.properties.segment_id;
+obj.map.sel.seg_id = data.properties.segment_id;
 obj.map.sel.radar_name = sys;
 
+% Update current frame selection map plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{new_xdata,new_ydata});
 
 if get(obj.top_panel.trackCB,'Value')
@@ -112,4 +115,8 @@ if get(obj.top_panel.trackCB,'Value')
 end
 
 % Change map title to the currently selected frame
-set(obj.top_panel.flightLabel,'String',obj.map.sel.frame_name);
+if obj.map.fline_source==1
+  set(obj.top_panel.flightLabel,'String',[sys ' ' obj.map.sel.frm_str]);
+else
+  set(obj.top_panel.flightLabel,'String',obj.map.sel.frm_str);
+end

@@ -35,9 +35,9 @@ else
   fn_img_str = sprintf('img_%02d_', img);
 end
 
-for cur_frame = obj.eg.frame_idxs
+for cur_frame = obj.eg.frms
   fn = fullfile(ct_filename_out(obj.eg.cur_sel,'',answer,0), ...
-    sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frame_names{cur_frame}));
+    sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frm_strs{cur_frame}));
   fprintf('Saving %s\n', fn);
   
   mdata = [];
@@ -50,11 +50,11 @@ for cur_frame = obj.eg.frame_idxs
     & obj.eg.gps_time < obj.eg.stop_gps_time(cur_frame);
   
   mdata.Data = obj.left_panel.imagewin.CData(:,valid_mask);
-  mdata.Latitude = obj.eg.latitude(:,valid_mask);
-  mdata.Longitude = obj.eg.longitude(:,valid_mask);
-  mdata.Elevation = obj.eg.elevation(:,valid_mask);
+  mdata.Latitude = obj.eg.lat(:,valid_mask);
+  mdata.Longitude = obj.eg.lon(:,valid_mask);
+  mdata.Elevation = obj.eg.elev(:,valid_mask);
   mdata.GPS_time = obj.eg.gps_time(:,valid_mask);
-  mdata.Surface = obj.eg.surface(:,valid_mask);
+  mdata.Surface = obj.eg.surf_twtt(:,valid_mask);
   
   % Save data to file
   fn_dir = fileparts(fn);
