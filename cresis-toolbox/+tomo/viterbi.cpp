@@ -30,13 +30,6 @@ double viterbi::unary_cost(int x, int y) {
         return LARGE;
     }
 
-    // Set cost to large if far from center ground truth (if present)
-    // TODO[reece]: Distance is hardcoded here when comparing to ground truth
-    // TODO[reece]: What is center ground truth? Apparently gt that is present in the center column of an echogram?
-    if ((f_bgt != -1) && (x == f_mid) && (y < f_bgt - 20 || y > f_bgt + 20)) {
-        return LARGE;
-    }
-
     double cost = 0;
 
     // TODO[reece]: Compare binary costs with unary costs/multiple bin costs. Adjust accordingly. Perhaps use constants for easy nudging.
@@ -44,14 +37,14 @@ double viterbi::unary_cost(int x, int y) {
     // Increase cost if far from extra ground truth
     for (int f = 0; f < (f_num_extra_tr / 2); ++f) {
         if (f_egt_x[f] == x) {
-            cost += f_gt_weights[x] * 10 * sqr(((int)f_egt_y[f] - (int)y) * f_egt_weight);
+            cost += f_gt_weights[x] * 10 * sqr(((int)f_egt_y[f] - (int)y));
             break;
         }
     }
 
     // TODO[reece]: Remove t and mu
     // Increase cost if near surface or surface multiple bin
-    const int travel_time = f_sgt[x] - f_plane_bin;  // Between multiples
+    const int travel_time = f_sgt[x] - f_zero_bin;  // Between multiples
     int multiple_bin = (y - f_sgt[x]) / travel_time;
     int dist_to_bin = abs((y - f_sgt[x]) % travel_time);
     // If closer to next multiple, use that distance instead
@@ -169,10 +162,10 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
         }
         
         if (!next) {
-            dt_1d(path_prob, f_scale, path_prob_next, index, 0, f_row, f_smooth_slope[col-1]);
+            dt_1d(path_prob, f_transition_weight, path_prob_next, index, 0, f_row, f_smooth_slope[col-1]);
         }
         else {
-            dt_1d(path_prob_next, f_scale, path_prob, index, 0, f_row, f_smooth_slope[col-1]);
+            dt_1d(path_prob_next, f_transition_weight, path_prob, index, 0, f_row, f_smooth_slope[col-1]);
         }
         next = !next;
     }
@@ -180,98 +173,92 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {    
-    if (nrhs < 13 || nrhs > 14 ||  nlhs != 1) {
-        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mask_dist, costmatrix, scale, [plane_bin])\n"); 
+    int min_args = 11;  // Number of required arguments
+    int max_args = 12;  // All args including optional
+    int arg = 0;
+
+    if (nrhs < min_args || nrhs > max_args ||  nlhs != 1) {
+        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weight, [zero_bin])\n"); 
     }
 
     // TODO[reece]: Organize inputs, fix counting, update usage ^
     
     // Input checking
     // input image ========================================================
-    if (!mxIsDouble(prhs[0])) {
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: image must be type double");
     }
-    if (mxGetNumberOfDimensions(prhs[0]) != 2) {
+    if (mxGetNumberOfDimensions(prhs[arg]) != 2) {
         mexErrMsgTxt("usage: image must be a 2D matrix");
     }
-    const int _row = mxGetM(prhs[0]);
-    const int _col = mxGetN(prhs[0]);
-    const double *_image = mxGetPr(prhs[0]);
+    const int _row = mxGetM(prhs[arg]);
+    const int _col = mxGetN(prhs[arg]);
+    const double *_image = mxGetPr(prhs[arg]);
     
     // surface ground truth ===============================================
-    if (!mxIsDouble(prhs[1])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: sgt must be type double");
     }
-    if (mxGetNumberOfElements(prhs[1]) != _col) {
+    if (mxGetNumberOfElements(prhs[arg]) != _col) {
         mexErrMsgTxt("usage: sgt must have numel(sgt)=size(image,2)");
     }
-    const double *_surf_tr = mxGetPr(prhs[1]);
-    
-    // bottom ground truth ================================================
-    if (!mxIsDouble(prhs[2]) || mxGetNumberOfElements(prhs[2]) != 1) {
-        mexErrMsgTxt("usage: bgt must be a scalar of type double");
-    }
-    const double *t_bott_tr = mxGetPr(prhs[2]);
+    const double *_surf_tr = mxGetPr(prhs[arg]);
     
     // extra ground truth =================================================
-    if (!mxIsDouble(prhs[3])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: egt must be type double");
     }
-    const int _num_extra_tr = mxGetNumberOfElements(prhs[3]);
+    const int _num_extra_tr = mxGetNumberOfElements(prhs[arg]);
     if (_num_extra_tr % 2 != 0) {
         mexErrMsgTxt("usage: egt size must be a multiple of 2");
     }
-    if (mxGetNumberOfElements(prhs[3]) > 0) {
-        if (mxGetNumberOfDimensions(prhs[3]) != 2) {
+    if (mxGetNumberOfElements(prhs[arg]) > 0) {
+        if (mxGetNumberOfDimensions(prhs[arg]) != 2) {
             mexErrMsgTxt("usage: egt must be a 2xN array");
         }
     }
-    const double *t_egt = mxGetPr(prhs[3]);
+    const double *t_egt = mxGetPr(prhs[arg]);
     
     // mask ===============================================================
-    if (!mxIsDouble(prhs[4])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: mask must be type double");
     }
-    if (mxGetNumberOfElements(prhs[4]) != _col) {
+    if (mxGetNumberOfElements(prhs[arg]) != _col) {
         mexErrMsgTxt("usage: mask must have numel(mask)=size(image,2)");
     }
-    const double *_mask = mxGetPr(prhs[4]);
+    const double *_mask = mxGetPr(prhs[arg]);
     
     // img_mag_weight ==========================================================
-    if (!mxIsDouble(prhs[5]) || mxGetNumberOfElements(prhs[5]) != 1) {
+    arg++;
+    if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1) {
         mexErrMsgTxt("usage: img_mag_weight must be scalar double");
     }
-    const double _img_mag_weight = *(double *)mxGetPr(prhs[5]); 
-    
-    // extra ground truth weight ==========================================
-    if (!mxIsDouble(prhs[6])) {
-        mexErrMsgTxt("usage: extra gt weight must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[6]) != 1) {
-        mexErrMsgTxt("usage: extra gt weight must be a scalar");  
-    }    
-    const double *t_egt_weight    = mxGetPr(prhs[6]);
-    const double _egt_weight = !t_egt_weight || t_egt_weight[0] < 0 ? EGT_WEIGHT : t_egt_weight[0];
+    const double _img_mag_weight = *(double *)mxGetPr(prhs[arg]); 
     
     // smooth_slope =======================================================
-    if (!mxIsDouble(prhs[7])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: smooth_slope must be type double");
     }
-    if (_col-1 != mxGetNumberOfElements(prhs[7])) {
+    if (_col-1 != mxGetNumberOfElements(prhs[arg])) {
         mexErrMsgTxt("usage: smooth_slope must have numel(smooth_slope)=size(image,2)-1");
     }
-    const double *_smooth_slope = mxGetPr(prhs[7]);
+    const double *_smooth_slope = mxGetPr(prhs[arg]);
     
     // bounds =============================================================
+    arg++;
     ptrdiff_t _bounds[2];
-    if (mxGetNumberOfElements(prhs[8]) != 0) {
-        if (!mxIsInt64(prhs[8])) {
+    if (mxGetNumberOfElements(prhs[arg]) != 0) {
+        if (!mxIsInt64(prhs[arg])) {
             mexErrMsgTxt("Usage: bounds must be type int64");
         }
-        if (mxGetNumberOfElements(prhs[8]) != 2) {
+        if (mxGetNumberOfElements(prhs[arg]) != 2) {
             mexErrMsgTxt("Usage: bounds must be a 2 element vector");
         }
-        ptrdiff_t *tmp = (ptrdiff_t*)mxGetPr(prhs[8]);
+        ptrdiff_t *tmp = (ptrdiff_t*)mxGetPr(prhs[arg]);
         _bounds[0] = tmp[0];
         _bounds[1] = tmp[1];
         if (_bounds[0] < 0) {
@@ -297,60 +284,66 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     
     // gt_weight ======================================================
-    if (!mxIsDouble(prhs[9])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: gt_weight must be type double");
     }
-    if (mxGetNumberOfElements(prhs[9]) != _col) {
+    if (mxGetNumberOfElements(prhs[arg]) != _col) {
         mexErrMsgTxt("usage: gt_weight must have numel(gt_weight)=size(image,2)");
     }   
-    const double *_gt_weights  = mxGetPr(prhs[9]);
+    const double *_gt_weights  = mxGetPr(prhs[arg]);
     
     // mask_dist ==========================================================
-    if (!mxIsDouble(prhs[10])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: mask_dist must be type double");
     }
-    if (mxGetNumberOfElements(prhs[10]) != _col) {
+    if (mxGetNumberOfElements(prhs[arg]) != _col) {
         mexErrMsgTxt("usage: mask_dist must have numel(mask_dist)=size(image,2)");
     }   
-    const double *_mask_dist = mxGetPr(prhs[10]);
+    const double *_mask_dist = mxGetPr(prhs[arg]);
     
     // costmatrix =========================================================
-    if (!mxIsDouble(prhs[11])) {
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
         mexErrMsgTxt("usage: costmatrix must be type double");
     } 
-    const double *_costmatrix = mxGetPr(prhs[11]);
-    const int _costmatrix_X = mxGetM(prhs[11]);
-    const int _costmatrix_Y = mxGetN(prhs[11]);
+    const double *_costmatrix = mxGetPr(prhs[arg]);
+    const int _costmatrix_X = mxGetM(prhs[arg]);
+    const int _costmatrix_Y = mxGetN(prhs[arg]);
     
-    // scale ===================================================
-    if (!mxIsDouble(prhs[12])) {
-        mexErrMsgTxt("usage: scale must be type double");
+    // transition_weight ===================================================
+    arg++;
+    if (!mxIsDouble(prhs[arg])) {
+        mexErrMsgTxt("usage: transition_weight must be type double");
     }
-    if (mxGetNumberOfElements(prhs[12]) != 1) {
-        mexErrMsgTxt("usage: scale must be scalar");
+    if (mxGetNumberOfElements(prhs[arg]) != 1) {
+        mexErrMsgTxt("usage: transition_weight must be scalar");
     }   
-    const double _scale = *(double *)mxGetPr(prhs[12]);
+    const double _transition_weight = *(double *)mxGetPr(prhs[arg]);
     
-    // plane bin ===================================================
-    int _plane_bin = 0;
-    if (nrhs >= 14) {
-      if (!mxIsInt64(prhs[13])) {
-          mexErrMsgTxt("usage: plane bin must be type int64");
+    // zero bin ===================================================
+    arg++;
+    int _zero_bin = 0;
+    if (nrhs >= min_args + 1) {
+      if (!mxIsInt64(prhs[arg])) {
+          mexErrMsgTxt("usage: zero bin must be type int64");
       }
-      _plane_bin = *(int *)mxGetPr(prhs[13]);
+      _zero_bin = *(int *)mxGetPr(prhs[arg]);
     }
     
     // ====================================================================
     
+    // Assert arg == max_args
+    if (arg != max_args - 1) {
+        mexErrMsgTxt("BUG: Viterbi.cpp mex function args incorrectly ordered.");
+    }
+
     // Initialize surface layer array
     int _sgt[_col];
     for (int k = 0; k < _col; ++k) {
         _sgt[k] = (int)_surf_tr[k];
     }
-    
-    // Initialize variables to default values if temporary values not set
-    const int _mid = floor(_col / 2);
-    const int _bgt = ((t_bott_tr) ? (t_bott_tr[0] > 0 ? round(t_bott_tr[0]) : -1) : -1);
     
     double _egt_x[(_num_extra_tr / 2)], _egt_y[(_num_extra_tr / 2)];
     for (int p = 0; p < (_num_extra_tr / 2); ++p) {
@@ -361,8 +354,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     // Allocate output    
     plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
     double *_result = mxGetPr(plhs[0]); 
-    viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _img_mag_weight, _mid, 
-        _egt_weight, _smooth_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, _gt_weights,
+    viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
+        _smooth_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, _gt_weights,
         _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
-        _scale, _plane_bin, _result); 
+        _transition_weight, _zero_bin, _result); 
 }

@@ -29,9 +29,6 @@ if tool_idx == 1
     
     [manual_idxs,auto_idxs_initial,point_idxs] = find_matching_pnts(obj,param,cur_layer);
     
-    % Scale auto_idxs from scale of param.layer.x to scale of viterbi_data
-    % TODO[reece]: Add example to find matching points
-    
     if length(manual_idxs) < 1
       warning('Insufficient points to track');
       continue;
@@ -51,7 +48,7 @@ if tool_idx == 1
       
       % Match GT points with axis coordinates
       gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest');
-        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
+            interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
       auto_idxs = gt(1, 1):gt(1, end);
       x_points = gt(1, :) - gt(1,1) + 1;
       y_points = gt(2, :);
@@ -61,9 +58,7 @@ if tool_idx == 1
       
       % Echogram Parameters
       viterbi_data   = image_c;
-      bottom_bin     = -1;
       mask           = inf * ones([1 Nx]);
-      egt_weight     = -1;
       slope          = round(diff(surf_bins));
       bounds         = [];
       gt_weights = ones([1 Nx]);
@@ -124,8 +119,8 @@ if tool_idx == 1
       end
       
       dt = param.echo_time(2) - param.echo_time(1);
-      top = -param.echo_time(1)/dt + 1;
-      % TODO[reece]: Should keep +1? compare top to top1 and then remove top1
+      zero_bin = -param.echo_time(1)/dt + 1;
+      % TODO[reece]: Should keep +1? compare zero_bin to top1 and then remove top1
       [~, top1] = min(abs(param.echo_time));
       
       %% Distance-to-Ice-Margin model
@@ -135,20 +130,19 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
-      scale = length(param.layer.y{cur_layer}) / length(image_y) / 10;
-      % TODO[reece]: Allow user to input scale and input num pixels for
+      transition_weight = length(param.layer.y{cur_layer}) / length(image_y) / 10;
+      % TODO[reece]: Allow user to input transition_weight and input num pixels for
       % expected slope (Max variation) input based on twtt rather than resolution;
       % - e.g. "don't allow slopes greater than 1% ..."
       % - make into vector, for 2d, same value throughout (1x(Nx-1))
-      % TODO[reece]: Determine best scale
       % TODO[reece]: Why do the paths seem to ignore distance from egt more or less?
       % TODO[reece]: Update wiki. Update markdown files.
       
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
-        double(bottom_bin), double(gt), double(mask), double(1), double(egt_weight), ...
-        double(slope), int64(bounds), double(gt_weights), ...
-        double(mask_dist), double(DIM_costmatrix), double(scale), int64(top));
+        double(gt), double(mask), double(1), double(slope), int64(bounds), ...
+        double(gt_weights), double(mask_dist), double(DIM_costmatrix), ...
+        double(transition_weight), int64(zero_bin));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
