@@ -28,36 +28,41 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
       else
         val = val(1);
       end
-      prompt = {'Layer Name:','Layer Group Name:','Description:'};
+      prompt = {'Layer Age:','Description:','Layer Group Name:','Layer Name:'};
       if source == obj.left_panel.layerCM_copy
-        def = {obj.eg.layers.lyr_name{val},char(obj.eg.layers.lyr_group_name{val}),''};
+        def = {obj.eg.layers.lyr_age(val),obj.eg.layers.lyr_desc{val},char(obj.eg.layers.lyr_group_name{val}),obj.eg.layers.lyr_name{val}};
         val = val+1;
       else
-        def = {'', '', ''};
+        def = {'', '', '',''};
       end
       dlg_title = 'New Layer';
       num_lines = 1;
       answer = inputdlg(prompt,dlg_title,num_lines,def);
       
-      if length(answer) == 3 && ~isempty(answer{1})
-        name = answer{1};
-        group_name = answer{2};
-        desc = answer{3};
+      if length(answer) == 4 && ~isempty(answer{4})
+        try
+          age = eval(answer{1});
+        catch
+          age = NaN;
+        end
+        desc = answer{2};
+        group_name = answer{3};
+        name = answer{4};
         
         if any(strcmpi(name,obj.eg.layers.lyr_name))
           fprintf('  Layer %s already exists\n', name);
         else
           
-          fprintf('Add layer %s:%s "%s"\n', group_name, name, desc);
+          fprintf('Add layer %s:%s age %g desc "%s"\n', group_name, name, age, desc);
           
           cmds = [];
           cmds(end+1).undo_cmd = 'layer_delete';
           cmds(end).undo_args = {val};
           cmds(end).redo_cmd = 'layer_new';
-          cmds(end).redo_args = {val,name,group_name,desc};
+          cmds(end).redo_args = {val,age,desc,group_name,name};
           
           % Push the new command(s) to the stack
-          obj.undo_stack.push(cmds);
+          obj.undo_stack.push(obj.cmds_convert_units(cmds));
         end
       end
     end
@@ -70,34 +75,40 @@ elseif source == obj.left_panel.layerCM_edit
     val = val(val>2);
     if ~isempty(val)
       val = val(1);
-      prompt = {'Layer Name:','Layer Group Name:','Description:'};
-      old_name = obj.eg.layers.lyr_name{val};
+      prompt = {'Layer Age:','Description:','Layer Group Name:','Layer Name:'};
+      old_age = obj.eg.layers.lyr_age(val);
+      old_desc = obj.eg.layers.lyr_desc{val};
       old_group_name = char(obj.eg.layers.lyr_group_name{val});
-      def = {old_name,old_group_name,''};
+      old_name = obj.eg.layers.lyr_name{val};
+      def = {num2str(old_age),old_desc,old_group_name,old_name};
       dlg_title = 'Edit Layer';
       num_lines = 1;
       answer = inputdlg(prompt,dlg_title,num_lines,def);
       
-      if length(answer) == 3 && ~isempty(answer{1})
-        name = answer{1};
-        group_name = answer{2};
-        desc = answer{3};
-        new_val = val;
+      if length(answer) == 4 && ~isempty(answer{4})
+        try
+          age = eval(answer{1});
+        catch
+          age = NaN;
+        end
+        desc = answer{2};
+        group_name = answer{3};
+        name = answer{4};
         
         if any(strcmpi(name,obj.eg.layers.lyr_name([1:val-1 val+1:end])))
           fprintf('  Layer %s already exists\n', name);
         else
           
-          fprintf('Edit layer %s:%s to %s:%s "%s"\n', old_group_name, old_name, group_name, name, desc);
+          fprintf('Edit layer %s:%s to %s:%s age: %g desc: "%s"\n', old_group_name, old_name, group_name, name, age, desc);
           
           cmds = [];
           cmds(end+1).undo_cmd = 'layer_edit';
-          cmds(end).undo_args = {new_val,old_name,old_group_name,'',val};
+          cmds(end).undo_args = {val,old_age,old_desc,old_group_name,old_name,val};
           cmds(end).redo_cmd = 'layer_edit';
-          cmds(end).redo_args = {val,name,group_name,desc,new_val};
+          cmds(end).redo_args = {val,age,desc,group_name,name,val};
           
           % Push the new command(s) to the stack
-          obj.undo_stack.push(cmds);
+          obj.undo_stack.push(obj.cmds_convert_units(cmds));
         end
       end
     end
@@ -110,20 +121,33 @@ elseif source == obj.left_panel.layerCM_up
     val = val(val>3);
     if ~isempty(val)
       val = val(1);
-      name = obj.eg.layers.lyr_name{val};
+      age = obj.eg.layers.lyr_age(val);
+      desc = obj.eg.layers.lyr_desc{val};
       group_name = obj.eg.layers.lyr_group_name{val};
+      name = obj.eg.layers.lyr_name{val};
+      order = obj.eg.layers.lyr_order(val);
+      
       new_val = val-1;
+      new_age = obj.eg.layers.lyr_age(new_val);
+      new_desc = obj.eg.layers.lyr_desc{new_val};
+      new_group_name = obj.eg.layers.lyr_group_name{new_val};
+      new_name = obj.eg.layers.lyr_name{new_val};
+      new_order = obj.eg.layers.lyr_order(new_val);
       
       fprintf('Move layer up %s:%s\n', group_name, name);
       
       cmds = [];
       cmds(end+1).undo_cmd = 'layer_edit';
-      cmds(end).undo_args = {new_val,name,group_name,'',val};
+      cmds(end).undo_args = {val,age,desc,group_name,name,order};
       cmds(end).redo_cmd = 'layer_edit';
-      cmds(end).redo_args = {val,name,group_name,'',new_val};
+      cmds(end).redo_args = {val,age,desc,group_name,name,new_order};
+      cmds(end+1).undo_cmd = 'layer_edit';
+      cmds(end).undo_args = {new_val,new_age,new_desc,new_group_name,new_name,new_order};
+      cmds(end).redo_cmd = 'layer_edit';
+      cmds(end).redo_args = {new_val,new_age,new_desc,new_group_name,new_name,order};
       
       % Push the new command(s) to the stack
-      obj.undo_stack.push(cmds);
+      obj.undo_stack.push(obj.cmds_convert_units(cmds));
     end
   end
   
@@ -134,20 +158,33 @@ elseif source == obj.left_panel.layerCM_down
     val = val(val>2 & val<length(obj.eg.layers.lyr_name));
     if ~isempty(val)
       val = val(1);
-      name = obj.eg.layers.lyr_name{val};
+      age = obj.eg.layers.lyr_age(val);
+      desc = obj.eg.layers.lyr_desc{val};
       group_name = obj.eg.layers.lyr_group_name{val};
+      name = obj.eg.layers.lyr_name{val};
+      order = obj.eg.layers.lyr_order(val);
+      
       new_val = val+1;
+      new_age = obj.eg.layers.lyr_age(new_val);
+      new_desc = obj.eg.layers.lyr_desc{new_val};
+      new_group_name = obj.eg.layers.lyr_group_name{new_val};
+      new_name = obj.eg.layers.lyr_name{new_val};
+      new_order = obj.eg.layers.lyr_order(new_val);
       
       fprintf('Move layer down %s:%s\n', group_name, name);
       
       cmds = [];
       cmds(end+1).undo_cmd = 'layer_edit';
-      cmds(end).undo_args = {new_val,name,group_name,'',val};
+      cmds(end).undo_args = {val,age,desc,group_name,name,order};
       cmds(end).redo_cmd = 'layer_edit';
-      cmds(end).redo_args = {val,name,group_name,'',new_val};
+      cmds(end).redo_args = {val,age,desc,group_name,name,new_order};
+      cmds(end+1).undo_cmd = 'layer_edit';
+      cmds(end).undo_args = {new_val,new_age,new_desc,new_group_name,new_name,new_order};
+      cmds(end).redo_cmd = 'layer_edit';
+      cmds(end).redo_args = {new_val,new_age,new_desc,new_group_name,new_name,order};
       
       % Push the new command(s) to the stack
-      obj.undo_stack.push(cmds);
+      obj.undo_stack.push(obj.cmds_convert_units(cmds));
     end
   end
   
@@ -158,20 +195,33 @@ elseif source == obj.left_panel.layerCM_top
     val = val(val>3);
     if ~isempty(val)
       val = val(1);
-      name = obj.eg.layers.lyr_name{val};
+      age = obj.eg.layers.lyr_age(val);
+      desc = obj.eg.layers.lyr_desc{val};
       group_name = obj.eg.layers.lyr_group_name{val};
+      name = obj.eg.layers.lyr_name{val};
+      order = obj.eg.layers.lyr_order(val);
+      
       new_val = 3;
+      new_age = obj.eg.layers.lyr_age(new_val);
+      new_desc = obj.eg.layers.lyr_desc{new_val};
+      new_group_name = obj.eg.layers.lyr_group_name{new_val};
+      new_name = obj.eg.layers.lyr_name{new_val};
+      new_order = obj.eg.layers.lyr_order(new_val);
       
       fprintf('Move layer top %s:%s\n', group_name, name);
       
       cmds = [];
       cmds(end+1).undo_cmd = 'layer_edit';
-      cmds(end).undo_args = {new_val,name,group_name,'',val};
+      cmds(end).undo_args = {val,age,desc,group_name,name,order};
       cmds(end).redo_cmd = 'layer_edit';
-      cmds(end).redo_args = {val,name,group_name,'',new_val};
+      cmds(end).redo_args = {val,age,desc,group_name,name,new_order};
+      cmds(end+1).undo_cmd = 'layer_edit';
+      cmds(end).undo_args = {new_val,new_age,new_desc,new_group_name,new_name,new_order};
+      cmds(end).redo_cmd = 'layer_edit';
+      cmds(end).redo_args = {new_val,new_age,new_desc,new_group_name,new_name,order};
       
       % Push the new command(s) to the stack
-      obj.undo_stack.push(cmds);
+      obj.undo_stack.push(obj.cmds_convert_units(cmds));
     end
   end
   
@@ -182,21 +232,33 @@ elseif source == obj.left_panel.layerCM_bottom
     val = val(val>2);
     if ~isempty(val)
       val = val(1);
-      
-      name = obj.eg.layers.lyr_name{val};
+      age = obj.eg.layers.lyr_age(val);
+      desc = obj.eg.layers.lyr_desc{val};
       group_name = obj.eg.layers.lyr_group_name{val};
+      name = obj.eg.layers.lyr_name{val};
+      order = obj.eg.layers.lyr_order(val);
+      
       new_val = length(obj.eg.layers.lyr_name);
+      new_age = obj.eg.layers.lyr_age(new_val);
+      new_desc = obj.eg.layers.lyr_desc{new_val};
+      new_group_name = obj.eg.layers.lyr_group_name{new_val};
+      new_name = obj.eg.layers.lyr_name{new_val};
+      new_order = obj.eg.layers.lyr_order(new_val);
       
       fprintf('Move layer bottom %s:%s\n', group_name, name);
       
       cmds = [];
       cmds(end+1).undo_cmd = 'layer_edit';
-      cmds(end).undo_args = {new_val,name,group_name,'',val};
+      cmds(end).undo_args = {val,age,desc,group_name,name,order};
       cmds(end).redo_cmd = 'layer_edit';
-      cmds(end).redo_args = {val,name,group_name,'',new_val};
+      cmds(end).redo_args = {val,age,desc,group_name,name,new_order};
+      cmds(end+1).undo_cmd = 'layer_edit';
+      cmds(end).undo_args = {new_val,new_age,new_desc,new_group_name,new_name,new_order};
+      cmds(end).redo_cmd = 'layer_edit';
+      cmds(end).redo_args = {new_val,new_age,new_desc,new_group_name,new_name,order};
       
       % Push the new command(s) to the stack
-      obj.undo_stack.push(cmds);
+      obj.undo_stack.push(obj.cmds_convert_units(cmds));
     end
   end
   
@@ -218,43 +280,45 @@ elseif source == obj.left_panel.layerCM_delete
           % deleted.
           vals = sort(vals,'descend');
           for val = vals
-            name = obj.eg.layers.lyr_name{val};
+            age = obj.eg.layers.lyr_age(val);
+            desc = obj.eg.layers.lyr_desc{val};
             group_name = obj.eg.layers.lyr_group_name{val};
-            desc = '';
-            fprintf('Delete layer %s:%s "%s"\n', group_name, name, '');
+            name = obj.eg.layers.lyr_name{val};
+            fprintf('Delete layer %s:%s\n', group_name, name);
             
             cmds(end+1).undo_cmd = 'layer_new';
-            cmds(end).undo_args = {val,name,group_name,desc};
+            cmds(end).undo_args = {val,age,desc,group_name,name};
             cmds(end).redo_cmd = 'layer_delete';
             cmds(end).redo_args = {val};
             
             % Push the new command(s) to the stack
           end
-          obj.undo_stack.push(cmds);
+          obj.undo_stack.push(obj.cmds_convert_units(cmds));
         case 'Cancel'
       end
       
     elseif length(vals) == 1
-      name = obj.eg.layers.lyr_name{vals};
+      age = obj.eg.layers.lyr_age(vals);
+      desc = obj.eg.layers.lyr_desc{vals};
       group_name = obj.eg.layers.lyr_group_name{vals};
-      desc = '';
+      name = obj.eg.layers.lyr_name{vals};
       
-      prompt = questdlg(sprintf('Are you sure you want to deleted layer %s:%s?', ...
+      prompt = questdlg(sprintf('Are you sure you want to delete layer %s:%s?', ...
         group_name,name), ...
         'Delete Layer','Yes','Cancel','Cancel');
       
       switch prompt
         case 'Yes'
-          fprintf('Delete layer %s:%s "%s"\n', group_name, name, '');
+          fprintf('Delete layer %s:%s\n', group_name, name);
           
           cmds = [];
           cmds(end+1).undo_cmd = 'layer_new';
-          cmds(end).undo_args = {vals,name,group_name,desc};
+          cmds(end).undo_args = {vals,age,desc,group_name,name};
           cmds(end).redo_cmd = 'layer_delete';
           cmds(end).redo_args = {vals};
           
           % Push the new command(s) to the stack
-          obj.undo_stack.push(cmds);
+          obj.undo_stack.push(obj.cmds_convert_units(cmds));
         case 'Cancel'
       end
     end

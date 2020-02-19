@@ -122,10 +122,8 @@ end
 %% LayerData: Load layerdata into undostack
 layer_info = [];
 param.frame = [];
-param.gps_time = [];
-param.twtt = [];
-param.frame_idxes = [];
-param.filename = [];
+param.frame_idxs = [];
+param.filename = {};
 param.map = obj.map;
 if strcmpi(param.layer_source,'layerdata')
   % Find this season in the list of seasons
@@ -138,6 +136,8 @@ if strcmpi(param.layer_source,'layerdata')
   for frm = 1:num_frm
     layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
     lay = load(layer_fn);
+    new_layer_names = {};
+    duplicate_idx = 0;
     for lay_idx = 1:length(lay.layerData)
       if ~isfield(lay.layerData{lay_idx},'name')
         if lay_idx == 1
@@ -148,22 +148,37 @@ if strcmpi(param.layer_source,'layerdata')
           error('layerData files with unnamed layers for layers 3 and greater are not supported. Layer %d does not have a .name field.', lay_idx);
         end
       end
-      if ~any(strcmp(lay.layerData{lay_idx}.name,layer_names))
-        layer_names{end+1} = lay.layerData{lay_idx}.name;
+      while any(strcmp(lay.layerData{lay_idx}.name,new_layer_names))
+        % This is a duplicate layer name, this loop searches for a unique
+        % name
+        duplicate_idx = duplicate_idx + 1;
+        lay.layerData{lay_idx}.name = sprintf('%s_%d',lay.layerData{lay_idx}.name,duplicate_idx);
       end
+      new_layer_names{end+1} = lay.layerData{lay_idx}.name;
     end
+    layer_names = union(layer_names,new_layer_names);
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
     layer_info = cat(2, layer_info,lay); % stores the layer information for all frames in the segment
-    param.gps_time = cat(2,param.gps_time,lay.GPS_time); % stores the GPS time for all the frames in the segment
     param.frame = cat(2, param.frame, frm*ones(size(lay.GPS_time))); % stores the frame number for each point path id in each frame
-    param.frame_idxes = cat(2,param.frame_idxes,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
+    param.frame_idxs = cat(2,param.frame_idxs,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
   
+  % Ensure surface and bottom are the first two entries in the layer_names
+  % list
+  idx = find(strcmp('surface',layer_names));
+  layer_names = layer_names([idx,1:idx-1,idx+1:end]);
+  idx = find(strcmp('bottom',layer_names));
+  layer_names = layer_names([1 idx,2:idx-1,idx+1:end]);
+  
   % Populate layers
-  param.layers.lyr_id = 1:length(layer_names);
-  param.layers.lyr_name = layer_names;
-  param.layers.lyr_group_name = cell(size(param.layers.lyr_name));
-  param.layers.surf_id = 1;
+  param.layers.lyr_age = nan(size(layer_names)); % layer.age (age of layer or NaN)
+  param.layers.lyr_desc = cellfun(@char,cell(size(layer_names)),'UniformOutput',false); % layer.desc (layer description string)
+  param.layers.lyr_group_name = cellfun(@char,cell(size(layer_names)),'UniformOutput',false); % layer.group_name (string)
+  param.layers.lyr_group_name{1} = 'standard';
+  param.layers.lyr_group_name{2} = 'standard';
+  param.layers.lyr_id = 1:length(layer_names); % layer.id (either OPS unique database key or NaN which gets filled in with temporary unique key here)
+  param.layers.lyr_name = layer_names; % layer.name (string, can contain "%d" to insert order)
+  param.layers.lyr_order = [1:length(param.layers.lyr_id)]; % layer.order (positive integer, 1 to N where N is the number of layers)
   
   % Force all layerData files to use the same layer sequence: this ensures
   % that all layerData files have the same layers and these layers are in
@@ -183,23 +198,36 @@ if strcmpi(param.layer_source,'layerdata')
       for lay_idx = 1:length(param.layers.lyr_name)
         layer_name = param.layers.lyr_name{lay_idx};
         new_layerData{lay_idx}.name = layer_name;
-        match_idx = find(strcmp(layer_name,file_layer_names),1);
-        if isempty(match_idx)
+        lyr_match_idx = find(strcmp(layer_name,file_layer_names),1);
+        if isempty(lyr_match_idx)
           new_layerData{lay_idx}.value{1}.data = NaN(size(layer_info(frm).GPS_time));
           new_layerData{lay_idx}.value{2}.data = NaN(size(layer_info(frm).GPS_time));
           new_layerData{lay_idx}.quality = ones(size(layer_info(frm).GPS_time));
         else
-          new_layerData{lay_idx}.value{1}.data = layer_info(frm).layerData{match_idx}.value{1}.data;
-          new_layerData{lay_idx}.value{2}.data = layer_info(frm).layerData{match_idx}.value{2}.data;
-          new_layerData{lay_idx}.quality = layer_info(frm).layerData{match_idx}.quality;
+          new_layerData{lay_idx}.value{1}.data = layer_info(frm).layerData{lyr_match_idx}.value{1}.data;
+          new_layerData{lay_idx}.value{2}.data = layer_info(frm).layerData{lyr_match_idx}.value{2}.data;
+          new_layerData{lay_idx}.quality = layer_info(frm).layerData{lyr_match_idx}.quality;
         end
       end
       layer_info(frm).layerData = new_layerData;
+    end
+    for lay_idx = 1:length(param.layers.lyr_name)
+      layer_info(frm).layerData{lay_idx}.age = param.layers.lyr_age(lay_idx);
+      layer_info(frm).layerData{lay_idx}.desc = param.layers.lyr_desc{lay_idx};
+      layer_info(frm).layerData{lay_idx}.group_name = param.layers.lyr_group_name{lay_idx};
+      layer_info(frm).layerData{lay_idx}.id = param.layers.lyr_id(lay_idx);
+      layer_info(frm).layerData{lay_idx}.order = param.layers.lyr_order(lay_idx);
     end
   end
   
   param.start_gps_time = obj.layerdata.frm_info(season_idx).start_gps_time(frm_idxs);
   param.stop_gps_time = obj.layerdata.frm_info(season_idx).stop_gps_time(frm_idxs);
+
+else
+  param.layers.lyr_age = nan(size(param.layers.lyr_id)); % layer.age (age of layer or NaN)
+  param.layers.lyr_desc = cellfun(@char,cell(size(param.layers.lyr_id)),'UniformOutput',false); % layer.desc (layer description string)
+  param.layers.lyr_order = [1:length(param.layers.lyr_id)]; % layer.order (positive integer, 1 to N where N is the number of layers)
+  
 end
 
 if isempty(match_idx)
@@ -212,13 +240,13 @@ end
 
 % Attach echowin to the undo stack
 obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(match_idx));
-obj.undo_stack_list(match_idx).user_data.layer_info=layer_info; % contains the layer information
+% user_data: This is only used for param.layer_source == 'layerdata' except
+% for the field param.layer_source.
+obj.undo_stack_list(match_idx).user_data.layer_source = param.layer_source; % string containing layer source ('OPS' or 'layerdata')
+obj.undo_stack_list(match_idx).user_data.layer_info = layer_info; % contains the layer twtt/name/quality/type/etc information
 obj.undo_stack_list(match_idx).user_data.frame = param.frame; % contains the frame number for each point path id
-obj.undo_stack_list(match_idx).user_data.layer_source = param.layer_source; % contains the layer source
-obj.undo_stack_list(match_idx).user_data.layer_data_source = param.layer_data_source; % contains the layerData source
-obj.undo_stack_list(match_idx).user_data.gps_time=param.gps_time; % contains the GPS time
-obj.undo_stack_list(match_idx).user_data.frame_idxs = param.frame_idxes; % contains the point number for each individual point in each frame
-obj.undo_stack_list(match_idx).user_data.filename = param.filename; % contains the filenames
+obj.undo_stack_list(match_idx).user_data.frame_idxs = param.frame_idxs; % contains the point number for each individual point in each frame
+obj.undo_stack_list(match_idx).user_data.filename = param.filename; % contains the frame filenames
 
 %%
 try

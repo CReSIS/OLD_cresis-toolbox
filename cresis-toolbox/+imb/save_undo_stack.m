@@ -39,7 +39,7 @@ for cmd_idx = 1:length(cmds_list)
     elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'delete')
       cmd_type(end+1) = 'd';
     elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_new')
-      cmd_type(end+1) = 'l';
+      cmd_type(end+1) = 'n';
     elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_delete')
       cmd_type(end+1) = 'r'; % remove/delete
     elseif strcmpi(cmds_list{cmd_idx}(sub_idx).redo_cmd,'layer_edit')
@@ -136,6 +136,12 @@ for cur_layer = unique_layers
     % 4: type (1 for manual or 2 for auto)
     % 5: quality (1 for good, 2 for moderate, or 3 for bad)
     
+    % Determine the layer file layer index
+    for lay_idx = 1:length(undo_stack.user_data.layer_info(1).layerData)
+      if undo_stack.user_data.layer_info(1).layerData{lay_idx}.id == cur_layer
+        break;
+      end
+    end
     % Keep a list of all frames that are modified
     cur_layer_cmd_idx = 1;
     while cur_layer_cmd_idx <= length(cur_layer_cmds)
@@ -218,56 +224,48 @@ for cur_layer = unique_layers
         end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
-      elseif cur_cmd_type(cur_layer_cmd_idx) == 'l'
+      elseif cur_cmd_type(cur_layer_cmd_idx) == 'n'
         %% LayerData: Create New Layer
-        % 
-        val = cmds_list{cmd_idx}(sub_idx).redo_args{1};
-        name = cmds_list{cmd_idx}(sub_idx).redo_args{2};
-        group_name = cmds_list{cmd_idx}(sub_idx).redo_args{3};
-        desc = cmds_list{cmd_idx}(sub_idx).redo_args{4};
+        id = cmds_list{cmd_idx}(sub_idx).redo_args{1};
+        age = cmds_list{cmd_idx}(sub_idx).redo_args{2};
+        desc = cmds_list{cmd_idx}(sub_idx).redo_args{3};
+        group_name = cmds_list{cmd_idx}(sub_idx).redo_args{4};
+        name = cmds_list{cmd_idx}(sub_idx).redo_args{5};
+        order = cmds_list{cmd_idx}(sub_idx).redo_args{6};
         
         for frm = 1:length(undo_stack.user_data.layer_info)
           Nx = length(undo_stack.user_data.layer_info(frm).GPS_time);
-          new_layerData = struct('name',name,'quality',2*ones(1,Nx), ...
+          new_layerData = struct('age',age,'desc',desc,'group_name',group_name,'id',id,'name',name,'order',order,'quality',2*ones(1,Nx), ...
             'value',{{struct('data',nan(1,Nx)),struct('data',nan(1,Nx))}});
           
-          undo_stack.user_data.layer_info(frm).layerData ...
-            = [undo_stack.user_data.layer_info(frm).layerData(1:val-1) new_layerData undo_stack.user_data.layer_info(frm).layerData(val:end)];
+          undo_stack.user_data.layer_info(frm).layerData(end+1) = new_layerData;
         end
         layerdata_frms = 1:length(undo_stack.user_data.layer_info);
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
       elseif cur_cmd_type(cur_layer_cmd_idx) == 'r'
         %% LayerData: Delete Layer (remove)
-        % 
-        val = cmds_list{cmd_idx}(sub_idx).redo_args{1};
-        
         for frm = 1:length(undo_stack.user_data.layer_info)
           undo_stack.user_data.layer_info(frm).layerData ...
-            = [undo_stack.user_data.layer_info(frm).layerData(1:val-1) undo_stack.user_data.layer_info(frm).layerData(val+1:end)];
+            = [undo_stack.user_data.layer_info(frm).layerData(1:lay_idx-1) undo_stack.user_data.layer_info(frm).layerData(lay_idx+1:end)];
         end
         layerdata_frms = 1:length(undo_stack.user_data.layer_info);
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
       elseif cur_cmd_type(cur_layer_cmd_idx) == 'e'
         %% LayerData: Edit Layer
-        % 
-        val = cmds_list{cmd_idx}(sub_idx).redo_args{1};
-        name = cmds_list{cmd_idx}(sub_idx).redo_args{2};
-        group_name = cmds_list{cmd_idx}(sub_idx).redo_args{3};
-        desc = cmds_list{cmd_idx}(sub_idx).redo_args{4};
-        new_val = cmds_list{cmd_idx}(sub_idx).redo_args{5};
-        
+        age = cmds_list{cmd_idx}(sub_idx).redo_args{2};
+        desc = cmds_list{cmd_idx}(sub_idx).redo_args{3};
+        group_name = cmds_list{cmd_idx}(sub_idx).redo_args{4};
+        name = cmds_list{cmd_idx}(sub_idx).redo_args{5};
+        order = cmds_list{cmd_idx}(sub_idx).redo_args{6};
+
         for frm = 1:length(undo_stack.user_data.layer_info)
-          undo_stack.user_data.layer_info(frm).layerData{val}.name = name;
-          if new_val ~= val
-            % Reorder layers
-            Nlayers = length(undo_stack.user_data.layer_info(frm).layerData);
-            new_order = [1:val-1, val+1:Nlayers];
-            new_order = [new_order(1:new_val-1) val new_order(new_val:Nlayers-1)];
-            undo_stack.user_data.layer_info(frm).layerData ...
-              = undo_stack.user_data.layer_info(frm).layerData(new_order);
-          end
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.age = age;
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.desc = desc;
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.group_name = group_name;
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.name = name;
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.order = order;
         end
         layerdata_frms = 1:length(undo_stack.user_data.layer_info);
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;

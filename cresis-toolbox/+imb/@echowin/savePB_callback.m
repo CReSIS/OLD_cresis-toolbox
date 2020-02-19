@@ -13,9 +13,12 @@ set(obj.h_fig,'Pointer','watch');
 drawnow;
 
 imb.save_undo_stack(obj.undo_stack);
-obj.eg.layers.saved.lyr_name = obj.eg.layers.lyr_name;
+obj.eg.layers.saved.lyr_age = obj.eg.layers.lyr_age;
+obj.eg.layers.saved.lyr_desc = obj.eg.layers.lyr_desc;
 obj.eg.layers.saved.lyr_group_name = obj.eg.layers.lyr_group_name;
 obj.eg.layers.saved.lyr_id = obj.eg.layers.lyr_id;
+obj.eg.layers.saved.lyr_name = obj.eg.layers.lyr_name;
+obj.eg.layers.saved.lyr_order = obj.eg.layers.lyr_order;
 
 set(obj.h_fig,'Pointer','Arrow');
 obj.busy_mode = false;

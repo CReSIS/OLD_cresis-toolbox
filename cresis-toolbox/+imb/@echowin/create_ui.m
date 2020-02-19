@@ -412,7 +412,7 @@ obj.left_panel.table.height_margin(row,col) = 3;
 row = 2; col = 1;
 obj.left_panel.table.handles{row,col}   = obj.left_panel.layerLB;
 obj.left_panel.table.width(row,col)     = inf;
-obj.left_panel.table.height(row,col)    = 71;
+obj.left_panel.table.height(row,col)    = inf;
 obj.left_panel.table.width_margin(row,col) = 3;
 obj.left_panel.table.height_margin(row,col) = 3;
 
