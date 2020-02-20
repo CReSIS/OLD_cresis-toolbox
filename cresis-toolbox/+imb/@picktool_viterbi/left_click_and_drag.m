@@ -48,7 +48,7 @@ if tool_idx == 1
       
       % Match GT points with axis coordinates
       gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest');
-            interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
+        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
       auto_idxs = gt(1, 1):gt(1, end);
       x_points = gt(1, :) - gt(1,1) + 1;
       y_points = gt(2, :);
@@ -130,7 +130,7 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
-      % TODO[reece]: Replace scale 
+      % TODO[reece]: Replace scale
       transition_weights = ones(1, size(viterbi_data, 2) - 1) ...
         * length(param.layer.y{cur_layer}) / length(image_y) / 5;
       % TODO[reece]: Allow user to input transition_weight and input num pixels for
