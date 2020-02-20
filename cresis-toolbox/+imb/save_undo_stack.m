@@ -115,7 +115,7 @@ for cur_layer = unique_layers
         param.properties.twtt = param.properties.twtt(valid_mask);
         param.properties.type = param.properties.type(valid_mask);
         param.properties.quality = param.properties.quality(valid_mask);
-        opsCreateLayerPoints(undo_stack.unique_id{1},param);
+        opsCreateLayerPoints(undo_stack.unique_id{2},param);
       else
         param.properties.start_point_path_id = cmds_list{cmd_idx}(sub_idx).redo_args{3}(1);
         param.properties.stop_point_path_id = cmds_list{cmd_idx}(sub_idx).redo_args{3}(2);
@@ -123,7 +123,7 @@ for cur_layer = unique_layers
         param.properties.max_twtt = cmds_list{cmd_idx}(sub_idx).redo_args{2}(4);
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         fprintf(' Delete commit\n');
-        opsDeleteLayerPoints(undo_stack.unique_id{1},param);
+        opsDeleteLayerPoints(undo_stack.unique_id{2},param);
       end %end of if insert or delete
     end %while cur_layer_cmds end
     
@@ -136,12 +136,6 @@ for cur_layer = unique_layers
     % 4: type (1 for manual or 2 for auto)
     % 5: quality (1 for good, 2 for moderate, or 3 for bad)
     
-    % Determine the layer file layer index
-    for lay_idx = 1:length(undo_stack.user_data.layer_info(1).layerData)
-      if undo_stack.user_data.layer_info(1).layerData{lay_idx}.id == cur_layer
-        break;
-      end
-    end
     % Keep a list of all frames that are modified
     cur_layer_cmd_idx = 1;
     while cur_layer_cmd_idx <= length(cur_layer_cmds)
@@ -158,7 +152,7 @@ for cur_layer = unique_layers
         % Add list of frames to the layerdata_frms list
         layerdata_frms = [layerdata_frms frms];
         % Create a mask of the modified points that are type manual
-        manual_mask = cmds_list{cmd_idx}(sub_idx).redo_args{4} == 1;        
+        manual_mask = cmds_list{cmd_idx}(sub_idx).redo_args{4} == 1;
         for frm_idx = 1:length(frms)
           frm = frms(frm_idx);
           % Create a mask for the modified points that is this frame only
@@ -191,11 +185,11 @@ for cur_layer = unique_layers
         % gets the range of points to be deleted and stores it in
         % start_point_path_id, stop_point_path_id, min_twtt and max_twtt
         % respectively
-
-        start_idx = cmds_list{cmd_idx}(sub_idx).redo_args{3}(1); 
+        
+        start_idx = cmds_list{cmd_idx}(sub_idx).redo_args{3}(1);
         stop_idx = cmds_list{cmd_idx}(sub_idx).redo_args{3}(2);
         point_ids = start_idx:stop_idx;
-
+        
         % Get list of frames that could have been modified by this command
         frms = unique(undo_stack.user_data.frame(point_ids));
         for frm_idx = 1:length(frms)
@@ -233,41 +227,105 @@ for cur_layer = unique_layers
         name = cmds_list{cmd_idx}(sub_idx).redo_args{5};
         order = cmds_list{cmd_idx}(sub_idx).redo_args{6};
         
+        % Update layer organizer
+        % =================================================================
+        undo_stack.user_data.layer_organizer.lyr_age(end+1) = age;
+        undo_stack.user_data.layer_organizer.lyr_desc{end+1} = desc;
+        undo_stack.user_data.layer_organizer.lyr_group_name{end+1} = group_name;
+        undo_stack.user_data.layer_organizer.lyr_id(end+1) = id;
+        undo_stack.user_data.layer_organizer.lyr_name{end+1} = name;
+        undo_stack.user_data.layer_organizer.lyr_order(end+1) = order;
+        % Force save of layer organizer file
+        layerdata_frms(end+1) = 0;
+        
+        % Update layer files
+        % =================================================================
         for frm = 1:length(undo_stack.user_data.layer_info)
-          Nx = length(undo_stack.user_data.layer_info(frm).GPS_time);
-          new_layerData = struct('age',age,'desc',desc,'group_name',group_name,'id',id,'name',name,'order',order,'quality',2*ones(1,Nx), ...
-            'value',{{struct('data',nan(1,Nx)),struct('data',nan(1,Nx))}});
-          
-          undo_stack.user_data.layer_info(frm).layerData(end+1) = new_layerData;
+          % Create a mask for the modified points that is this frame only
+          Nx = sum(undo_stack.user_data.frame == frm);
+          undo_stack.user_data.layer_info(frm).layerData{end+1}.value{1}.data = nan(1,Nx);
+          undo_stack.user_data.layer_info(frm).layerData{end}.value{2}.data = nan(1,Nx);
+          undo_stack.user_data.layer_info(frm).layerData{end}.quality = ones(1,Nx);
+          undo_stack.user_data.layer_info(frm).layerData{end}.type = 2*ones(1,Nx);
+          undo_stack.user_data.layer_info(frm).layerData{end}.id = id;
+          undo_stack.user_data.layer_info(frm).layerData{end}.name = name;
         end
-        layerdata_frms = 1:length(undo_stack.user_data.layer_info);
+
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
       elseif cur_cmd_type(cur_layer_cmd_idx) == 'r'
         %% LayerData: Delete Layer (remove)
+        id = cmds_list{cmd_idx}(sub_idx).redo_args{1};
+
+        % Update layer organizer
+        % =================================================================
+        lay_idx = find(undo_stack.user_data.layer_organizer.lyr_id == id);
+        undo_stack.user_data.layer_organizer.lyr_age(lay_idx) = [];
+        undo_stack.user_data.layer_organizer.lyr_desc(lay_idx) = [];
+        undo_stack.user_data.layer_organizer.lyr_group_name(lay_idx) = [];
+        undo_stack.user_data.layer_organizer.lyr_id(lay_idx) = [];
+        undo_stack.user_data.layer_organizer.lyr_name(lay_idx) = [];
+        undo_stack.user_data.layer_organizer.lyr_order(lay_idx) = [];
+        % Force save of layer organizer file
+        layerdata_frms(end+1) = 0;
+        
+        % Update layer files
+        % =================================================================
         for frm = 1:length(undo_stack.user_data.layer_info)
-          undo_stack.user_data.layer_info(frm).layerData ...
-            = [undo_stack.user_data.layer_info(frm).layerData(1:lay_idx-1) undo_stack.user_data.layer_info(frm).layerData(lay_idx+1:end)];
+          found = false;
+          for lay_idx = 1:length(undo_stack.user_data.layer_info(frm).layerData)
+            if id == undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
+              found = true;
+              break;
+            end
+          end
+          if found
+            undo_stack.user_data.layer_info(frm).layerData ...
+              = [undo_stack.user_data.layer_info(frm).layerData(1:lay_idx-1) undo_stack.user_data.layer_info(frm).layerData(lay_idx+1:end)];
+            layerdata_frms(end+1) = frm;
+          end
         end
-        layerdata_frms = 1:length(undo_stack.user_data.layer_info);
+        
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
       elseif cur_cmd_type(cur_layer_cmd_idx) == 'e'
         %% LayerData: Edit Layer
+        id = cmds_list{cmd_idx}(sub_idx).redo_args{1};
         age = cmds_list{cmd_idx}(sub_idx).redo_args{2};
         desc = cmds_list{cmd_idx}(sub_idx).redo_args{3};
         group_name = cmds_list{cmd_idx}(sub_idx).redo_args{4};
         name = cmds_list{cmd_idx}(sub_idx).redo_args{5};
         order = cmds_list{cmd_idx}(sub_idx).redo_args{6};
-
-        for frm = 1:length(undo_stack.user_data.layer_info)
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.age = age;
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.desc = desc;
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.group_name = group_name;
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.name = name;
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.order = order;
+        
+        % Update layer organizer
+        % =================================================================
+        lay_idx = find(undo_stack.user_data.layer_organizer.lyr_id == id);
+        old_name = undo_stack.user_data.layer_organizer.lyr_name(lay_idx);
+        undo_stack.user_data.layer_organizer.lyr_age(lay_idx) = age;
+        undo_stack.user_data.layer_organizer.lyr_desc{lay_idx} = desc;
+        undo_stack.user_data.layer_organizer.lyr_group_name{lay_idx} = group_name;
+        undo_stack.user_data.layer_organizer.lyr_name{lay_idx} = name;
+        undo_stack.user_data.layer_organizer.lyr_order(lay_idx) = order;
+        % Force save of layer organizer file
+        layerdata_frms(end+1) = 0;
+        
+        % Update layer files
+        % =================================================================
+        if ~strcmp(old_name,name)
+          for frm = 1:length(undo_stack.user_data.layer_info)
+            found = false;
+            for lay_idx = 1:length(obj.undo_stack.user_data.layer_info(frm).layerData)
+              if id == obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
+                found = true;
+                break;
+              end
+            end
+            if found
+              undo_stack.user_data.layer_info(frm).layerData{lay_idx}.name = name;
+              layerdata_frms(end+1) = frm;
+            end
+          end
         end
-        layerdata_frms = 1:length(undo_stack.user_data.layer_info);
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
       end % if insert/delete
@@ -275,15 +333,26 @@ for cur_layer = unique_layers
   end% layer_data end
 end% end for loop
 
-%% Notify all echo windows using this stack of save
-undo_stack.save();
-
 %% Save to layerData
 if strcmpi(undo_stack.user_data.layer_source,'layerdata')
   layerdata_frms = unique(layerdata_frms);
+  
   for idx = 1:length(layerdata_frms)
-    layerData = undo_stack.user_data.layer_info(layerdata_frms(idx)).layerData;
-    layer_fn = undo_stack.user_data.filename{layerdata_frms(idx)};
-    save(layer_fn,'-append','layerData') % saving to layerData file
+    frm = layerdata_frms(idx);
+    if frm == 0
+      layer_organizer = undo_stack.user_data.layer_organizer;
+      ct_save(layer_organizer.layer_fn,'-struct','layer_organizer','lyr_name','lyr_age','lyr_desc','lyr_group_name','lyr_order');
+    else
+      layerData = undo_stack.user_data.layer_info(frm).layerData;
+      for lay_idx = 1:length(layerData)
+        layerData{lay_idx} = rmfield(layerData{lay_idx},'id');
+      end
+      layer_fn = undo_stack.user_data.filename{frm};
+      save(layer_fn,'-append','layerData') % saving to layerData file
+    end
   end
 end
+
+%% Notify all echo windows using this stack of save
+undo_stack.save();
+

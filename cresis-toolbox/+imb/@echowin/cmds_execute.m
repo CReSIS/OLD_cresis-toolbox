@@ -41,6 +41,14 @@ else
   
 end
 
+if 0
+  fprintf('========================================================\n');
+  fprintf('%d ', obj.eg.layers.lyr_id);
+  fprintf('\n');
+  fprintf('%d ', obj.eg.layers.lyr_order);
+  fprintf('\n');
+end
+
 obj.update_layer_plots();
 
 end
@@ -185,8 +193,8 @@ group_name = args{4};
 name = args{5};
 order = args{6};
 
-% Determine where to insert the new layer:
-val = find(order < [obj.eg.layers.lyr_order inf],'last',1);
+% Put the layer in at the end
+val = length(obj.eg.layers.lyr_id)+1;
 
 obj.eg.layers.lyr_age = [obj.eg.layers.lyr_age(1:val-1) age obj.eg.layers.lyr_age(val:end)];
 obj.eg.layers.lyr_desc = [obj.eg.layers.lyr_desc(1:val-1) {desc} obj.eg.layers.lyr_desc(val:end)];
@@ -236,11 +244,34 @@ obj.h_quality(6*(idx-1)+6) = plot(obj.h_axes,1,1,'r--');
 set(obj.h_quality(6*(idx-1)+(1:6)),'Visible','off');
 set(obj.h_layer(2*(idx-1)+1),'Visible','on');  % manual
 
-obj.layerLB_str();
-set(obj.left_panel.layerLB,'Value',val);
+% Reorder layers based on new "order" field
+Nlayers = length(obj.eg.layers.lyr_id);
+[~,new_order] = sort(obj.eg.layers.lyr_order);
+val = find(new_order==val);
+
+obj.eg.layers.lyr_age = obj.eg.layers.lyr_age(new_order);
+obj.eg.layers.lyr_desc = obj.eg.layers.lyr_desc(new_order);
+obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
+obj.eg.layers.lyr_id = obj.eg.layers.lyr_id(new_order);
+obj.eg.layers.lyr_name = obj.eg.layers.lyr_name(new_order);
+obj.eg.layers.lyr_order = obj.eg.layers.lyr_order(new_order);
+obj.eg.layers.selected_layers = obj.eg.layers.selected_layers(new_order);
+obj.eg.layers.visible_layers = obj.eg.layers.visible_layers(new_order);
+obj.eg.layers.x = obj.eg.layers.x(new_order);
+obj.eg.layers.y = obj.eg.layers.y(new_order);
+obj.eg.layers.qual = obj.eg.layers.qual(new_order);
+obj.eg.layers.type = obj.eg.layers.type(new_order);
+obj.eg.layers.x_curUnit = obj.eg.layers.x_curUnit(new_order);
+obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
+
+obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
+obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
 
 obj.plot_layers();
 obj.set_visibility();
+
+obj.layerLB_str();
+set(obj.left_panel.layerLB,'Value',val);
 
 end
 
@@ -299,6 +330,7 @@ obj.eg.layers.lyr_order(val) = order;
 % Reorder layers based on new "order" field
 Nlayers = length(obj.eg.layers.lyr_id);
 [~,new_order] = sort(obj.eg.layers.lyr_order);
+val = find(new_order==val);
 
 obj.eg.layers.lyr_age = obj.eg.layers.lyr_age(new_order);
 obj.eg.layers.lyr_desc = obj.eg.layers.lyr_desc(new_order);

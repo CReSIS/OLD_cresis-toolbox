@@ -178,24 +178,7 @@ function args = cmds_convert_units_layer_new(obj,args)
 % args = cmds_convert_units_layer_new(obj,args)
 %
 % Convert units of the layer command arguments
-% args{1} = layer indices --> new database layer ID
-% args{2:5} = no change
-% args{6} = empty/undefined --> order of the new layer
-
-% Change layer idxs for layer ids
-val = obj.eg.layers.lyr_id(args{1});
-
-new_lyr_id = max(obj.eg.layers.lyr_id) + 1;
-args{1} = new_lyr_id;
-
-if isempty(val)
-  % No layer selected, so insert new layer at the end of the list
-  order = ceil(obj.eg.layers.lyr_order(end)) + 1;
-else
-  % Layer selected, so insert new layer just before the selected layer
-  order = (obj.eg.layers.lyr_order(val-1) + obj.eg.layers.lyr_order(val))/2;
-end
-args{6} = order;
+% args{1:6} = no change
 
 end
 
@@ -203,11 +186,7 @@ function args = cmds_convert_units_layer_delete(obj,args)
 % args = cmds_convert_units_layer_delete(obj,args)
 %
 % Convert units of the layer command arguments
-% args{1} = layer indices --> database layer IDs
-% args{2:end} = no change
-
-% Change layer idxs for layer ids
-args{1} = obj.eg.layers.lyr_id(args{1});
+% args{1:end} = no change
 
 end
 
@@ -215,12 +194,6 @@ function args = cmds_convert_units_layer_edit(obj,args)
 % args = cmds_convert_units_layer_edit(obj,args)
 %
 % Convert units of the layer command arguments
-% args{1} = layer indices --> database layer IDs
-% args{2:5} = no change
-% args{6} = layer indices --> order of the indicated layer
-
-% Change layer idxs for layer ids
-args{1} = obj.eg.layers.lyr_id(args{1});
-args{6} = obj.eg.layers.lyr_order(args{6});
+% args{1:6} = no change
 
 end
