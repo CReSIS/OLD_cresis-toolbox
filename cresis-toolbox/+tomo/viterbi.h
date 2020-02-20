@@ -15,13 +15,15 @@
 #include <cmath>
 #include <limits>
 
-// Relative weight of intersection with expected surface multiple bin
 // TODO[reece]: Allow multiple bin params to be passed into viterbi
-const double MULTIPLE_BIN_WEIGHT = 100;
-// Maximum multiple number which has any effect on cost
-const double MULTIPLE_MAX_NUM = 5;
-// Maximum travel time distance from closest multiple which has any effect on cost
-const double MULTIPLE_MAX_DIST = 10;
+// Weight for being in surface bin
+const double SURF_WEIGHT = 1000;
+// Weight for being in first multiple bin
+const double MULT_WEIGHT = 100;
+// Weight decay for subsequent multiples
+const double MULT_WEIGHT_DECAY = .4;
+// Weight decay for subsequent bins from nearest multiple
+const double MULT_WEIGHT_LOCAL_DECAY = .9;
 // Large cost
 const double LARGE = 1000000000;
 
@@ -45,6 +47,10 @@ public:
           const int d_costmatrix_X,
           const int d_costmatrix_Y,
           const double *d_transition_weights,
+          const double d_surf_weight,
+          const double d_mult_weight,
+          const double d_mult_weight_decay,
+          const double d_mult_weight_local_decay,
           const int d_zero_bin,
           double *d_result) : f_row(d_row),
                               f_col(d_col),
@@ -63,6 +69,10 @@ public:
                               f_costmatrix_X(d_costmatrix_X),
                               f_costmatrix_Y(d_costmatrix_Y),
                               f_transition_weights(d_transition_weights),
+                              f_surf_weight(d_surf_weight),
+                              f_mult_weight(d_mult_weight),
+                              f_mult_weight_decay(d_mult_weight_decay),
+                              f_mult_weight_local_decay(d_mult_weight_local_decay),
                               f_zero_bin(d_zero_bin),
                               f_result(d_result)
   {
@@ -72,13 +82,12 @@ public:
   // VARIABLES
   const int f_row, f_col, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_zero_bin;
   const double *f_image, *f_mask, f_img_mag_weight, *f_smooth_slope,
-      *f_egt_x, *f_egt_y, *f_gt_weights, *f_mask_dist,
-      *f_costmatrix, *f_transition_weights;
+      *f_egt_x, *f_egt_y, *f_gt_weights, *f_mask_dist, f_surf_weight, f_mult_weight, 
+      f_mult_weight_decay, f_mult_weight_local_decay, *f_costmatrix, *f_transition_weights;
   const ptrdiff_t *f_bounds;
   double *f_result, *f_cost;
 
   int num_col_vis, start_col, end_col;
-  double multiple_cost_base;
 
   // METHODS
   int calculate_best(double *path_prob);

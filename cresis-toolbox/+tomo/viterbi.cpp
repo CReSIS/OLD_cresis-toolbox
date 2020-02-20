@@ -50,7 +50,7 @@ double viterbi::unary_cost(int x, int y)
   // TODO[reece]: Remove t and mu
   // Increase cost if near surface or surface multiple bin
   const int travel_time = f_sgt[x] - f_zero_bin; // Between multiples
-  int multiple_bin = (y - f_sgt[x]) / travel_time;
+  int multiple_bin = (y - f_sgt[x]) / travel_time - 1;
   int dist_to_bin = abs((y - f_sgt[x]) % travel_time);
   // If closer to next multiple, use that distance instead
   if (dist_to_bin > travel_time / 2 && multiple_bin >= 0)
@@ -58,11 +58,17 @@ double viterbi::unary_cost(int x, int y)
     dist_to_bin = travel_time - dist_to_bin;
     multiple_bin++;
   }
-  multiple_bin = multiple_bin < 0 ? 0 : multiple_bin;
-  // Exponential formula. cost = 0 where dist_to_bin or multiple_bin == max. cost = MULTIPLE_BIN_WEIGHT when both are 0.
-  // Here is an explanation of the formula: https://www.geogebra.org/3d/zy3f6mde
-  // TODO[reece]: Make multiple_bin more influential than dist_to_bin
-  double multiple_cost = (MULTIPLE_BIN_WEIGHT + multiple_cost_base) * pow(multiple_cost_base, (-dist_to_bin / (MULTIPLE_MAX_DIST + 1) - multiple_bin / (MULTIPLE_MAX_NUM + 1))) - multiple_cost_base;
+  double current_mult_weight = f_mult_weight;
+  if (multiple_bin < 0) {
+    // Nearest to surface bin
+    multiple_bin = 0;
+    current_mult_weight = f_surf_weight;
+  }
+
+  double multiple_cost = current_mult_weight;
+  multiple_cost *= pow(f_mult_weight_decay, multiple_bin);
+  multiple_cost *= pow(f_mult_weight_local_decay, dist_to_bin);
+
   multiple_cost = multiple_cost < 0 ? 0 : multiple_cost;
   cost += multiple_cost;
 
@@ -85,9 +91,6 @@ double *viterbi::find_path(void)
   start_col = f_bounds[0];
   end_col = f_bounds[1];
   num_col_vis = end_col - start_col;
-
-  // Used in multiple cost calculation: Ensures correct range for outputs
-  multiple_cost_base = sqrt(MULTIPLE_BIN_WEIGHT + .25) + .5;
 
   int *path = new int[f_row * num_col_vis];
   double path_prob[f_row], path_prob_next[f_row], index[f_row];
@@ -198,8 +201,8 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int min_args = 11; // Number of required arguments
-  int max_args = 12; // All args including optional
+  int max_args = 16; // All args including optional
+  int min_args = max_args - 1; // Number of required arguments
   int arg = 0;
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
@@ -377,6 +380,54 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   const double *_transition_weights = mxGetPr(prhs[arg]);
 
+  // surf_weight ===================================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1)
+  {
+    mexErrMsgTxt("usage: surf_weight must be type scalar double");
+  }
+  double _surf_weight = *(double *)mxGetPr(prhs[arg]);
+  if (_surf_weight == -1) 
+  {
+    _surf_weight = SURF_WEIGHT;
+  }
+
+  // mult_weight ===================================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1)
+  {
+    mexErrMsgTxt("usage: mult_weight must be type scalar double");
+  }
+  double _mult_weight = *(double *)mxGetPr(prhs[arg]);
+  if (_mult_weight == -1) 
+  {
+    _mult_weight = MULT_WEIGHT;
+  }
+
+  // mult_weight_decay ===================================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1)
+  {
+    mexErrMsgTxt("usage: mult_weight_decay must be type scalar double");
+  }
+  double _mult_weight_decay = *(double *)mxGetPr(prhs[arg]);
+  if (_mult_weight_decay == -1) 
+  {
+    _mult_weight_decay = MULT_WEIGHT_DECAY;
+  }
+
+  // mult_weight_local_decay ===================================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1)
+  {
+    mexErrMsgTxt("usage: mult_weight_local_decay must be type scalar double");
+  }
+  double _mult_weight_local_decay = *(double *)mxGetPr(prhs[arg]);
+  if (_mult_weight_local_decay == -1) 
+  {
+    _mult_weight_local_decay = MULT_WEIGHT_LOCAL_DECAY;
+  }
+
   // zero bin ===================================================
   arg++;
   int _zero_bin = 0;
@@ -417,5 +468,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
               _smooth_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, _gt_weights,
               _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
-              _transition_weights, _zero_bin, _result);
+              _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay, 
+              _mult_weight_local_decay, _zero_bin, _result);
 }

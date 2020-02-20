@@ -140,11 +140,17 @@ if tool_idx == 1
       % TODO[reece]: Why do the paths seem to ignore distance from egt more or less?
       % TODO[reece]: Update wiki. Update markdown files.
       
+      surf_weight = -1;
+      mult_weight = -1;
+      mult_weight_decay = -1;
+      mult_weight_local_decay = -1;
+
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(gt), double(mask), double(1), double(slope), int64(bounds), ...
         double(gt_weights), double(mask_dist), double(DIM_costmatrix), ...
-        double(transition_weights), int64(zero_bin));
+        double(transition_weights), double(surf_weight), double(mult_weight), ...
+        double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
