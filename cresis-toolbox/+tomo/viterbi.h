@@ -53,7 +53,7 @@ public:
              const double *d_costmatrix,
              const int d_costmatrix_X,
              const int d_costmatrix_Y,
-             const double d_transition_weight,
+             const double *d_transition_weights,
              const int d_zero_bin,
              double *d_result
 	) : 
@@ -73,7 +73,7 @@ public:
     f_costmatrix(d_costmatrix),
     f_costmatrix_X(d_costmatrix_X),
     f_costmatrix_Y(d_costmatrix_Y),
-    f_transition_weight(d_transition_weight),
+    f_transition_weights(d_transition_weights),
     f_zero_bin(d_zero_bin),
     f_result(d_result)
 	{  
@@ -84,7 +84,7 @@ public:
 	const int f_row, f_col, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_zero_bin;
 	const double *f_image, *f_mask, f_img_mag_weight, *f_smooth_slope,
                  *f_egt_x, *f_egt_y, *f_gt_weights, *f_mask_dist,  
-                 *f_costmatrix, f_transition_weight;
+                 *f_costmatrix, *f_transition_weights;
 	const ptrdiff_t *f_bounds;
 	double *f_result, *f_cost;
 

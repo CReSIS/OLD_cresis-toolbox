@@ -162,10 +162,10 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
         }
         
         if (!next) {
-            dt_1d(path_prob, f_transition_weight, path_prob_next, index, 0, f_row, f_smooth_slope[col-1]);
+            dt_1d(path_prob, f_transition_weights[col], path_prob_next, index, 0, f_row, f_smooth_slope[col-1]);
         }
         else {
-            dt_1d(path_prob_next, f_transition_weight, path_prob, index, 0, f_row, f_smooth_slope[col-1]);
+            dt_1d(path_prob_next, f_transition_weights[col], path_prob, index, 0, f_row, f_smooth_slope[col-1]);
         }
         next = !next;
     }
@@ -178,7 +178,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     int arg = 0;
 
     if (nrhs < min_args || nrhs > max_args ||  nlhs != 1) {
-        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weight, [zero_bin])\n"); 
+        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weights, [zero_bin])\n"); 
     }
 
     // TODO[reece]: Organize inputs, fix counting, update usage ^
@@ -312,15 +312,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const int _costmatrix_X = mxGetM(prhs[arg]);
     const int _costmatrix_Y = mxGetN(prhs[arg]);
     
-    // transition_weight ===================================================
+    // transition_weights ===================================================
     arg++;
     if (!mxIsDouble(prhs[arg])) {
-        mexErrMsgTxt("usage: transition_weight must be type double");
+        mexErrMsgTxt("usage: transition_weights must be type double");
     }
-    if (mxGetNumberOfElements(prhs[arg]) != 1) {
-        mexErrMsgTxt("usage: transition_weight must be scalar");
+    if (mxGetNumberOfElements(prhs[arg]) != _col - 1) {
+        mexErrMsgTxt("usage: transition_weights have numel(transition_weights)=size(image,2)-1");
     }   
-    const double _transition_weight = *(double *)mxGetPr(prhs[arg]);
+    const double *_transition_weights = mxGetPr(prhs[arg]);
     
     // zero bin ===================================================
     arg++;
@@ -357,5 +357,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
         _smooth_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, _gt_weights,
         _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
-        _transition_weight, _zero_bin, _result); 
+        _transition_weights, _zero_bin, _result); 
 }

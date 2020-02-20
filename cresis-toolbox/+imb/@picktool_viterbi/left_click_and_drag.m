@@ -130,7 +130,9 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
-      transition_weight = length(param.layer.y{cur_layer}) / length(image_y) / 10;
+      % TODO[reece]: Replace scale 
+      transition_weights = ones(1, size(viterbi_data, 2) - 1) ...
+        * length(param.layer.y{cur_layer}) / length(image_y) / 5;
       % TODO[reece]: Allow user to input transition_weight and input num pixels for
       % expected slope (Max variation) input based on twtt rather than resolution;
       % - e.g. "don't allow slopes greater than 1% ..."
@@ -142,7 +144,7 @@ if tool_idx == 1
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(gt), double(mask), double(1), double(slope), int64(bounds), ...
         double(gt_weights), double(mask_dist), double(DIM_costmatrix), ...
-        double(transition_weight), int64(zero_bin));
+        double(transition_weights), int64(zero_bin));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
