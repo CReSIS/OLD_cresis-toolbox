@@ -15,14 +15,6 @@
 #include <cmath>
 #include <limits>
 
-// Default mu (mean) of smoothness
-const int    MID   	     = 33;
-// Default sigma (variance) of smoothness
-const double SIGMA 		 = 24; 
-// Scaling for smoothness constraint
-const double SCALE 		 = 12;
-// Relative weight of extra GT
-const double EGT_WEIGHT  = 10;
 // Relative weight of intersection with expected surface multiple bin
 // TODO[reece]: Allow multiple bin params to be passed into viterbi
 const double MULTIPLE_BIN_WEIGHT = 100;
@@ -30,8 +22,6 @@ const double MULTIPLE_BIN_WEIGHT = 100;
 const double MULTIPLE_MAX_NUM = 5;
 // Maximum travel time distance from closest multiple which has any effect on cost
 const double MULTIPLE_MAX_DIST = 10;
-// Mass conservation weight
-const double MC_WEIGHT   = 10; 
 // Large cost
 const double LARGE       = 1000000000; 
 
@@ -95,18 +85,9 @@ public:
 	int calculate_best(double *path_prob);
 	double unary_cost(int x, int y), *find_path(void);
 	void viterbi_right(int *path, double *path_prob, double *path_prob_next, double *index);
-
-    // Dynamic smoothness
-	double norm_pdf(int x, double mu = MID, double sigma = SIGMA, double scale = SCALE) 
-    {
-        if(sigma != std::numeric_limits<double>::infinity()) {
-			return scale * (1.0/(sigma*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/sigma));
-        }
-		return scale;
-    }
     
     // Compute square value
-    template <class T> inline T sqr(T x) { return x*x; }
+  template <class T> inline T sqr(T x) { return x*x; }
     
 	int encode(int x, int y) { return x * f_row + y; }
 	 
