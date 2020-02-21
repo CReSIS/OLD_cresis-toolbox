@@ -130,7 +130,7 @@ insar_data = bsxfun(@times,insar_data,exp(-1i*angle(baseline_correction)));
 if 0
   range = (tmp.ref.time(rbins) - tmp.ref.time(max_surface_bin)) * c/2 / sqrt(er_ice);
   relative_velocity_offset = 324;
-  displacement = relative_velocity_offset+unwrap(angle(mean(insar_data(:,rlines),2))) * c/(4*pi*195e6) / 2 / 1.78 * 1000;
+  displacement = relative_velocity_offset+unwrap(angle(mean(insar_data,2))) * c/(4*pi*195e6) / 2 / 1.78 * 1000;
   pp = polyfit(range,displacement,2);
   
   % displacement = fir_dec(displacement - polyval(pp,range),ones(1,5)/5,1);
@@ -138,13 +138,13 @@ if 0
   figure(3000);
   displacement(240:287) = nan;
   displacement_single = displacement;
+  thickness = nanmean(tmp.ref.layers(2).twtt-tmp.ref.layers(1).twtt)*3e8/2/1.78;
   plot(displacement_single, thickness-range, '.','Color','red');
   hold on;
   displacement(240:287) = nan;
   displacement = polyval(pp,range(:).') + nan_fir_dec(displacement(:).' - polyval(pp,range(:).'),ones(1,51)/51,1);
   displacement = displacement(:).';
   range = range(:).';
-  thickness = nanmean(tmp.ref.layers(2).twtt-tmp.ref.layers(1).twtt)*3e8/2/1.78;
   % displacement = displacement;
   plot(displacement, thickness-range, 'LineWidth', 3, 'Color', 'blue');
   hold on;
