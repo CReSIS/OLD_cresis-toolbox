@@ -205,10 +205,12 @@ classdef (HandleCompatible = true) echowin < handle
     %   quality_en % Logical scalar, show quality layers if true
     %   source: string containing "ops" or "layerdata"
     %   layer_data_source: file path to layerdata if "layerdata" source being used
-    %   lyr_name: Nlayer length cell array of layer names
-    %   lyr_group_name: Nlayer length cell array of layer group names
-    %   lyr_id: Nlayer length numeric vector of layer IDs (OPS IDs or the
-    %     index into the layer structure of layer files
+    %   lyr_age = []; % Nlayer length vector of layer ages (set in draw)
+    %   lyr_desc = {}; % Nlayer length cell array of layer description (set in draw)
+    %   lyr_group_name = {}; % Nlayer length cell array of layer group names (set in draw)
+    %   lyr_id = []; % Nlayer length numeric vector of layer IDs (OPS IDs or the index into the layer structure of layer files (set in draw)
+    %   lyr_name = {}; % Nlayer length cell array of layer names (set in draw)
+    %   lyr_order = []; % Nlayer length vector of layer orders (set in draw)
     %   surf_id: surface ID
     %   selected_layers: Nlayer length logical vector, true means layer is
     %     selected (tools and operations will act on the layer)
@@ -360,9 +362,12 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.layers.quality_en = false; % Logical scalar, show quality layers if true
       obj.eg.layers.source = ''; % string containing "ops" or "layerdata"
       obj.eg.layers.layer_data_source = ''; % file path to layerdata if "layerdata" source being used
-      obj.eg.layers.lyr_name = {}; % Nlayer length cell array of layer names (set in draw)
+      obj.eg.layers.lyr_age = []; % Nlayer length vector of layer ages (set in draw)
+      obj.eg.layers.lyr_desc = {}; % Nlayer length cell array of layer description (set in draw)
       obj.eg.layers.lyr_group_name = {}; % Nlayer length cell array of layer group names (set in draw)
       obj.eg.layers.lyr_id = []; % Nlayer length numeric vector of layer IDs (OPS IDs or the index into the layer structure of layer files (set in draw)
+      obj.eg.layers.lyr_name = {}; % Nlayer length cell array of layer names (set in draw)
+      obj.eg.layers.lyr_order = []; % Nlayer length vector of layer orders (set in draw)
       obj.eg.layers.surf_id = []; % surface ID (set in draw)
       obj.eg.layers.selected_layers = []; % Nlayer length logical vector, true means layer is selected (tools and operations will act on the layer) (set in draw)
       obj.eg.layers.visible_layers = []; % Nlayer length logical vector, true means layer visible (set in draw)
@@ -372,9 +377,12 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.layers.type = {}; % 1 by Nx vector of type values 1 (manual) or 2 (auto) (set in load_layers)
       obj.eg.layers.x_curUnit = {}; % 1 by Nx vector of x-values in current x-axis units (set in plot_layers)
       obj.eg.layers.y_curUnit = {}; % 1 by Nx vector of y-values in current y-axis units (set in plot_layers)
-      obj.eg.layers.saved.lyr_name = {}; % Last saved version
+      obj.eg.layers.saved.lyr_age = {}; % Last saved version
+      obj.eg.layers.saved.lyr_desc = {}; % Last saved version
       obj.eg.layers.saved.lyr_group_name = {}; % Last saved version
+      obj.eg.layers.saved.lyr_order = {}; % Last saved version
       obj.eg.layers.saved.lyr_id = {}; % Last saved version
+      obj.eg.layers.saved.lyr_name = {}; % Last saved version
       
       %% Constructor: Undostack
       obj.undo_stack = [];

@@ -41,6 +41,14 @@ else
   
 end
 
+if 0
+  fprintf('========================================================\n');
+  fprintf('%d ', obj.eg.layers.lyr_id);
+  fprintf('\n');
+  fprintf('%d ', obj.eg.layers.lyr_order);
+  fprintf('\n');
+end
+
 obj.update_layer_plots();
 
 end
@@ -178,14 +186,23 @@ end
 %% cmds_execute_layer_new
 function args = cmds_execute_layer_new(obj,args)
 
-val = args{1};
-name = args{2};
-group_name = args{3};
-desc = args{4};
+id = args{1};
+age = args{2};
+desc = args{3};
+group_name = args{4};
+name = args{5};
+order = args{6};
 
+% Put the layer in at the end
+val = length(obj.eg.layers.lyr_id)+1;
+
+obj.eg.layers.lyr_age = [obj.eg.layers.lyr_age(1:val-1) age obj.eg.layers.lyr_age(val:end)];
+obj.eg.layers.lyr_desc = [obj.eg.layers.lyr_desc(1:val-1) {desc} obj.eg.layers.lyr_desc(val:end)];
+obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) {group_name} obj.eg.layers.lyr_group_name(val:end)];
 obj.eg.layers.lyr_name = [obj.eg.layers.lyr_name(1:val-1) {name} obj.eg.layers.lyr_name(val:end)];
-obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) {''} obj.eg.layers.lyr_group_name(val:end)];
-obj.eg.layers.lyr_id = 1:length(obj.eg.layers.lyr_name);
+obj.eg.layers.lyr_id = [obj.eg.layers.lyr_id(1:val-1) id obj.eg.layers.lyr_id(val:end)];
+obj.eg.layers.lyr_order = [obj.eg.layers.lyr_order(1:val-1) order obj.eg.layers.lyr_order(val:end)];
+
 obj.eg.layers.selected_layers = false(1,length(obj.eg.layers.lyr_name));
 obj.eg.layers.selected_layers(val) = true;
 obj.eg.layers.visible_layers = [obj.eg.layers.visible_layers(1:val-1) true obj.eg.layers.visible_layers(val:end)];
@@ -227,22 +244,50 @@ obj.h_quality(6*(idx-1)+6) = plot(obj.h_axes,1,1,'r--');
 set(obj.h_quality(6*(idx-1)+(1:6)),'Visible','off');
 set(obj.h_layer(2*(idx-1)+1),'Visible','on');  % manual
 
-obj.layerLB_str();
-set(obj.left_panel.layerLB,'Value',val);
+% Reorder layers based on new "order" field
+Nlayers = length(obj.eg.layers.lyr_id);
+[~,new_order] = sort(obj.eg.layers.lyr_order);
+val = find(new_order==val);
+
+obj.eg.layers.lyr_age = obj.eg.layers.lyr_age(new_order);
+obj.eg.layers.lyr_desc = obj.eg.layers.lyr_desc(new_order);
+obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
+obj.eg.layers.lyr_id = obj.eg.layers.lyr_id(new_order);
+obj.eg.layers.lyr_name = obj.eg.layers.lyr_name(new_order);
+obj.eg.layers.lyr_order = obj.eg.layers.lyr_order(new_order);
+obj.eg.layers.selected_layers = obj.eg.layers.selected_layers(new_order);
+obj.eg.layers.visible_layers = obj.eg.layers.visible_layers(new_order);
+obj.eg.layers.x = obj.eg.layers.x(new_order);
+obj.eg.layers.y = obj.eg.layers.y(new_order);
+obj.eg.layers.qual = obj.eg.layers.qual(new_order);
+obj.eg.layers.type = obj.eg.layers.type(new_order);
+obj.eg.layers.x_curUnit = obj.eg.layers.x_curUnit(new_order);
+obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
+
+obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
+obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
 
 obj.plot_layers();
 obj.set_visibility();
+
+obj.layerLB_str();
+set(obj.left_panel.layerLB,'Value',val);
 
 end
 
 %% cmds_execute_layer_delete
 function args = cmds_execute_layer_delete(obj,args)
 
-val = args{1};
+% Determine which layer to delete:
+id = args{1};
+val = find(id == obj.eg.layers.lyr_id);
 
-obj.eg.layers.lyr_name = [obj.eg.layers.lyr_name(1:val-1) obj.eg.layers.lyr_name(val+1:end)];
+obj.eg.layers.lyr_age = [obj.eg.layers.lyr_age(1:val-1) obj.eg.layers.lyr_age(val+1:end)];
+obj.eg.layers.lyr_desc = [obj.eg.layers.lyr_desc(1:val-1) obj.eg.layers.lyr_desc(val+1:end)];
 obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) obj.eg.layers.lyr_group_name(val+1:end)];
-obj.eg.layers.lyr_id = 1:length(obj.eg.layers.lyr_name);
+obj.eg.layers.lyr_id = [obj.eg.layers.lyr_id(1:val-1) obj.eg.layers.lyr_id(val+1:end)];
+obj.eg.layers.lyr_name = [obj.eg.layers.lyr_name(1:val-1) obj.eg.layers.lyr_name(val+1:end)];
+obj.eg.layers.lyr_order = [obj.eg.layers.lyr_order(1:val-1) obj.eg.layers.lyr_order(val+1:end)];
 obj.eg.layers.selected_layers = false(1,length(obj.eg.layers.lyr_name));
 obj.eg.layers.visible_layers = [obj.eg.layers.visible_layers(1:val-1) obj.eg.layers.visible_layers(val+1:end)];
 obj.eg.layers.x = [obj.eg.layers.x(1:val-1) obj.eg.layers.x(val+1:end)];
@@ -265,38 +310,47 @@ end
 %% cmds_execute_layer_edit
 function args = cmds_execute_layer_edit(obj,args)
 
-val = args{1};
-name = args{2};
-group_name = args{3};
-desc = args{4};
-new_val = args{5};
+id = args{1};
+age = args{2};
+desc = args{3};
+group_name = args{4};
+name = args{5};
+order = args{6};
 
-obj.eg.layers.lyr_name{val} = name;
+% Determine which layer to edit:
+id = args{1};
+val = find(id == obj.eg.layers.lyr_id);
+
+obj.eg.layers.lyr_age(val) = age;
+obj.eg.layers.lyr_desc{val} = desc;
 obj.eg.layers.lyr_group_name{val} = group_name;
+obj.eg.layers.lyr_name{val} = name;
+obj.eg.layers.lyr_order(val) = order;
 
-if new_val ~= val
-  % Reorder layers
-  Nlayers = length(obj.eg.layers.lyr_name);
-  new_order = [1:val-1, val+1:Nlayers];
-  new_order = [new_order(1:new_val-1) val new_order(new_val:Nlayers-1)];
-  
-  obj.eg.layers.lyr_name = obj.eg.layers.lyr_name(new_order);
-  obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
-  obj.eg.layers.lyr_id = 1:length(obj.eg.layers.lyr_name);
-  obj.eg.layers.selected_layers = obj.eg.layers.selected_layers(new_order);
-  obj.eg.layers.visible_layers = obj.eg.layers.visible_layers(new_order);
-  obj.eg.layers.x = obj.eg.layers.x(new_order);
-  obj.eg.layers.y = obj.eg.layers.y(new_order);
-  obj.eg.layers.qual = obj.eg.layers.qual(new_order);
-  obj.eg.layers.type = obj.eg.layers.type(new_order);
-  obj.eg.layers.x_curUnit = obj.eg.layers.x_curUnit(new_order);
-  obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
-  
-  obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
-  obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
-end
+% Reorder layers based on new "order" field
+Nlayers = length(obj.eg.layers.lyr_id);
+[~,new_order] = sort(obj.eg.layers.lyr_order);
+val = find(new_order==val);
+
+obj.eg.layers.lyr_age = obj.eg.layers.lyr_age(new_order);
+obj.eg.layers.lyr_desc = obj.eg.layers.lyr_desc(new_order);
+obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
+obj.eg.layers.lyr_id = obj.eg.layers.lyr_id(new_order);
+obj.eg.layers.lyr_name = obj.eg.layers.lyr_name(new_order);
+obj.eg.layers.lyr_order = obj.eg.layers.lyr_order(new_order);
+obj.eg.layers.selected_layers = obj.eg.layers.selected_layers(new_order);
+obj.eg.layers.visible_layers = obj.eg.layers.visible_layers(new_order);
+obj.eg.layers.x = obj.eg.layers.x(new_order);
+obj.eg.layers.y = obj.eg.layers.y(new_order);
+obj.eg.layers.qual = obj.eg.layers.qual(new_order);
+obj.eg.layers.type = obj.eg.layers.type(new_order);
+obj.eg.layers.x_curUnit = obj.eg.layers.x_curUnit(new_order);
+obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
+
+obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
+obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
 
 obj.layerLB_str();
-set(obj.left_panel.layerLB,'Value',new_val);
+set(obj.left_panel.layerLB,'Value',val);
 
 end

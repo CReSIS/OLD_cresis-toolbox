@@ -192,9 +192,12 @@ else
   else
     obj.load_flightline();
     % Reset any layer changes since we are reloading layers
-    obj.eg.layers.lyr_name = obj.eg.layers.saved.lyr_name;
+    obj.eg.layers.lyr_age = obj.eg.layers.saved.lyr_age;
+    obj.eg.layers.lyr_desc = obj.eg.layers.saved.lyr_desc;
     obj.eg.layers.lyr_group_name = obj.eg.layers.saved.lyr_group_name;
     obj.eg.layers.lyr_id = obj.eg.layers.saved.lyr_id;
+    obj.eg.layers.lyr_name = obj.eg.layers.saved.lyr_name;
+    obj.eg.layers.lyr_order = obj.eg.layers.saved.lyr_order;
     save_selected_layers = obj.eg.layers.selected_layers;
     save_visible_layers = obj.eg.layers.visible_layers;
     obj.eg.layers.selected_layers = false(size(obj.eg.layers.lyr_id));

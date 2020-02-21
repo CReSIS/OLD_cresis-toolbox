@@ -88,11 +88,25 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
     
     for idx=1:length(obj.eg.layers.lyr_name)
       obj.eg.layers.x{idx} = cat(2,obj.eg.layers.x{idx},GPS_time); % gps time
-      qual = obj.undo_stack.user_data.layer_info(frm).layerData{idx}.quality;
-      obj.eg.layers.qual{idx} = cat(2,obj.eg.layers.qual{idx},qual); % quality (integer 1-3)
-      twtt = obj.undo_stack.user_data.layer_info(frm).layerData{idx}.value{2}.data;
-      obj.eg.layers.y{idx} = cat(2,obj.eg.layers.y{idx},twtt); % twtt
-      obj.eg.layers.type{idx} = cat(2,obj.eg.layers.type{idx},1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{idx}.value{1}.data)); % this is either 1 (manual) or 2 (auto)
+      found = false;
+      for lay_idx = 1:length(obj.undo_stack.user_data.layer_info(frm).layerData)
+        if obj.eg.layers.lyr_id(idx) == obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
+          found = true;
+          break;
+        end
+      end
+      if found
+        qual = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality;
+        obj.eg.layers.qual{idx} = cat(2,obj.eg.layers.qual{idx},qual); % quality (integer 1-3)
+        twtt = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data;
+        obj.eg.layers.y{idx} = cat(2,obj.eg.layers.y{idx},twtt); % twtt
+        obj.eg.layers.type{idx} = cat(2,obj.eg.layers.type{idx},1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data)); % this is either 1 (manual) or 2 (auto)
+      else
+        % Layer does not exist in this file, set to defaults
+        obj.eg.layers.qual{idx} = cat(2,obj.eg.layers.qual{idx},ones(size(GPS_time))); % quality (integer 1-3)
+        obj.eg.layers.y{idx} = cat(2,obj.eg.layers.y{idx},nan(size(GPS_time))); % twtt
+        obj.eg.layers.type{idx} = cat(2,obj.eg.layers.type{idx},2*ones(size(GPS_time))); % this is either 1 (manual) or 2 (auto)
+      end
     end
   end
   

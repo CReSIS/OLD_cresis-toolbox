@@ -8,11 +8,23 @@ for cmd_idx = 1:length(cmds)
     cmds(cmd_idx).undo_args = cmds_convert_units_insert(obj,cmds(cmd_idx).undo_args);
   elseif strcmpi(cmds(cmd_idx).undo_cmd,'delete')
     cmds(cmd_idx).undo_args = cmds_convert_units_delete(obj,cmds(cmd_idx).undo_args);
+  elseif strcmpi(cmds(cmd_idx).undo_cmd,'layer_new')
+    cmds(cmd_idx).undo_args = cmds_convert_units_layer_new(obj,cmds(cmd_idx).undo_args);
+  elseif strcmpi(cmds(cmd_idx).undo_cmd,'layer_delete')
+    cmds(cmd_idx).undo_args = cmds_convert_units_layer_delete(obj,cmds(cmd_idx).undo_args);
+  elseif strcmpi(cmds(cmd_idx).undo_cmd,'layer_edit')
+    cmds(cmd_idx).undo_args = cmds_convert_units_layer_edit(obj,cmds(cmd_idx).undo_args);
   end
   if strcmpi(cmds(cmd_idx).redo_cmd,'insert')
     cmds(cmd_idx).redo_args = cmds_convert_units_insert(obj,cmds(cmd_idx).redo_args);
   elseif strcmpi(cmds(cmd_idx).redo_cmd,'delete')
     cmds(cmd_idx).redo_args = cmds_convert_units_delete(obj,cmds(cmd_idx).redo_args);
+  elseif strcmpi(cmds(cmd_idx).redo_cmd,'layer_new')
+    cmds(cmd_idx).redo_args = cmds_convert_units_layer_new(obj,cmds(cmd_idx).redo_args);
+  elseif strcmpi(cmds(cmd_idx).redo_cmd,'layer_delete')
+    cmds(cmd_idx).redo_args = cmds_convert_units_layer_delete(obj,cmds(cmd_idx).redo_args);
+  elseif strcmpi(cmds(cmd_idx).redo_cmd,'layer_edit')
+    cmds(cmd_idx).redo_args = cmds_convert_units_layer_edit(obj,cmds(cmd_idx).redo_args);
   end
 end
 
@@ -160,4 +172,28 @@ args{2}(1:2) = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,args{2}(1:2),'li
 
 % Change point idxs for point ids
 args{3} = obj.eg.map_id(args{3});
+end
+
+function args = cmds_convert_units_layer_new(obj,args)
+% args = cmds_convert_units_layer_new(obj,args)
+%
+% Convert units of the layer command arguments
+% args{1:6} = no change
+
+end
+
+function args = cmds_convert_units_layer_delete(obj,args)
+% args = cmds_convert_units_layer_delete(obj,args)
+%
+% Convert units of the layer command arguments
+% args{1:end} = no change
+
+end
+
+function args = cmds_convert_units_layer_edit(obj,args)
+% args = cmds_convert_units_layer_edit(obj,args)
+%
+% Convert units of the layer command arguments
+% args{1:6} = no change
+
 end
