@@ -15,7 +15,6 @@
 #include <cmath>
 #include <limits>
 
-// TODO[reece]: Allow multiple bin params to be passed into viterbi
 // Weight for being in surface bin
 const double SURF_WEIGHT = 1000;
 // Weight for being in first multiple bin

@@ -98,14 +98,14 @@ if tool_idx == 1
         % Along track filtering
         viterbi_data = fir_dec(viterbi_data,ones(1,5)/5,1);
         % Estimate noise level
-        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));  % TODO[reece]: What are 80 and 60 here?
+        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));
         % Estimate trend
         trend = mean(viterbi_data,2);
         trend(trend<noise_value) = noise_value;
         % Subtract trend
         viterbi_data = bsxfun(@minus,viterbi_data,trend);
         % Remove bad circular convolution wrap around at end of record
-        viterbi_data(end-70:end,:) = 0;  % TODO[reece]: And what is 70?
+        viterbi_data(end-70:end,:) = 0;
       end
       
       %% Column restriction between first and last selected GT points
@@ -119,9 +119,7 @@ if tool_idx == 1
       end
       
       dt = param.echo_time(2) - param.echo_time(1);
-      zero_bin = -param.echo_time(1)/dt + 1;
-      % TODO[reece]: Should keep +1? compare zero_bin to top1 and then remove top1
-      [~, top1] = min(abs(param.echo_time));
+      zero_bin = floor(-param.echo_time(1)/dt + 1);
       
       %% Distance-to-Ice-Margin model
       clear DIM DIM_costmatrix;
@@ -130,14 +128,13 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
-      % TODO[reece]: Replace scale
       transition_weights = ones(1, size(viterbi_data, 2) - 1) ...
         * length(param.layer.y{cur_layer}) / length(image_y) / 5;
       % TODO[reece]: Allow user to input transition_weight and input num pixels for
       % expected slope (Max variation) input based on twtt rather than resolution;
       % - e.g. "don't allow slopes greater than 1% ..."
       % - make into vector, for 2d, same value throughout (1x(Nx-1))
-      % TODO[reece]: Why do the paths seem to ignore distance from egt more or less?
+      % TODO[reece]: Update tool params to allow user input of weights
       % TODO[reece]: Update wiki. Update markdown files.
       
       surf_weight = -1;

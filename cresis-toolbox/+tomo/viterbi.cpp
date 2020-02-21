@@ -47,7 +47,6 @@ double viterbi::unary_cost(int x, int y)
     }
   }
 
-  // TODO[reece]: Remove t and mu
   // Increase cost if near surface or surface multiple bin
   const int travel_time = f_sgt[x] - f_zero_bin; // Between multiples
   int multiple_bin = (y - f_sgt[x]) / travel_time - 1;
@@ -207,10 +206,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
   {
-    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weights, [zero_bin])\n");
+    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
   }
-
-  // TODO[reece]: Organize inputs, fix counting, update usage ^
 
   // Input checking
   // input image ========================================================
