@@ -161,198 +161,51 @@ obj.top_panel.table.false_width = NaN*zeros(30,30);
 obj.top_panel.table.false_height = NaN*zeros(30,30);
 obj.top_panel.table.offset = [0 0];
 
-row = 1; col = 1; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.mode_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
+rows = 13;
+cols = 2;
+obj.top_panel.table.width = ones(rows, cols) * inf;
+obj.top_panel.table.height = ones(rows, cols) * inf;
+obj.top_panel.table.width_margin = ones(rows, cols) * 1.5;
+obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
 
-row = 1; col = 2;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.tool_PM;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 2; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.insert_range_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 2; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.insert_range_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 3; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.Viterbi_range_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 3; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.Viterbi_range_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 4; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.reinterp_mode_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 4; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.reinterp_mode_cbox;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+% TODO[reece]: Remove unused and add weights
+obj.top_panel.table.handles{1,1}   = obj.top_panel.mode_label;
+obj.top_panel.table.handles{1,2}   = obj.top_panel.tool_PM;
+obj.top_panel.table.handles{2,1}   = obj.top_panel.insert_range_label;
+obj.top_panel.table.handles{2,2}   = obj.top_panel.insert_range_TE;
+obj.top_panel.table.handles{3,1}   = obj.top_panel.Viterbi_range_label;
+obj.top_panel.table.handles{3,2}   = obj.top_panel.Viterbi_range_TE;
+obj.top_panel.table.handles{4,1}   = obj.top_panel.reinterp_mode_label;
+obj.top_panel.table.handles{4,2}   = obj.top_panel.reinterp_mode_cbox;
 %% Column restriction
-row = 5; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.column_restriction_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 5; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.column_restriction_cbox;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{5,1}   = obj.top_panel.column_restriction_label;
+obj.top_panel.table.handles{5,2}   = obj.top_panel.column_restriction_cbox;
 %% Top suppression
-row = 6; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.top_sup_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 6; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.top_sup_cbox;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{6,1}   = obj.top_panel.top_sup_label;
+obj.top_panel.table.handles{6,2}   = obj.top_panel.top_sup_cbox;
 %% Multiple suppression
-row = 7; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.mult_sup_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 7; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.mult_sup_cbox;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{7,1}   = obj.top_panel.mult_sup_label;
+obj.top_panel.table.handles{7,2}   = obj.top_panel.mult_sup_cbox;
 %% Quality output
-row = 8; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.quality_output_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 8; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.quality_output_cbox;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{8,1}   = obj.top_panel.quality_output_label;
+obj.top_panel.table.handles{8,2}   = obj.top_panel.quality_output_cbox;
 %% Quality threshold
-row = 9; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.quality_threshold_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 9; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.quality_threshold_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{9,1}   = obj.top_panel.quality_threshold_label;
+obj.top_panel.table.handles{9,2}   = obj.top_panel.quality_threshold_TE;
 %% Smoothness weight
-row = 10; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.smoothness_weight_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 10; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.smoothness_weight_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{10,1}  = obj.top_panel.smoothness_weight_label;
+obj.top_panel.table.handles{10,2}  = obj.top_panel.smoothness_weight_TE;
 %% Smoothness variance
-row = 11; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.smoothness_variance_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 11; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.smoothness_variance_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{11,1}  = obj.top_panel.smoothness_variance_label;
+obj.top_panel.table.handles{11,2}  = obj.top_panel.smoothness_variance_TE;
 %% Repulsion
-row = 12; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.repulsion_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 12; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.repulsion_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
+obj.top_panel.table.handles{12,1}  = obj.top_panel.repulsion_label;
+obj.top_panel.table.handles{12,2}  = obj.top_panel.repulsion_TE;
 %% Ice bin threshold
-row = 13; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.icebinthr_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
+obj.top_panel.table.handles{13,1}  = obj.top_panel.icebinthr_label;
+obj.top_panel.table.handles{13,2}  = obj.top_panel.icebinthr_TE;
 
-row = 13; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.icebinthr_TE;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-clear row col
+clear rows cols
 
 % Draw table
 table_draw(obj.top_panel.table);
