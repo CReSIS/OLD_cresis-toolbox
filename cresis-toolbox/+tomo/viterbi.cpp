@@ -58,7 +58,8 @@ double viterbi::unary_cost(int x, int y)
     multiple_bin++;
   }
   double current_mult_weight = f_mult_weight;
-  if (multiple_bin < 0) {
+  if (multiple_bin < 0)
+  {
     // Nearest to surface bin
     multiple_bin = 0;
     current_mult_weight = f_surf_weight;
@@ -73,11 +74,28 @@ double viterbi::unary_cost(int x, int y)
 
   // Distance from nearest ice-mask
   // Probabilistic measurement
-  // TODO[reece]: Account for size of cost matrix -- don't allow out of bounds
-  //              Use min of dim - 1, y + ...
   int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >= f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
-  cost += f_costmatrix[f_costmatrix_X * DIM + y + 1 - f_sgt[x]];
-
+  int matrix_idx = f_costmatrix_X * DIM + y + 1 - f_sgt[x];
+  int matrix_final_idx = f_costmatrix_X * f_costmatrix_Y - 1;
+  if (matrix_idx >= 0 && matrix_idx <= matrix_final_idx)
+  {
+    // Index within bounds of costmatrix
+    cost += f_costmatrix[matrix_idx];
+  }
+  else if (f_costmatrix_X > 0)
+  {
+    // costmatrix provided but index outside bounds
+    if (matrix_idx < 0)
+    {
+      // Use first cost in matrix when index is before matrix start
+      cost += f_costmatrix[0];
+    }
+    else
+    {
+      // Use last cost in matrix when index is after matrix end
+      cost += f_costmatrix[matrix_final_idx];
+    }
+  }
   // Image magnitude
   cost -= f_image[encode(x, y)] * f_img_mag_weight;
 
@@ -200,7 +218,7 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int max_args = 16; // All args including optional
+  int max_args = 16;           // All args including optional
   int min_args = max_args - 1; // Number of required arguments
   int arg = 0;
 
@@ -331,15 +349,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     _bounds[1] = _col;
   }
 
-  // gt_weight ======================================================
+  // gt_weights ======================================================
   arg++;
   if (!mxIsDouble(prhs[arg]))
   {
-    mexErrMsgTxt("usage: gt_weight must be type double");
+    mexErrMsgTxt("usage: gt_weights must be type double");
   }
   if (mxGetNumberOfElements(prhs[arg]) != _col)
   {
-    mexErrMsgTxt("usage: gt_weight must have numel(gt_weight)=size(image,2)");
+    mexErrMsgTxt("usage: gt_weights must have numel(gt_weights)=size(image,2)");
   }
   const double *_gt_weights = mxGetPr(prhs[arg]);
 
@@ -384,7 +402,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("usage: surf_weight must be type scalar double");
   }
   double _surf_weight = *(double *)mxGetPr(prhs[arg]);
-  if (_surf_weight == -1) 
+  if (_surf_weight == -1)
   {
     _surf_weight = SURF_WEIGHT;
   }
@@ -396,7 +414,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("usage: mult_weight must be type scalar double");
   }
   double _mult_weight = *(double *)mxGetPr(prhs[arg]);
-  if (_mult_weight == -1) 
+  if (_mult_weight == -1)
   {
     _mult_weight = MULT_WEIGHT;
   }
@@ -408,7 +426,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("usage: mult_weight_decay must be type scalar double");
   }
   double _mult_weight_decay = *(double *)mxGetPr(prhs[arg]);
-  if (_mult_weight_decay == -1) 
+  if (_mult_weight_decay == -1)
   {
     _mult_weight_decay = MULT_WEIGHT_DECAY;
   }
@@ -420,7 +438,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("usage: mult_weight_local_decay must be type scalar double");
   }
   double _mult_weight_local_decay = *(double *)mxGetPr(prhs[arg]);
-  if (_mult_weight_local_decay == -1) 
+  if (_mult_weight_local_decay == -1)
   {
     _mult_weight_local_decay = MULT_WEIGHT_LOCAL_DECAY;
   }
@@ -465,6 +483,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
               _smooth_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, _gt_weights,
               _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
-              _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay, 
+              _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay,
               _mult_weight_local_decay, _zero_bin, _result);
 }

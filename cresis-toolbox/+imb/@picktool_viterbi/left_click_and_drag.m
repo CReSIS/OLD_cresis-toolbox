@@ -27,7 +27,7 @@ if tool_idx == 1
   for layer_idx = 1:length(cur_layers)
     cur_layer = cur_layers(layer_idx);
     
-    [manual_idxs,auto_idxs_initial,point_idxs] = find_matching_pnts(obj,param,cur_layer);
+    [manual_idxs,auto_idxs_initial,~] = find_matching_pnts(obj,param,cur_layer);
     
     if length(manual_idxs) < 1
       warning('Insufficient points to track');
@@ -36,8 +36,6 @@ if tool_idx == 1
       
       % Nx: number of along track records/range lines
       Nx = length(image_x);
-      custom_data.mu = [11.2575 11.3748 11.4393 11.4555 11.4323   11.3666   11.2668   11.1332   10.9900 10.8484   10.6916];
-      custom_data.sigma = [5.4171    5.2945    5.2187    5.1939    5.2174    5.3247    5.4643    5.6571    5.8428 6.0477    6.2935];
       
       % Interpolate surface layer to match image x-axis coordinates
       surf_bins = interp1(param.layer.x,param.layer.y{1},image_x);
@@ -54,44 +52,13 @@ if tool_idx == 1
       y_points = gt(2, :);
       gt = [x_points; y_points];
       
-      layer_x_axis = param.layer.x(min(x) <= param.layer.x & param.layer.x <= max(x));
-      
       % Echogram Parameters
       viterbi_data   = image_c;
       mask           = inf * ones([1 Nx]);
       slope          = round(diff(surf_bins));
       bounds         = [];
       gt_weights = ones([1 Nx]);
-      mu_size        = 0;
-      mu             = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
-      mu(mu<-30)     = -30;
-      mu             = mu - mean(mu);
-      sigma          = sum(abs(mu))/10*ones(1,mu_size);
       mask_dist      = round(bwdist(mask == 0));
-      
-      try
-        smooth_weight = str2double(obj.top_panel.smoothness_weight_TE.String);
-      catch ME
-        smooth_weight = 3;
-      end
-      
-      try
-        smooth_var = str2double(obj.top_panel.smoothness_variance_TE.String);
-      catch ME
-        smooth_var = Inf;
-      end
-      
-      try
-        repulsion = str2double(obj.top_panel.repulsion_TE.String);
-      catch ME
-        repulsion = 150000;
-      end
-      
-      try
-        ice_bin_thr = str2double(obj.top_panel.icebinthr_TE.String);
-      catch ME
-        ice_bin_thr = 10;
-      end
       
       %% Detrending
       if 1
@@ -128,6 +95,7 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
+      % TODO[reece]: Scale with method Paden suggested, not based on axis resolutions -- ask paden for refresher
       transition_weights = ones(1, size(viterbi_data, 2) - 1) ...
         * length(param.layer.y{cur_layer}) / length(image_y) / 5;
       % TODO[reece]: Allow user to input transition_weight and input num pixels for
