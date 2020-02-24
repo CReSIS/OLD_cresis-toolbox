@@ -269,9 +269,10 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
           obj.eg.cur_sel.radar_name,...
           obj.eg.cur_sel.season_name,obj.eg.cur_sel.day_seg,...
           num2str([obj.eg.frms(1) obj.eg.frms(end)],'%d-%d'));
-        obj.status_text_set(sprintf('Saving screenshot %s...',fn),'replace');
+        obj.status_text_set(sprintf('Saving screenshot %s',fn),'replace');
+        fprintf('Saving screenshot %s\n',fn);
         set(obj.h_fig,'paperpositionmode','auto');
-        print('-dpng',sprintf('-f%d',obj.h_fig),fn);
+        print('-dpng',sprintf('-f%d',obj.h_fig.Number),fn);
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         %% Save current layers
         obj.savePB_callback();

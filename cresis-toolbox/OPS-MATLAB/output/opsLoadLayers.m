@@ -99,14 +99,17 @@ for layer_idx = 1:length(layer_params)
   if ~isfield(layer_params,'lever_arm_en') || isempty(layer_params(layer_idx).lever_arm_en)
     layer_params(layer_idx).lever_arm_en = false;
   end
-  if strcmpi(layer_params(layer_idx).source,'layerdata') || strcmpi(layer_params(layer_idx).source,'layerdata_ver1')
+  if ~isfield(layer_params(layer_idx),'layerdata_source') || isempty(layer_params(layer_idx).layerdata_source)
+    layer_params(layer_idx).layerdata_source = 'layerData';
+  end
+  if strcmpi(layer_params(layer_idx).source,'layerdata')
     % Get layer file version and number of layers
     layer_fn = fullfile(ct_filename_out(param,layer_params(layer_idx).layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, 1));
-    tmp = whos('-file',layer_fn);
+    var_list = whos('-file',layer_fn);
     layer_params(layer_idx).file_version = 0;
-    for idx = 1:length(tmp)
-      if strcmpi(tmp(idx).name,'file_version')
+    for idx = 1:length(var_list)
+      if strcmpi(var_list(idx).name,'file_version')
         layer_params(layer_idx).file_version = 1;
         break;
       end
@@ -475,11 +478,8 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     %% Load layerData Data
-    if strcmpi(layer_param.source,'layerdata') || strcmpi(layer_param.source,'layerdata_ver1')
+    if strcmpi(layer_param.source,'layerdata')
       % 1. Open the specific layer data file
-      if ~isfield(layer_param,'layerdata_source') || isempty(layer_param.layerdata_source)
-        layer_param.layerdata_source = 'layerData';
-      end
       layer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
       if ~exist(layer_fn,'file')
