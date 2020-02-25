@@ -49,8 +49,9 @@ double viterbi::unary_cost(int x, int y)
 
   // Increase cost if near surface or surface multiple bin
   const int travel_time = f_sgt[x] - f_zero_bin; // Between multiples
-  int multiple_bin = (y - f_sgt[x]) / travel_time - 1;
-  int dist_to_bin = abs((y - f_sgt[x]) % travel_time);
+  int dist_to_surf = abs(y - f_sgt[x]);
+  int multiple_bin = travel_time == 0 ? -1 : (y - f_sgt[x]) / travel_time - 1;
+  int dist_to_bin = travel_time == 0 ? dist_to_surf : dist_to_surf % travel_time;
   // If closer to next multiple, use that distance instead
   if (dist_to_bin > travel_time / 2 && multiple_bin >= 0)
   {
@@ -60,7 +61,7 @@ double viterbi::unary_cost(int x, int y)
   double current_mult_weight = f_mult_weight;
   if (multiple_bin < 0)
   {
-    // Nearest to surface bin
+    // multiple bin -1 is surface, others are multiples
     multiple_bin = 0;
     current_mult_weight = f_surf_weight;
   }

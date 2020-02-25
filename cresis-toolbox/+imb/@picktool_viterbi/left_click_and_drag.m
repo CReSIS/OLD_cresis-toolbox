@@ -42,7 +42,7 @@ if tool_idx == 1
       % Interpolate surface layer y-axis units to image pixels
       surf_bins = interp1(image_y, 1:length(image_y),surf_bins);
       % Interpolate all non-finite values using surrounding data
-      surf_bins = interp_finite(surf_bins);
+      surf_bins = interp_finite(surf_bins, 0);
       
       % Match GT points with axis coordinates
       gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest');
