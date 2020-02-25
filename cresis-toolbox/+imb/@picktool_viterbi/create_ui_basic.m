@@ -32,14 +32,12 @@ set(obj.top_panel.handle,'ShadowColor',[0.6 0.6 0.6]);
 % table
 obj.table.ui=obj.h_fig;
 
-row = 1; col = 1;
-obj.table.handles{row,col}   = obj.top_panel.handle;
-obj.table.width(row,col)     = inf;
-obj.table.height(row,col)    = inf;
-obj.table.width_margin(row,col) = 0;
-obj.table.height_margin(row,col) = 0;
+obj.table.handles{1,1}        = obj.top_panel.handle;
+obj.table.width(1,1)          = inf;
+obj.table.height(1,1)         = inf;
+obj.table.width_margin(1,1)   = 0;
+obj.table.height_margin(1,1)  = 0;
 
-clear row col
 table_draw(obj.table);
 
 %============================================================================================
@@ -64,21 +62,6 @@ set(obj.top_panel.insert_range_label,'String','Max point range:');
 obj.top_panel.insert_range_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String',obj.in_rng_sv);
-%----Viterbi search range name
-obj.top_panel.Viterbi_range_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.Viterbi_range_label,'Style','text');
-set(obj.top_panel.Viterbi_range_label,'String','HMM detection range:');
-%----Viterbi search range box
-obj.top_panel.Viterbi_range_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.Viterbi_range_TE,'Style','edit');
-set(obj.top_panel.Viterbi_range_TE,'String',obj.sn_rng_sv);
-%----reinterp mode enable label
-obj.top_panel.reinterp_mode_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.reinterp_mode_label,'Style','text');
-set(obj.top_panel.reinterp_mode_label,'String','Reinterpolation (beta):');
-%----reinterp mode enable cbox
-obj.top_panel.reinterp_mode_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.reinterp_mode_cbox,'Style','checkbox');
 %----column restriction label
 obj.top_panel.column_restriction_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.column_restriction_label,'Style','text');
@@ -103,107 +86,40 @@ set(obj.top_panel.mult_sup_label,'String','Multiple suppression:');
 obj.top_panel.mult_sup_cbox = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.mult_sup_cbox,'Style','checkbox');
 set(obj.top_panel.mult_sup_cbox,'Value', 1);
-%----quality output label
-obj.top_panel.quality_output_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.quality_output_label,'Style','text');
-set(obj.top_panel.quality_output_label,'String',sprintf('Quality\noutput:'));
-%----quality output cbox
-obj.top_panel.quality_output_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.quality_output_cbox,'Style','checkbox');
-set(obj.top_panel.quality_output_cbox,'Value', 0);
-%----quality threshold
-obj.top_panel.quality_threshold_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.quality_threshold_label,'Style','text');
-set(obj.top_panel.quality_threshold_label,'String',sprintf('Quality\nthreshold:'));
-%----quality threshold box
-obj.top_panel.quality_threshold_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.quality_threshold_TE,'Style','edit');
-set(obj.top_panel.quality_threshold_TE,'String','-20');
-%----smoothness weight label
-obj.top_panel.smoothness_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.smoothness_weight_label,'Style','text');
-set(obj.top_panel.smoothness_weight_label,'String',sprintf('Smoothness\nweight:'));
-%----smoothness weight box
-obj.top_panel.smoothness_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.smoothness_weight_TE,'Style','edit');
-set(obj.top_panel.smoothness_weight_TE,'String','3');
-%----smoothness variance label
-obj.top_panel.smoothness_variance_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.smoothness_variance_label,'Style','text');
-set(obj.top_panel.smoothness_variance_label,'String',sprintf('Smoothness\nvariance:'));
-%----smoothness variance box
-obj.top_panel.smoothness_variance_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.smoothness_variance_TE,'Style','edit');
-set(obj.top_panel.smoothness_variance_TE,'String','Inf');
-%----repulsion label
-obj.top_panel.repulsion_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.repulsion_label,'Style','text');
-set(obj.top_panel.repulsion_label,'String',sprintf('Repulsion:'));
-%----repulsion box
-obj.top_panel.repulsion_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.repulsion_TE,'Style','edit');
-set(obj.top_panel.repulsion_TE,'String','150000');
-%----ice bin threshold label
-obj.top_panel.icebinthr_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.icebinthr_label,'Style','text');
-set(obj.top_panel.icebinthr_label,'String',sprintf('Ice bin\nthreshold:'));
-%----ice bin threshold box
-obj.top_panel.icebinthr_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.icebinthr_TE,'Style','edit');
-set(obj.top_panel.icebinthr_TE,'String','10');
 %%
 %---------------------------------------------------------------------------------------------
+rows = 5;  % Update with number of rows and columns
+cols = 2;
 % set up top panel table
+default_dimensions = NaN*zeros(rows,cols);
 obj.top_panel.table.ui=obj.top_panel.handle;
-obj.top_panel.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
-obj.top_panel.table.height_margin = NaN*zeros(30,30);
-obj.top_panel.table.false_width = NaN*zeros(30,30);
-obj.top_panel.table.false_height = NaN*zeros(30,30);
+obj.top_panel.table.width_margin = default_dimensions;
+obj.top_panel.table.height_margin = default_dimensions;
+obj.top_panel.table.false_width = default_dimensions;
+obj.top_panel.table.false_height = default_dimensions;
 obj.top_panel.table.offset = [0 0];
 
-rows = 13;
-cols = 2;
 obj.top_panel.table.width = ones(rows, cols) * inf;
 obj.top_panel.table.height = ones(rows, cols) * inf;
 obj.top_panel.table.width_margin = ones(rows, cols) * 1.5;
 obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
 
 % TODO[reece]: Remove unused and add weights
+%% Mode
 obj.top_panel.table.handles{1,1}   = obj.top_panel.mode_label;
 obj.top_panel.table.handles{1,2}   = obj.top_panel.tool_PM;
+%% Insert Range
 obj.top_panel.table.handles{2,1}   = obj.top_panel.insert_range_label;
 obj.top_panel.table.handles{2,2}   = obj.top_panel.insert_range_TE;
-obj.top_panel.table.handles{3,1}   = obj.top_panel.Viterbi_range_label;
-obj.top_panel.table.handles{3,2}   = obj.top_panel.Viterbi_range_TE;
-obj.top_panel.table.handles{4,1}   = obj.top_panel.reinterp_mode_label;
-obj.top_panel.table.handles{4,2}   = obj.top_panel.reinterp_mode_cbox;
 %% Column restriction
-obj.top_panel.table.handles{5,1}   = obj.top_panel.column_restriction_label;
-obj.top_panel.table.handles{5,2}   = obj.top_panel.column_restriction_cbox;
+obj.top_panel.table.handles{3,1}   = obj.top_panel.column_restriction_label;
+obj.top_panel.table.handles{3,2}   = obj.top_panel.column_restriction_cbox;
 %% Top suppression
-obj.top_panel.table.handles{6,1}   = obj.top_panel.top_sup_label;
-obj.top_panel.table.handles{6,2}   = obj.top_panel.top_sup_cbox;
+obj.top_panel.table.handles{4,1}   = obj.top_panel.top_sup_label;
+obj.top_panel.table.handles{4,2}   = obj.top_panel.top_sup_cbox;
 %% Multiple suppression
-obj.top_panel.table.handles{7,1}   = obj.top_panel.mult_sup_label;
-obj.top_panel.table.handles{7,2}   = obj.top_panel.mult_sup_cbox;
-%% Quality output
-obj.top_panel.table.handles{8,1}   = obj.top_panel.quality_output_label;
-obj.top_panel.table.handles{8,2}   = obj.top_panel.quality_output_cbox;
-%% Quality threshold
-obj.top_panel.table.handles{9,1}   = obj.top_panel.quality_threshold_label;
-obj.top_panel.table.handles{9,2}   = obj.top_panel.quality_threshold_TE;
-%% Smoothness weight
-obj.top_panel.table.handles{10,1}  = obj.top_panel.smoothness_weight_label;
-obj.top_panel.table.handles{10,2}  = obj.top_panel.smoothness_weight_TE;
-%% Smoothness variance
-obj.top_panel.table.handles{11,1}  = obj.top_panel.smoothness_variance_label;
-obj.top_panel.table.handles{11,2}  = obj.top_panel.smoothness_variance_TE;
-%% Repulsion
-obj.top_panel.table.handles{12,1}  = obj.top_panel.repulsion_label;
-obj.top_panel.table.handles{12,2}  = obj.top_panel.repulsion_TE;
-%% Ice bin threshold
-obj.top_panel.table.handles{13,1}  = obj.top_panel.icebinthr_label;
-obj.top_panel.table.handles{13,2}  = obj.top_panel.icebinthr_TE;
+obj.top_panel.table.handles{5,1}   = obj.top_panel.mult_sup_label;
+obj.top_panel.table.handles{5,2}   = obj.top_panel.mult_sup_cbox;
 
 clear rows cols
 
