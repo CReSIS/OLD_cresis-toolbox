@@ -86,9 +86,42 @@ set(obj.top_panel.mult_sup_label,'String','Multiple suppression:');
 obj.top_panel.mult_sup_cbox = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.mult_sup_cbox,'Style','checkbox');
 set(obj.top_panel.mult_sup_cbox,'Value', 1);
+
+%----surface weight label
+obj.top_panel.surf_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.surf_weight_label,'Style','text');
+set(obj.top_panel.surf_weight_label,'String','Surface Weight:');
+%----surface weight box
+obj.top_panel.surf_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.surf_weight_TE,'Style','edit');
+set(obj.top_panel.surf_weight_TE,'String', obj.surf_weight);
+%----multiple weight label
+obj.top_panel.mult_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.mult_weight_label,'Style','text');
+set(obj.top_panel.mult_weight_label,'String','Multiple Weight:');
+%----multiple weight box
+obj.top_panel.mult_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.mult_weight_TE,'Style','edit');
+set(obj.top_panel.mult_weight_TE,'String', obj.mult_weight);
+%----multiple weight decay label
+obj.top_panel.mult_weight_decay_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.mult_weight_decay_label,'Style','text');
+set(obj.top_panel.mult_weight_decay_label,'String','Multiple Weight Decay:');
+%----multiple weight decay box
+obj.top_panel.mult_weight_decay_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.mult_weight_decay_TE,'Style','edit');
+set(obj.top_panel.mult_weight_decay_TE,'String', obj.mult_weight_decay);
+%----multiple weight local decay label
+obj.top_panel.mult_weight_local_decay_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.mult_weight_local_decay_label,'Style','text');
+set(obj.top_panel.mult_weight_local_decay_label,'String','Multiple Weight Local Decay:');
+%----multiple weight local decay box
+obj.top_panel.mult_weight_local_decay_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.mult_weight_local_decay_TE,'Style','edit');
+set(obj.top_panel.mult_weight_local_decay_TE,'String', obj.mult_weight_local_decay);
 %%
 %---------------------------------------------------------------------------------------------
-rows = 5;  % Update with number of rows and columns
+rows = 9;  % Update with number of rows and columns
 cols = 2;
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -119,7 +152,19 @@ obj.top_panel.table.handles{4,2}   = obj.top_panel.top_sup_cbox;
 %% Multiple suppression
 obj.top_panel.table.handles{5,1}   = obj.top_panel.mult_sup_label;
 obj.top_panel.table.handles{5,2}   = obj.top_panel.mult_sup_cbox;
-% TODO[reece]: Add number inputs for all weights
+%% Surface Weight
+obj.top_panel.table.handles{6,1}   = obj.top_panel.surf_weight_label;
+obj.top_panel.table.handles{6,2}   = obj.top_panel.surf_weight_TE;
+%% Multiple Weight
+obj.top_panel.table.handles{7,1}   = obj.top_panel.mult_weight_label;
+obj.top_panel.table.handles{7,2}   = obj.top_panel.mult_weight_TE;
+%% Multiple Weight Decay
+obj.top_panel.table.handles{8,1}   = obj.top_panel.mult_weight_decay_label;
+obj.top_panel.table.handles{8,2}   = obj.top_panel.mult_weight_decay_TE;
+%% Multiple Weight Local Decay 
+obj.top_panel.table.handles{9,1}   = obj.top_panel.mult_weight_local_decay_label;
+obj.top_panel.table.handles{9,2}   = obj.top_panel.mult_weight_local_decay_TE;
+% TODO[reece]: Add other weights
 clear rows cols
 
 % Draw table

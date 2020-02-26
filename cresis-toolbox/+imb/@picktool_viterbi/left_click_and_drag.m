@@ -105,15 +105,31 @@ if tool_idx == 1
       % TODO[reece]: Update tool params to allow user input of weights
       % TODO[reece]: Update wiki. Update markdown files.
       
+      % Surface and multiple suppression weights
       surf_weight = -1;
       mult_weight = -1;
       mult_weight_decay = -1;
       mult_weight_local_decay = -1;
-
-      if obj.top_panel.top_sup_cbox.Value
+      try
+        surf_weight = str2double(obj.top_panel.surf_weight_TE.String);
+      catch ME
+      end
+      try
+        mult_weight = str2double(obj.top_panel.mult_weight_TE.String);
+      catch ME
+      end
+      try
+        mult_weight_decay = str2double(obj.top_panel.mult_weight_decay_TE.String);
+      catch ME
+      end
+      try
+        mult_weight_local_decay = str2double(obj.top_panel.mult_weight_local_decay_TE.String);
+      catch ME
+      end
+      if ~obj.top_panel.top_sup_cbox.Value
         surf_weight = 0;
       end
-      if obj.top_panel.mult_sup_cbox.Value
+      if ~obj.top_panel.mult_sup_cbox.Value
         mult_weight = 0;
       end
 

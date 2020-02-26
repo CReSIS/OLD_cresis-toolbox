@@ -18,6 +18,11 @@ classdef picktool_viterbi < imb.picktool
     top_pk_sv;
     bot_pk_sv;
     rep_sv;
+    surf_weight;
+    mult_weight;
+    mult_weight_decay;
+    mult_weight_local_decay;
+    
   end
   
   properties (SetAccess = immutable, GetAccess = public) %constants
@@ -46,7 +51,7 @@ classdef picktool_viterbi < imb.picktool
       obj.top_panel = [];
       obj.table = [];
       obj.w = 200;
-      obj.h = 180;  
+      obj.h = 330;  
       obj.first_time = true;
 
       obj.in_rng_sv = 5;
@@ -56,7 +61,12 @@ classdef picktool_viterbi < imb.picktool
       obj.top_pk_sv = .5;
       obj.bot_pk_sv = .5;
       obj.rep_sv = .5;
-      obj.cur_mode = 1;      
+      obj.cur_mode = 1;
+      
+      obj.surf_weight = 1000;
+      obj.mult_weight = 100;
+      obj.mult_weight_decay = .4;
+      obj.mult_weight_local_decay = .9;
       
       obj.create_ui_components();
       obj.create_ui_basic(0,0);
