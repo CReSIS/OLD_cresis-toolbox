@@ -104,7 +104,6 @@ obj.top_panel.table.height = ones(rows, cols) * inf;
 obj.top_panel.table.width_margin = ones(rows, cols) * 1.5;
 obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
 
-% TODO[reece]: Remove unused and add weights
 %% Mode
 obj.top_panel.table.handles{1,1}   = obj.top_panel.mode_label;
 obj.top_panel.table.handles{1,2}   = obj.top_panel.tool_PM;
@@ -120,7 +119,7 @@ obj.top_panel.table.handles{4,2}   = obj.top_panel.top_sup_cbox;
 %% Multiple suppression
 obj.top_panel.table.handles{5,1}   = obj.top_panel.mult_sup_label;
 obj.top_panel.table.handles{5,2}   = obj.top_panel.mult_sup_cbox;
-
+% TODO[reece]: Add number inputs for all weights
 clear rows cols
 
 % Draw table

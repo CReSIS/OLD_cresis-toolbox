@@ -45,8 +45,8 @@ if tool_idx == 1
       surf_bins = interp_finite(surf_bins, 0);
       
       % Match GT points with axis coordinates
-      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest');
-        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
+      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest', 'extrap');
+        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest', 'extrap')];
       auto_idxs = gt(1, 1):gt(1, end);
       x_points = gt(1, :) - gt(1,1) + 1;
       y_points = gt(2, :);
@@ -110,6 +110,13 @@ if tool_idx == 1
       mult_weight_decay = -1;
       mult_weight_local_decay = -1;
 
+      if obj.top_panel.top_sup_cbox.Value
+        surf_weight = 0;
+      end
+      if obj.top_panel.mult_sup_cbox.Value
+        mult_weight = 0;
+      end
+
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(gt), double(mask), double(1), double(slope), int64(bounds), ...
@@ -119,15 +126,12 @@ if tool_idx == 1
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
-      if obj.top_panel.column_restriction_cbox.Value
-        %         y_new(end) = y_new(end-1);
-      else
+      if ~obj.top_panel.column_restriction_cbox.Value
         y_new = y_new(auto_idxs);
       end
       
       % Resample and interpolate y_new to match layer axes
-      y_new = interp1(1:length(image_y),...
-        image_y,y_new,'linear','extrap');
+      y_new = interp1(1:length(image_y), image_y,y_new,'linear','extrap');
       all_idxs = manual_idxs(1):manual_idxs(end);
       y_new = interp1(image_x(auto_idxs),y_new,param.layer.x(all_idxs),'linear', 'extrap');
       

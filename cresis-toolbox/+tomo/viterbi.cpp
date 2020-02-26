@@ -28,7 +28,7 @@ double viterbi::unary_cost(int x, int y)
   }
 
   // Set cost to large if bottom is above surface
-  if (y + 1 < f_sgt[x])
+  if (y < f_sgt[x])
   {
     return LARGE;
   }
@@ -76,7 +76,7 @@ double viterbi::unary_cost(int x, int y)
   // Distance from nearest ice-mask
   // Probabilistic measurement
   int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >= f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
-  int matrix_idx = f_costmatrix_X * DIM + y + 1 - f_sgt[x];
+  int matrix_idx = f_costmatrix_X * DIM + y - f_sgt[x];
   int matrix_final_idx = f_costmatrix_X * f_costmatrix_Y - 1;
   if (matrix_idx >= 0 && matrix_idx <= matrix_final_idx)
   {
