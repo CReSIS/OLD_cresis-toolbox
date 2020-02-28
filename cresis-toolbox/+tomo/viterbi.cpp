@@ -108,7 +108,7 @@ double *viterbi::find_path(void)
 {
   start_col = f_bounds[0];
   end_col = f_bounds[1];
-  num_col_vis = end_col - start_col;
+  num_col_vis = end_col - start_col + 1;
 
   int *path = new int[f_row * num_col_vis];
   double path_prob[f_row], path_prob_next[f_row], index[f_row];
@@ -140,7 +140,7 @@ double *viterbi::find_path(void)
   {
     encode = vic_encode(viterbi_index, num_col_vis + start_col - k);
     viterbi_index = path[encode];
-    f_result[idx - 2] = viterbi_index;
+    f_result[idx - 2] = viterbi_index + 1;  // Account for matlab 1-indexing
     --idx;
     if (encode < 0 || idx < 2)
     {
@@ -174,7 +174,7 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
   int idx = 0;
   bool next = 0;
 
-  for (int col = start_col; col < end_col; ++col)
+  for (int col = start_col; col <= end_col; ++col)
   {
     if (idx >= f_row * num_col_vis || col >= f_col || col < 0)
     {
@@ -320,15 +320,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("Usage: bounds must be a 2 element vector");
     }
     ptrdiff_t *tmp = (ptrdiff_t *)mxGetPr(prhs[arg]);
-    _bounds[0] = tmp[0];
-    _bounds[1] = tmp[1];
+    _bounds[0] = tmp[0] - 1;  // Account for matlab 1-indexing
+    _bounds[1] = tmp[1] - 1;
     if (_bounds[0] < 0)
     {
       _bounds[0] = 0;
     }
     if (_bounds[1] < 0)
     {
-      _bounds[1] = _col;
+      _bounds[1] = _col - 1;
     }
     if (_bounds[0] > _col)
     {
@@ -347,7 +347,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   {
     // Default setting is to process all columns
     _bounds[0] = 0;
-    _bounds[1] = _col;
+    _bounds[1] = _col - 1;
   }
 
   // gt_weights ======================================================
@@ -453,7 +453,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
       mexErrMsgTxt("usage: zero bin must be type int64");
     }
-    _zero_bin = *(int *)mxGetPr(prhs[arg]);
+    _zero_bin = *(int *)mxGetPr(prhs[arg]) - 1;  // Account for matlab 1-indexing
   }
 
   // ====================================================================
@@ -468,14 +468,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int _sgt[_col];
   for (int k = 0; k < _col; ++k)
   {
-    _sgt[k] = (int)_surf_tr[k];
+    _sgt[k] = (int)_surf_tr[k] - 1;  // Account for matlab 1-indexing
   }
 
   double _egt_x[(_num_extra_tr / 2)], _egt_y[(_num_extra_tr / 2)];
   for (int p = 0; p < (_num_extra_tr / 2); ++p)
   {
-    _egt_x[p] = round(t_egt[(p * 2)]);
-    _egt_y[p] = round(t_egt[(p * 2) + 1]);
+    _egt_x[p] = round(t_egt[(p * 2)]) - 1;  // Account for matlab 1-indexing
+    _egt_y[p] = round(t_egt[(p * 2) + 1]) - 1;
   }
 
   // Allocate output
