@@ -22,7 +22,7 @@ if ~obj.busy_mode
     if yaxis_choice == 1 % TWTT
       y = range*slowness_air*1e6;
     elseif yaxis_choice == 2 % WGS_84 Elevation
-      y = obj.eg.image_elev - min(range,surf_range) - min(0,range-surf_range)/sqrt(er_ice);
+      y = obj.eg.image_elev(rline) - min(range,surf_range) - min(0,range-surf_range)/sqrt(er_ice);
     elseif yaxis_choice == 3 % Range
       y = min(range,surf_range) + min(0,range-surf_range)/sqrt(er_ice);
     elseif yaxis_choice == 4 % Range bin
