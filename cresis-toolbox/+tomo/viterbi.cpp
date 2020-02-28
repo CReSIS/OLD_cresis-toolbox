@@ -197,7 +197,7 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
       }
       ++idx;
     }
-    if (col >= end_col - 1)
+    if (col >= end_col)
     {
       // Allow addition of unary cost to final column but do not
       // add binary cost for next column since there are no more columns
@@ -206,11 +206,11 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 
     if (!next)
     {
-      dt_1d(path_prob, f_transition_weights[col], path_prob_next, index, 0, f_row, f_smooth_slope[col - 1]);
+      dt_1d(path_prob, f_transition_weights[col], path_prob_next, index, 0, f_row-1, f_smooth_slope[col]);
     }
     else
     {
-      dt_1d(path_prob_next, f_transition_weights[col], path_prob, index, 0, f_row, f_smooth_slope[col - 1]);
+      dt_1d(path_prob_next, f_transition_weights[col], path_prob, index, 0, f_row-1, f_smooth_slope[col]);
     }
     next = !next;
   }

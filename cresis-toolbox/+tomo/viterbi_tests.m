@@ -1,10 +1,11 @@
 function viterbi_tests()
   % TODO[reece]: Step through matrix cell for cell in viterbi -- solve all off-by-ones etc
+  % TODO[reece]: Verify usage of path
   % TODO[reece]: Why does the end of the layers shoot upward?
   % TODO[reece]: Tune weights
   % TODO[reece]: Rewrite viterbi_costs.md
   % TODO[reece]: Update wiki, address indexing issue (pass 1-indexed, viterbi will compensate)
-  global matrix;
+  global matrix layer;
   global surf_bins gt transition_weights gt_weights;
   global surf_weight mult_weight mult_weight_decay mult_weight_local_decay;
   global zero_bin mask slope bounds mask_dist cost_matrix;
@@ -39,24 +40,20 @@ function viterbi_tests()
   cost_matrix = ones(rows,cols);
   
   % RUN
-  hfig = setup();
-  
-end
-
-function viterbi()
-  global matrix;
-  global surf_bins gt transition_weights gt_weights;
-  global surf_weight mult_weight mult_weight_decay mult_weight_local_decay;
-  global zero_bin mask slope bounds mask_dist cost_matrix;
-  
-  hold on;
-  
-  scatter(gt(1, :), gt(2, :), 'rx');
-  
   layer = tomo.viterbi(matrix, surf_bins, gt, mask, 1, slope, bounds, ...
         gt_weights, mask_dist, cost_matrix, transition_weights, ...
         surf_weight, mult_weight, mult_weight_decay, ...
         mult_weight_local_decay, int64(zero_bin));
+  hfig = setup();
+  resize(hfig);
+end
+
+function plot_viterbi()
+  global layer gt;
+  
+  hold on;
+  
+  scatter(gt(1, :), gt(2, :), 'rx');
   
   plot(layer, 'g');
       
@@ -70,8 +67,6 @@ function hfig = setup()
   else
     hfig = figure('SizeChangedFcn', @resize);
   end
-
-  resize(hfig);
 end
 
 
@@ -120,9 +115,8 @@ function resize(src,~)
       end
     end
   end
-  
-  % RUN VITERBI
-  viterbi();
+ 
+  plot_viterbi();
 end
 
 

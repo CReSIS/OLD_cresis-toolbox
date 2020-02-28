@@ -102,6 +102,7 @@ public:
   int vic_encode(int row, int col) { return f_row * col + row; }
 
   // THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
+  // With minor adjustments by Reece Mathews
   // Distance transform
   // -- Every index from d1 to d2 will be set in dst and dst_ind
   // -- dst will contain the minimum value for that destination
@@ -132,7 +133,7 @@ public:
   void dt_1d(const double *f, double transition_weight, double *result, double *dst_ind,
              int beg, int end, int off = 0)
   {
-    dt(f, result, dst_ind, beg, end - 1, beg, end - 1, transition_weight, off);
+    dt(f, result, dst_ind, beg, end, beg, end, transition_weight, off);
   }
   // END CODE FROM DAVID CRANDALL
 };
