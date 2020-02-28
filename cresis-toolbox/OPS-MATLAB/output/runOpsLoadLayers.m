@@ -13,7 +13,7 @@
 params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
-params = ct_set_params(params,'cmd.frms',[2]);
+% params = ct_set_params(params,'cmd.frms',[2]);
 
 layers = {};
 layer_params = [];
@@ -57,7 +57,6 @@ elseif 0
   layer_params(idx).layerdata_source = 'layerData';
 elseif 1
   %% Load multiple snow layers from the layerData file (koenig's snow layers)
-  %% Currently only work for a single frame
   ref_idx = 1;
   idx = idx + 1;
   layer_params(idx).layers2load = []; % leave empty for all;

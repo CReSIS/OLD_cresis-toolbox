@@ -638,9 +638,11 @@ for frm_idx = 1:length(param.cmd.frms)
               layers2load = 1:length(lay.layerData);
           end
           num_layer = length(layers2load);
-          layers(layer_idx).twtt = cell(num_layer,1);
-          layers(layer_idx).quality = cell(num_layer,1);
-          layers(layer_idx).type = cell(num_layer,1);
+          if frm_idx == 1
+              layers(layer_idx).twtt = cell(num_layer,1);
+              layers(layer_idx).quality = cell(num_layer,1);
+              layers(layer_idx).type = cell(num_layer,1);
+          end
           for idx = 1:num_layer
               lay_idx = layers2load(idx);
               layers(layer_idx).twtt{idx} = cat(2,layers(layer_idx).twtt{idx},lay.layerData{lay_idx}.value{2}.data(frms_mask));
