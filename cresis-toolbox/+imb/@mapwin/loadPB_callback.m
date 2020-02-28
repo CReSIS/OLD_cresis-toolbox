@@ -143,8 +143,9 @@ if strcmpi(param.layer_source,'layerdata')
   %   param.layers.lyr_name % layer.name
   %   param.layers.lyr_order % layer.order (positive integer contained in 1 to N)
   layer_fn = fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('layer_%s.mat',param.cur_sel.day_seg));
+  fprintf('Loading layer organizer: %s\n', layer_fn);
   save_layer_organizer_file = false;
-  if exist(layer_fn)
+  if exist(layer_fn,'file')
     layer_organizer = load(layer_fn);
   else
     save_layer_organizer_file = true;
@@ -220,11 +221,15 @@ if strcmpi(param.layer_source,'layerdata')
   end
   layer_organizer.lyr_id = 1:length(layer_organizer.lyr_name);
   
+  layer_fn_dir = ct_filename_out(param.cur_sel,param.layer_data_source,'');
+  fprintf('Loading layer files: %s\n', layer_fn_dir);
   for frm = 1:num_frm
-    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
+    layer_fn=fullfile(layer_fn_dir,sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
     lay = load(layer_fn);
     new_layer_names = {};
     duplicate_idx = 0;
+    Nx = length(lay.GPS_time);
+    length_error = false;
     for lay_idx = 1:length(lay.layerData)
       % Enforce standard names
       % -------------------------------------------------------------------
@@ -275,6 +280,43 @@ if strcmpi(param.layer_source,'layerdata')
       if lay_idx == 1 || lay_idx == 2
         layer_organizer.lyr_group_name{layer_organizer_idx} = 'standard';
       end
+      
+      % Ensure all fields are consistent in length
+      % -------------------------------------------------------------------
+      % Too short:
+      if length(lay.layerData{lay_idx}.quality) < Nx
+        length_error = true;
+        lay.layerData{lay_idx}.quality(end+1:Nx) = NaN;
+      end
+      if length(lay.layerData{lay_idx}.value{1}.data) < Nx
+        length_error = true;
+        lay.layerData{lay_idx}.value{1}.data(end+1:Nx) = NaN;
+      end
+      if length(lay.layerData{lay_idx}.value{2}.data) < Nx
+        length_error = true;
+        lay.layerData{lay_idx}.value{2}.data(end+1:Nx) = NaN;
+      end
+      % Too long:
+      if length(lay.layerData{lay_idx}.quality) > Nx
+        length_error = true;
+        lay.layerData{lay_idx}.quality = lay.layerData{lay_idx}.quality(1:Nx);
+      end
+      if length(lay.layerData{lay_idx}.value{1}.data) > Nx
+        length_error = true;
+        lay.layerData{lay_idx}.value{1}.data = lay.layerData{lay_idx}.value{1}.data(1:Nx);
+      end
+      if length(lay.layerData{lay_idx}.value{2}.data) > Nx
+        length_error = true;
+        lay.layerData{lay_idx}.value{2}.data = lay.layerData{lay_idx}.value{2}.data(1:Nx);
+      end
+    end
+    if length_error
+      warning('Some layers did not match GPS_time field in length. Saving corrected fields: %s', layer_fn);
+      layerData = lay.layerData;
+      for lay_idx = 1:length(layerData)
+        layerData{lay_idx} = rmfield(layerData{lay_idx},'id');
+      end
+      save(layer_fn,'-append','layerData') % saving to layerData file
     end
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
     layer_info = cat(2, layer_info,lay); % stores the layer information for all frames in the segment
@@ -295,46 +337,6 @@ if strcmpi(param.layer_source,'layerdata')
   param.layers.lyr_id = param.layers.lyr_id(new_order);
   param.layers.lyr_name = param.layers.lyr_name(new_order);
   param.layers.lyr_order = param.layers.lyr_order(new_order);
-  
-%   % Force all layerData files to use the same layer sequence: this ensures
-%   % that all layerData files have the same layers and these layers are in
-%   % the same order.
-%   for frm = 1:num_frm
-%     % Does frame conform to lyr_name list?
-%     conforms = true;
-%     for lay_idx = 1:length(param.layers.lyr_name)
-%       if lay_idx > length(layer_info(frm).layerData) ...
-%           || ~strcmpi(param.layers.lyr_name{lay_idx},layer_info(frm).layerData{lay_idx}.name)
-%         conforms = false;
-%       end
-%     end
-%     if ~conforms
-%       new_layerData = cell(1,length(param.layers.lyr_name));
-%       file_layer_names = cellfun(@(x) getfield(x,'name'),layer_info(frm).layerData,'UniformOutput',false);
-%       for lay_idx = 1:length(param.layers.lyr_name)
-%         layer_name = param.layers.lyr_name{lay_idx};
-%         new_layerData{lay_idx}.name = layer_name;
-%         lyr_match_idx = find(strcmp(layer_name,file_layer_names),1);
-%         if isempty(lyr_match_idx)
-%           new_layerData{lay_idx}.value{1}.data = NaN(size(layer_info(frm).GPS_time));
-%           new_layerData{lay_idx}.value{2}.data = NaN(size(layer_info(frm).GPS_time));
-%           new_layerData{lay_idx}.quality = ones(size(layer_info(frm).GPS_time));
-%         else
-%           new_layerData{lay_idx}.value{1}.data = layer_info(frm).layerData{lyr_match_idx}.value{1}.data;
-%           new_layerData{lay_idx}.value{2}.data = layer_info(frm).layerData{lyr_match_idx}.value{2}.data;
-%           new_layerData{lay_idx}.quality = layer_info(frm).layerData{lyr_match_idx}.quality;
-%         end
-%       end
-%       layer_info(frm).layerData = new_layerData;
-%     end
-%     for lay_idx = 1:length(param.layers.lyr_name)
-%       layer_info(frm).layerData{lay_idx}.age = param.layers.lyr_age(lay_idx);
-%       layer_info(frm).layerData{lay_idx}.desc = param.layers.lyr_desc{lay_idx};
-%       layer_info(frm).layerData{lay_idx}.group_name = param.layers.lyr_group_name{lay_idx};
-%       layer_info(frm).layerData{lay_idx}.id = param.layers.lyr_id(lay_idx);
-%       layer_info(frm).layerData{lay_idx}.order = param.layers.lyr_order(lay_idx);
-%     end
-%   end
   
   param.start_gps_time = obj.layerdata.frm_info(season_idx).start_gps_time(frm_idxs);
   param.stop_gps_time = obj.layerdata.frm_info(season_idx).stop_gps_time(frm_idxs);

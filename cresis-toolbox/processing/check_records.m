@@ -1,5 +1,5 @@
-function check_records(param)
-% check_records(param)
+function check_records(param,param_override)
+% check_records(param,param_override)
 %
 % Checks the fields in the records files for potential errors.
 %
@@ -26,13 +26,24 @@ function check_records(param)
 % param.season_name = '2013_Antarctica_Basler';
 % check_records(param)
 
+% Input checking
+global gRadar;
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
+
 if ischar(param)
   % param is a string containing the filename
-  records = load(param,'param_records');
+  records_fn = param;
+  records = load(records_fn,'param_records');
   if ~isfield(records,'param_records')
     error('This mode only supported for new records files with param_records field.');
   end
-  check_records_support_func(param,records.param_records,-inf);
+  
+  param = merge_structs(records.param_records,param_override);
+  check_records_support_func(records_fn,param,-inf);
   
 elseif isstruct(param)
   % param is a struct indicating which radar/season to check (checks all segments)
@@ -41,7 +52,7 @@ elseif isstruct(param)
   param_fn = ct_filename_param(sprintf('%s_param_%s.xls', output_dir, param.season_name));
   params = read_param_xls(param_fn);
   
-  old_time = -inf;
+  old_time = [inf -inf];
   for param_idx = 1:length(params)
     param = params(param_idx);
     
@@ -57,8 +68,10 @@ elseif isstruct(param)
     %if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     %  continue;
     %end
-
+    
     fprintf('%d of %d: Checking records %s\n', param_idx, length(params), records_fn);
+    
+    param = merge_structs(param,param_override);
     
     old_time = check_records_support_func(records_fn,param,old_time);
   end
@@ -79,6 +92,61 @@ if ~exist(records_fn,'file')
   return;
 end
 
+if ~isfield(param,'check_records') || isempty(param.check_records)
+  param.check_records = [];
+end
+
+% along_track_skip_limit: positive numeric scalar, default 2000, units meters, threshold for
+%   maximum allowed along-track skip
+if ~isfield(param.check_records,'along_track_skip_limit') || isempty(param.check_records.along_track_skip_limit)
+  param.check_records.along_track_skip_limit = 20;
+end
+
+% gps_source_check: logical scalar, default true, if true prints non-final GPS source error
+if ~isfield(param.check_records,'gps_source_check') || isempty(param.check_records.gps_source_check)
+  param.check_records.gps_source_check = true;
+end
+
+% gps_time_skip_limit: positive numeric scalar, default 20, units seconds, threshold for
+%   maximum allowed gps time skip
+if ~isfield(param.check_records,'gps_time_skip_limit') || isempty(param.check_records.gps_time_skip_limit)
+  param.check_records.gps_time_skip_limit = 20;
+end
+
+% ground: logical scalar, default true if season name contains "ground" and
+%   false otherwise. If true, velocity threshold is a maximum allowed. If
+%   false, it assumes aircraft and velocity threshold is a minimum allowed.
+if ~isfield(param.check_records,'ground') || isempty(param.check_records.ground)
+  param.check_records.ground = ~isempty(regexpi(param.season_name,'ground'));
+end
+
+% roll_limit: positive numeric scalar, default 25, units deg, threshold for
+%   bad roll
+if ~isfield(param.check_records,'roll_limit') || isempty(param.check_records.roll_limit)
+  param.check_records.roll_limit = 25;
+end
+
+% stationary_threshold_sec: postive numeric scalar, default 10, units m/s, threshold
+%   for bad velocity
+if ~isfield(param.check_records,'stationary_threshold_sec') || isempty(param.check_records.stationary_threshold_sec)
+  param.check_records.stationary_threshold_sec = 50;
+end
+
+% stationary_threshold_alongtrack: 2-element postive numeric vector,
+%   default [0.1 10], units m, first threshold is the minimum distance the
+%   platform must move to stay in the non-stationary state and second
+%   threshold is how far the platform can move once it enters a stationary
+%   state and still be considered stationary
+if ~isfield(param.check_records,'stationary_threshold_alongtrack') || isempty(param.check_records.stationary_threshold_alongtrack)
+  param.check_records.stationary_threshold_alongtrack = 0.1;
+end
+
+% vel_threshold: postive numeric scalar, default 10, units m/s, threshold
+%   for bad velocity
+if ~isfield(param.check_records,'vel_threshold') || isempty(param.check_records.vel_threshold)
+  param.check_records.vel_threshold = 10;
+end
+
 records = load(records_fn);
 
 if isfield(records,'records')
@@ -86,7 +154,7 @@ if isfield(records,'records')
   return;
 end
 
-if isempty(regexpi(records.gps_source,'final'))
+if param.check_records.gps_source_check && isempty(regexpi(records.gps_source,'final'))
   warning('GPS source is %s and not final\n', records.gps_source);
 end
 
@@ -144,11 +212,17 @@ end
 along_track = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
 vel = diff(along_track) ./ diff(records.gps_time);
-if any(vel < 25 | vel > 300)
-  if all(vel < 6)
-    warning('Small (%g) or large velocity (%g). All below 6 m/s.', min(vel), max(vel));
-  else
-    warning('Small (%g) or large velocity (%g). Some above 6 m/s.', min(vel), max(vel));
+if param.check_records.ground
+  if any(vel > param.check_records.vel_threshold)
+    warning('Large velocity (%g). All below %g m/s.', min(vel), max(vel), param.check_records.vel_threshold);
+  end
+else
+  if any(vel < param.check_records.vel_threshold | vel > 300)
+    if all(vel < param.check_records.vel_threshold)
+      warning('Small (%g) or large velocity (%g). All below %g m/s.', min(vel), max(vel), param.check_records.vel_threshold);
+    else
+      warning('Small (%g) or large velocity (%g). Some above %g m/s.', min(vel), max(vel), param.check_records.vel_threshold);
+    end
   end
 end
 
@@ -164,8 +238,8 @@ if any(records.elev >= 40000 | records.elev <= -10000)
   warning('elev out of bounds');
 end
 
-if any(records.roll >= 50/180*pi | records.roll <= -50/180*pi)
-  warning('roll > 50 deg: max %.1f min %.1f', max(records.roll)*180/pi, min(records.roll)*180/pi);
+if any(records.roll >= param.check_records.roll_limit/180*pi | records.roll <= -param.check_records.roll_limit/180*pi)
+  warning('roll > %g deg: max %.1f min %.1f', param.check_records.roll_limit, max(records.roll)*180/pi, min(records.roll)*180/pi);
 end
 
 if any(records.pitch >= 25/180*pi | records.pitch <= -25/180*pi)
@@ -176,8 +250,10 @@ if any(records.heading >= 2*pi | records.heading <= -2*pi)
   warning('heading out of bounds');
 end
 
-if old_time > records.gps_time(1)
-  warning('records out of order');
+if old_time(2) > records.gps_time(1)
+  warning('records out of order (meaning that the previous segment has a gps time (%s to %s) that is greater than the start of this segment (%s to %s), but the current segment is listed later in the parameters and segments must be listed chronologically)', ...
+    datestr(epoch_to_datenum(old_time(1))), datestr(epoch_to_datenum(old_time(end))), ...
+    datestr(epoch_to_datenum(records.gps_time(1))), datestr(epoch_to_datenum(records.gps_time(end))));
 end
 
 nonmonotonic_records = diff(records.gps_time) < 0;
@@ -191,16 +267,69 @@ if any(isnan(records.lat) | isnan(records.lon) | isnan(records.elev)  | isnan(re
 end
 
 diff_time = diff(records.gps_time);
-if any(diff_time > 1000 / median(vel))
-  jump_idxs = find(diff_time > 1000 / median(vel));
-  warning('Time gap, %.1f sec, greater than 1 km in record (assuming %f m/s)', max(diff_time), median(vel));
+if any(diff_time > param.check_records.gps_time_skip_limit)
+  jump_idxs = find(diff_time > param.check_records.gps_time_skip_limit);
+  warning('Time gap greater than limit %.1f sec, max skip found is %.1f sec', ...
+    param.check_records.gps_time_skip_limit, max(diff_time));
   fprintf('Time gaps in seconds: '); fprintf('%f\t', diff_time(jump_idxs)); fprintf('\n');
   for jump_idx = jump_idxs
-    fprintf('  Gap is at file index %d to %d\n', find(records.relative_rec_num{1} > jump_idx,1), ...
-      find(records.relative_rec_num{1} > jump_idx+1,1));
+    fprintf('  Gap is at file index %d to %d of %d to %d files\n', find(records.relative_rec_num{1} > jump_idx,1), ...
+      find(records.relative_rec_num{1} > jump_idx+1,1), 1, length(records.relative_rec_num{1}));
   end
 end
 
-old_time = records.gps_time(end);
+diff_along_track = diff(along_track);
+if any(diff_along_track > param.check_records.along_track_skip_limit)
+  jump_idxs = find(diff_along_track > param.check_records.along_track_skip_limit);
+  warning('Along-track gap greater than limit %.1f km, max skip found is is %.1f km', ...
+    param.check_records.along_track_skip_limit, max(diff_along_track));
+  fprintf('Along-track gaps in seconds: '); fprintf('%f\t', diff_along_track(jump_idxs)); fprintf('\n');
+  for jump_idx = jump_idxs
+    fprintf('  Gap is at file index %d to %d of %d to %d files\n', find(records.relative_rec_num{1} > jump_idx,1), ...
+      find(records.relative_rec_num{1} > jump_idx+1,1), 1, length(records.relative_rec_num{1}));
+  end
+end
+
+% Regenerate without elevation
+along_track = geodetic_to_along_track(records.lat,records.lon);
+rec = 1;
+cur_along_track = along_track(rec);
+cur_rec = rec;
+stationary = false(size(along_track));
+stationary_list = [];
+alongtrack_threshold = param.check_records.stationary_threshold_alongtrack(1);
+for rec = 2:length(along_track)
+  if along_track(rec) > cur_along_track + alongtrack_threshold ...
+      || rec == length(along_track)
+    cur_along_track = along_track(rec);
+    if stationary(rec-1) == true
+      alongtrack_threshold = param.check_records.stationary_threshold_alongtrack(1);
+      stationary_duration = records.gps_time(rec) - cur_gps_time;
+      if stationary_duration > param.check_records.stationary_threshold_sec
+        stationary_list(end+1).rec = [cur_rec rec];
+        stationary_list(end).gps_time = [cur_gps_time records.gps_time(rec)];
+        stationary_list(end).duration = stationary_duration;
+      end
+    end
+  else
+    stationary(rec) = true;
+    if stationary(rec-1) == false
+      alongtrack_threshold = param.check_records.stationary_threshold_alongtrack(2);
+      cur_rec = rec;
+      cur_gps_time = records.gps_time(rec);
+      stationary(rec) = true;
+    end
+  end
+end
+if ~isempty(stationary_list)
+  warning('Stationary data exists.\n');
+  for idx = 1:length(stationary_list)
+    fprintf('  Stationary %.1f sec from %s to %s\n', stationary_list(idx).duration, ...
+      datestr(epoch_to_datenum(stationary_list(idx).gps_time(1))), ...
+      datestr(epoch_to_datenum(stationary_list(idx).gps_time(end))));
+  end
+end
+
+old_time = records.gps_time([1 end]);
 
 end

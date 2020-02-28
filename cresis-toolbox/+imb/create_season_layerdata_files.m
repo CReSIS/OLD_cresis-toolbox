@@ -30,6 +30,7 @@ function create_season_layerdata_files
 
 %% Select season parameter files
 param_fns = {};
+% param_fns{end+1} = 'accum_param_2015_Antarctica_Ground.xls';
 % param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
 % param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_1993_Greenland_P3.xls';
@@ -39,13 +40,13 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_1998_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1999_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2001_Greenland_P3.xls';
-% % % param_fns{end+1} = 'rds_param_2002_Antarctica_P3chile.xls'; % May not work
+% % param_fns{end+1} = 'rds_param_2002_Antarctica_P3chile.xls'; % May not work
 % param_fns{end+1} = 'rds_param_2002_Greenland_P3.xls';
-% % param_fns{end+1} = 'rds_param_2003_Greenland_P3.xls'; % May not work
-% % param_fns{end+1} = 'rds_param_2004_Antarctica_P3chile.xls'; % May not work
-% % param_fns{end+1} = 'rds_param_2005_Greenland_TO.xls'; % May not work
+% param_fns{end+1} = 'rds_param_2003_Greenland_P3.xls'; % May not work
+% param_fns{end+1} = 'rds_param_2004_Antarctica_P3chile.xls'; % May not work
+% param_fns{end+1} = 'rds_param_2005_Greenland_TO.xls'; % May not work
 % param_fns{end+1} = 'rds_param_2006_Greenland_TO.xls';
-% % param_fns{end+1} = 'rds_param_2007_Greenland_P3.xls'; % May not work
+% param_fns{end+1} = 'rds_param_2007_Greenland_P3.xls'; % May not work
 % param_fns{end+1} = 'rds_param_2008_Greenland_Ground.xls';
 % param_fns{end+1} = 'rds_param_2008_Greenland_TO.xls';
 % param_fns{end+1} = 'rds_param_2009_Antarctica_DC8.xls';
@@ -68,7 +69,6 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2014_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2014_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2015_Greenland_C130.xls';
-% param_fns{end+1} = 'rds_param_2015_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2016_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2016_Greenland_G1XB.xls';
 % param_fns{end+1} = 'rds_param_2016_Greenland_P3.xls';
@@ -83,8 +83,9 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
+param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
-param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
 
 %% Setup layer load parameters
