@@ -10,17 +10,17 @@
 %% User Settings
 % =====================================================================
 
-params = read_param_xls(ct_filename_param('rds_param_2012_Greenland_P3.xls'));
+params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');
-% params = ct_set_params(params,'cmd.frms',[4]);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+params = ct_set_params(params,'cmd.frms',[2]);
 
 layers = {};
 layer_params = [];
 idx = 0;
 
 %% Example Inputs (just choose one)
-if 1
+if 0
   %% Load layers from layerData file version 1  
   ref_idx = 1;
   idx = idx + 1;
@@ -55,7 +55,15 @@ elseif 0
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'layerData';
   layer_params(idx).layerdata_source = 'layerData';
-
+elseif 1
+  %% Load multiple snow layers from the layerData file (koenig's snow layers)
+  %% Currently only work for a single frame
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).layers2load = []; % leave empty for all;
+  layer_params(idx).name = 'layers';  % surface, bottom or layers for all.
+  layer_params(idx).source = 'layerData_koenig';
+  layer_params(idx).layerdata_source = 'layerData_koenig';
 elseif 0
   %% Compare echogram, layerData, and records
   ref_idx = 1;
