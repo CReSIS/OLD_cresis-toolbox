@@ -16,7 +16,6 @@
 // mex -v -largeArrayDims viterbi.cpp
 
 #include "viterbi.h"
-#include "stdio.h"
 
 //  Used to define unary cost of target at position x, y
 double viterbi::unary_cost(int x, int y)
@@ -175,20 +174,6 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
   int idx = 0;
   bool next = 0;
 
-  FILE *index_file = fopen("+tomo/viterbi_debug/index.csv", "w");
-  FILE *path_prob_file = fopen("+tomo/viterbi_debug/path_prob.csv", "w");
-  FILE *path_prob_next_file = fopen("+tomo/viterbi_debug/path_prob_next.csv", "w");
-  FILE *path_file = fopen("+tomo/viterbi_debug/path.csv", "w");
-  fclose(index_file);
-  fclose(path_prob_file);
-  fclose(path_prob_next_file);
-  fclose(path_file);
-
-  index_file = fopen("+tomo/viterbi_debug/index.csv", "a");
-  path_prob_file = fopen("+tomo/viterbi_debug/path_prob.csv", "a");
-  path_prob_next_file = fopen("+tomo/viterbi_debug/path_prob_next.csv", "a");
-  path_file = fopen("+tomo/viterbi_debug/path.csv", "a");
-
   for (int col = start_col; col <= end_col; ++col)
   {
     if (idx >= f_row * num_col_vis || col >= f_col || col < 0)
@@ -213,19 +198,6 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
       ++idx;
     }
 
-    for (int i = 0; i < f_row * num_col_vis; i++) {
-      if (i < f_row) { 
-        fprintf(index_file, "%f, ", index[i]);
-        fprintf(path_prob_file, "%f, ", path_prob[i]);
-        fprintf(path_prob_next_file, "%f, ", path_prob_next[i]);
-      }
-      fprintf(path_file, "%d, ", path[i]);
-    }
-    fprintf(index_file, "\n");
-    fprintf(path_prob_file, "\n");
-    fprintf(path_prob_next_file, "\n");
-    fprintf(path_file, "\n");
-
     if (col >= end_col)
     {
       // Allow addition of unary cost to final column but do not
@@ -243,11 +215,6 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
     }
     next = !next;
   }
-
-  fclose(index_file);
-  fclose(path_prob_file);
-  fclose(path_prob_next_file);
-  fclose(path_file);
 }
 
 // MATLAB FUNCTION START

@@ -44,8 +44,6 @@ function viterbi_tests()
   hfig = setup();
   resize(hfig);
   
- [index_vals, path_prob_vals, path_prob_next_vals, path_vals] = import_data();
- 
 end
 
 function plot_viterbi()
@@ -118,20 +116,3 @@ function resize(src,~)
  
   plot_viterbi();
 end
-
-function [index_vals, path_prob_vals, path_prob_next_vals, path_vals] = import_data()
-  global matrix;
-  r = size(matrix, 1);
-  c = size(matrix, 2);
-  
-  index_vals = csvread('+tomo/viterbi_debug/index.csv')';
-  path_prob_vals = csvread('+tomo/viterbi_debug/path_prob.csv')';
-  path_prob_next_vals = csvread('+tomo/viterbi_debug/path_prob_next.csv')';
-  path_vals = csvread('+tomo/viterbi_debug/path.csv')';
-  index_vals = index_vals(1:end-1,:);
-  path_prob_vals = path_prob_vals(1:end-1,:);
-  path_prob_next_vals = path_prob_next_vals(1:end-1,:);
-  path_vals = path_vals(1:end-1,end);
-  path_vals = reshape(path_vals, r, c);
-end
-
