@@ -1,35 +1,32 @@
 function viterbi_tests()
-  % TODO[reece]: Step through matrix cell for cell in viterbi -- solve all off-by-ones etc
-  % TODO[reece]: Verify usage of path
-  % TODO[reece]: Why does the end of the layers shoot upward?
   % TODO[reece]: Tune weights
   % TODO[reece]: Rewrite viterbi_costs.md
   % TODO[reece]: Update wiki, address indexing issue (pass 1-indexed, viterbi will compensate)
   global matrix layer;
-  global surf_bins gt transition_weights gt_weights;
-  global surf_weight mult_weight mult_weight_decay mult_weight_local_decay;
-  global zero_bin mask slope bounds mask_dist cost_matrix;
+  global gt layer;
   
   % CONSTANTS
   rows = 20;
-  cols = 5;
+  cols = 10;
   surf = 5;
+  mult = 10;
+  grnd = 17;
   matrix = zeros(rows, cols);
-  matrix(surf, :) = ones(1, cols) * 3; % Surface
-  matrix(10, :) = ones(1, cols) * 2; % Mult 1
-  matrix(17, :) = ones(1, cols) * 1; % Bottom
+  matrix(surf, :) = ones(1, cols) * 30; % Surface
+  matrix(mult, :) = ones(1, cols) * 20; % Mult 1
+  matrix(grnd, :) = ones(1, cols) * 10; % Bottom
   
   surf_bins = ones(1, cols) * surf;
-  gt = [1 cols; surf surf];
+  gt = [1 cols; mult mult];
   
   % Viterbi params
   transition_weights = ones(1, cols-1);
   gt_weights = ones(1, cols);
   
-  surf_weight = 0;
-  mult_weight = 0;
-  mult_weight_decay = 0;
-  mult_weight_local_decay = 0;
+  surf_weight = 1000;
+  mult_weight = 100;
+  mult_weight_decay = .3;
+  mult_weight_local_decay = .7;
   zero_bin = 1;
   
   % Other environment vars
@@ -46,6 +43,9 @@ function viterbi_tests()
         mult_weight_local_decay, int64(zero_bin));
   hfig = setup();
   resize(hfig);
+  
+ [index_vals, path_prob_vals, path_prob_next_vals, path_vals] = import_data();
+ 
 end
 
 function plot_viterbi()
@@ -119,4 +119,19 @@ function resize(src,~)
   plot_viterbi();
 end
 
+function [index_vals, path_prob_vals, path_prob_next_vals, path_vals] = import_data()
+  global matrix;
+  r = size(matrix, 1);
+  c = size(matrix, 2);
+  
+  index_vals = csvread('+tomo/viterbi_debug/index.csv')';
+  path_prob_vals = csvread('+tomo/viterbi_debug/path_prob.csv')';
+  path_prob_next_vals = csvread('+tomo/viterbi_debug/path_prob_next.csv')';
+  path_vals = csvread('+tomo/viterbi_debug/path.csv')';
+  index_vals = index_vals(1:end-1,:);
+  path_prob_vals = path_prob_vals(1:end-1,:);
+  path_prob_next_vals = path_prob_next_vals(1:end-1,:);
+  path_vals = path_vals(1:end-1,end);
+  path_vals = reshape(path_vals, r, c);
+end
 

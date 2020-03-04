@@ -50,7 +50,7 @@ classdef picktool_viterbi < imb.picktool
       obj.bottom_panel = [];
       obj.top_panel = [];
       obj.table = [];
-      obj.w = 200;
+      obj.w = 230;
       obj.h = 330;  
       obj.first_time = true;
 
