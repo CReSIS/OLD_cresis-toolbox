@@ -2,8 +2,7 @@ function viterbi_tests()
   % TODO[reece]: Tune weights
   % TODO[reece]: Rewrite viterbi_costs.md
   % TODO[reece]: Update wiki, address indexing issue (pass 1-indexed, viterbi will compensate)
-  global matrix layer;
-  global gt layer;
+  global matrix layer gt;
   
   % CONSTANTS
   rows = 20;
