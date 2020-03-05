@@ -75,6 +75,9 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+% For the full simulator, remove 'sim' at the end($) of param.season_name
+param.season_name = regexprep(param.season_name,'sim$','','ignorecase');
+
 if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
 %     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');

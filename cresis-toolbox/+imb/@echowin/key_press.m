@@ -269,9 +269,10 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
           obj.eg.cur_sel.radar_name,...
           obj.eg.cur_sel.season_name,obj.eg.cur_sel.day_seg,...
           num2str([obj.eg.frms(1) obj.eg.frms(end)],'%d-%d'));
-        obj.status_text_set(sprintf('Saving screenshot %s...',fn),'replace');
+        obj.status_text_set(sprintf('Saving screenshot %s',fn),'replace');
+        fprintf('Saving screenshot %s\n',fn);
         set(obj.h_fig,'paperpositionmode','auto');
-        print('-dpng',sprintf('-f%d',obj.h_fig),fn);
+        print('-dpng',sprintf('-f%d',obj.h_fig.Number),fn);
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         %% Save current layers
         obj.savePB_callback();
@@ -356,7 +357,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.set_visibility();
       
     case 'downarrow' % Down-arrow: Move Echogram Down
-      if current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB
+      if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
         return
       end
       % check if echogram is selected
@@ -377,7 +378,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
     case 'uparrow' % Up-arrow: Move Echogram Up
-      if current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB
+      if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
         return
       end
       % check if echogram is selected

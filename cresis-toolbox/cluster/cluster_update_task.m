@@ -342,10 +342,10 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  Task success condition failed to evaluate: %s\n', success_eval_ME.getReport);
   end
   if bitand(ctrl.error_mask(task_id),cluster_killed_error)
-    fprintf('  Cluster killed this job\n');
+    fprintf('  Cluster killed this job. The cause is not known.\n');
   end
   if bitand(ctrl.error_mask(task_id),walltime_exceeded_error)
-    fprintf('  Cluster killed this job due to wall time\n');
+    fprintf('  Cluster killed this job due to wall time. This means the job requested too little cpu time. cluster.cpu_time_mult should be increased.\n');
   end
   if bitand(ctrl.error_mask(task_id),file_success_error)
     fprintf('  File success check failed (missing files)\n');

@@ -1,14 +1,7 @@
 function search_callback(obj,src,event)
 % mapwin.search_callback(obj,src,event)
 
-% return focus to figure
-try
-  warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-  javaFrame = get(obj.h_fig,'JavaFrame');
-  javaFrame.getAxisComponent.requestFocus;
-catch
-  fprintf('JavaFrame figure property not available, click inside echogram window after pressing a listbox button before using key shortcuts\n');
-end
+uicontrol(obj.h_fig);
 
 if strcmpi(get(obj.map_panel.h_axes,'Visible'),'off')
   % No map selected, so just return
@@ -21,19 +14,11 @@ if obj.map.fline_source==1
   % -----------------------------------------------------------------------
   
   % Find the first frame that matches the search string
-  frm_id = get(obj.top_panel.searchTB,'String');
-  frm_id(regexp(frm_id,'[_ ]')) = [];
-  season_match = frm_id(~isstrprop(frm_id,'digit'));
-  frm_id = frm_id(isstrprop(frm_id,'digit'));
-  % Add default segment number
-  if length(frm_id) < 10
-    frm_id(9:10) = '01';
-  end
-  % Add default frame number
-  if length(frm_id) < 13
-    frm_id(11:13) = '001';
-  end
-  frm_id = str2num(frm_id);
+  frm_id_str = get(obj.top_panel.searchTB,'String');
+  frm_id_str(regexp(frm_id_str,'[_ ]')) = [];
+  season_match = frm_id_str(~isstrprop(frm_id_str,'digit'));
+  frm_id_str = frm_id_str(isstrprop(frm_id_str,'digit'));
+  frm_id = str2double(frm_id_str);
   if isempty(frm_id)
     return
   end
@@ -41,7 +26,7 @@ if obj.map.fline_source==1
   if ~isempty(season_match)
     season_match = find(cellfun(@(x) ~isempty(regexpi(x,season_match)), obj.cur_map_pref_settings.seasons));
     % Get a logical mask indicating all indices that match the frame
-    frm_mask = obj.layerdata.frm_id == frm_id;
+    frm_mask = floor(obj.layerdata.frm_id/10^(13-length(frm_id_str))) == frm_id;
     season_mask = false(size(obj.layerdata.season_idx));
     for idx = 1:length(season_match)
       season_mask = season_mask | obj.layerdata.season_idx == season_match(idx);
@@ -49,7 +34,7 @@ if obj.map.fline_source==1
     frm_mask = frm_mask & season_mask;
   else
     % Get a logical mask indicating all indices that match the frame
-    frm_mask = obj.layerdata.frm_id == frm_id;
+    frm_mask = floor(obj.layerdata.frm_id/10^(13-length(frm_id_str))) == frm_id;
   end
   
   % Find the first matching frame in the list

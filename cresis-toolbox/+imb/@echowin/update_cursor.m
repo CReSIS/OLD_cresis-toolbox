@@ -46,7 +46,7 @@ if notify_en
     obj.cursor.target_twtt = y*1e-6;
     
   elseif yaxis_choice == 2 % WGS_84 Elevation
-    if (elevation(idx) - y) < obj.eg.image_surf_twtt(rline)*vel_air % above surface
+    if (obj.eg.image_elev(rline) - y) < obj.eg.image_surf_twtt(rline)*vel_air % above surface
       obj.cursor.target_twtt = (obj.eg.image_elev(rline)-y)*slowness_air;
     else
       obj.cursor.target_twtt = obj.eg.image_surf_twtt(rline) + (obj.eg.image_elev(rline) - y - obj.eg.image_surf_twtt(rline)*vel_air)*slowness_ice;

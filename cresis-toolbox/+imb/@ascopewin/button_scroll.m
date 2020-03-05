@@ -13,8 +13,7 @@ end
 
 zooms = -1 + (event.VerticalScrollCount/2);
 
-cur_axis = [get(obj.h_axes,'Xlim') ...
-  get(obj.h_axes,'YLim')];
+cur_axis = axis(obj.h_axes);
 y_extent = cur_axis(4) - cur_axis(3);
 x_extent = cur_axis(2) - cur_axis(1);
 

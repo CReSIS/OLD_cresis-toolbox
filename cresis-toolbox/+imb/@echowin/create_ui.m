@@ -132,7 +132,7 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_convert;
+obj.tool.list{end+1} = imb.picktool_convert([],obj);
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click and drag: Converts selected layers to the specified layer
 %   Deletes all previous points in range
@@ -356,7 +356,10 @@ obj.left_panel.layerCM_hide = uimenu(obj.left_panel.layerCM, 'Label', '&Hide', '
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_new = uimenu(obj.left_panel.layerCM, 'Label', '&New layer', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_copy = uimenu(obj.left_panel.layerCM, 'Label', '&Copy layer', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_insert = uimenu(obj.left_panel.layerCM, 'Label', '&Insert layer in sequence', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_edit = uimenu(obj.left_panel.layerCM, 'Label', '&Edit layer', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_sequence = uimenu(obj.left_panel.layerCM, 'Label', '&Sequence layer names', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_order = uimenu(obj.left_panel.layerCM, 'Label', '&Order by twtt', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_up = uimenu(obj.left_panel.layerCM, 'Label', '&Up', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_down = uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_top = uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
@@ -412,7 +415,7 @@ obj.left_panel.table.height_margin(row,col) = 3;
 row = 2; col = 1;
 obj.left_panel.table.handles{row,col}   = obj.left_panel.layerLB;
 obj.left_panel.table.width(row,col)     = inf;
-obj.left_panel.table.height(row,col)    = 71;
+obj.left_panel.table.height(row,col)    = inf;
 obj.left_panel.table.width_margin(row,col) = 3;
 obj.left_panel.table.height_margin(row,col) = 3;
 
