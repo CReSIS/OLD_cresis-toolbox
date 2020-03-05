@@ -55,7 +55,7 @@ classdef picktool_viterbi < imb.picktool
       obj.top_panel = [];
       obj.table = [];
       obj.w = 230;
-      obj.h = 330;  
+      obj.h = 430;  
       obj.first_time = true;
 
       obj.in_rng_sv = 5;
@@ -67,10 +67,10 @@ classdef picktool_viterbi < imb.picktool
       obj.rep_sv = .5;
       obj.cur_mode = 1;
       
-      obj.surf_weight = 1000;
+      obj.surf_weight = 10000;
       obj.mult_weight = 100;
       obj.mult_weight_decay = .4;
-      obj.mult_weight_local_decay = .9;
+      obj.mult_weight_local_decay = .8;
       obj.transition_slope = 0;
       obj.max_slope = -1;
       obj.transition_weight = 1;
