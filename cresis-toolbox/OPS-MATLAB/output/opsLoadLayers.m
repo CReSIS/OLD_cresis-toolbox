@@ -102,7 +102,7 @@ for layer_idx = 1:length(layer_params)
   if ~isfield(layer_params(layer_idx),'layerdata_source') || isempty(layer_params(layer_idx).layerdata_source)
     layer_params(layer_idx).layerdata_source = 'layerData';
   end
-  if strcmpi(layer_params(layer_idx).source,'layerdata')
+  if regexpi(layer_params(layer_idx).source,'layerdata') 
     % Get layer file version and number of layers
     layer_fn = fullfile(ct_filename_out(param,layer_params(layer_idx).layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, 1));
@@ -478,7 +478,7 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     %% Load layerData Data
-    if strcmpi(layer_param.source,'layerdata')
+    if regexpi(layer_param.source,'layerdata')
       % 1. Open the specific layer data file
       layer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
@@ -590,48 +590,66 @@ for frm_idx = 1:length(param.cmd.frms)
       end
 
       if layer_params(layer_idx).file_version == 0
-        found = false;
-        if strcmpi(layer_param.name,'surface')
-          lay_idx = 1;
-          found = true;
-        elseif strcmpi(layer_param.name,'bottom')
-          lay_idx = 2;
-          found = true;
-        else
-          for lay_idx = 1:length(lay.layerData)
-            if isfield(lay.layerData{lay_idx},'name') ...
-                    && strcmpi(lay.layerData{lay_idx}.name,layer_param.name)
-                found = true;
-                break;
-            end
-          end
-              
-          if ~found
-            if layer_param.existence_check
-              error('Reference layer %s not found\n', layer_param.name);
-            else
-              warning('Reference layer %s not found\n', layer_param.name);
-            end
-          end
-        end      
         layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time,lay.GPS_time(frms_mask));
-        if ~found
-          % Fill with NaN since layer does not exist
-          layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt,NaN*zeros(size(lay.GPS_time(frms_mask))));
-        else
-          layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt,lay.layerData{lay_idx}.value{2}.data(frms_mask));
-        end
         layers(layer_idx).elev = cat(2,layers(layer_idx).elev,lay.Elevation(frms_mask));
         layers(layer_idx).lat = cat(2,layers(layer_idx).lat,lay.Latitude(frms_mask));
         layers(layer_idx).lon = cat(2,layers(layer_idx).lon,lay.Longitude(frms_mask));
-        layer_type = 2*ones(size(lay.GPS_time(frms_mask)));
-        layer_type(isfinite(lay.layerData{lay_idx}.value{1}.data(frms_mask))) = 1;
-        layers(layer_idx).type = cat(2,layers(layer_idx).type,layer_type);
-        if ~found
-          % Fill with 1's since layer does not exist
-          layers(layer_idx).quality = cat(2,layers(layer_idx).quality,ones(size(lay.GPS_time(frms_mask))));
+        if isempty(regexpi(layer_params(layer_idx).source,'koenig'))
+          found = false;
+          if strcmpi(layer_param.name,'surface')
+            lay_idx = 1;
+            found = true;
+          elseif strcmpi(layer_param.name,'bottom')
+            lay_idx = 2;
+            found = true;
+          else
+            for lay_idx = 1:length(lay.layerData)
+              if isfield(lay.layerData{lay_idx},'name') ...
+                      && strcmpi(lay.layerData{lay_idx}.name,layer_param.name)
+                  found = true;
+                  break;
+              end
+            end
+              
+            if ~found
+              if layer_param.existence_check
+                error('Reference layer %s not found\n', layer_param.name);
+              else
+                warning('Reference layer %s not found\n', layer_param.name);
+              end
+            end
+          end
+          if ~found
+              % Fill with NaN since layer does not exist
+              layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt,NaN*zeros(size(lay.GPS_time(frms_mask))));
+              % Fill with 1's since layer does not exist
+              layers(layer_idx).quality = cat(2,layers(layer_idx).quality,ones(size(lay.GPS_time(frms_mask))));
+          else
+              layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt,lay.layerData{lay_idx}.value{2}.data(frms_mask));
+              layers(layer_idx).quality = cat(2,layers(layer_idx).quality,lay.layerData{lay_idx}.quality(frms_mask));
+          end
+          layer_type = 2*ones(size(lay.GPS_time(frms_mask)));        
+          layer_type(isfinite(lay.layerData{lay_idx}.value{1}.data(frms_mask))) = 1;
+          layers(layer_idx).type = cat(2,layers(layer_idx).type,layer_type);
         else
-          layers(layer_idx).quality = cat(2,layers(layer_idx).quality,lay.layerData{lay_idx}.quality(frms_mask));
+          if isfield(layer_params(layer_idx),'layers2load') && ~isempty(layer_params(layer_idx).layers2load)
+              layers2load = layer_params(layer_idx).layers2load;
+          else
+              layers2load = 1:length(lay.layerData);
+          end
+          num_layer = length(layers2load);
+          if frm_idx == 1
+              layers(layer_idx).twtt = cell(num_layer,1);
+              layers(layer_idx).quality = cell(num_layer,1);
+              layers(layer_idx).type = cell(num_layer,1);
+          end
+          for idx = 1:num_layer
+              lay_idx = layers2load(idx);
+              layers(layer_idx).twtt{idx} = cat(2,layers(layer_idx).twtt{idx},lay.layerData{lay_idx}.value{2}.data(frms_mask));
+              layers(layer_idx).quality{idx} = cat(2,layers(layer_idx).quality{idx},lay.layerData{lay_idx}.quality(frms_mask));              
+              layer_type(isfinite(lay.layerData{lay_idx}.value{1}.data(frms_mask))) = 1;
+              layers(layer_idx).type{idx} = cat(2,layers(layer_idx).type{idx},layer_type);
+          end
         end
       elseif layer_params(layer_idx).file_version == 1
         layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time,lay.GPS_time(frms_mask));
