@@ -76,8 +76,7 @@ classdef picktool_viterbi < imb.picktool
       obj.transition_weight = 1;
       obj.image_mag_weight = 1;
       
-      obj.create_ui_components();
-      obj.create_ui_basic(0,0);
+      obj.create_ui();
 
     end
         

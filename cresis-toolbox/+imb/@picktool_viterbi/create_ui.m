@@ -1,16 +1,29 @@
-function create_ui_basic(obj,xpos,ypos)
+function create_ui(obj)
 
-% create_ui_basic(obj,xpos,ypos)
+% create_ui(obj)
 %
-% Creates components for the HMM param window's UI when the Viterbi
-% tool is selected. Plots the window at xpos,ypos.
+% Creates components for the window's UI when the echogram
+% window is first opened.
 %
+
+set(obj.h_fig,'DockControls','off')
+set(obj.h_fig,'NumberTitle','off');
+if strcmpi(class(obj.h_fig),'double')
+  set(obj.h_fig,'Name',sprintf('%d: %s tool parameters', obj.h_fig, obj.tool_name_title));
+else
+  set(obj.h_fig,'Name',sprintf('%d: %s tool parameters', obj.h_fig.Number, obj.tool_name_title));
+end
+set(obj.h_fig,'ToolBar','none');
+set(obj.h_fig,'MenuBar','none'); 
+set(obj.h_fig,'KeyPressFcn',@obj.key_press);
+set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
+%set(obj.h_fig,'Resize','off');
 
 set(obj.h_fig,'visible','off');
 
 % set default position (changed when window accessed)
 set(obj.h_fig,'Units','Pixels');
-set(obj.h_fig,'Position',[xpos ypos obj.w obj.h]);
+set(obj.h_fig,'Position',[0 0 obj.w obj.h]);
 % show top panel 
 % set(obj.top_panel.handle,'visible','on');
 % set(obj.bottom_panel.handle,'visible','off');
@@ -283,4 +296,5 @@ else
   set(obj.h_fig,'visible','on');
 end
 
-return;
+return
+
