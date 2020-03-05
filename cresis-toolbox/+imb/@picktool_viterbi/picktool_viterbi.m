@@ -22,6 +22,10 @@ classdef picktool_viterbi < imb.picktool
     mult_weight;
     mult_weight_decay;
     mult_weight_local_decay;
+    transition_slope;
+    max_slope;
+    transition_weight;
+    image_mag_weight;
     
   end
   
@@ -67,6 +71,10 @@ classdef picktool_viterbi < imb.picktool
       obj.mult_weight = 100;
       obj.mult_weight_decay = .4;
       obj.mult_weight_local_decay = .9;
+      obj.transition_slope = 0;
+      obj.max_slope = -1;
+      obj.transition_weight = 1;
+      obj.image_mag_weight = 1;
       
       obj.create_ui_components();
       obj.create_ui_basic(0,0);

@@ -207,11 +207,11 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 
     if (!next)
     {
-      dt_1d(path_prob, f_transition_weights[col], path_prob_next, index, 0, f_row-1, f_smooth_slope[col]);
+      dt_1d(path_prob, f_transition_weights[col], path_prob_next, index, 0, f_row-1, f_smooth_slope[col], f_max_slope);
     }
     else
     {
-      dt_1d(path_prob_next, f_transition_weights[col], path_prob, index, 0, f_row-1, f_smooth_slope[col]);
+      dt_1d(path_prob_next, f_transition_weights[col], path_prob, index, 0, f_row-1, f_smooth_slope[col], f_max_slope);
     }
     next = !next;
   }
@@ -220,13 +220,13 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int max_args = 16;           // All args including optional
+  int max_args = 17;           // All args including optional
   int min_args = max_args - 1; // Number of required arguments
   int arg = 0;
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
   {
-    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
+    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
   }
 
   // Input checking
@@ -306,6 +306,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("usage: smooth_slope must have numel(smooth_slope)=size(image,2)-1");
   }
   const double *_smooth_slope = mxGetPr(prhs[arg]);
+
+  // max_slope =======================================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1)
+  {
+    mexErrMsgTxt("usage: max_slope must be type scalar double");
+  }
+  const double _max_slope = *(double *)mxGetPr(prhs[arg]);
 
   // bounds =============================================================
   arg++;
@@ -483,8 +491,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
   double *_result = mxGetPr(plhs[0]);
   viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
-              _smooth_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, _gt_weights,
-              _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
-              _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay,
+              _smooth_slope, _max_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, 
+              _gt_weights, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, 
+              _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay, 
               _mult_weight_local_decay, _zero_bin, _result);
 }

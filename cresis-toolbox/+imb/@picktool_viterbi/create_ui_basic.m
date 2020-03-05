@@ -119,9 +119,49 @@ set(obj.top_panel.mult_weight_local_decay_label,'String','Multiple Weight Local 
 obj.top_panel.mult_weight_local_decay_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.mult_weight_local_decay_TE,'Style','edit');
 set(obj.top_panel.mult_weight_local_decay_TE,'String', obj.mult_weight_local_decay);
+%----surface slope label
+obj.top_panel.surf_slope_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.surf_slope_label,'Style','text');
+set(obj.top_panel.surf_slope_label,'String',sprintf('Calc slope from surf:'));
+%----surface slope cbox
+obj.top_panel.surf_slope_cbox = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.surf_slope_cbox,'Style','checkbox');
+set(obj.top_panel.surf_slope_cbox,'Value', 1);
+%----transition slope label
+obj.top_panel.transition_slope_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.transition_slope_label,'Style','text');
+set(obj.top_panel.transition_slope_label,'String','Transition Slope:');
+%----transition slope box
+obj.top_panel.transition_slope_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.transition_slope_TE,'Style','edit');
+set(obj.top_panel.transition_slope_TE,'String', obj.transition_slope);
+%----max slope label
+obj.top_panel.max_slope_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.max_slope_label,'Style','text');
+set(obj.top_panel.max_slope_label,'String','Max Slope:');
+%----max slope box
+obj.top_panel.max_slope_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.max_slope_TE,'Style','edit');
+set(obj.top_panel.max_slope_TE,'String', obj.max_slope);
+%----transition weight label
+obj.top_panel.transition_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.transition_weight_label,'Style','text');
+set(obj.top_panel.transition_weight_label,'String','Transition weight:');
+%----transition weight box
+obj.top_panel.transition_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.transition_weight_TE,'Style','edit');
+set(obj.top_panel.transition_weight_TE,'String', obj.transition_weight);
+%----image magnitude weight label
+obj.top_panel.image_mag_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.image_mag_weight_label,'Style','text');
+set(obj.top_panel.image_mag_weight_label,'String','Image Magnitude Weight:');
+%----image magnitude weight box
+obj.top_panel.image_mag_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.image_mag_weight_TE,'Style','edit');
+set(obj.top_panel.image_mag_weight_TE,'String', obj.image_mag_weight);
 %%
 %---------------------------------------------------------------------------------------------
-rows = 9;  % Update with number of rows and columns
+rows = 14;  % Update with number of rows and columns
 cols = 2;
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -164,7 +204,21 @@ obj.top_panel.table.handles{8,2}   = obj.top_panel.mult_weight_decay_TE;
 %% Multiple Weight Local Decay 
 obj.top_panel.table.handles{9,1}   = obj.top_panel.mult_weight_local_decay_label;
 obj.top_panel.table.handles{9,2}   = obj.top_panel.mult_weight_local_decay_TE;
-% TODO[reece]: Add other weights
+%% Transition Slope from Surface
+obj.top_panel.table.handles{10,1}   = obj.top_panel.surf_slope_label;
+obj.top_panel.table.handles{10,2}   = obj.top_panel.surf_slope_cbox;
+%% Transition Slope 
+obj.top_panel.table.handles{11,1}  = obj.top_panel.transition_slope_label;
+obj.top_panel.table.handles{11,2}  = obj.top_panel.transition_slope_TE;
+%% Max Slope 
+obj.top_panel.table.handles{12,1}  = obj.top_panel.max_slope_label;
+obj.top_panel.table.handles{12,2}  = obj.top_panel.max_slope_TE;
+%% Transition Weight
+obj.top_panel.table.handles{13,1}  = obj.top_panel.transition_weight_label;
+obj.top_panel.table.handles{13,2}  = obj.top_panel.transition_weight_TE;
+%% Image magnitude weight
+obj.top_panel.table.handles{14,1}  = obj.top_panel.image_mag_weight_label;
+obj.top_panel.table.handles{14,2}  = obj.top_panel.image_mag_weight_TE;
 clear rows cols
 
 % Draw table

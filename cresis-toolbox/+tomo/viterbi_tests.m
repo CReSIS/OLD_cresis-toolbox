@@ -21,25 +21,27 @@ function viterbi_tests()
   % Viterbi params
   transition_weights = ones(1, cols-1);
   gt_weights = ones(1, cols);
+  img_mag_weight = 1;
   
   surf_weight = 1000;
   mult_weight = 100;
   mult_weight_decay = .3;
   mult_weight_local_decay = .7;
+
   zero_bin = 1;
   
   % Other environment vars
   mask = inf*ones(1, cols);
   slope = round(diff(surf_bins));
+  max_slope = -1;
   bounds = [];
   mask_dist = ones(1, cols) * Inf;
   cost_matrix = ones(rows,cols);
   
   % RUN
-  layer = tomo.viterbi(matrix, surf_bins, gt, mask, 1, slope, bounds, ...
-        gt_weights, mask_dist, cost_matrix, transition_weights, ...
-        surf_weight, mult_weight, mult_weight_decay, ...
-        mult_weight_local_decay, int64(zero_bin));
+  layer = tomo.viterbi(matrix, surf_bins, gt, mask, img_mag_weight, slope, max_slope, ...
+  bounds, gt_weights, mask_dist, cost_matrix, transition_weights, surf_weight, ...
+  mult_weight, mult_weight_decay, mult_weight_local_decay, int64(zero_bin));
   hfig = setup();
   resize(hfig);
   

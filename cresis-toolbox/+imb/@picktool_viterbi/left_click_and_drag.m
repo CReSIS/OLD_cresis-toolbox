@@ -95,9 +95,6 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
-      % TODO[reece]: Scale with method Paden suggested, not based on axis resolutions -- ask paden for refresher
-      transition_weights = ones(1, size(viterbi_data, 2) - 1) ...
-        * length(param.layer.y{cur_layer}) / length(image_y) / 5;
       % TODO[reece]: Allow user to input transition_weight and input num pixels for
       % expected slope (Max variation) input based on twtt rather than resolution;
       % - e.g. "don't allow slopes greater than 1% ..."
@@ -110,6 +107,10 @@ if tool_idx == 1
       mult_weight = -1;
       mult_weight_decay = -1;
       mult_weight_local_decay = -1;
+      manual_slope = obj.transition_slope;
+      max_slope = -1;
+      transition_weight = obj.transition_weight;
+      image_mag_weight = obj.image_mag_weight;
       try
         surf_weight = str2double(obj.top_panel.surf_weight_TE.String);
       catch ME
@@ -132,11 +133,34 @@ if tool_idx == 1
       if ~obj.top_panel.mult_sup_cbox.Value
         mult_weight = 0;
       end
+      try
+        manual_slope = str2double(obj.top_panel.transition_slope_TE.String);
+      catch ME
+      end
+      try
+        max_slope = str2double(obj.top_panel.max_slope_TE.String);
+      catch ME
+      end
+      try
+        transition_weight = str2double(obj.top_panel.transition_weight_TE.String);
+      catch ME
+      end
+      try
+        image_mag_weight = str2double(obj.top_panel.image_mag_weight_TE.String);
+      catch ME
+      end
+      % TODO[reece]: Scale with method Paden suggested, not based on axis resolutions -- ask paden for refresher
+      transition_weights = ones(1, size(viterbi_data, 2) - 1) * transition_weight;
+
+      manual_slope = ones(1, size(viterbi_data, 2) - 1) * manual_slope;
+      if ~obj.top_panel.surf_slope_cbox.Value
+        slope = manual_slope;
+      end
 
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
-        double(gt), double(mask), double(1), double(slope), int64(bounds), ...
-        double(gt_weights), double(mask_dist), double(DIM_costmatrix), ...
+        double(gt), double(mask), double(image_mag_weight), double(slope), double(max_slope), ...
+        int64(bounds), double(gt_weights), double(mask_dist), double(DIM_costmatrix), ...
         double(transition_weights), double(surf_weight), double(mult_weight), ...
         double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
       toc

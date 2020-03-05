@@ -36,6 +36,7 @@ public:
           const double *d_mask,
           const double d_img_mag_weight,
           const double *d_smooth_slope,
+          const double d_max_slope,
           const ptrdiff_t *d_bounds,
           const int d_num_extra_tr,
           const double *d_egt_x,
@@ -58,6 +59,7 @@ public:
                               f_mask(d_mask),
                               f_img_mag_weight(d_img_mag_weight),
                               f_smooth_slope(d_smooth_slope),
+                              f_max_slope(d_max_slope),
                               f_bounds(d_bounds),
                               f_num_extra_tr(d_num_extra_tr),
                               f_egt_x(d_egt_x),
@@ -80,7 +82,7 @@ public:
 
   // VARIABLES
   const int f_row, f_col, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_zero_bin;
-  const double *f_image, *f_mask, f_img_mag_weight, *f_smooth_slope,
+  const double *f_image, *f_mask, f_img_mag_weight, *f_smooth_slope, f_max_slope,
       *f_egt_x, *f_egt_y, *f_gt_weights, *f_mask_dist, f_surf_weight, f_mult_weight, 
       f_mult_weight_decay, f_mult_weight_local_decay, *f_costmatrix, *f_transition_weights;
   const ptrdiff_t *f_bounds;
@@ -108,12 +110,15 @@ public:
   // -- dst will contain the minimum value for that destination
   // -- dst_ind will contain the minimum source index for that destination
   void dt(const double *src, double *dst, double *dst_ind, int s1, int s2,
-          int d1, int d2, double transition_weight, int off = 0)
+          int d1, int d2, double transition_weight, int off = 0, int max_slope = -1)
   {
 
-    int d = (d1 + d2) >> 1, s = s1; // Find the midpoint of the destination
+    int d = (d1 + d2) >> 1, s = d - off; // Find the midpoint of the destination
     for (int p = s1; p <= s2; p++)
     { // Search through all the sources and find the minimum
+      if (abs(p - d - off) > max_slope && max_slope > -1) {
+        continue;
+      }
       if (src[s] + sqr(s - d - off) * transition_weight > src[p] + sqr(p - d - off) * transition_weight)
       {
         s = p;
@@ -123,17 +128,17 @@ public:
     dst_ind[d] = s;                                         // Minimum source index for the midpoint
     if (d2 >= d + 1)
     { // Recursive call, binary search (top half of destinations)
-      dt(src, dst, dst_ind, s, s2, d + 1, d2, transition_weight, off);
+      dt(src, dst, dst_ind, s, s2, d + 1, d2, transition_weight, off, max_slope);
     }
     if (d - 1 >= d1)
     { // Recursive call, binary search (bottom half of destinations)
-      dt(src, dst, dst_ind, s1, s, d1, d - 1, transition_weight, off);
+      dt(src, dst, dst_ind, s1, s, d1, d - 1, transition_weight, off, max_slope);
     }
   }
   void dt_1d(const double *f, double transition_weight, double *result, double *dst_ind,
-             int beg, int end, int off = 0)
+             int beg, int end, int off = 0, int max_slope = -1)
   {
-    dt(f, result, dst_ind, beg, end, beg, end, transition_weight, off);
+    dt(f, result, dst_ind, beg, end, beg, end, transition_weight, off, max_slope);
   }
   // END CODE FROM DAVID CRANDALL
 };
