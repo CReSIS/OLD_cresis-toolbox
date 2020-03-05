@@ -230,6 +230,7 @@ for cur_layer = unique_layers
         % Update layer organizer
         % =================================================================
         undo_stack.user_data.layer_organizer.lyr_age(end+1) = age;
+        undo_stack.user_data.layer_organizer.lyr_age_source{end+1} = struct('age',{},'source',{},'type',{});
         undo_stack.user_data.layer_organizer.lyr_desc{end+1} = desc;
         undo_stack.user_data.layer_organizer.lyr_group_name{end+1} = group_name;
         undo_stack.user_data.layer_organizer.lyr_id(end+1) = id;
@@ -248,7 +249,6 @@ for cur_layer = unique_layers
           undo_stack.user_data.layer_info(frm).layerData{end}.quality = ones(1,Nx);
           undo_stack.user_data.layer_info(frm).layerData{end}.type = 2*ones(1,Nx);
           undo_stack.user_data.layer_info(frm).layerData{end}.id = id;
-          undo_stack.user_data.layer_info(frm).layerData{end}.name = name;
         end
 
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
@@ -261,6 +261,7 @@ for cur_layer = unique_layers
         % =================================================================
         lay_idx = find(undo_stack.user_data.layer_organizer.lyr_id == id);
         undo_stack.user_data.layer_organizer.lyr_age(lay_idx) = [];
+        undo_stack.user_data.layer_organizer.lyr_age_source(lay_idx) = [];
         undo_stack.user_data.layer_organizer.lyr_desc(lay_idx) = [];
         undo_stack.user_data.layer_organizer.lyr_group_name(lay_idx) = [];
         undo_stack.user_data.layer_organizer.lyr_id(lay_idx) = [];
@@ -302,33 +303,16 @@ for cur_layer = unique_layers
         lay_idx = find(undo_stack.user_data.layer_organizer.lyr_id == id);
         old_name = undo_stack.user_data.layer_organizer.lyr_name(lay_idx);
         undo_stack.user_data.layer_organizer.lyr_age(lay_idx) = age;
+        undo_stack.user_data.layer_organizer.lyr_age_source{lay_idx} = struct('age',{},'source',{},'type',{});
         undo_stack.user_data.layer_organizer.lyr_desc{lay_idx} = desc;
         undo_stack.user_data.layer_organizer.lyr_group_name{lay_idx} = group_name;
         undo_stack.user_data.layer_organizer.lyr_name{lay_idx} = name;
         undo_stack.user_data.layer_organizer.lyr_order(lay_idx) = order;
         % Force save of layer organizer file
         layerdata_frms(end+1) = 0;
-        
-        % Update layer files
-        % =================================================================
-        if ~strcmp(old_name,name)
-          for frm = 1:length(undo_stack.user_data.layer_info)
-            found = false;
-            for lay_idx = 1:length(obj.undo_stack.user_data.layer_info(frm).layerData)
-              if id == obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
-                found = true;
-                break;
-              end
-            end
-            if found
-              undo_stack.user_data.layer_info(frm).layerData{lay_idx}.name = name;
-              layerdata_frms(end+1) = frm;
-            end
-          end
-        end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
-      end % if insert/delete
+      end % if insert/delete/new-layer/delete-layer/edit-layer
     end% while cur_layer_cmd_idx
   end% layer_data end
 end% end for loop
@@ -341,12 +325,9 @@ if strcmpi(undo_stack.user_data.layer_source,'layerdata')
     frm = layerdata_frms(idx);
     if frm == 0
       layer_organizer = undo_stack.user_data.layer_organizer;
-      ct_save(layer_organizer.layer_fn,'-struct','layer_organizer','lyr_name','lyr_age','lyr_desc','lyr_group_name','lyr_order');
+      ct_save(layer_organizer.layer_fn,'-struct','layer_organizer','lyr_name','lyr_age','lyr_age_source','lyr_desc','lyr_group_name','lyr_id','lyr_order');
     else
       layerData = undo_stack.user_data.layer_info(frm).layerData;
-      for lay_idx = 1:length(layerData)
-        layerData{lay_idx} = rmfield(layerData{lay_idx},'id');
-      end
       layer_fn = undo_stack.user_data.filename{frm};
       save(layer_fn,'-append','layerData') % saving to layerData file
     end

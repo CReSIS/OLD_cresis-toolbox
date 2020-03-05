@@ -322,7 +322,7 @@ for rec = 2:length(along_track)
   end
 end
 if ~isempty(stationary_list)
-  warning('Stationary data exists.\n');
+  warning('Stationary data exists.');
   for idx = 1:length(stationary_list)
     fprintf('  Stationary %.1f sec from %s to %s\n', stationary_list(idx).duration, ...
       datestr(epoch_to_datenum(stationary_list(idx).gps_time(1))), ...

@@ -193,6 +193,7 @@ else
     obj.load_flightline();
     % Reset any layer changes since we are reloading layers
     obj.eg.layers.lyr_age = obj.eg.layers.saved.lyr_age;
+    obj.eg.layers.lyr_age_source = obj.eg.layers.saved.lyr_age_source;
     obj.eg.layers.lyr_desc = obj.eg.layers.saved.lyr_desc;
     obj.eg.layers.lyr_group_name = obj.eg.layers.saved.lyr_group_name;
     obj.eg.layers.lyr_id = obj.eg.layers.saved.lyr_id;

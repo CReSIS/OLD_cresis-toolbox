@@ -36,12 +36,14 @@ fprintf('START ECHOWIN DRAW (%s)\n',datestr(now,'HH:MM:SS'));
 obj.eg.sources = param.sources;
 
 obj.eg.layers.lyr_age = param.layers.lyr_age;
+obj.eg.layers.lyr_age_source = param.layers.lyr_age_source;
 obj.eg.layers.lyr_desc = param.layers.lyr_desc;
 obj.eg.layers.lyr_group_name = param.layers.lyr_group_name;
 obj.eg.layers.lyr_id = param.layers.lyr_id;
 obj.eg.layers.lyr_name = param.layers.lyr_name;
 obj.eg.layers.lyr_order = param.layers.lyr_order;
 obj.eg.layers.saved.lyr_age = obj.eg.layers.lyr_age;
+obj.eg.layers.saved.lyr_age_source = obj.eg.layers.lyr_age_source;
 obj.eg.layers.saved.lyr_desc = obj.eg.layers.lyr_desc;
 obj.eg.layers.saved.lyr_group_name = obj.eg.layers.lyr_group_name;
 obj.eg.layers.saved.lyr_id = obj.eg.layers.lyr_id;
