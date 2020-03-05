@@ -285,12 +285,20 @@ if strcmpi(param.layer_source,'layerdata')
           end
 
           layer_organizer.lyr_age(end+1) = NaN;
-          layer_organizer.lyr_age_source(end+1) = struct('age',{},'source',{},'type',{});
+          layer_organizer.lyr_age_source{end+1} = struct('age',{},'source',{},'type',{});
           layer_organizer.lyr_desc{end+1} = '';
           layer_organizer.lyr_group_name{end+1} = '';
-          layer_organizer.lyr_id(end+1) = max(layer_organizer.lyr_id) + 1;
+          if isempty(layer_organizer.lyr_id)
+            layer_organizer.lyr_id(end+1) = 1;
+          else
+            layer_organizer.lyr_id(end+1) = max(layer_organizer.lyr_id) + 1;
+          end
           layer_organizer.lyr_name{end+1} = name;
-          layer_organizer.lyr_order(end+1) = max(layer_organizer.lyr_order) + 1;
+          if isempty(layer_organizer.lyr_order)
+            layer_organizer.lyr_order(end+1) = 1;
+          else
+            layer_organizer.lyr_order(end+1) = max(layer_organizer.lyr_order) + 1;
+          end
           
           match_idx = length(layer_organizer.lyr_id);
         end
@@ -345,7 +353,7 @@ if strcmpi(param.layer_source,'layerdata')
       % -------------------------------------------------------------------
       while any(strcmp(lay.layerData{lay_idx}.id,new_layer_ids))
         warning('layerData file with duplicate id. Layer %d has a duplicate .id field.', lay_idx);
-        save_layer_data_file = true;
+        save_layer_data_file = 1;
         % Add the layer to the layer_organizer
         base_name = 'auto';
         % Ensure a unique name
@@ -374,33 +382,35 @@ if strcmpi(param.layer_source,'layerdata')
       % -------------------------------------------------------------------
       % Too short:
       if length(lay.layerData{lay_idx}.quality) < Nx
-        save_layer_data_file = true;
+        save_layer_data_file = 2;
         lay.layerData{lay_idx}.quality(end+1:Nx) = NaN;
       end
       if length(lay.layerData{lay_idx}.value{1}.data) < Nx
-        save_layer_data_file = true;
+        save_layer_data_file = 2;
         lay.layerData{lay_idx}.value{1}.data(end+1:Nx) = NaN;
       end
       if length(lay.layerData{lay_idx}.value{2}.data) < Nx
-        save_layer_data_file = true;
+        save_layer_data_file = 2;
         lay.layerData{lay_idx}.value{2}.data(end+1:Nx) = NaN;
       end
       % Too long:
       if length(lay.layerData{lay_idx}.quality) > Nx
-        save_layer_data_file = true;
+        save_layer_data_file = 2;
         lay.layerData{lay_idx}.quality = lay.layerData{lay_idx}.quality(1:Nx);
       end
       if length(lay.layerData{lay_idx}.value{1}.data) > Nx
-        save_layer_data_file = true;
+        save_layer_data_file = 2;
         lay.layerData{lay_idx}.value{1}.data = lay.layerData{lay_idx}.value{1}.data(1:Nx);
       end
       if length(lay.layerData{lay_idx}.value{2}.data) > Nx
-        save_layer_data_file = true;
+        save_layer_data_file = 2;
         lay.layerData{lay_idx}.value{2}.data = lay.layerData{lay_idx}.value{2}.data(1:Nx);
       end
     end
     if save_layer_data_file
-      warning('Some layers did not match GPS_time field in length. Saving corrected fields: %s', layer_fn);
+      if save_layer_data_file == 2
+        warning('Some layers did not match GPS_time field in length. Saving corrected fields: %s', layer_fn);
+      end
       layerData = lay.layerData;
       for lay_idx = 1:length(layerData)
         layerData{lay_idx} = rmfield(layerData{lay_idx},'id');
