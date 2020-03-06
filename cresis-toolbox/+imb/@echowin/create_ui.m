@@ -365,6 +365,7 @@ obj.left_panel.layerCM_down = uimenu(obj.left_panel.layerCM, 'Label', '&Down', '
 obj.left_panel.layerCM_top = uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_bottom = uimenu(obj.left_panel.layerCM, 'Label', '&Bottom', 'Callback', @obj.layerCM_callback);
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_merge = uimenu(obj.left_panel.layerCM, 'Label', '&Merge layers', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_delete = uimenu(obj.left_panel.layerCM, 'Label', 'Delete layer', 'Callback', @obj.layerCM_callback);
 set(obj.left_panel.layerLB,'uicontextmenu',obj.left_panel.layerCM);
 

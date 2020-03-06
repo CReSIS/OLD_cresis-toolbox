@@ -264,10 +264,19 @@ if strcmpi(param.layer_source,'layerdata')
     Nx = length(lay.GPS_time);
     save_layer_data_file = 0;
     for lay_idx = 1:length(lay.layerData)
+      if ~isfield(lay.layerData{lay_idx},'value')
+        lay.layerData{lay_idx}.value{1}.data = nan(1,Nx);
+        lay.layerData{lay_idx}.value{2}.data = nan(1,Nx);
+        save_layer_data_file = bitor(save_layer_data_file,1);
+      end
+      if ~isfield(lay.layerData{lay_idx},'quality')
+        lay.layerData{lay_idx}.quality = ones(1,Nx);
+        save_layer_data_file = bitor(save_layer_data_file,1);
+      end
       if isfield(lay.layerData{lay_idx},'name') && ~isfield(lay.layerData{lay_idx},'id')
         % Old file format, switch name to id
         match_idx = strmatch(lay.layerData{lay_idx}.name,layer_organizer.lyr_name,'exact');
-        save_layer_data_file = 1;
+        save_layer_data_file = bitor(save_layer_data_file,1);
         
         if isempty(match_idx)
           warning('layerData file with name field that is not present in layer organizer file. Adding layer %d as .name=%s.', lay_idx, lay.layerData{lay_idx}.name);
@@ -311,7 +320,7 @@ if strcmpi(param.layer_source,'layerdata')
         match_idx = find(lay.layerData{lay_idx}.id == layer_organizer.lyr_id);
         if isempty(match_idx)
           warning('layerData file with id field that is not present in layer organizer file. Layer %d had an invalid .id field or did not have an id field.', lay_idx);
-          save_layer_data_file = 1;
+          save_layer_data_file = bitor(save_layer_data_file,1);
           % Add the layer to the layer_organizer
           % Ensure a unique name
           % -------------------------------------------------------------------
@@ -381,28 +390,28 @@ if strcmpi(param.layer_source,'layerdata')
       % -------------------------------------------------------------------
       % Too short:
       if length(lay.layerData{lay_idx}.quality) < Nx
-        save_layer_data_file = 2;
+        save_layer_data_file = bitor(save_layer_data_file,2);
         lay.layerData{lay_idx}.quality(end+1:Nx) = NaN;
       end
       if length(lay.layerData{lay_idx}.value{1}.data) < Nx
-        save_layer_data_file = 2;
+        save_layer_data_file = bitor(save_layer_data_file,2);
         lay.layerData{lay_idx}.value{1}.data(end+1:Nx) = NaN;
       end
       if length(lay.layerData{lay_idx}.value{2}.data) < Nx
-        save_layer_data_file = 2;
+        save_layer_data_file = bitor(save_layer_data_file,2);
         lay.layerData{lay_idx}.value{2}.data(end+1:Nx) = NaN;
       end
       % Too long:
       if length(lay.layerData{lay_idx}.quality) > Nx
-        save_layer_data_file = 2;
+        save_layer_data_file = bitor(save_layer_data_file,2);
         lay.layerData{lay_idx}.quality = lay.layerData{lay_idx}.quality(1:Nx);
       end
       if length(lay.layerData{lay_idx}.value{1}.data) > Nx
-        save_layer_data_file = 2;
+        save_layer_data_file = bitor(save_layer_data_file,2);
         lay.layerData{lay_idx}.value{1}.data = lay.layerData{lay_idx}.value{1}.data(1:Nx);
       end
       if length(lay.layerData{lay_idx}.value{2}.data) > Nx
-        save_layer_data_file = 2;
+        save_layer_data_file = bitor(save_layer_data_file,2);
         lay.layerData{lay_idx}.value{2}.data = lay.layerData{lay_idx}.value{2}.data(1:Nx);
       end
     end

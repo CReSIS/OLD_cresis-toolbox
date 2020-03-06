@@ -2,8 +2,6 @@ classdef picktool_browse < imb.picktool & handle
   
   properties
     % h_fig Inherited
-    h_axes
-    h_plot
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -14,21 +12,14 @@ classdef picktool_browse < imb.picktool & handle
   end
 
   methods
-    function obj = picktool_browse(h_fig)
+    function obj = picktool_browse()
       %%% Pre Initialization %%%
       % Any code not using output argument (obj)
       % The browse tool does not need a ui
-      if nargin == 0 || isempty(h_fig)
-        h_fig = figure('Visible','off');
-      else
-        h_fig = figure(h_fig,'Visible','off');
-      end
       
       %%% Post Initialization %%%
       % Any code, including access to object
-      obj.h_fig = h_fig;
-      obj.h_axes = axes;
-      obj.h_plot= plot(NaN,NaN);
+      obj.h_fig = [];
       obj.tool_name = '(b)rowse';
       obj.tool_name_title = 'browse';
       obj.tool_shortcut = 'b';
