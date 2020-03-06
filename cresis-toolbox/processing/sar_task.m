@@ -253,6 +253,7 @@ end
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.sar.presums;
+param.load.bit_mask = 3; % Skip stationary records and bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;

@@ -262,15 +262,15 @@ if strcmpi(param.layer_source,'layerdata')
     lay = load(layer_fn);
     new_layer_ids = [];
     Nx = length(lay.GPS_time);
-    save_layer_data_file = false;
+    save_layer_data_file = 0;
     for lay_idx = 1:length(lay.layerData)
       if isfield(lay.layerData{lay_idx},'name') && ~isfield(lay.layerData{lay_idx},'id')
         % Old file format, switch name to id
         match_idx = strmatch(lay.layerData{lay_idx}.name,layer_organizer.lyr_name,'exact');
+        save_layer_data_file = 1;
         
         if isempty(match_idx)
-          warning('layerData file with name field that is not present in layer organizer file. Layer %d has an invalid .name=%s field.', lay_idx, lay.layerData{lay_idx}.name);
-          save_layer_data_file = true;
+          warning('layerData file with name field that is not present in layer organizer file. Adding layer %d as .name=%s.', lay_idx, lay.layerData{lay_idx}.name);
           % Add the layer to the layer_organizer
           base_name = lay.layerData{lay_idx}.name;
           % Ensure a unique name
@@ -306,13 +306,12 @@ if strcmpi(param.layer_source,'layerdata')
         
       else
         if ~isfield(lay.layerData{lay_idx},'id')
-          save_layer_data_file = true;
           lay.layerData{lay_idx}.id = lay_idx;
         end
         match_idx = find(lay.layerData{lay_idx}.id == layer_organizer.lyr_id);
         if isempty(match_idx)
-          warning('layerData file with id field that is not present in layer organizer file. Layer %d has an invalid .id field.', lay_idx);
-          save_layer_data_file = true;
+          warning('layerData file with id field that is not present in layer organizer file. Layer %d had an invalid .id field or did not have an id field.', lay_idx);
+          save_layer_data_file = 1;
           % Add the layer to the layer_organizer
           % Ensure a unique name
           % -------------------------------------------------------------------
@@ -408,13 +407,13 @@ if strcmpi(param.layer_source,'layerdata')
       end
     end
     if save_layer_data_file
+      if save_layer_data_file == 1
+        warning('Corrected layer data file being saved: %s', layer_fn);
+      end
       if save_layer_data_file == 2
         warning('Some layers did not match GPS_time field in length. Saving corrected fields: %s', layer_fn);
       end
       layerData = lay.layerData;
-      for lay_idx = 1:length(layerData)
-        layerData{lay_idx} = rmfield(layerData{lay_idx},'id');
-      end
       save(layer_fn,'-append','layerData') % saving to layerData file
     end
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment

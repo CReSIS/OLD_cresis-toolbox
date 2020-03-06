@@ -79,6 +79,7 @@ for img = 1:length(store_param.load.imgs)
   
   %% Load data
   % =========================================================================
+  param.load.bit_mask = 1; % Skip bad records marked in records.bit_mask
   [hdr,raw_data] = data_load(param,records,states);
   
   for cmd_idx = 1:length(param.analysis.cmd)

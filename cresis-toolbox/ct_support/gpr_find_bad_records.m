@@ -1,19 +1,53 @@
-% script gpr_find_bad_records
+function gpr_find_bad_records(param,param_override)
 %
 % GPR profiles usually contain stops, 90+ deg sharp turns, etc that may be
-% undesirable for SAR processing. Use this script to help find the 
+% undesirable for SAR processing. Use this script to help find the
 % bad data records associated with these maneuvers and remove them.
+%
+% param = struct with processing parameters
+% param_override = parameters in this struct will override parameters
+%         in param.  This struct must also contain the gRadar fields.
+%         Typically global gRadar; param_override = gRadar;
+%
+% Author: Nick Holschuh, John Paden
+%
+% See also: run_gpr_find_bad_records.m, gpr_find_bad_records.m
 
-%% User Settings
-% records_fn = '/cresis/snfs1/dataproducts/csarp_support/records/accum/2013_Antarctica_Ground/records_20140103_06.mat';
-% geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
-records_fn = '/cresis/snfs1/dataproducts/csarp_support/records/accum/2015_Antarctica_Ground/records_20151221_01.mat';
-geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
+%% General Setup
+% =====================================================================
+param = merge_structs(param, param_override);
 
-bad_vel_threshold = 0.25;
-bad_heading_diff_threshold = 1;
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
 
-%% Automated Section
+%% Input Checks: gpr_find_bad_records
+% =====================================================================
+
+% Here we set threshold values for the velocity and heading
+if ~isfield(param.gpr_find_bad_records,'bad_vel_threshold') || isempty(param.gpr_find_bad_records.bad_vel_threshold)
+  param.gpr_find_bad_records.bad_vel_threshold = 0.25;
+end
+bad_vel_threshold = param.gpr_find_bad_records.bad_vel_threshold;
+
+if ~isfield(param.gpr_find_bad_records,'bad_heading_diff_threshold') || isempty(param.gpr_find_bad_records.bad_heading_diff_threshold)
+  param.gpr_find_bad_records.bad_heading_diff_threshold = 1;
+end
+bad_heading_diff_threshold = param.gpr_find_bad_records.bad_heading_diff_threshold;
+
+if ~isfield(param.gpr_find_bad_records,'manual_masking') || isempty(param.gpr_find_bad_records.manual_masking)
+  param.gpr_find_bad_records.manual_masking = 1;
+end
+
+if ~isfield(param.gpr_find_bad_records,'debug_plot') || isempty(param.gpr_find_bad_records.debug_plot)
+  param.gpr_find_bad_records.debug_plot = 1;
+end
+
+%% Load records and frames
+
+records_fn = ct_filename_support(param,'','records');
+geotiff_fn = ct_filename_gis(param,param.records.frames.geotiff_fn);
+
 records = load(records_fn);
 
 proj = geotiffinfo(geotiff_fn);
@@ -57,39 +91,67 @@ heading_diff = diff(est_heading);
 heading_mask = abs(heading_diff) > bad_heading_diff_threshold;
 heading_mask(end+1) = 0;
 
-% Plot records
-figure; clf;
-h_plots = [];
-h_plots(end+1) = plot(x,y);
-hold on;
-fprintf('\nRed is slow velocity records\n');
-h_plots(end+1) = plot(x(vel_mask),y(vel_mask),'r.');
-fprintf('\nGreen is fast heading change records\n');
-if ~any(heading_mask)
-  h_plots(end+1) = plot(NaN,NaN,'g.');
+% This either initiates the manual removal of records or does it
+% automatically based on thresholds.
+if param.gpr_find_bad_records.manual_masking == 1
+  % Plot records
+  figure; clf;
+  h_plots = [];
+  h_plots(end+1) = plot(x,y);
+  hold on;
+  fprintf('\nRed is slow velocity records\n');
+  h_plots(end+1) = plot(x(vel_mask),y(vel_mask),'r.');
+  fprintf('\nGreen is fast heading change records\n');
+  if ~any(heading_mask)
+    h_plots(end+1) = plot(NaN,NaN,'g.');
+  else
+    h_plots(end+1) = plot(x(heading_mask),y(heading_mask),'g.');
+  end
+  % Manual tool for removing records
+  clip_vectors(h_plots);
+  
+  fprintf('\nRemove bad records (press F1 in plot for help). Once done, type dbcont.\n');
+  keyboard
+  
+  % Find the bad records
+  ydata = get(h_plots(1),'YData');
+  good_mask = ~isnan(ydata);
+  
 else
-  h_plots(end+1) = plot(x(heading_mask),y(heading_mask),'g.');
+  good_mask = [~heading_mask & ~vel_mask];
 end
 
-% Manual tool for removing records
-clip_vectors(h_plots);
 
-fprintf('\nRemove bad records (press F1 in plot for help). Once done, type dbcont.\n');
-keyboard
+if param.gpr_find_bad_records.debug_plot == 1
+  figure; clf;
+  plot(records.lon(good_mask),records.lat(good_mask));
+  title([num2str(sum(good_mask)),' of ',num2str(length(good_mask)),' remaining']);
+  fprintf('Check to make sure you are happy with the results. Once done, type dbcont.\n');
+  keyboard
+end
 
-% Find the bad records
-ydata = get(h_plots(1),'YData');
-good_mask = ~isnan(ydata);
+%%%%%%%% Here we use the good_mask info to produce records.bit_mask.
+%%%%%%%% This preserves data already masked for bad headers, but adds masks
+%%%%%%%% to stationary or incorrectly moving records.
 
-figure; clf;
-plot(records.lon(good_mask),records.lat(good_mask));
+if ~isfield(records,'bit_mask')
+  records.bit_mask = zeros(size(records.offset));
+end
 
-fprintf('Check to make sure you are happy with the results. Once done, type dbcont.\n');
-keyboard
+for board_idx = 1:size(records.offset,1)
+  % For records that are good and are considered bad by this analysis, set
+  % them as bad.
+  mask = [records.bit_mask(board_idx,:) == 0 & ~good_mask];
+  records.bit_mask(board_idx,mask) = 2;
+  
+  % For records that are bad and are now considered good by this analysis,
+  % set them as good.
+  mask = [records.bit_mask(board_idx,:) == 2 & good_mask];
+  records.bit_mask(board_idx,mask) = 0;
+end
 
-param.season_name = records.param_records.season_name;
-param.radar_name = records.param_records.radar_name;
-param.day_seg = records.param_records.day_seg;
-gpr_remove_bad_records(param,good_mask);
+fprintf('  Saving records %s\n', records_fn);
+ct_save(records_fn,'-struct','records');
+create_records_aux_files(records_fn);
 
-return
+
