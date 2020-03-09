@@ -347,12 +347,16 @@ if strcmpi(param.layer_source,'layerdata')
             name = sprintf('%s_%03d',base_name,duplicate_idx);
           end
           layer_organizer.lyr_age(end+1) = NaN;
-          layer_organizer.lyr_age_source(end+1) = struct('age',{},'source',{},'type',{});
+          layer_organizer.lyr_age_source{end+1} = struct('age',{},'source',{},'type',{});
           layer_organizer.lyr_desc{end+1} = '';
           layer_organizer.lyr_group_name{end+1} = group_name;
           layer_organizer.lyr_id(end+1) = lay.layerData{lay_idx}.id;
           layer_organizer.lyr_name{end+1} = name;
-          layer_organizer.lyr_order(end+1) = max(layer_organizer.lyr_order) + 1;
+          new_order = max(layer_organizer.lyr_order) + 1;
+          if isempty(new_order)
+            new_order = 1;
+          end
+          layer_organizer.lyr_order(end+1) = new_order;
           match_idx = length(layer_organizer.lyr_id);
         end
       end
