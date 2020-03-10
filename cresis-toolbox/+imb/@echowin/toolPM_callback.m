@@ -35,7 +35,7 @@ if ~isempty(obj.tool.list{get(obj.left_panel.toolPM,'Value')}.h_fig)
     if obj.tool.visible
       % Show the new tool's parameter window
       set(obj.tool.list{tool_idx}.h_fig,'Visible','on');
-      %figure(obj.h_fig);
+      figure(obj.h_fig);
     end
   end
   

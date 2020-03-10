@@ -160,9 +160,6 @@ set(obj.h_fig,'Colormap',1-gray(256));
 % Create imagesc handle
 hold(obj.h_axes,'on');
 
-% Create cursor plot handle
-obj.h_cursor = plot(NaN,NaN,'kx--','parent',obj.h_axes);
-
 % create statusbar panel
 obj.right_panel.status_panel.handle = uipanel('Parent',obj.right_panel.handle);
 

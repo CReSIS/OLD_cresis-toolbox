@@ -25,6 +25,7 @@ end
 if isempty(new_idx)
   new_idx = length(obj.ascope.echowin)+1;
   obj.h_ascope(new_idx) = plot(NaN,NaN,'r-','parent',obj.h_axes);
+  obj.h_cursor(new_idx) = plot(NaN,NaN,'kx--','parent',obj.h_axes,'markersize',10,'linewidth',2);
 end
 
 obj.ascope.echowin(new_idx) = ascope.echowin;
@@ -42,9 +43,10 @@ obj.ascope.xlims{new_idx} = [ascope.twtt([1 end]) - ascope.surf_twtt]*1e6;
 obj.ascope.ylims{new_idx} = [min(10*log10(ascope.data)) max(10*log10(ascope.data))];
 obj.ascope.visible(new_idx) = true;
 obj.ascope.selected(new_idx) = true;
-set(obj.left_panel.ascopeLB,'Value',find(obj.ascope.selected));
 
 val = get(obj.left_panel.xaxisPM,'Value');
+idx = (obj.ascope.target_twtt(new_idx)-obj.ascope.twtt{new_idx}(1))/(obj.ascope.twtt{new_idx}(2)-obj.ascope.twtt{new_idx}(1));
+idx = min(length(obj.ascope.data{new_idx}),max(1,round(idx + 1)));
 if val == 2
   physical_constants;
   depth = zeros(size(obj.ascope.twtt{new_idx}));
@@ -53,11 +55,24 @@ if val == 2
   depth(~above_surf) = (obj.ascope.twtt{new_idx}(~above_surf) - obj.ascope.surf_twtt(new_idx)) * c/2/sqrt(er_ice);
   set(obj.h_ascope(new_idx),{'XData','YData','Visible','Color'}, ...
     {depth, 10*log10(obj.ascope.data{new_idx}),'on','red'});
+  
+  if obj.ascope.target_twtt(new_idx) < obj.ascope.surf_twtt(new_idx)
+    depth = (obj.ascope.target_twtt(new_idx) - obj.ascope.surf_twtt(new_idx)) * c/2;
+  else
+    depth = (obj.ascope.target_twtt(new_idx) - obj.ascope.surf_twtt(new_idx)) * c/2/sqrt(er_ice);
+  end
+  set(obj.h_cursor(new_idx),{'XData','YData','Visible'}, ...
+    {depth, 10*log10(obj.ascope.data{new_idx}(idx)), ...
+    'on'});
 else
   set(obj.h_ascope(new_idx),{'XData','YData','Visible','Color'}, ...
     {(obj.ascope.twtt{new_idx} - obj.ascope.surf_twtt(new_idx))*1e6, ...
     10*log10(obj.ascope.data{new_idx}), ...
     'on','red'});
+  set(obj.h_cursor(new_idx),{'XData','YData','Visible'}, ...
+    {(obj.ascope.target_twtt(new_idx) - obj.ascope.surf_twtt(new_idx))*1e6, ...
+    10*log10(obj.ascope.data{new_idx}(idx)), ...
+    'on'});
 end
 
 obj.plot_update();

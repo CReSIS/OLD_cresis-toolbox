@@ -61,7 +61,7 @@ frames = [];
 layerdata_frms = []; % List of frames that have been modified
 for cur_layer = unique_layers
   % Commit the commands for each layer, one layer at a time
-  fprintf('Saving layer %d\n', cur_layer);
+  fprintf('Saving layer id %d\n', cur_layer);
   param.properties.lyr_id = cur_layer;
   
   % Get the commands for just this layer
@@ -162,16 +162,34 @@ for cur_layer = unique_layers
           % Identify the modified points that are part of this frame that
           % are manual
           manual_frame_idxs = undo_stack.user_data.frame_idxs(cmds_list{cmd_idx}(sub_idx).redo_args{2}(frm_mask & manual_mask));
+          
+          % Determine the layer index associated with this layer ID
+          found = false;
+          for lay_idx = 1:length(undo_stack.user_data.layer_info(frm).layerData)
+            if undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id == cur_layer
+              found = true;
+              break;
+            end
+          end
+          if ~found
+            % Layer does not exist in this layerData file yet
+            lay_idx = length(undo_stack.user_data.layer_info(frm).layerData) + 1;
+            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id = cur_layer;
+            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality = ones(size(undo_stack.user_data.layer_info(frm).GPS_time));
+            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data = nan(size(undo_stack.user_data.layer_info(frm).GPS_time));
+            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data = nan(size(undo_stack.user_data.layer_info(frm).GPS_time));
+          end
+          
           % Update automated points
-          undo_stack.user_data.layer_info(frm).layerData{cur_layer}.value{2}.data(all_frame_idxs) ...
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data(all_frame_idxs) ...
             = cmds_list{cmd_idx}(sub_idx).redo_args{3}(frm_mask);
           % Update manual points
-          undo_stack.user_data.layer_info(frm).layerData{cur_layer}.value{1}.data(all_frame_idxs) ...
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data(all_frame_idxs) ...
             = NaN;
-          undo_stack.user_data.layer_info(frm).layerData{cur_layer}.value{1}.data(manual_frame_idxs) ...
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data(manual_frame_idxs) ...
             = cmds_list{cmd_idx}(sub_idx).redo_args{3}(frm_mask & manual_mask);
           % Update quality
-          undo_stack.user_data.layer_info(frm).layerData{cur_layer}.quality(all_frame_idxs) ...
+          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality(all_frame_idxs) ...
             = cmds_list{cmd_idx}(sub_idx).redo_args{5}(frm_mask);
         end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
@@ -198,22 +216,36 @@ for cur_layer = unique_layers
           frm_mask = undo_stack.user_data.frame(point_ids) == frm;
           % Identify the modified points that are part of this frame
           all_frame_idxs = undo_stack.user_data.frame_idxs(point_ids(frm_mask));
-          % Get the twtt for all the points that are in the point_ids
-          twtt = undo_stack.user_data.layer_info(frm).layerData{cur_layer}.value{2}.data(all_frame_idxs);
-          % Mask which ones are to be deleted based on twtt
-          delete_mask = twtt > cmds_list{cmd_idx}(sub_idx).redo_args{2}(3) & twtt < cmds_list{cmd_idx}(sub_idx).redo_args{2}(4);
-          % Just keep deleted points
-          all_frame_idxs = all_frame_idxs(delete_mask);
-          % If there are any points to be deleted:
-          if ~isempty(all_frame_idxs)
-            % 1. Add frm to the layerdata_frms list
-            layerdata_frms = [layerdata_frms frm];
-            % 2. Update automated points
-            undo_stack.user_data.layer_info(frm).layerData{cur_layer}.value{2}.data(all_frame_idxs) ...
-              = NaN;
-            % 3. Update manual points
-            undo_stack.user_data.layer_info(frm).layerData{cur_layer}.value{1}.data(all_frame_idxs) ...
-              = NaN;
+          
+          % Determine the layer index associated with this layer ID
+          found = false;
+          for lay_idx = 1:length(undo_stack.user_data.layer_info(frm).layerData)
+            if undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id == cur_layer
+              found = true;
+              break;
+            end
+          end
+          if found
+            % Only need to delete points if the layer exists in the data
+            % file.
+            
+            % Get the twtt for all the points that are in the point_ids
+            twtt = undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data(all_frame_idxs);
+            % Mask which ones are to be deleted based on twtt
+            delete_mask = twtt > cmds_list{cmd_idx}(sub_idx).redo_args{2}(3) & twtt < cmds_list{cmd_idx}(sub_idx).redo_args{2}(4);
+            % Just keep deleted points
+            all_frame_idxs = all_frame_idxs(delete_mask);
+            % If there are any points to be deleted:
+            if ~isempty(all_frame_idxs)
+              % 1. Add frm to the layerdata_frms list
+              layerdata_frms = [layerdata_frms frm];
+              % 2. Update automated points
+              undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data(all_frame_idxs) ...
+                = NaN;
+              % 3. Update manual points
+              undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data(all_frame_idxs) ...
+                = NaN;
+            end
           end
         end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
@@ -249,6 +281,7 @@ for cur_layer = unique_layers
           undo_stack.user_data.layer_info(frm).layerData{end}.quality = ones(1,Nx);
           undo_stack.user_data.layer_info(frm).layerData{end}.type = 2*ones(1,Nx);
           undo_stack.user_data.layer_info(frm).layerData{end}.id = id;
+          layerdata_frms(end+1) = frm;
         end
 
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
