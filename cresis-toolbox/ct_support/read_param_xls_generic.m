@@ -172,16 +172,8 @@ for idx = 1:rows
           val = read_param_xls_general(row,col,num,txt);
         end
         if array_type == '0'
-          if length(period_idxs) == 0
-            params(idx).(generic_ws).(field_names{col}) = val;
-          elseif length(period_idxs) == 1
-            params(idx).(generic_ws).(field_names{col}(1:period_idxs-1)).(field_names{col}(period_idxs+1:end)) = val;
-          elseif length(period_idxs) == 2
-            params(idx).(generic_ws).(field_names{col}(1:period_idxs(1)-1)).(field_names{col}(period_idxs(1)+1:period_idxs(2)-1)).(field_names{col}(period_idxs(2)+1:end)) = val;
-          else
-            error('read_param_xls_generic:toomanyperiods', ...
-              ' Fieldnames %s with more than 2 periods not supported', field_names{col})
-          end
+          eval_str = sprintf('params(idx).(generic_ws).%s = val;',field_names{col});
+          eval(eval_str);
         elseif array_type == 'a'
           paren_idx = find(field_types{col}(4:end) == '(');
           if isempty(paren_idx)
