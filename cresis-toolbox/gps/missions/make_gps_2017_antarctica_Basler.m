@@ -13,7 +13,7 @@ if isempty(support_path)
   support_path = gRadar.support_path;
 end
 
-gps_path = fullfile(support_path,'gps','2017_Antarctica_Basler_ppp');
+gps_path = fullfile(support_path,'gps','2017_Antarctica_Basler');
 if ~exist(gps_path,'dir')
   fprintf('Making directory %s\n', gps_path);
   fprintf('  Press a key to proceed\n');
@@ -100,7 +100,36 @@ if strcmpi(gps_source_to_use,'cresis')
 %   params{file_idx} = struct();
 %   gps_source{file_idx} = 'cresis-field';
 %   sync_flag{file_idx} = 0;
- 
+
+%   file_idx = file_idx + 1;
+%   year = 2017; month = 12; day = 5;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_diff_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
+%   file_idx = file_idx + 1;
+
+%   year = 2017; month = 12; day = 7;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_PPP_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2017; month = 12; day = 14;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_PPP_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
+
 %   file_idx = file_idx + 1;
 %   year = 2017; month = 12; day = 15;
 %   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
@@ -112,15 +141,37 @@ if strcmpi(gps_source_to_use,'cresis')
 %   gps_source{file_idx} = 'cresis-field';
 %   sync_flag{file_idx} = 0;
 
+%   file_idx = file_idx + 1;
+%   year = 2017; month = 12; day = 16;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_ppp_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
+
+%   file_idx = file_idx + 1;
+%   year = 2017; month = 12; day = 17;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_diff_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
+
+
   file_idx = file_idx + 1;
-  year = 2017; month = 12; day = 17;
+  year = 2017; month = 12; day = 18;
   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
-  in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_ppp_%s.txt',date_string));
+  in_fns{file_idx} = fullfile(in_base_path,sprintf('rover_diff_%s.txt',date_string));
   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
   file_type{file_idx} = 'cresis';
   params{file_idx} = struct();
   gps_source{file_idx} = 'cresis-field';
   sync_flag{file_idx} = 0;
+
 end
 
 % ======================================================================
