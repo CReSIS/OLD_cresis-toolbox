@@ -141,7 +141,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 % Fabricate loopback GPS data for testing
 % gps.gps_time = datenum_to_epoch(datenum(2014,02,25,0,0,0:1000));

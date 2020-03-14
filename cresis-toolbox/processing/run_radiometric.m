@@ -4,9 +4,9 @@
 % radiometric_calibration with this information.
 %
 % Authors: Theresa Stumpf, Anthony Hoch
-% note: modified from run_create_posting
+% note: modified from run_post
 %
-% See also: radiometric_calibration, run_create_posting.m
+% See also: radiometric_calibration, run_post.m
 
 fprintf('\n\n========================================================\n');
 fprintf('run radiometric\n');

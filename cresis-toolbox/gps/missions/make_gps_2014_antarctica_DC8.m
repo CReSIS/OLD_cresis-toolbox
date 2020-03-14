@@ -522,7 +522,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 hack_idx = cell2mat(strfind(out_fns,'gps_20140904.mat'));
 if ~isempty(hack_idx)

@@ -180,7 +180,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 
 % Smooth NMEA GPS data

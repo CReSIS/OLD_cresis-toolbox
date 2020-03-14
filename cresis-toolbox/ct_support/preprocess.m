@@ -3,7 +3,7 @@ function ctrl_chain = preprocess(param,param_override)
 %
 % 1. Copy metadata files if applicable
 % 2. Load raw data files:
-%   a. Create temporary header files for create_records
+%   a. Create temporary header files for records_create
 %   b. Create network header stripped raw data files if applicable
 % 3. Break data into segments
 % 4. Create parameter spreadsheet entries

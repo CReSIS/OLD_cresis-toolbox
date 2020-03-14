@@ -17,10 +17,7 @@ function gps = read_gps_dmsraw(fn,param)
 %
 % Author: Huan Zhao, John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
-%   read_gps_txt, plot_gps
-
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 [fid,msg] = fopen(fn,'r');
 if fid < 1
@@ -67,7 +64,7 @@ fn = fns{2};
 
 tic; gps = read_gps_novatel(fn); toc;
 
-plot_gps(gps);
+gps_plot(gps);
 
 
 

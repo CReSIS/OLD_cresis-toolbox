@@ -32,7 +32,7 @@ task_recs = param.load.recs; % Store this for later when creating output fn
 load_recs_ps(1) = floor((param.load.recs(1)-1)/param.analysis.presums)+1;
 load_recs_ps(2) = floor(param.load.recs(2)/param.analysis.presums);
 
-records = read_records_aux_files(records_fn,param.load.recs);
+records = records_aux_files_read(records_fn,param.load.recs);
 
 % Store the parameters that were used to create the records file
 param_records = records.param_records;

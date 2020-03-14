@@ -614,7 +614,7 @@ if param.slope.surf.en
   
   % Store surface information to the records file
   save(records_fn,'-APPEND','-struct','records','surface');
-  create_records_aux_files(records_fn);
+  records_aux_files_create(records_fn);
 end
 
 return;

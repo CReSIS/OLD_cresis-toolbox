@@ -1,11 +1,11 @@
-% script run_update_records
+% script run_records_update
 %
-% This script setsup the parameters and calls update_records.  Make
+% This script setsup the parameters and calls records_update.  Make
 % a local copy of the file in your personal folder.
 %
 % Author: John Paden
 %
-% See also update_records.m
+% See also records_update.m
 
 %% User Settings
 % =========================================================================
@@ -36,5 +36,5 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  update_records(param,param_override);
+  records_update(param,param_override);
 end

@@ -91,7 +91,7 @@ for idx = 1:length(params_en)
 %   ct_file_lock_check(recs_fn,3);
   ct_save(recs_fn,'-struct','recs_old');
   fprintf('Creating auxiliary records files %s (%s)\n',recs_fn,datestr(now));
-  create_records_aux_files(recs_fn);
+  records_aux_files_create(recs_fn);
   
   %% FIGURES
   

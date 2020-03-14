@@ -2,16 +2,16 @@ function radiometric_calibration(param, param_override)
 % radiometric_calibration(param)
 %
 % !!! header not updated for current script !!!
-%    being modified from create_posting
+%    being modified from post
 %
 %
 %
 % Generalized function for posting data. Should be called from
-% run_create_posting.
+% run_post.
 %
 % Author: Shashanka Jagarlapudi, Logan Smith, John Paden, Theresa Stumpf, Anthony Hoch
 %
-% See also run_create_posting, create_posting
+% See also run_post, post
 
 if ~exist('param','var')
   error('Call function from run_radiometric');

@@ -175,7 +175,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 %% Lab Measurement Data: Fakes GPS position information
 % match_idx = strmatch('gps_20150413.mat',out_fns,'exact');

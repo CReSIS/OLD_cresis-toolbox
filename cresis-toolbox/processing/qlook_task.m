@@ -130,7 +130,7 @@ param.load.recs(1) = param.qlook.presums * (input_recs_ps(1) - 1) + 1;
 param.load.recs(2) = param.qlook.presums * input_recs_ps(2);
 
 % Load the records
-records = read_records_aux_files(records_fn,param.load.recs);
+records = records_aux_files_read(records_fn,param.load.recs);
 
 % Adjust stop_buffer_ps and loaded records in case at the end of the segment
 stop_buffer_ps = stop_buffer_ps + floor(length(records.gps_time)/param.qlook.presums) - (diff(input_recs_ps)+1);

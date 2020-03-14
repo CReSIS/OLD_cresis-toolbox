@@ -193,7 +193,7 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 load_param = param;
 load_param.load.recs = [(param.load.recs(1)-1)*param.csarp.presums+1, ...
         param.load.recs(2)*param.csarp.presums];
-orig_records = read_records_aux_files(records_fn,load_param.load.recs);
+orig_records = records_aux_files_read(records_fn,load_param.load.recs);
 all_records = orig_records;
 %Decimate orig_records and ref according to presums
 if param.csarp.presums > 1

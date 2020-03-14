@@ -21,15 +21,13 @@ function gps = read_gps_reveal(in_fn,param)
 % Example:
 %   fn = '/cresis/data2/MCoRDS/2009_Chile/GPS/IWG1_110209.log';
 %   gps = read_gps_reveal(fn);
-%   plot(gps.lon,gps.lat);
+%   gps_plot(gps);
 %   datestr(epoch_to_datenum(gps.gps_time(1)));
 %   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
 %
 % Author: William Blake, John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 debug_level = 1;
 

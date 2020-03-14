@@ -114,7 +114,7 @@ params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_refe
 gps_source{file_idx} = 'nmea-field'; 
 
 
-make_gps;
+gps_make;
 match_idx = strmatch('gps_19950518.mat',out_fns,'exact');
 if ~isempty(match_idx)
   gps_fn = fullfile(gps_path,out_fns{match_idx});

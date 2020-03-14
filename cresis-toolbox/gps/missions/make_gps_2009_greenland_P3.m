@@ -214,5 +214,5 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {};
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 

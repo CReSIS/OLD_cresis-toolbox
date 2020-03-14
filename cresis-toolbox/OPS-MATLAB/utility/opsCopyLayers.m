@@ -595,6 +595,6 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
   
 elseif strcmpi(copy_param.layer_dest.source,'records')
   save(records_fn,'-append','surface');
-  create_records_aux_files(records_fn);
+  records_aux_files_create(records_fn);
   
 end

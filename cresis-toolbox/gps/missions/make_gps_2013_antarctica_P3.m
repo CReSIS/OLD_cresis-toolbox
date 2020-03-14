@@ -238,7 +238,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 % Hand correction of gps_20131107 accum2 sync radar time information
 hand_idx = strmatch('gps_20131107.mat',out_fns);

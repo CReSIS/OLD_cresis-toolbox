@@ -68,15 +68,13 @@ function gps = read_gps_applanix(applanix_fn, param)
 %
 %   fn = '/cresis/scratch1/mdce/csarp_support/gps/2009_Antarctica_DC8_DGPSwINS/Javadsbet_02Nov09_PPP_Revised.out'
 %   gps = read_gps_applanix(fn,struct('year',2009,'month',11,'day',2,'time_reference','gps'));
-%   plot(gps.lon,gps.lat);
+%   gps_plot(gps);
 %   datestr(epoch_to_datenum(gps.gps_time(1)));
 %   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
 % 
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 if ~isfield(param,'roll_byte_offset') || isempty(param.roll_byte_offset)
   param.roll_byte_offset = 56;

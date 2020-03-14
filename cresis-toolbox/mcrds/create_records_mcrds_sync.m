@@ -153,7 +153,7 @@ save(records_fn,'-v6','-struct','records');
 % =====================================================================
 
 fprintf('Creating auxiliary records files %s (%s)\n',records_fn,datestr(now));
-create_records_aux_files(records_fn);
+records_aux_files_create(records_fn);
 
 fprintf('Done (%s)\n\n', datestr(now));
 

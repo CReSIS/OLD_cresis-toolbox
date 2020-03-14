@@ -83,7 +83,7 @@ param_records = param.records;
 param_radar = param.radar;
 records_fn = ct_filename_support(param,'','records');
 save(records_fn,'records','param_records','param_radar');
-create_records_aux_files(records_fn);
+records_aux_files_create(records_fn);
 
 % Make sure output directory exists
 [out_dir out_name] = fileparts(ct_filename_support(param,param.frames.frames_fn,'frames'));

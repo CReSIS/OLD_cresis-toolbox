@@ -122,7 +122,7 @@ end
 if simple_firdec
   load_param.load.recs(1) = param.load.recs(1);
   load_param.load.recs(2) = param.load.recs(2);
-  records = read_records_aux_files(records_fn,load_param.load.recs);
+  records = records_aux_files_read(records_fn,load_param.load.recs);
   old_param_records = records.param_records;
 else
   if mod(length(param.slope.B_filter)-1,2)
@@ -132,7 +132,7 @@ else
   start_buffer = min(filter_order/2,param.load.recs(1)-1);
   load_param.load.recs(1) = param.load.recs(1)-start_buffer;
   load_param.load.recs(2) = param.load.recs(2)+filter_order/2;
-  records = read_records_aux_files(records_fn,load_param.load.recs);
+  records = records_aux_files_read(records_fn,load_param.load.recs);
   old_param_records = records.param_records;
   stop_buffer = filter_order/2 - ((load_param.load.recs(2)-load_param.load.recs(1)+1) ...
     - length(records.lat));

@@ -14,7 +14,7 @@ function run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param)
 %
 % Author: John Paden, Logan Smith, Shashanka Jagarlapudi
 %
-% See also create_posting.m, concatenate_thickness_files.m
+% See also post.m, concatenate_thickness_files.m
 
 season_fn = fullfile(csv_base_dir, [param.season_name '.csv']);
 concatenate_thickness_files(csv_base_dir,'Data_*.csv',season_fn,',');

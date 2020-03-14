@@ -1,7 +1,7 @@
 % fix_2009_Greenland_TO_gps_sync.m
 %
 % This function should be run to correct the records.raw.radar_time
-% field in the records file. After this is done, the update_records
+% field in the records file. After this is done, the records_update
 % function should be run to resync the GPS data.
 % 
 % Author: John Paden

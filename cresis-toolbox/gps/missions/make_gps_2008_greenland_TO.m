@@ -536,7 +536,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 if any(strcmpi('gps_20080630.mat',out_fns))
   % The DGPS data does not span the full record, so we have to use NMEA

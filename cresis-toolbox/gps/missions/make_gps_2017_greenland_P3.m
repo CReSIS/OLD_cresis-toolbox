@@ -610,7 +610,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 % Debug code that sets up special processing
 hack_idx = cell2mat(strfind(out_fns,'gps_20170329.mat'));

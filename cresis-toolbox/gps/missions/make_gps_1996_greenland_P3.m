@@ -59,7 +59,7 @@ gps_source{file_idx} = 'nmea-field';
 
 
 
-make_gps;
+gps_make;
 latlon_min_jump=0.005;%latitude and longitude minimum jump threshold
 latlon_spike_jump=10;%latitude and longitude spike jump threshold
 elev_min_jump=300;%elevation minimum jump threshold

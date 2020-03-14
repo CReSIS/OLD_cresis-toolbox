@@ -29,7 +29,7 @@ function [hdr,data] = basic_load_fmcw2(fn,param)
 %        support 1 waveform
 %     3: no loopback_mode or nyquist_zone setting, 1 waveform
 %   .records
-%     .en = Special field for create_records_fmcw_accum.m. If true, all
+%     .en = NOT USED. If true, all
 %       headers will be loaded and the output arguments become:
 %       hdr --> success flag (returns 1)
 %       data --> hdr (all headers)

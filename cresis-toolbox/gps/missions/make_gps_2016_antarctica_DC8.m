@@ -376,7 +376,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 % Debug code that can be used when no GPS data is available and we need to
 % fake it.

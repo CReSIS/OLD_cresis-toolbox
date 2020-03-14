@@ -78,7 +78,7 @@ gps.pitch = pitch*pi/180;
 gps.heading = heading*pi/180;
 save(out_fn, '-STRUCT','gps','gps_time','time_offset','lat','lon','elev','roll','pitch','heading');
 if debug_level >= 2
-    plot_gps(out_fn);
+    gps_plot(out_fn);
 end
 
 return;

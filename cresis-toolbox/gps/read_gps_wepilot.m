@@ -26,9 +26,7 @@ function gps = read_gps_mat(in_fn, param)
 %
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 load(in_fn);
 
@@ -89,7 +87,7 @@ fns = get_filenames('E:\tmp\uav_gps_imu','','','AUX.mat');
 for fn_idx=1:length(fns)-1
   fns{fn_idx}
   gps = read_gps_wepilot(fns{fn_idx})
-  plot_gps(gps);
+  gps_plot(gps);
   pause
 end
 

@@ -180,7 +180,7 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 % =========================================================================
 recs = [(param.load.recs(1)-1)*param.sar.presums+1, ...
         param.load.recs(2)*param.sar.presums];
-records = read_records_aux_files(records_fn,recs);
+records = records_aux_files_read(records_fn,recs);
 % Decimate records according to presums
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);

@@ -114,7 +114,7 @@ param.load.bit_mask = param.load_data.bit_mask;
 %% Load records file
 % =====================================================================
 records_fn = ct_filename_support(param,'','records');
-records = read_records_aux_files(records_fn,param.load.recs);
+records = records_aux_files_read(records_fn,param.load.recs);
 old_param_records = records.param_records;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
