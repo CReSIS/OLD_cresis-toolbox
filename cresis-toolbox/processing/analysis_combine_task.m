@@ -220,6 +220,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         heading = [];
         surface = [];
         nyquist_zone = [];
+        bad_rec = [];
+        DDC_dec = [];
+        raw_or_DDC = [];
+        DDC_freq_min = [];
+        DDC_freq_max = [];
+        
         coh_ave = {};
         coh_ave_mag = {};
         coh_ave_samples = {};
@@ -256,6 +262,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
           heading(end+(1:length(noise.heading))) = noise.heading;
           surface(end+(1:length(noise.surface))) = noise.surface;
           nyquist_zone(end+(1:length(noise.nyquist_zone))) = noise.nyquist_zone;
+          bad_rec(end+(1:length(noise.bad_rec))) = noise.bad_rec;
+          DDC_dec(end+(1:length(noise.DDC_dec))) = noise.DDC_dec;
+          raw_or_DDC(end+(1:length(noise.raw_or_DDC))) = noise.raw_or_DDC;
+          DDC_freq_min(end+(1:length(noise.DDC_freq_min))) = noise.DDC_freq_min;
+          DDC_freq_max(end+(1:length(noise.DDC_freq_max))) = noise.DDC_freq_max;
           
           % coh_ave and coh_ave_samples may be different lengths, so we
           % just concatenate in cell arrays
@@ -293,6 +304,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.heading = heading;
         noise.surface = surface;
         noise.nyquist_zone = nyquist_zone;
+        noise.bad_rec = bad_rec;
+        noise.DDC_dec = DDC_dec;
+        noise.raw_or_DDC = raw_or_DDC;
+        noise.DDC_freq_min = DDC_freq_min;
+        noise.DDC_freq_max = DDC_freq_max;
         
         noise.coh_ave = coh_ave;
         noise.coh_ave_mag = coh_ave_mag;
