@@ -24,7 +24,7 @@ if strcmpi(cmds_direction,'redo')
 else
   %% Undo commands (cmds_direction == 'undo')
   for cmd_idx = 1:length(cmds_list)
-    for sub_idx = 1:length(cmds_list{cmd_idx})
+    for sub_idx = length(cmds_list{cmd_idx}):-1:1
       if strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'insert')
         cmds_execute_insert(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
       elseif strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'delete')
@@ -197,6 +197,7 @@ order = args{6};
 val = length(obj.eg.layers.lyr_id)+1;
 
 obj.eg.layers.lyr_age = [obj.eg.layers.lyr_age(1:val-1) age obj.eg.layers.lyr_age(val:end)];
+obj.eg.layers.lyr_age_source = [obj.eg.layers.lyr_age_source(1:val-1) age obj.eg.layers.lyr_age_source(val:end)];
 obj.eg.layers.lyr_desc = [obj.eg.layers.lyr_desc(1:val-1) {desc} obj.eg.layers.lyr_desc(val:end)];
 obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) {group_name} obj.eg.layers.lyr_group_name(val:end)];
 obj.eg.layers.lyr_name = [obj.eg.layers.lyr_name(1:val-1) {name} obj.eg.layers.lyr_name(val:end)];
@@ -250,6 +251,7 @@ Nlayers = length(obj.eg.layers.lyr_id);
 val = find(new_order==val);
 
 obj.eg.layers.lyr_age = obj.eg.layers.lyr_age(new_order);
+obj.eg.layers.lyr_age_source = obj.eg.layers.lyr_age_source(new_order);
 obj.eg.layers.lyr_desc = obj.eg.layers.lyr_desc(new_order);
 obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
 obj.eg.layers.lyr_id = obj.eg.layers.lyr_id(new_order);
@@ -283,6 +285,7 @@ id = args{1};
 val = find(id == obj.eg.layers.lyr_id);
 
 obj.eg.layers.lyr_age = [obj.eg.layers.lyr_age(1:val-1) obj.eg.layers.lyr_age(val+1:end)];
+obj.eg.layers.lyr_age_source = [obj.eg.layers.lyr_age_source(1:val-1) obj.eg.layers.lyr_age_source(val+1:end)];
 obj.eg.layers.lyr_desc = [obj.eg.layers.lyr_desc(1:val-1) obj.eg.layers.lyr_desc(val+1:end)];
 obj.eg.layers.lyr_group_name = [obj.eg.layers.lyr_group_name(1:val-1) obj.eg.layers.lyr_group_name(val+1:end)];
 obj.eg.layers.lyr_id = [obj.eg.layers.lyr_id(1:val-1) obj.eg.layers.lyr_id(val+1:end)];
@@ -322,6 +325,7 @@ id = args{1};
 val = find(id == obj.eg.layers.lyr_id);
 
 obj.eg.layers.lyr_age(val) = age;
+obj.eg.layers.lyr_age_source{val} = struct('age',{},'source',{},'type',{});
 obj.eg.layers.lyr_desc{val} = desc;
 obj.eg.layers.lyr_group_name{val} = group_name;
 obj.eg.layers.lyr_name{val} = name;
@@ -333,6 +337,7 @@ Nlayers = length(obj.eg.layers.lyr_id);
 val = find(new_order==val);
 
 obj.eg.layers.lyr_age = obj.eg.layers.lyr_age(new_order);
+obj.eg.layers.lyr_age_source = obj.eg.layers.lyr_age_source(new_order);
 obj.eg.layers.lyr_desc = obj.eg.layers.lyr_desc(new_order);
 obj.eg.layers.lyr_group_name = obj.eg.layers.lyr_group_name(new_order);
 obj.eg.layers.lyr_id = obj.eg.layers.lyr_id(new_order);

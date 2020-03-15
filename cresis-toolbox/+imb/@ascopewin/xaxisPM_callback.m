@@ -30,15 +30,27 @@ end
 for idx = 1:length(obj.ascope.echowin)
   % Update label
   if val == 1
+    % Update ascope
     xlabel(obj.h_axes,'TWTT (us)');
     set(obj.h_ascope(idx),'XData',(obj.ascope.twtt{idx} - obj.ascope.surf_twtt(idx))*1e6);
+    % Update cursor
+    set(obj.h_cursor(idx),{'XData'}, ...
+      {(obj.ascope.target_twtt(idx) - obj.ascope.surf_twtt(idx))*1e6});
   elseif val == 2
+    % Update ascope
     xlabel(obj.h_axes,'Depth (m)');
     depth = zeros(size(obj.ascope.twtt{idx}));
     above_surf = obj.ascope.twtt{idx} < obj.ascope.surf_twtt(idx);
     depth(above_surf) = (obj.ascope.twtt{idx}(above_surf) - obj.ascope.surf_twtt(idx)) * c/2;
     depth(~above_surf) = (obj.ascope.twtt{idx}(~above_surf) - obj.ascope.surf_twtt(idx)) * c/2/sqrt(er_ice);
     set(obj.h_ascope(idx),'XData',depth);
+    % Update cursor
+    if obj.ascope.target_twtt(idx) < obj.ascope.surf_twtt(idx)
+      depth = (obj.ascope.target_twtt(idx) - obj.ascope.surf_twtt(idx)) * c/2;
+    else
+      depth = (obj.ascope.target_twtt(idx) - obj.ascope.surf_twtt(idx)) * c/2/sqrt(er_ice);
+    end
+    set(obj.h_cursor(idx),{'XData'}, {depth});
   end
 end
 

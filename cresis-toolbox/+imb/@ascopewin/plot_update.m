@@ -8,6 +8,8 @@ set(obj.h_ascope(~obj.ascope.selected),'Color','black');
 % Update plot based on visibility
 set(obj.h_ascope(obj.ascope.visible),'Visible','on');
 set(obj.h_ascope(~obj.ascope.visible),'Visible','off');
+set(obj.h_cursor(obj.ascope.visible),'Visible','on');
+set(obj.h_cursor(~obj.ascope.visible),'Visible','off');
 
 first_plot = ~isfinite(obj.xlims(1));
     
@@ -16,14 +18,20 @@ LB_strings = cell(1,length(obj.ascope.echowin));
 obj.xlims = [inf -inf];
 obj.ylims = [inf -inf];
 for idx = 1:length(obj.ascope.echowin)
-  if obj.ascope.visible(idx)
-    LB_strings{idx} = sprintf('%s %s', ...
-      obj.ascope.frm_str{idx},datestr(epoch_to_datenum(obj.ascope.gps_time(idx)),'HH:mm:SS'));
+  if isnan(obj.ascope.echowin(idx))
+    echogram_str = '';
   else
-    LB_strings{idx} = sprintf('<HTML><FONT color="red">%s %s</FONT></HTML>', ...
-      obj.ascope.frm_str{idx},datestr(epoch_to_datenum(obj.ascope.gps_time(idx)),'HH:mm:SS'));
+    echogram_str = sprintf('%d: ',obj.ascope.echowin(idx));
+  end
+  if obj.ascope.visible(idx)
+    LB_strings{idx} = sprintf('%s%s %s', ...
+      echogram_str, obj.ascope.frm_str{idx},datestr(epoch_to_datenum(obj.ascope.gps_time(idx)),'HH:mm:SS'));
+  else
+    LB_strings{idx} = sprintf('<HTML><FONT color="red">%s%s %s</FONT></HTML>', ...
+      echogram_str, obj.ascope.frm_str{idx},datestr(epoch_to_datenum(obj.ascope.gps_time(idx)),'HH:mm:SS'));
   end
   uistack(obj.h_ascope(idx),'bottom');
+  uistack(obj.h_cursor(idx),'bottom');
   if obj.ascope.xlims{idx}(1) < obj.xlims(1)
     obj.xlims(1) = obj.ascope.xlims{idx}(1);
   end
@@ -38,6 +46,7 @@ for idx = 1:length(obj.ascope.echowin)
   end
 end
 set(obj.left_panel.ascopeLB,'String',LB_strings);
+set(obj.left_panel.ascopeLB,'Value',find(obj.ascope.selected));
 
 obj.ylims = [floor(obj.ylims(1)) ceil(obj.ylims(2))];
 

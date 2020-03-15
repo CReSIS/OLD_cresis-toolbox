@@ -98,7 +98,12 @@ end
 
 frame_length = round(param.sar.surf_filt_dist / median(diff(along_track(surf_idxs)))/2)*2+1;
 if length(surf_idxs) < frame_length
-  surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs));
+  if mod(length(surf_idxs),2) == 0
+    % Even length(surf_idxs), but sgolayfilt filter must be odd length
+    surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs)-1);
+  else
+    surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs));
+  end
 else
   surf = sgolayfilt(records.surface(surf_idxs),3,frame_length);
 end

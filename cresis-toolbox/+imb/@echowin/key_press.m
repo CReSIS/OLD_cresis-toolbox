@@ -357,7 +357,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.set_visibility();
       
     case 'downarrow' % Down-arrow: Move Echogram Down
-      if current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB
+      if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
         return
       end
       % check if echogram is selected
@@ -378,7 +378,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
     case 'uparrow' % Up-arrow: Move Echogram Up
-      if current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB
+      if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
         return
       end
       % check if echogram is selected

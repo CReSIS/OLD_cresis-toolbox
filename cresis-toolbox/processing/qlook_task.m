@@ -174,6 +174,7 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.qlook.presums;
+param.load.bit_mask = 1; % Skip bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
