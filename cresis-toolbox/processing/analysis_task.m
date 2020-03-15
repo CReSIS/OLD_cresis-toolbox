@@ -393,6 +393,11 @@ for img = 1:length(store_param.load.imgs)
         roll = [];
         pitch = [];
         heading = [];
+        bad_rec = [];
+        DDC_dec = [];
+        raw_or_DDC = [];
+        DDC_freq_min = [];
+        DDC_freq_max = [];
         
         % Pulse compression
         tmp_param.radar.wfs(wf).coh_noise_method = '';
@@ -509,6 +514,18 @@ for img = 1:length(store_param.load.imgs)
           roll(rline0_idx) = mean(hdr.records{img,wf_adc}.roll(rlines));
           pitch(rline0_idx) = mean(hdr.records{img,wf_adc}.pitch(rlines));
           heading(rline0_idx) = mean(hdr.records{img,wf_adc}.heading(rlines));
+          
+          bad_rec(rline0_idx) = mean(hdr.bad_rec{1}(rlines));
+          tmp_DDC_dec = unique(hdr.DDC_dec{1}(rlines));
+          if length(tmp_DDC_dec) == 1
+            DDC_dec(rline0_idx) = tmp_DDC_dec;
+          else
+            DDC_dec(rline0_idx) = NaN;
+          end
+          DDC_freq_min(rline0_idx) = min(hdr.DDC_freq{1}(rlines));
+          DDC_freq_max(rline0_idx) = max(hdr.DDC_freq{1}(rlines));
+          raw_or_DDC(rline0_idx) = DDC_dec(rline0_idx)==1;
+          
         end
         
         %% Coh Noise: Save results
@@ -527,7 +544,7 @@ for img = 1:length(store_param.load.imgs)
           file_version = '1';
         end
         ct_save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_version');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_version', 'bad_rec', 'DDC_dec', 'DDC_freq_min', 'DDC_freq_max', 'raw_or_DDC');
       end
       
     elseif strcmpi(cmd.method,{'waveform'})
