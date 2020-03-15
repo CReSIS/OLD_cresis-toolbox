@@ -77,17 +77,34 @@ classdef (HandleCompatible = true) frames_create < handle
           warning('No geographic data present in records file. Frames file already exists, just exiting.');
         else
           warning('No geographic data present in records file. No frames file exists, creating single frame and exiting.');
-          if param.ct_file_lock
-            file_version = '1L';
-          else
-            file_version = '1';
+          
+          frames.gps_time = [obj.records.gps_time(frames.frame_idxs), obj.records.gps_time(end)];
+          Nfrms = length(frames.frame_idxs);
+          frames.notes = cell(1,Nfrms);
+          if ~isfield(frames,'quality')
+            frames.quality = zeros(1,Nfrms);
           end
+          if ~isfield(frames,'proc_mode')
+            frames.proc_mode = zeros(1,Nfrms);
+          end
+          frames.Nx = length(obj.records.gps_time);
+          frames.param.day_seg = param.day_seg;
+          frames.param.season_name = param.season_name;
+          frames.param.radar_name = param.radar_name;
+          frames.param.sw_version = param.sw_version;
+          
+          if param.ct_file_lock
+            frames.file_version = '1L';
+          else
+            frames.file_version = '1';
+          end
+          frames.file_type = 'frames';
           fprintf('  Saving %s\n', frames_fn);
           frames_fn_dir = fileparts(frames_fn);
           if ~exist(frames_fn_dir,'dir')
             mkdir(frames_fn_dir);
           end
-          ct_save(frames_fn,'-v7.3','frames','file_version');
+          ct_save(frames_fn,'-struct','frames');
         end
         delete(obj);
         return;
@@ -542,15 +559,32 @@ classdef (HandleCompatible = true) frames_create < handle
         fprintf('Making directory %s\n', frames_fn_dir);
         mkdir(frames_fn_dir);
       end
-      if obj.param.ct_file_lock
-        file_version = '1L';
-      else
-        file_version = '1';
+      
+      frames.gps_time = [obj.records.gps_time(frames.frame_idxs), obj.records.gps_time(end)];
+      Nfrms = length(frames.frame_idxs);
+      frames.notes = cell(1,Nfrms);
+      if ~isfield(frames,'quality')
+        frames.quality = zeros(1,Nfrms);
       end
+      if ~isfield(frames,'proc_mode')
+        frames.proc_mode = zeros(1,Nfrms);
+      end
+      frames.Nx = length(obj.records.gps_time);
+      frames.param.day_seg = param.day_seg;
+      frames.param.season_name = param.season_name;
+      frames.param.radar_name = param.radar_name;
+      frames.param.sw_version = param.sw_version;
+      
+      if obj.param.ct_file_lock
+        frames.file_version = '1L';
+      else
+        frames.file_version = '1';
+      end
+      frames.file_type = 'frames';
       ct_file_lock_check(frames_fn,3);
       fprintf('Saving %s\n', frames_fn);
       frames = obj.frames;
-      ct_save(frames_fn,'-v7.3','frames','file_version');
+      ct_save(frames_fn,'-struct','frames');
       
     end
     

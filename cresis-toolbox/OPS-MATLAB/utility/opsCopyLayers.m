@@ -137,7 +137,7 @@ if ~isfield(copy_param.layer_source,'echogram_source_img') || isempty(copy_param
 end
 
 %% Load "frames" file
-load(ct_filename_support(param,'','frames'));
+frames = load(ct_filename_support(param,'','frames'));
 
 %% Determine which frames to be processed
 if isempty(param.cmd.frms)

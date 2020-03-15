@@ -202,7 +202,7 @@ param_records.gps_source = records.gps_source;
 %% Load surface layer
 % =========================================================================
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = load(frames_fn);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 layer_params = [];
@@ -355,7 +355,7 @@ for img = 1:length(param.load.imgs)
       
       good_mask = ~hdr.bad_rec{img}(1,:,wf_adc);
 
-      % To save memory, shift the data out one wf_adc at a time
+      % To conserve memory, shift the data out one wf_adc at a time
       if isempty(data{img})
         % All records were bad so data is an empty matrix
         fk_data = wfs(wf).bad_value * ones(length(time_bins),size(data{img},2));
@@ -542,6 +542,7 @@ for img = 1:length(param.load.imgs)
         else
           file_version = '1';
         end
+        file_type = 'sar';
         if param.sar.combine_rx
           out_fn = fullfile(out_fn_dir,sprintf('img_%02d_chk_%03d.mat', img, param.load.chunk_idx));
         else
@@ -551,7 +552,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
         wfs(wf).time = time;
         wfs(wf).freq = freq;
-        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
+        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version','file_type');
       end
       
     elseif strcmpi(param.sar.sar_type,'tdbp_old')

@@ -101,6 +101,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % -------------------------------------------------------------------------
 % 2019 Antarctica Ground
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190925_04');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200107_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191231');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200101');

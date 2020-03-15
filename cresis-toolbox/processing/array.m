@@ -55,7 +55,7 @@ if ~isfield(param.array,'imgs') || isempty(param.array.imgs)
 end
 
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = load(ct_filename_support(param,'','frames')); % Load "frames" variable
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end

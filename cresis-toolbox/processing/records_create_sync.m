@@ -552,6 +552,7 @@ if param.ct_file_lock
 else
   records.file_version = '1';
 end
+records.file_type = 'records';
 
 % Create the first entry in the records.settings field
 records.settings.wfs_records = 1;

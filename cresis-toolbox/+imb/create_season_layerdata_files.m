@@ -49,7 +49,7 @@ param = merge_structs(param, param_override);
 try
   layer = opsLoadLayers(param,param.create_season_layerdata_files.layer_params);
 catch ME
-  error(ME);
+  rethrow(ME);
 end
 
 if isempty(layer)
@@ -79,7 +79,7 @@ end
 %% Loading frames and records files
 % =====================================================================
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn,'frames'); % loads "frames" variable
+frames = load(frames_fn,'frames'); % loads "frames" variable
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn,'gps_time'); % loads "gps_time" variable
 

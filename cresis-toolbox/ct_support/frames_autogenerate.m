@@ -102,8 +102,22 @@ end
 
 %% Save frames file
 % =====================================================================
-frames.nyquist_zone = NaN*zeros(size(frames.frame_idxs));
 frames.proc_mode = zeros(size(frames.frame_idxs));
+
+frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
+Nfrms = length(frames.frame_idxs);
+frames.notes = cell(1,Nfrms);
+if ~isfield(frames,'quality')
+  frames.quality = zeros(1,Nfrms);
+end
+if ~isfield(frames,'proc_mode')
+  frames.proc_mode = zeros(1,Nfrms);
+end
+frames.Nx = length(records.gps_time);
+frames.param.day_seg = param.day_seg;
+frames.param.season_name = param.season_name;
+frames.param.radar_name = param.radar_name;
+frames.param.sw_version = param.sw_version;
 
 fprintf('  Saving %s (%s)\n', frames_fn, datestr(now));
 frames_fn_dir = fileparts(frames_fn);
@@ -111,9 +125,10 @@ if ~exist(frames_fn_dir,'dir')
   mkdir(frames_fn_dir);
 end
 if param.ct_file_lock
-  file_version = '1L';
+  frames.file_version = '1L';
 else
-  file_version = '1';
+  frames.file_version = '1';
 end
+frames.file_type = 'frames';
 ct_file_lock_check(frames_fn,3);
-ct_save(frames_fn,'-v7.3','frames','file_version');
+ct_save(frames_fn,'-struct','frames');

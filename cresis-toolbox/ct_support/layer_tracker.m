@@ -284,7 +284,7 @@ if nargout ~= 1
   if ~exist(frames_fn,'file')
     warning('Cannot verify param.cmd.frms because frames file does not exist: %s.', frames_fn);
   else
-    load(frames_fn);
+    frames = load(frames_fn);
     if isempty(param.cmd.frms)
       param.cmd.frms = 1:length(frames.frame_idxs);
     end

@@ -5,7 +5,7 @@
 %
 % Author: John Paden
 %
-% See also records_update.m
+% See also: run_all_records_update, run_records_update, records_update
 
 %% User Settings
 % =========================================================================

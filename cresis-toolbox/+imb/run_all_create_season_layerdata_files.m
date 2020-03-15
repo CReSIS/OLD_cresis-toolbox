@@ -69,7 +69,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2011_Antarctica_TO.xls';
 % param_fns{end+1} = 'rds_param_2011_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2011_Greenland_TO.xls';
-% param_fns{end+1} = 'rds_param_2012_Antarctica_DC8.xls';
+param_fns{end+1} = 'rds_param_2012_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2013_Antarctica_Basler.xls';
 % param_fns{end+1} = 'rds_param_2013_Antarctica_P3.xls';
@@ -84,7 +84,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2016_Greenland_TOdtu.xls';
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Basler.xls';
 % param_fns{end+1} = 'rds_param_2017_Antarctica_P3.xls';
-% param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
+param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
@@ -177,7 +177,6 @@ for param_idx = 1:length(param_fns)
     keyboard
     params = ct_set_params(params,'cmd.generic',0);
     params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
-    params = ct_set_params(params,'debug',1);
   end
   
   %% Load each segment

@@ -18,7 +18,7 @@ function success = qlook_combine_task(param)
 %% Setup Processing
 % =====================================================================
 
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = load(ct_filename_support(param,'','frames')); % Load "frames" variable
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
@@ -242,15 +242,16 @@ for frm_idx = 1:length(param.cmd.frms);
     else
       file_version = '1';
     end
+    file_type = 'qlook';
     Data = single(Data);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version');
+        'param_qlook','param_records','file_version','file_type');
     else
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version','custom');
+        'param_qlook','param_records','file_version','file_type','custom');
     end
   end
   

@@ -104,7 +104,7 @@ end
 physical_constants;
 
 % Load frames file
-load(ct_filename_support(param,'','frames'));
+frames = load(ct_filename_support(param,'','frames'));
 
 if isfield(layer_params,'frms')
   param.cmd.frms = layer_params.frms;

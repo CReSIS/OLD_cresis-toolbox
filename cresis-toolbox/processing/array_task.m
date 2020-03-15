@@ -34,7 +34,7 @@ array_tmp_dir = fullfile(ct_filename_out(param, param.array.out_path, 'array_tmp
 %% Load surface layer
 % =========================================================================
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = load(frames_fn);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 

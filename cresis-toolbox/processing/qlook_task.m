@@ -153,7 +153,7 @@ param_records.gps_source = records.gps_source;
 %% Load surface layer
 % =========================================================================
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = load(frames_fn);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 surf_layer = opsLoadLayers(tmp_param,param.qlook.surf_layer);
@@ -388,8 +388,9 @@ for img = 1:length(param.load.imgs)
   else
     file_version = '1';
   end
+  file_type = 'qlook_tmp';
   ct_save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
-    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version');
+    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version', 'file_type');
 end
 
 %% Done

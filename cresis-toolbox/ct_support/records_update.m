@@ -11,7 +11,7 @@ function records_update(param,param_override)
 %
 % Author: John Paden
 %
-% See also: run_records_update.m
+% See also: run_all_records_update, run_records_update, records_update
 
 param = merge_structs(param,param_override);
 
@@ -159,6 +159,7 @@ if save_changes
   else
     records.file_version = '1';
   end
+  records.file_type = 'records';
   ct_save(records_fn,'-v7.3','-struct','records');
   records_aux_files_create(records_fn);
 else

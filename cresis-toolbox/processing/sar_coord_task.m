@@ -137,7 +137,13 @@ if ~exist(sar_fn_dir,'dir')
   mkdir(sar_fn_dir);
 end
 fprintf('Saving SAR coord %s (%s)\n', sar_fn, datestr(now));
-save(sar_fn,'-v7','-struct','sar','version','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time');
+if param.ct_file_lock
+  file_version = '1L';
+else
+  file_version = '1';
+end
+file_type = 'sar_coord';
+ct_save(sar_fn,'-struct','sar','version','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time','file_version','file_type');
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 
