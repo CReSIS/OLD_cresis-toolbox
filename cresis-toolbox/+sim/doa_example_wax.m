@@ -1,5 +1,5 @@
-% script sim.doa_example_wax
-%
+% script sim.doa_example_wax % Cluster version
+% 
 % Example setup scripts for the sim.doa function. This includes examples
 % that reproduce the Wax and Ziskind 1988 paper results (Fig 2, 3, 4, and
 % 6).
@@ -46,11 +46,17 @@ if fig_to_plot == 2
   num_tests = size(param.monte.SNR,1);
   param.monte.DOA   = repmat([0 20],[num_tests 1]);
   param.monte.Nsnap = repmat(11,[num_tests 1]);
-  param.monte.runs  = 1000;
+  param.monte.runs  = 1000;  % after debugging change back to 1000
   param.monte.random_seed_offset = 0;
   
+  %% Cluster Parameters
+  param.cluster.type = 'torque'; 
+  
   %% Fig 2: Run the simulation
+  
+%   results = sim.doa(param);
   results = sim.doa(param);
+ 
   
   %% Fig 2: Process and save the outputs
   RMSE = sim.doa_rmse(param,results);
