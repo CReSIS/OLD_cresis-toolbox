@@ -61,9 +61,9 @@ if status == 2
   data.properties.source_elev = [];
   data.properties.cross_elev = [];
   data.properties.layer_id = [];
-  data.properties.frame_name = {};
+  data.properties.frm_str = {};
   data.properties.season_name = {};
-  data.properties.segment_id = [];
+  data.properties.seg_id = [];
   data.properties.twtt = [];
   data.properties.angle = [];
   data.properties.abs_error = [];
@@ -74,9 +74,9 @@ else
   data.properties.source_elev = cell2mat(decodedJson.source_elev);
   data.properties.cross_elev = cell2mat(decodedJson.cross_elev);
   data.properties.layer_id = cell2mat(decodedJson.layer_id);
-  data.properties.frame_name = decodedJson.frame_name;
+  data.properties.frm_str = decodedJson.frame_name;
   data.properties.season_name = decodedJson.season_name;
-  data.properties.segment_id = cell2mat(decodedJson.segment_id);
+  data.properties.seg_id = cell2mat(decodedJson.segment_id);
   data.properties.twtt = cell2mat(decodedJson.twtt);
   data.properties.angle = cell2mat(decodedJson.angle);
   data.properties.abs_error = cell2mat(decodedJson.abs_error);

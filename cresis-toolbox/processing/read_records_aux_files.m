@@ -31,6 +31,9 @@ if recs(2) == inf || recs(2) > num_recs;
   % Determine number of records and set recs(1) to this
   recs(2) = num_recs;
 end
+if recs(2) < recs(1)
+  error('Requested records beyond the end of the records file or requested zero records: recs(1)=%d > recs(2)=%d. There are %d records in the records file: %s.', recs(1), recs(2), recs(2), records_fn);
+end
 
 records.lat = ncread(cdf_fn,'lat',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.lon = ncread(cdf_fn,'lon',[1 recs(1)],[1 recs(2)-recs(1)+1]);
@@ -43,6 +46,9 @@ records.surface = ncread(cdf_fn,'surface',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 try
   records.settings.nyquist_zone = ncread(cdf_fn,'settings(1).nyquist_zone',[1, recs(1)],[1, recs(2)-recs(1)+1]);
 end
+try
+  records.settings.nyquist_zone_hw = ncread(cdf_fn,'settings(1).nyquist_zone_hw',[1, recs(1)],[1, recs(2)-recs(1)+1]);
+end
 
 % Get one more record for the offset field (this is helpful when loading
 % records with an unknown size).
@@ -50,6 +56,15 @@ if recs(2) < num_recs;
   recs(2) = recs(2) + 1;
 end
 records.offset = ncread(cdf_fn,'offset',[1 recs(1)],[inf recs(2)-recs(1)+1]);
+
+try
+  % bit 0 is bad record (e.g. corrupt header or data)
+  % bit 1 is stationary record (e.g. stationary ground collection, used by sar.m/load_data.m and gpr_find_bad_records.m)
+  records.bit_mask = ncread(cdf_fn,'bit_mask',[1 recs(1)],[inf recs(2)-recs(1)+1]);
+catch
+  % Default is no big flags set
+  records.bit_mask = zeros(size(records.offset));
+end
 
 tmp = netcdf_to_mat(cdf_fn,[],'^gps_source$');
 records.gps_source = tmp.gps_source;
@@ -64,8 +79,3 @@ records.param_records = tmp.param_records;
 
 tmp = netcdf_to_mat(cdf_fn,[],'^settings(1\).wfs(');
 records.settings.wfs = tmp.settings.wfs;
-
-return;
-
-
-

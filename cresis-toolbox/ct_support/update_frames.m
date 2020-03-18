@@ -210,8 +210,10 @@ while ~quit_cmd
           set(h_plot(img),'YData',mdata.Surface);
           set(h_axes(img),'YDir','reverse');
           if ~fmcw_img_debug_mode
+            set(h_plot(img),'Color','red')
             colormap(h_axes(img),1-gray(256));
           else
+            set(h_plot(img),'Color','black')
             for rline=1:size(mdata.Data,2)
               mdata.Data(lp(mdata.Data(:,rline))<max(lp(mdata.Data(:,rline)))+img_sidelobe,rline) = 0;
             end

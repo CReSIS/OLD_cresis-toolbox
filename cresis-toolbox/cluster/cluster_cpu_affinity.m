@@ -1,12 +1,15 @@
-function cluster_cpu_affinity(num_my_processors,process_list)
-% cluster_cpu_affinity(num_my_processors,process_list)
+function cluster_cpu_affinity(num_my_processors,process_list,force)
+% cluster_cpu_affinity(num_my_processors,process_list,force)
 %
 % Assigns the current process to "num_my_processors" using cpu affinity
 % settings.
 %
 % Inputs:
 % num_my_processors: the number of physical cores to assign.
-% process_list: string argument which overrides process list to taskset
+% process_list: string argument which overrides process list to taskset;
+%   default is an empty string which sets this scripts process id.
+% force: logical; default is false; if true force processor affinity to be
+% set even if there are not enough processors
 %
 % Author: John Paden
 %
@@ -20,7 +23,11 @@ if ~exist('process_list','var')
   process_list = '';
 end
 
-try
+if ~exist('force','var')
+  force = false;
+end
+
+try  
   % 1. Get Matlab's process id:
   % feature getpid
   pid = feature('getpid');
@@ -37,7 +44,12 @@ try
   end
   
   % 3. Determine what the cpu affinity is for each process
-  cmd = 'for pid in $(ps -a -o pid=); do taskset -p $pid 2>/dev/null | awk ''{print $6}''; done';
+  if 0
+    % Debug output
+    cmd = 'for pid in $(ps -u root -N -o pid=); do taskset -p $pid 2>/dev/null; echo "  " `ps -p $pid -f|tail -n -1`; done';
+    system(cmd);
+  end
+  cmd = 'for pid in $(ps -u root -N -o pid=); do taskset -p $pid 2>/dev/null | awk ''{print $6}''; done';
   [status,result] = system(cmd);
   
   process = [];
@@ -62,6 +74,9 @@ try
     processors = fliplr(any(process,1));
   end
   
+  fprintf('%2d ', 1:length(processors)); fprintf('\n');
+  fprintf('%2d ', processors); fprintf('\n');
+  
   % Loop through available processors and select processors that are
   % available and are not logical pairs to already selected processors. If
   % there are not enough processors available, print a warning message since
@@ -76,20 +91,28 @@ try
       logical_processors = cellfun(@str2double,regexp(result,',','split'));
       % Verify that none of the processor's logical pairs are used
       if ~all(~processors(logical_processors+1))
+        fprintf('Core %d logical pair in use.\n', cpu_idx);
         processors(logical_processors+1) = 0;
         continue;
       end
+      fprintf('Core %d available.\n', cpu_idx);
       % Take this processor and its logical pairs
       processors(logical_processors+1) = 1;
       my_processors(end+1) = cpu;
       num_my_processors = num_my_processors - 1;
+    else
+      fprintf('Core %d in use.\n', cpu_idx);
     end
     if num_my_processors == 0
       break;
     end
   end
   if num_my_processors ~= 0
-    error('Insufficient processors available.');
+    if force
+      my_processors = 0:size(process,2)-1;
+    else
+      error('Insufficient processors available. Need %d more processors.', num_my_processors);
+    end
   end
   
   % 4. Set this processes CPU affinity
@@ -98,7 +121,26 @@ try
   process(my_processors+1) = 1;
   process_str = sprintf('%d,',find(process)-1);
   process_str = process_str(1:end-1);
-  
+
+  % Check to see if Torque can provide processor list
+  jobid = getenv('PBS_JOBID');
+  if ~isempty(jobid)
+    fprintf('PBS_JOBID = %s\n', jobid);
+    cmd = sprintf('qstat -f %s | grep exec_host', jobid);
+    [status,result] = system(cmd);
+    fprintf('QSTAT: %s\n', result);
+    matches = regexp(result,'(/)([0-9]*)[+\n]','match')
+    process_str = '';
+    for idx=1:length(matches)
+      if idx == 1
+        process_str = matches{idx}(2:end-1);
+      else
+        process_str = [process_str ',' matches{idx}(2:end-1)];
+      end
+    end
+    fprintf('process_str: %s\n', process_str);
+  end
+
   % Set parent process CPU affinity
   cmd = sprintf('ps -p %d -o pid,ppid | grep %d | awk ''{print $2}''', pid, pid);
   [status,result] = system(cmd);
@@ -116,6 +158,7 @@ try
   cmd = sprintf('ps -eLo pid,tid | grep %d| awk ''{print $2}''', pid);
   [status,result] = system(cmd);
   pids = cellfun(@str2double,regexp(result,'\n','split'));
+  cmd_printed = false;
   for pid_idx = 1:length(pids)
     pid = pids(pid_idx);
     if ~isnan(pid)
@@ -125,7 +168,10 @@ try
       else
         cmd = sprintf('taskset -cp %s %d >/dev/null 2>&1', process_str, pid);
       end
-      % fprintf('%s\n', cmd);
+      if ~cmd_printed
+        fprintf('%s\n', cmd);
+        cmd_printed = true;
+      end
       system(cmd);
     end
   end

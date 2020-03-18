@@ -1,3 +1,27 @@
+function [varargout] = physical_constants(varargin)
+% function [varargout] = physical_constants(varargin)
+% Adds desired or all physical constants to caller's workspace
+% Outputs desired constants to assigned arguments
+%
+%   Usage:  
+%   physical_constants;
+%       Adds all constants to workspace. General use.
+%   physical_constants('c');
+%   physical_constants('c','er_ice');
+%   physical_constants('WGS84');
+%   physical_constants('wgs84');
+%   physical_constants('gearthmassprod');
+%       Adds only selected constant(s) to workspace
+%       case-insensitive and uses default case used in this script
+%   [light_vel] = physical_constants('c');
+%   [light_vel, grav_const] = physical_constants('c','G');
+%       Assigns according to the input and ouput arguments
+% 
+%   Authors: John Paden, Hara Madhav Talasila
+
+%% Physical Constants
+% =========================================================================
+
 % Permittivity of free-space (F*m^-1), http://en.wikipedia.org/wiki/Permittivity
 e0 = 8.8541878176e-12;
 % Permeability of free-space (N*A^-2), http://en.wikipedia.org/wiki/Permeability_%28electromagnetism%29
@@ -27,3 +51,27 @@ WGS84.ellipsoid = [WGS84.semimajor WGS84.eccentricity];
 % Basic ice properties
 er_ice = 3.15;
 % er_ice = 1;
+
+%% Automated section
+% =========================================================================
+
+local_var_list = who;
+if nargin == 0 % default mode as before
+  for idx = 1:length(local_var_list)
+    if ~any(strcmpi('varargin',local_var_list{idx}))
+      % Adds all physical constants to caller's workspace
+      assignin('caller',local_var_list{idx},eval(local_var_list{idx}));
+    end
+  end
+else % Get only required constants
+  for idx = 1:length(varargin)
+    loc = find(strcmpi(varargin{idx},local_var_list));
+    if loc && nargout==nargin % assigns physical constant to out variable
+      varargout{idx} = eval(local_var_list{loc});
+    else % adds physical constant to caller's workspace
+      assignin('caller',local_var_list{loc},eval(local_var_list{loc}));
+    end
+  end
+end
+
+end

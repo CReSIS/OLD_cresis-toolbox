@@ -15,6 +15,7 @@ fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
 if fig_to_plot == 2
   %% Fig 2: Simulation parameters
   physical_constants;
+  array_proc_methods;
   param = [];
   
   % Source parameters
@@ -26,7 +27,7 @@ if fig_to_plot == 2
   param.src.lever_arm.fh            = @sim.lever_arm_example;
   param.src.lever_arm.args          = {[],1,[1:3],[0; c/fc/2; 0]};
   % DOA method parameters
-  param.method.list                   = [2 7];
+  param.method.list                   = [MUSIC_DOA_METHOD MLE_METHOD];
   param.method.Nsv                    = 9;
   param.method.OneD_Nsv               = 128;
   param.method.src_limits             = {[-20 40]/180*pi,[-20 40]/180*pi};
@@ -47,7 +48,7 @@ if fig_to_plot == 2
   param.monte.Nsnap = repmat(11,[num_tests 1]);
   param.monte.runs  = 1000;
   param.monte.random_seed_offset = 0;
-
+  
   %% Fig 2: Run the simulation
   results = sim.doa(param);
   
@@ -59,7 +60,7 @@ if fig_to_plot == 2
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Figure 2 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -67,7 +68,7 @@ if fig_to_plot == 2
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Complement to figure 2 from Wax and Ziskind (source 2)')
   
   % Save Outputs
@@ -81,12 +82,13 @@ if fig_to_plot == 2
   fprintf('Saving %s\n', out_fn);
   ct_save(out_fn,'param','results');
 end
-  
+
 %% Fig 3 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 3
   %% Fig 3: Setup simulation parameters
   physical_constants;
+  array_proc_methods;
   param = [];
   
   % Source parameters
@@ -98,7 +100,7 @@ if fig_to_plot == 3
   param.src.lever_arm.fh            = @sim.lever_arm_example;
   param.src.lever_arm.args          = {[],1,[1:3],[0; c/fc/2; 0]};
   % DOA method parameters
-  param.method.list                   = [2 7];
+  param.method.list                   = [MUSIC_DOA_METHOD MLE_METHOD];
   param.method.Nsv                    = 9;
   param.method.OneD_Nsv               = 128;
   param.method.src_limits             = {[-20 40]/180*pi,[-20 40]/180*pi};
@@ -119,7 +121,7 @@ if fig_to_plot == 3
   param.monte.DOA   = repmat([0 20],[num_tests 1]);
   param.monte.runs  = 100;
   param.monte.random_seed_offset = 0;
-
+  
   %% Fig 3: Run the simulation
   results = sim.doa(param);
   
@@ -131,7 +133,7 @@ if fig_to_plot == 3
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Figure 3 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -139,7 +141,7 @@ if fig_to_plot == 3
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Complement to figure 3 from Wax and Ziskind (source 2)')
   
   % Save Outputs
@@ -153,12 +155,13 @@ if fig_to_plot == 3
   fprintf('Saving %s\n', out_fn);
   ct_save(out_fn,'param','results');
 end
-  
+
 %% Fig 4 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 4
   %% Fig 4: Setup simulation parameters
   physical_constants;
+  array_proc_methods;
   param = [];
   
   % Source parameters
@@ -170,7 +173,7 @@ if fig_to_plot == 4
   param.src.lever_arm.fh            = @sim.lever_arm_example;
   param.src.lever_arm.args          = {[],1,[1:3],[0; c/fc/2; 0]};
   % DOA method parameters
-  param.method.list                   = [2 7];
+  param.method.list                   = [MUSIC_DOA_METHOD MLE_METHOD];
   param.method.Nsv                    = 9;
   param.method.OneD_Nsv               = 128;
   param.method.src_limits             = {[-20 40]/180*pi,[-20 40]/180*pi};
@@ -191,7 +194,7 @@ if fig_to_plot == 4
   param.monte.DOA   = repmat([0 5],[num_tests 1]);
   param.monte.runs  = 500;
   param.monte.random_seed_offset = 0;
-
+  
   %% Fig 4: Run the simulation
   results = sim.doa(param);
   
@@ -203,7 +206,7 @@ if fig_to_plot == 4
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Figure 4 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -211,7 +214,7 @@ if fig_to_plot == 4
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Complement to figure 4 from Wax and Ziskind (source 2)')
   
   % Save Outputs
@@ -225,12 +228,13 @@ if fig_to_plot == 4
   fprintf('Saving %s\n', out_fn);
   ct_save(out_fn,'param','results');
 end
-  
+
 %% Fig 6 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 6
   %% Fig 6: Setup simulation parameters
   physical_constants;
+  array_proc_methods;
   param = [];
   
   % Source parameters
@@ -242,7 +246,7 @@ if fig_to_plot == 6
   param.src.lever_arm.fh            = @sim.lever_arm_example;
   param.src.lever_arm.args          = {[],1,[1:7],[0; c/fc/2; 0]};
   % DOA method parameters
-  param.method.list                   = [2 7];
+  param.method.list                   = [MUSIC_DOA_METHOD MLE_METHOD];
   param.method.Nsv                    = 64;
   param.method.OneD_Nsv               = 128;
   param.method.src_limits             = {[-20 20]/180*pi,[-20 20]/180*pi,[-20 20]/180*pi,[-20 20]/180*pi};
@@ -263,7 +267,7 @@ if fig_to_plot == 6
   param.monte.DOA   = repmat([-8 -1 5 15],[num_tests 1]);
   param.monte.runs  = 500;
   param.monte.random_seed_offset = 0;
-
+  
   %% Fig 6: Run the simulation
   results = sim.doa(param);
   
@@ -275,7 +279,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Figure 6 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -283,7 +287,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Complement to figure 6 from Wax and Ziskind (source 1)')
   
   figure(3); clf
@@ -291,7 +295,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Complement to figure 6 from Wax and Ziskind (source 2)')
   
   figure(4); clf
@@ -299,7 +303,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend(array_proc_method_strs(param.method.list));
+  legend(cellfun(@(x) regexprep(x,'_','\\_'), array_proc_method_strs(param.method.list), 'UniformOutput', false));
   title('Complement to figure 6 from Wax and Ziskind (source 4)')
   
   % Save Outputs
@@ -318,5 +322,5 @@ if fig_to_plot == 6
   out_fn = ct_filename_tmp([],'wax_ziskind_fig6.mat');
   fprintf('Saving %s\n', out_fn);
   ct_save(out_fn,'param','results');
-
+  
 end

@@ -197,7 +197,7 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.gps.time_offset = 0;
-default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
+default.records.frames.geotiff_fn = fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif');
 default.records.frames.mode = 1;
 
 %% Quick Look worksheet

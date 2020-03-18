@@ -96,7 +96,17 @@ if surf_idxs(end) ~= length(along_track)
   end
 end
 
-surf = sgolayfilt(records.surface(surf_idxs),3,round(param.sar.surf_filt_dist / median(diff(along_track(surf_idxs)))/2)*2+1);
+frame_length = round(param.sar.surf_filt_dist / median(diff(along_track(surf_idxs)))/2)*2+1;
+if length(surf_idxs) < frame_length
+  if mod(length(surf_idxs),2) == 0
+    % Even length(surf_idxs), but sgolayfilt filter must be odd length
+    surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs)-1);
+  else
+    surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs));
+  end
+else
+  surf = sgolayfilt(records.surface(surf_idxs),3,frame_length);
+end
 
 SAR_coord_param.type = param.sar.mocomp.type;
 SAR_coord_param.squint = [0 0 -1].';

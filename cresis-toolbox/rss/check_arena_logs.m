@@ -121,7 +121,7 @@ for field_idx = 1:length(log_fieldnames)
       min_val = min(logs.(fieldname));
       max_val = max(logs.(fieldname));
       if max_val-min_val >= link_error_threshold
-        fprintf(2,'There should not be more than %d link errors. There are %d.\n', link_error_threshold,max_val-min_val);
+        fprintf(2,'There should not be more than %d link errors that occur after the system starts. There were %d errors after the system started.\n', link_error_threshold,max_val-min_val);
         fprintf(2,'%s.%s: min(%d) max(%d)\n', parent_str, fieldname, min_val, max_val);
       end
     end

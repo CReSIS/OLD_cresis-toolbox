@@ -1,135 +1,101 @@
-% Creates a season layerdata file containing the lat, lon
-% The picker loads this file when plotting flightlines 
+function [lat,lon,frm_id,elev,surf,bottom,quality,frm_info] = create_season_layerdata_files(param,param_override)
+% [lat,lon,frm_id,elev,surf,bottom,quality,frm_info] = create_season_layerdata_files(param,param_override)
+%
+% Return season layer file information including lat, lon. See imb. The imb.picker
+% loads this file when plotting flightlines without OPS. Loading all the
+% individual CSARP_layerData files would be slow so this helps speed up the
+% loading in imb.picker (and potentially other programs).
+%
+% param = struct with processing parameters
+% param_override = parameters in this struct will override parameters
+%         in param.  This struct must also contain the gRadar fields.
+%         Typically global gRadar; param_override = gRadar;
+%
+% param.day_seg
+% param.create_season_layerdata_files.layer_params: opsLoadLayers struct
+%   array which should define the loading of two layers. The first layer
+%   should be the surface and the second layer should be the bottom.
+%
+% Outputs:
+% These variables are all 1 by Nx vectors of the same length:
+%   bottom: ice bottom two way travel time in seconds
+%   elev: elevation in meters
+%   frm_id: full frame ID 2019020401123
+%   lat: latitude in degrees
+%   lon: longitude in degrees
+%   surf: ice surface two way travel time in seconds
+%   quality: integer enumeration of bottom quality, 1=good, 2=moderate,
+%     3=poor or derived from another source
+%  frm_info: structure containing frame information
+%    .frm_id: Nfrm element vector of frame IDs
+%    .start_gps_time: Nfrm element vector of start GPS times for each frame
+%    .stop_gps_time: Nfrm element vector of stop GPS times for each frame
+%
+% Author: John Paden, Rohan Choudhari
+%
+% See also: imb.run_all_create_season_layerdata_files.m,
+% imb.create_season_layerdata_files.m
 
-function create_season_layerdata_files
+%% General Setup
+% =====================================================================
+param = merge_structs(param, param_override);
 
-  global gRadar;
+% fprintf('=====================================================================\n');
+% fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+% fprintf('=====================================================================\n');
 
-  %% Select Seasons
-  season_names = {};
-    season_names{end+1} = 'rds_param_1993_Greenland_P3';
-    season_names{end+1} = 'rds_param_1995_Greenland_P3';
-    season_names{end+1} = 'rds_param_1996_Greenland_P3';
-    season_names{end+1} = 'rds_param_1997_Greenland_P3';
-    season_names{end+1} = 'rds_param_1998_Greenland_P3';
-    season_names{end+1} = 'rds_param_1999_Greenland_P3';
-    season_names{end+1} = 'rds_param_2001_Greenland_P3';
-% %     season_names{end+1} = 'rds_param_2002_Antarctica_P3chile';
-    season_names{end+1} = 'rds_param_2002_Greenland_P3';
-    season_names{end+1} = 'rds_param_2003_Greenland_P3';
-    season_names{end+1} = 'rds_param_2004_Antarctica_P3chile';
-    season_names{end+1} = 'rds_param_2005_Greenland_TO';
-    season_names{end+1} = 'rds_param_2006_Greenland_TO';
-    season_names{end+1} = 'rds_param_2008_Greenland_Ground';
-    season_names{end+1} = 'rds_param_2008_Greenland_TO';
-    season_names{end+1} = 'rds_param_2009_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2009_Antarctica_TO';
-    season_names{end+1} = 'rds_param_2009_Greenland_TO';
-    season_names{end+1} = 'rds_param_2009_Greenland_TO_wise';
-    season_names{end+1} = 'rds_param_2010_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2010_Greenland_DC8';
-    season_names{end+1} = 'rds_param_2010_Greenland_P3';
-    season_names{end+1} = 'rds_param_2010_Greenland_TO_wise';
-    season_names{end+1} = 'rds_param_2011_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2011_Antarctica_TO';
-    season_names{end+1} = 'rds_param_2011_Greenland_P3';
-    season_names{end+1} = 'rds_param_2011_Greenland_TO';
-    season_names{end+1} = 'rds_param_2012_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2012_Greenland_P3';
-    season_names{end+1} = 'rds_param_2013_Antarctica_Basler';
-    season_names{end+1} = 'rds_param_2013_Antarctica_P3';
-    season_names{end+1} = 'rds_param_2013_Greenland_P3';
-    season_names{end+1} = 'rds_param_2014_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2014_Greenland_P3';
-    season_names{end+1} = 'rds_param_2015_Greenland_C130';
-    season_names{end+1} = 'rds_param_2015_Greenland_Polar6';
-    season_names{end+1} = 'rds_param_2016_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2016_Greenland_G1XB';
-    season_names{end+1} = 'rds_param_2016_Greenland_P3';
-    season_names{end+1} = 'rds_param_2016_Greenland_Polar6';
-    season_names{end+1} = 'rds_param_2016_Greenland_TOdtu';
-    season_names{end+1} = 'rds_param_2017_Antarctica_Basler';
-    season_names{end+1} = 'rds_param_2017_Antarctica_P3';
-    season_names{end+1} = 'rds_param_2017_Antarctica_Polar6';
-    season_names{end+1} = 'rds_param_2017_Greenland_P3';
-    season_names{end+1} = 'rds_param_2018_Antarctica_DC8';
-    season_names{end+1} = 'rds_param_2018_Antarctica_Ground';
-    season_names{end+1} = 'rds_param_2018_Greenland_P3';
-    season_names{end+1} = 'rds_param_2018_Greenland_Polar6';
-
-  %% Select the destinaion where the files are to be saved
-  out_dir = 'Y:\rohan\coverage_maps_loader\';
-
-  if ~exist(out_dir,'dir')
-    mkdir(out_dir);
-  end
-
-  %% Setting up params
-  layer_params = [];
-  idx = 1;
-  layer_params(idx).name = 'bottom';
-  layer_params(idx).source = 'layerData';
-  % layer_params(idx).layerdata_source = 'CSARP_post/layerData';
-  layer_params(idx).layerdata_source = 'layerData';
-
-  %% Reading params, layerdata files, and storing lat, lon in the season layerdata file
-  for season_idx = 1:length(season_names)
-
-    lat = [];
-    lon = [];  
-    frm = [];
-    
-    %Reading params from spreadsheet
-    disp('\n\n')
-    params = read_param_xls(ct_filename_param(strcat(season_names{season_idx},'.xls')),'','post');
-    params = ct_set_params(params,'cmd.generic',1);
-    params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
-    disp(season_names{season_idx})
-
-    for param_idx = 1:length(params)
-%     for param_idx = 1:20
-      param = params(param_idx);
-      param = merge_structs(param,gRadar);
-
-      day_seg = param.day_seg;
-      day_seg(regexp(day_seg,'_'))=[];
-      
-      %Reading layerData
-      try
-        layer = opsLoadLayers(param,layer_params);
-      catch
-        continue;
-      end
-
-      if isempty(layer)
-        continue;
-      end;
-
-      %Looping through the layer data
-      for layer_idx = 1:length(layer)
-
-        %Checking for bad file
-        if length(layer(layer_idx).lat) ~= length(layer(layer_idx).type)
-          fprintf('    Bad file\n');
-          continue;
-        end
-        lats = layer(layer_idx).lat;
-        lons = layer(layer_idx).lon;
-        frms = layer(layer_idx).frm;
-        lat = [lat lats];
-        lon = [lon lons];
-        
-        frms3d = [];
-        for f = 1:length(frms)
-          frame = frms(f);
-          frame = str2num(strcat(day_seg,sprintf('%03d', frame)));
-          frms3d = [frms3d frame];
-        end
-        frm = [frm frms3d];
-        
-      end
-    end
-    save(char(strcat('X:csarp_support/season_layerdata_files/',season_names{season_idx},'_layerdata.mat')), 'lat', 'lon', 'frm');
-
-  end
+%% Reading layer data
+% =====================================================================
+try
+  layer = opsLoadLayers(param,param.create_season_layerdata_files.layer_params);
+catch ME
+  error(ME);
 end
+
+if isempty(layer)
+  error('%s\tno_layers_returned!!!', param.day_seg);
+end;
+
+if isempty(layer(1).gps_time)
+  error('%s\tempty_layer!!!', param.day_seg);
+end;
+
+if any(isnan(layer(1).twtt))
+  fprintf('%s\tsurface_NaN!!!\n', param.day_seg);
+end;
+
+% Checking for inconsistent field lengths
+if length(layer(1).lat) ~= length(layer(1).lon) ...
+    || length(layer(1).lat) ~= length(layer(1).frm) ...
+    || length(layer(1).lat) ~= length(layer(1).elev) ...
+    || length(layer(1).lat) ~= length(layer(1).twtt) ...
+    || length(layer(1).lat) ~= length(layer(2).twtt) ...
+    || length(layer(1).lat) ~= length(layer(2).quality)
+  warning('%s\tLength of fields in layer files are not matched. This should never happen and indicates corrupt layer data files.\n');
+  keyboard;
+  return;
+end
+
+%% Loading frames and records files
+% =====================================================================
+frames_fn = ct_filename_support(param,'','frames');
+load(frames_fn,'frames'); % loads "frames" variable
+records_fn = ct_filename_support(param,'','records');
+records = load(records_fn,'gps_time'); % loads "gps_time" variable
+
+%% Create outputs
+% =====================================================================
+
+lat = layer(1).lat;
+lon = layer(1).lon;
+% Store full frame ID number 20190204_01_003 --> 2019020401003
+frm_id = str2num(param.day_seg([1:8,10:11]))*1000+layer(1).frm;
+elev = layer(1).elev;
+surf = layer(1).twtt;
+bottom = layer(2).twtt;
+quality = layer(2).quality;
+
+% Store frame GPS time boundaries
+frm_info.frm_id = str2num(param.day_seg([1:8,10:11]))*1000+(1:length(frames.frame_idxs));
+frm_info.start_gps_time = records.gps_time(frames.frame_idxs);
+frm_info.stop_gps_time = [records.gps_time(frames.frame_idxs(2:end)) records.gps_time(end)];

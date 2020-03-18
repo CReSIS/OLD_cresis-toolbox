@@ -11,7 +11,7 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %  .out_fn_dir: output arguments directory
 %  .stdout_fn_dir: standard output directory
 %  .error_fn_dir: error directory
-% sparam: Static arguments to task
+% sparam: Struct containing static arguments to task
 %  .task_function: function handle of job, this function handle tells
 %    cluster_job.m what to run
 %  .argsin: cell vector of input arguments (default is {})
@@ -24,7 +24,18 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %    task a success. If the file is a .mat file, then it must have the
 %    file_version variable and not be marked for deletion.
 % dparam: Dynamic arguments to task (will be merged with sparam when the
-%   task runs).
+%   task runs). This structure has all the same fields as sparam. After
+%   merging, sparam and dparam must have all the required fields. It does
+%   not matter where the field is set. For example, "task_function" could
+%   be set from dparam and "mem" could be set from sparam. Note that if a
+%   field is set in both structures, then dparam will overrule sparam.
+% varargin: List of name value pairs to set additional variables in the
+%   function. These include:
+%   'dparam_save': Logical scalar. Default is true. If set to false, this
+%     function does not save the dparam settings into the dparam input file
+%     and a call to cluster_save_dparam is required. This is useful when
+%     many tasks are being created because saving to the dparam file is
+%     slow and it is much better to do it all at once at the end.
 %
 % Outputs:
 % ctrl: updated ctrl structure with new job
@@ -79,8 +90,9 @@ if ~isfield(sparam,'file_success') || isempty(sparam.file_success)
   sparam.file_success = {};
 end
 sparam.file_version = ctrl.cluster.file_version;
-  
-dparam_save = 1;
+
+% Read in name-value pairs from user's varargin
+dparam_save = 1; % Default is true
 for param_idx = 1:2:length(varargin)
   eval(sprintf('%s = varargin{param_idx+1};', varargin{param_idx}));
 end

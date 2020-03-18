@@ -86,12 +86,12 @@ else
   doa_method_flag = false;
 end
 
-if doa_method_flag && (~isfield(param.tomo_collate,'merge_bottom_above_top') ...
-    ||isempty(param.tomo_collate.merge_bottom_above_top))
-  merge_bottom_above_top = 1;
-else
-  merge_bottom_above_top = param.tomo_collate.merge_bottom_above_top;
+if ~isfield(param.tomo_collate,'merge_bottom_above_top') ...
+    || isempty(param.tomo_collate.merge_bottom_above_top)
+  param.tomo_collate.merge_bottom_above_top = 1;
 end
+merge_bottom_above_top = param.tomo_collate.merge_bottom_above_top;
+
 %% Load surface and bottom information
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.load.frm);
@@ -938,7 +938,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     %% Distance-to-Ice-Margin model
     clear DIM DIM_costmatrix;
     
-    DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+    DIM = load(fullfile(param.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
     DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
     DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
 
@@ -1024,13 +1024,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_var') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var)
       smooth_var = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var;
-    else    tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
-    tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
-    tomo_collate.surfdata_cmds(end).visible = true;
-    tomo_collate.surfdata_cmds(end).smooth_weight = [22 22];
-    tomo_collate.surfdata_cmds(end).smooth_var = 32;
-    tomo_collate.surfdata_cmds(end).max_loops = 50;
-
+    else
       smooth_var = 32;
     end
     % Check for max number of loops
@@ -1046,11 +1040,12 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     mu = sinc(linspace(-1.5,1.5,mu_size));
     sigma = sum(mu)/20*ones(1,mu_size);
     bounds = [param.tomo_collate.bounds_relative(1) size(data,2)-1-param.tomo_collate.bounds_relative(2) -1 -1];    
-    mask_dist = round(bwdist(ice_mask == 0));
+    %mask_dist = round(bwdist(ice_mask == 0));
+    mask_dist = inf*ones(size(ice_mask));
     mask_dist = round(mask_dist .* 9);
     clear DIM DIM_costmatrix;
     
-    DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+    DIM = load(fullfile(param.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
     DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
     DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
 

@@ -216,10 +216,19 @@ if force_compile
     if status ~= 0
       error('mcc failed to compile.');
     end
-  else
+  elseif strcmpi(ctrl.cluster.mcc,'system_eval')
+    % This uses an extra Matlab license, but allows the mcc license to be freed immediately after compiling
+    % Unfortunately, 
+    system_cmd = ['matlab -nodisplay -r "try;' cmd '; catch; fprintf(''FAILED\n''); end; exit;"'];
+    [status,result] = system(system_cmd,'-echo');
+    if status ~= 0 || ~isempty(regexpi(result,'FAILED'))
+      error('mcc failed to compile.');
+    end
+  elseif strcmpi(ctrl.cluster.mcc,'eval')
     eval(cmd);
+  else
+    error('Invalid ctrl.cluster.mcc setting (%s). Must be system, eval, or system_eval.', ctrl.cluster.mcc);
   end
   fprintf('\nDone Compiling %s\n', datestr(now));
 end
 
-return;

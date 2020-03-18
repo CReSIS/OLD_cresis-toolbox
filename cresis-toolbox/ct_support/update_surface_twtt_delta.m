@@ -91,20 +91,20 @@ for frm_idx = 1:length(param.cmd.frms)
       
       %% Load the data
       if data_img == 0
-        data_fn = fullfile(ct_filename_out(param,data_type,''), ...
+        echo_fn = fullfile(ct_filename_out(param,data_type,''), ...
           sprintf('Data_%s_%03d.mat', param.day_seg, frm));
       else
-        data_fn = fullfile(ct_filename_out(param,data_type,''), ...
+        echo_fn = fullfile(ct_filename_out(param,data_type,''), ...
           sprintf('Data_img_%02d_%s_%03d.mat', data_img, param.day_seg, frm));
       end
       
-      if ~exist(data_fn,'file')
-        warning('Missing %s\n', data_fn);
+      if ~exist(echo_fn,'file')
+        warning('Missing %s\n', echo_fn);
         continue;
       end
       
       warning off;
-      mdata = load(data_fn,'Time','Surface','Bottom','param_qlook','param_sar');
+      mdata = load(echo_fn,'Time','Surface','Bottom','param_qlook','param_sar');
       warning on;
       
       fields_to_update = {'Time'};
@@ -265,14 +265,14 @@ for frm_idx = 1:length(param.cmd.frms)
       if delta_offset_t_ref ~= 0 || delta_offset_Tsys ~= 0 ...
           || delta_offset_Tadc ~= 0 || delta_offset_Tadc_adjust ~= 0 ...
           || (param.update_surface_twtt_delta.update_adc_gains_dB && delta_offset_adc_gains_dB ~= 0)
-        fprintf('  t_ref Offset  %g %s (%s)\n', delta_offset_t_ref, data_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tsys Offset %g %s (%s)\n', delta_offset_Tsys, data_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tadc Offset %g %s (%s)\n', delta_offset_Tadc, data_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tadc_adjust Offset %g %s (%s)\n', delta_offset_Tadc_adjust, data_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  t_ref Offset  %g %s (%s)\n', delta_offset_t_ref, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  Tsys Offset %g %s (%s)\n', delta_offset_Tsys, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  Tadc Offset %g %s (%s)\n', delta_offset_Tadc, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  Tadc_adjust Offset %g %s (%s)\n', delta_offset_Tadc_adjust, echo_fn, datestr(now,'HH:MM:SS'));
         if param.update_surface_twtt_delta.update_adc_gains_dB
-          fprintf('  adc_gains_dB Offset %g %s (%s)\n', delta_offset_adc_gains_dB, data_fn, datestr(now,'HH:MM:SS'));
+          fprintf('  adc_gains_dB Offset %g %s (%s)\n', delta_offset_adc_gains_dB, echo_fn, datestr(now,'HH:MM:SS'));
           if delta_offset_adc_gains_dB ~= 0
-            tmp = load(data_fn,'Data');
+            tmp = load(echo_fn,'Data');
             tmp.Data = tmp.Data * 10^(-delta_offset_adc_gains_dB/10);
             mdata.Data = tmp.Data;
             fields_to_update{end+1} = 'Data';
@@ -293,7 +293,7 @@ for frm_idx = 1:length(param.cmd.frms)
           mdata.Bottom = mdata.Bottom - delta_offset;
           fields_to_update{end+1} = 'Bottom';
         end
-        save(data_fn,'-append','-struct','mdata',fields_to_update{:});
+        save(echo_fn,'-append','-struct','mdata',fields_to_update{:});
         
       end
       

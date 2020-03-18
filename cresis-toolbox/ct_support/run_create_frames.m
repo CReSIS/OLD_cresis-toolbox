@@ -41,7 +41,7 @@ for param_idx = 1:length(params)
     fprintf('param.records.frames.mode == 0. Skipping.\n');
   elseif param.records.frames.mode == 1
     create_frames(param,param_override);
-  elseif param.records.frames.mode == 2
+  elseif param.records.frames.mode >= 2
     autogenerate_frames(param,param_override);
   end
 end

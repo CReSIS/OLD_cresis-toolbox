@@ -9,11 +9,12 @@ function data = local_detrend(data, B_noise, B_sig, cmd, minVal)
 %   B_sig(1) = row/first-dim size
 %   B_sig(2) = col/second-dim size
 % cmd = scalar command to combine estimates
+%   0: does nothing at all (no filtering or power detection)
 %   1: combine with max
 %   2: combine with min
 %   3: use just method 1 [default]
 %   4: use just method 2
-%   5: use no detrend
+%   5: use no detrend, but filters
 % minVal = scalar minimum value of detrend [-inf default]
 %   Units of dB (so 10*log10(data))
 %
@@ -31,7 +32,7 @@ function data = local_detrend(data, B_noise, B_sig, cmd, minVal)
 % Data = tonemap(repmat(Data,[1 1 3]), 'AdjustLightness', [0.1 1], 'AdjustSaturation', 1.5);
 % Data = Data(:,:,2);
 
-debugLevel = 1;
+debug_level = 1;
 
 if ~exist('cmd','var') || isempty(cmd)
   cmd = 3;
@@ -44,6 +45,10 @@ if ~exist('B_noise','var') || isempty(B_noise)
 end
 if ~exist('B_sig','var') || isempty(B_sig)
   B_sig = [1 10];
+end
+
+if cmd == 0
+  return;
 end
 
 if cmd == 5
@@ -64,7 +69,7 @@ detrend1(end-ceil(filter_length/2)+1:end) = detrend1_tmp(end);
 
 % [B,A] = butter(2,1/(0.05*size(data,1)));
 % detrend1 = filtfilt(B,A,10*log10(detrend1));
-if debugLevel == 2
+if debug_level == 2
   figure(1); clf;
   plot(detrend1);
 end
@@ -75,7 +80,7 @@ if cmd == 1 || cmd == 2 || cmd == 4
   detrend2 = filter2(ones(B_noise(1),B_noise(2))/(B_noise(1)*B_noise(2)),data);
   %detrend2 = medfilt2(data,[B_noise(1),B_noise(2)]);
   detrend2 = 10*log10(detrend2);
-  if debugLevel == 2
+  if debug_level == 2
     figure(1); clf;
     imagesc(detrend2);
     colorbar;

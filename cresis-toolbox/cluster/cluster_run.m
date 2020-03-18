@@ -91,10 +91,12 @@ if iscell(ctrl_chain)
         
         % 5. If all jobs completed in a batch and:
         %    If no errors, move to the next stage
-        %    If errors and out of retries, stop chain
+        %    If errors, stop chain
+        %    Note: cluster_update_task guarantees that a task that still has retries left will never have 'C' status if it had errors
         if all(ctrl.job_status=='C')
           if ~any(ctrl.error_mask)
             % Advance to the next stage
+            fprintf('Chain %d succeeded on stage %d.\n', chain, active_stage(chain));
             active_stage(chain) = active_stage(chain) + 1;
             first_run(chain) = true;
             if active_stage(chain) > numel(ctrl_chain{chain})
@@ -104,8 +106,9 @@ if iscell(ctrl_chain)
               % Chain is not complete
               active_stage_update = true;
             end
-          elseif all(ctrl.retries >= ctrl.cluster.max_retries | ~ctrl.error_mask)
+          else
             % Stop chain
+            warning('Chain %d failed on stage %d.', chain, active_stage(chain));
             active_stage(chain) = -inf;
           end
         end
@@ -116,11 +119,14 @@ if iscell(ctrl_chain)
           keyboard
         end
       end
+      if cluster_run_mode < 0
+        break;
+      end
     end
     % Check if in a block mode or not. If a stage finished and still has
     % more stages to complete, then do not exit yet since we should start
     % the next stage running first.
-    if ~active_stage_update && (cluster_run_mode <= 0 || cluster_run_mode == 2)
+    if cluster_run_mode < 0 || (~active_stage_update && (cluster_run_mode == 0 || cluster_run_mode == 2))
       break;
     end
   end
@@ -169,8 +175,9 @@ elseif isstruct(ctrl_chain)
     task_mem = ctrl.cluster.mem_mult*ctrl.mem(task_id);
 
     if ctrl.cluster.max_time_per_job < task_cpu_time
-      error('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec', ...
+      warning('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec. You may override "ctrl.cluster.max_time_per_job" or "task_cpu_time" and then run "dbcont" to continue submission.', ...
         ctrl.cluster.max_time_per_job, ctrl.batch_id, task_id, task_cpu_time);
+      keyboard;
     end
     if ctrl.cluster.max_mem_per_job < task_mem
       warning('ctrl.cluster.max_mem_per_job (%.1f GB) is less than task %d:%d''s requested mem: %.1f GB', ...
@@ -218,6 +225,7 @@ elseif isstruct(ctrl_chain)
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
       warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
+      keyboard;
       if cluster_run_mode < 0
         % Clean up and exit function
         ctrl_chain = ctrl;

@@ -12,8 +12,8 @@ function query_redraw_map(obj,x_min,x_max,y_min,y_max)
 %   (in km) to get
 
 %% Scale the requested limits to meters
-obj.cur_request.XLim = sort([x_min x_max]*obj.map_scale);
-obj.cur_request.YLim = sort([y_min y_max]*obj.map_scale);
+obj.ops.request.XLim = sort([x_min x_max]*obj.map.scale);
+obj.ops.request.YLim = sort([y_min y_max]*obj.map.scale);
 
 %% Force requested limits to maintain the aspect ratio of the figure
 old_u = get(obj.map_panel.h_axes,'units');
@@ -25,41 +25,100 @@ width = round((PixelBounds(3))*1 - 0);
 aspect_ratio = height/width;
 set(obj.map_panel.h_axes,'units',old_u);
 
-% Grow the limits so that the requested region as as big or bigger
+% Grow the limits so that the requested region is as big or bigger
 % than the requested limits
-if aspect_ratio*diff(obj.cur_request.XLim) > diff(obj.cur_request.YLim)
-  growth = aspect_ratio*diff(obj.cur_request.XLim) - diff(obj.cur_request.YLim);
-  obj.cur_request.YLim(1) = obj.cur_request.YLim(1) - growth/2;
-  obj.cur_request.YLim(2) = obj.cur_request.YLim(2) + growth/2;
+if aspect_ratio*diff(obj.ops.request.XLim) > diff(obj.ops.request.YLim)
+  growth = aspect_ratio*diff(obj.ops.request.XLim) - diff(obj.ops.request.YLim);
+  obj.ops.request.YLim(1) = obj.ops.request.YLim(1) - growth/2;
+  obj.ops.request.YLim(2) = obj.ops.request.YLim(2) + growth/2;
 else
-  growth = diff(obj.cur_request.YLim)/aspect_ratio - diff(obj.cur_request.XLim);
-  obj.cur_request.XLim(1) = obj.cur_request.XLim(1) - growth/2;
-  obj.cur_request.XLim(2) = obj.cur_request.XLim(2) + growth/2;
+  growth = diff(obj.ops.request.YLim)/aspect_ratio - diff(obj.ops.request.XLim);
+  obj.ops.request.XLim(1) = obj.ops.request.XLim(1) - growth/2;
+  obj.ops.request.XLim(2) = obj.ops.request.XLim(2) + growth/2;
 end
 
-if obj.map_source == 0
-  %% Build the new WMS query, submit it and then retrieve the result
-  obj.cur_request.ImageHeight =  height;
-  obj.cur_request.ImageWidth  = width;
-  modrequest = strcat(obj.cur_request.RequestURL,'&viewparams=',obj.seasons_modrequest,obj.season_group_ids_modrequest);
-  A = obj.wms.getMap(modrequest);
-  R = obj.cur_request.RasterRef;
-  R = R/1e3;
+if obj.map.source == 0
+  %% OPS map
+  obj.ops.request.ImageFormat = 'image/jpeg';
+
+  % Build the new WMS query, submit it and then retrieve the result
+  obj.ops.request.ImageHeight =  height;
+  obj.ops.request.ImageWidth  = width;
+  if obj.map.fline_source == 0
+    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+  else
+    modrequest = strcat(obj.ops.request.RequestURL);
+  end
+  A = obj.map_pref.ops.wms.getMap(modrequest);
+  R = obj.ops.request.RasterRef;
+  R = R/obj.map.scale;
   
-  %% Redraw the map
+  % Create axes
   x_data = R(3,1) + [0 size(A,2)*R(2,1)];
   y_data = R(3,2) + [0 size(A,1)*R(1,2)];
   
-else
-  [A,x_data,y_data] = obj.google_map.request_google_map(obj.cur_request.XLim(1), obj.cur_request.XLim(2), 256-obj.cur_request.YLim(1), 256-obj.cur_request.YLim(2));
+elseif obj.map.source == 1
+  %% Google map
+  
+  [A,x_data,y_data] = obj.google.map.request_google_map(obj.ops.request.XLim(1), obj.ops.request.XLim(2), 256-obj.ops.request.YLim(1), 256-obj.ops.request.YLim(2));
   A = flipud(A);
+  if isempty(A)
+    % This should generally not occur since a switch to Google maps implies that the map projection has changed and the program should automatically go to the default bounds for the map.
+    error('Google map cannot be selected with the viewing area is completely outside the latitude bounds of google maps (+/-85 deg latitude).');
+  end
   y_data = sort(256-y_data);
+  
+  if obj.map.fline_source == 0
+    % png format is more precise for alpha merge
+    obj.ops.request.ImageFormat = 'image/png';
+    
+    % Convert from Google World Coordinates to EPSG:3857 WGS 84 /
+    % Pseudo-Mercator. Numbers found by comparing:
+    %   https://epsg.io/transform#s_srs=4326&t_srs=3857&x=0.0000000&y=85.0511288
+    %   https://epsg.io/transform#s_srs=4326&t_srs=3857&x=180.00&y=0.000
+    %   google_map.world_to_latlon(256,0)
+    obj.ops.request.XLim = (obj.ops.request.XLim) * 20037508.34/128 - 20037508.34;
+    obj.ops.request.YLim = (obj.ops.request.YLim) * 20037508.34/128 - 20037508.34;
+    
+    obj.ops.request.ImageHeight =  size(A,1);
+    obj.ops.request.ImageWidth  = size(A,2);
+    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+    obj.ops.request.XLim = (obj.ops.request.XLim + 20037508.34) * 128/20037508.34;
+    obj.ops.request.YLim = (obj.ops.request.YLim + 20037508.34) * 128/20037508.34;
+    A_flightlines = obj.map_pref.ops.wms.getMap(modrequest);
+    % Alpha/transparency merge of OPS flightlines and google map
+    A_flightlines = double(flipud(A_flightlines))/255;
+    alpha = rgb2hsv(A_flightlines);
+    alpha = alpha(:,:,2);
+    A = bsxfun(@times,A,(1-alpha)) + bsxfun(@times,A_flightlines,alpha);
+  end
+  
+elseif obj.map.source == 2
+  %% Blank map
 
+  if obj.map.fline_source == 0
+    obj.ops.request.ImageFormat = 'image/png';
+    
+    % Build the new WMS query, submit it and then retrieve the result
+    obj.ops.request.ImageHeight =  height;
+    obj.ops.request.ImageWidth  = width;
+    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+    A = obj.map_pref.ops.wms.getMap(modrequest);
+    R = obj.ops.request.RasterRef;
+    R = R/obj.map.scale;
+  
+    % Create axes
+    x_data = R(3,1) + [0 size(A,2)*R(2,1)];
+    y_data = R(3,2) + [0 size(A,1)*R(1,2)];
+  else
+    A = ones(1,1,3);
+    x_data = obj.ops.request.XLim/obj.map.scale;
+    y_data = obj.ops.request.YLim/obj.map.scale;
+  end
 end
 
-set(obj.map_panel.h_image,'XData',x_data);
-set(obj.map_panel.h_image,'YData',y_data);
-set(obj.map_panel.h_image,'CData',A);
+set(obj.map_panel.h_image,'XData',x_data,'YData',y_data,'CData',A);
 set(obj.map_panel.h_axes, {'XLim','YLim'}, {sort(x_data([1 end])) sort(y_data([1 end]))});
 
-return;
+obj.map.xaxis = x_data([1 end]);
+obj.map.yaxis = y_data([1 end]);

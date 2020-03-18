@@ -17,5 +17,3 @@ if obj.undo_stack.ismodified()
 else
   set(obj.left_panel.savePB,'String','(S)ave Layer');
 end
-
-return;

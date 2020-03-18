@@ -5,8 +5,7 @@ function button_scroll(obj,src,event)
 
 if strcmpi(get(obj.map_panel.h_axes,'Visible'),'on')
   [x,y,but] = get_mouse_info(obj.h_fig,obj.map_panel.h_axes);
-  cur_axis = [get(obj.map_panel.h_axes,'Xlim') ...
-    get(obj.map_panel.h_axes,'YLim')];
+  cur_axis = axis(obj.map_panel.h_axes);
   if y < cur_axis(3) || y > cur_axis(4) || x < cur_axis(1) || x > cur_axis(2)
     return;
   end

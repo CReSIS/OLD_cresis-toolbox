@@ -10,5 +10,3 @@ if ~cancel_operation
   % Delete the map preferences window
   notify(obj,'close_window');
 end
-
-return;
