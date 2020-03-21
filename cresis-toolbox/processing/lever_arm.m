@@ -95,7 +95,7 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_sourc
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(gps_source,'arena'))
+if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %

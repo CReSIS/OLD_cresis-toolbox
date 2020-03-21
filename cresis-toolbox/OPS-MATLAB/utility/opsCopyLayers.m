@@ -138,6 +138,14 @@ end
 
 %% Load "frames" file
 frames = load(ct_filename_support(param,'','frames'));
+if ~isfield(frames,'frame_idxs')
+  warning('Old frames file format. frames_update.m should be run on this segment %s.', param.day_seg);
+  % Convert loaded frames file to new format
+  records_fn = ct_filename_support(param,'','records');
+  records = load(records_fn,'gps_time');
+  frames = frames.frames;
+  frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
+end
 
 %% Determine which frames to be processed
 if isempty(param.cmd.frms)
@@ -156,7 +164,7 @@ end
 %% Load source layer data and existing destination layer data for this segment
 % Load all frames (for better edge interpolation)
 load_param = param;
-load_param.cmd.frms = 1:length(frames.frame_idxs);
+load_param.cmd.frms = max(1,min(param.cmd.frms)-1) : min(length(frames.frame_idxs),max(param.cmd.frms)+1);
 if strcmpi(copy_param.layer_source.source,'custom')
   layer_source.gps_time = copy_param.layer_source.gps_time;
   layer_source.twtt = copy_param.layer_source.twtt;
@@ -184,18 +192,13 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   ops_param.properties.season = param.season_name;
   ops_param.properties.segment = param.day_seg;
   [~,ops_frames] = opsGetSegmentInfo(sys,ops_param);
-else
-  % records, lidar, layerdata, and echogram sources use records file for
-  % framing gps time info
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn,'gps_time','surface','elev','lat','lon');
 end
 
 %% Copy/Merge based on destination, copy_method, and gaps_fill.method.
 %    Lists below describe the steps for each possible combination of
 %    layer_dest.source, copy_method, and gaps_fill.method settings.
 %
-% If layer_dest.source is 'records', 'layerdata', or 'echogram':
+% If layer_dest.source is 'layerdata':
 %
 % copy_method = 'fillgaps',gaps_fill.method = 'interp_finite'
 %   - Find NaN in destination
@@ -418,13 +421,13 @@ else
       if frm == length(frames.frame_idxs)
         frms_mask(:) = 1;
       else
-        frms_mask(all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
+        frms_mask(all_points.gps_time < frames.gps_time(frm+1)) = 1;
       end
     elseif frm < length(frames.frame_idxs)
-      frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
-        & all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
+      frms_mask(all_points.gps_time >= frames.gps_time(frm)...
+        & all_points.gps_time < frames.gps_time(frm+1)) = 1;
     else
-      frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))) = 1;
+      frms_mask(all_points.gps_time >= frames.gps_time(frm)) = 1;
     end
   end
 end
@@ -489,112 +492,46 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   opsCreateLayerPoints(sys,ops_param);
   
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
-  if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
-    copy_param.layer_dest.layerdata_source = 'layerData';
+  
+  layer_organizer_match_idx = find(strcmp(copy_param.layer_dest.name,layer_organizer.lyr_name));
+  if isempty(layer_organizer_match_idx)
+    if copy_param.layer_dest.existence_check
+      error('Reference layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error.\n', layer_param.name, layer_organizer_fn);
+    end
+    % Create layer in layer organizer file
+    layer_organizer.name(end+1) = copy_param.layer_dest.name;
+    id = max(layer_organizer.id) + 1;
+    layer_organizer.id
+  else
+    id = layer_organizer.id(layer_organizer_match_idx)
   end
+  
   for frm = param.cmd.frms
     %% Loop through and update selected frame files with surface
     layer_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.layerdata_source,''),...
       sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-    if ~exist(layer_fn,'file')
-      warning('Layer data file does not exist: %s\n', layer_fn);
-      continue;
-    end
-    lay = load(layer_fn);
+    lay = layerdata(param, copy_param.layer_dest.layerdata_source);
+    gps_time = lay.gps_time(frm);
+    lay.update_layer(frm,interp1_robust(all_points.gps_time,surface,gps_time), ...
+      interp1_robust(all_points.gps_time,quality,gps_time,'nearest'), ...
+      interp1_robust(all_points.gps_time,layer_type,gps_time,'nearest'));
+    lay.save();
     
-    % Determine which index into lay.layerData needs to be updated
-    if strcmpi(copy_param.layer_dest.name,'surface')
-      lay_idx = 1;
-      found = true;
-    elseif strcmpi(copy_param.layer_dest.name,'bottom')
-      lay_idx = 2;
-      found = true;
-    else
-      found = false;
-      for lay_idx = 1:length(lay.layerData)
-        if isfield(lay.layerData{lay_idx},'name') ...
-            && strcmpi(lay.layerData{lay_idx}.name,copy_param.layer_dest.name)
-          found = true;
-          break;
-        end
+    match_idx = find(id == lay.id);
+    if isempty(match_idx)
+      if copy_param.layer_dest.existence_check
+        error('Reference layer %s not found in layer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error.\n', layer_param.name, layer_fn);
       end
-      if ~found
-        % Add a new layer if layer does not exist
-        lay_idx = length(lay.layerData) + 1;
-        lay.layerData{lay_idx}.name = copy_param.layer_dest.name;
-        % Create manual points
-        lay.layerData{lay_idx}.value{1}.data = NaN*zeros(size(lay.GPS_time));
-        % Create auto points
-        lay.layerData{lay_idx}.value{2}.data = NaN*zeros(size(lay.GPS_time));
-        % Set quality to good
-        lay.layerData{lay_idx}.quality = 1*ones(size(lay.GPS_time));
-      end
+      % Create layer in layer file
+      lay.id(end+1) = id;
+      match_idx = length(lay.id);
     end
-    
-    % Manual points
-    layer_type_mask = interp1_robust(all_points.gps_time,layer_type,lay.GPS_time,'nearest') == 1;
-    lay.layerData{lay_idx}.value{1}.data(layer_type_mask) = interp1_robust(all_points.gps_time,surface,lay.GPS_time(layer_type_mask));
-    
-    % Automated points
-    lay.layerData{lay_idx}.value{2}.data = interp1_robust(all_points.gps_time,surface,lay.GPS_time);
-    
-    lay.layerData{lay_idx}.quality = interp1_robust(all_points.gps_time,quality,lay.GPS_time,'nearest');
+    lay.twtt(match_idx,:) = interp1_robust(all_points.gps_time,surface,lay.gps_time);
+    lay.quality(match_idx,:) = interp1_robust(all_points.gps_time,quality,lay.gps_time,'nearest');
+    lay.type(match_idx,:) = interp1_robust(all_points.gps_time,layer_type,lay.gps_time,'nearest');
     
     % Append the new results back to the layerData file
-    save(layer_fn,'-append','-struct','lay','layerData');
+    save(layer_fn,'-append','-struct','lay','twtt','quality','type','id');
   end
-  
-elseif strcmpi(copy_param.layer_dest.source,'echogram')
-  %% Loop through and update selected frame files with surface
-  for frm = param.cmd.frms
-    % Create file name for each frame
-    if copy_param.layer_source.echogram_source_img == 0
-      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
-        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-    else
-      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
-        sprintf('Data_img_%02d_%s_%03d.mat', copy_param.layer_source.echogram_source_img, param.day_seg, frm));
-    end
-    if ~exist(echo_fn,'file')
-      warning('Echogram data file does not exist: %s\n', echo_fn);
-      continue;
-    end
-      
-    % Convert layer name to echogram name
-    if strcmpi(copy_param.layer_dest.name,'surface')
-      echogram_layer_name = 'Surface';
-    elseif strcmpi(copy_param.layer_dest.name,'bottom')
-      echogram_layer_name = 'Bottom';
-    else
-      echogram_layer_name = copy_param.layer_dest.name;
-    end
-    
-    % Load data
-    warning off;
-    echo = load(echo_fn,echogram_layer_name,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
-      'Elevation_Correction','Truncate_Bins','Time');
-    warning on;
-    echo = uncompress_echogram(echo);
-    
-    % Interpolate layer to the echogram GPS time
-    echo.(echogram_layer_name) = interp1_robust(all_points.gps_time,surface,echo.GPS_time);
-    
-    % "Compress" the layer if it was compressed before
-    if isfield(echo,'Elevation_Correction')
-      if length(echo.Time)<2
-        dt = 1;
-      else
-        dt = echo.Time(2)-echo.Time(1);
-      end
-      echo.Surface = echo.Surface + echo.Elevation_Correction*dt;
-    end
-    
-    % Save the layer
-    save(echo_fn,'-append','-struct','echo',echogram_layer_name);
-  end
-  
-elseif strcmpi(copy_param.layer_dest.source,'records')
-  save(records_fn,'-append','surface');
-  records_aux_files_create(records_fn);
   
 end

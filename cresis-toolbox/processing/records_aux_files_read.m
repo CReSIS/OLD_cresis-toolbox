@@ -42,7 +42,6 @@ records.roll = ncread(cdf_fn,'roll',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.pitch = ncread(cdf_fn,'pitch',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.heading = ncread(cdf_fn,'heading',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.gps_time = ncread(cdf_fn,'gps_time',[1 recs(1)],[1 recs(2)-recs(1)+1]);
-records.surface = ncread(cdf_fn,'surface',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 try
   records.settings.nyquist_zone = ncread(cdf_fn,'settings(1).nyquist_zone',[1, recs(1)],[1, recs(2)-recs(1)+1]);
 end

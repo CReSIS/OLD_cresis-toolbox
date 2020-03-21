@@ -80,32 +80,27 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
     obj.eg.layers.qual{idx} = []; % integer 1-3
     obj.eg.layers.type{idx} = []; % this is either 1 (manual) or 2 (auto)
   end
-  %% LayerData: Load GPS_time, quality, twtt and type of layers from undo_stack
+  %% LayerData: Load gps_time, quality, twtt and type of layers from undo_stack
   lGPS = [];
   for frm = obj.eg.frms(1):obj.eg.frms(end);
-    GPS_time = obj.undo_stack.user_data.layer_info(frm).GPS_time;
-    lGPS = cat(2,lGPS,GPS_time); % concatenates the layer GPS time
+    gps_time = obj.undo_stack.user_data.layer_info(frm).gps_time;
+    lGPS = cat(2,lGPS,gps_time); % concatenates the layer GPS time
     
     for idx=1:length(obj.eg.layers.lyr_name)
-      obj.eg.layers.x{idx} = cat(2,obj.eg.layers.x{idx},GPS_time); % gps time
-      found = false;
-      for lay_idx = 1:length(obj.undo_stack.user_data.layer_info(frm).layerData)
-        if obj.eg.layers.lyr_id(idx) == obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
-          found = true;
-          break;
-        end
-      end
-      if found
-        qual = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality;
-        obj.eg.layers.qual{idx} = cat(2,obj.eg.layers.qual{idx},qual); % quality (integer 1-3)
-        twtt = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data;
-        obj.eg.layers.y{idx} = cat(2,obj.eg.layers.y{idx},twtt); % twtt
-        obj.eg.layers.type{idx} = cat(2,obj.eg.layers.type{idx},1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data)); % this is either 1 (manual) or 2 (auto)
+      obj.eg.layers.x{idx} = cat(2,obj.eg.layers.x{idx},gps_time); % gps time
+      lay_idx = find(obj.eg.layers.lyr_id(idx) == obj.undo_stack.user_data.layer_info(frm).id);
+      if ~isempty(lay_idx)
+        qual = obj.undo_stack.user_data.layer_info(frm).quality(lay_idx,:);
+        obj.eg.layers.qual{idx}(end+(1:length(qual))) = qual; % quality (integer 1-3)
+        twtt = obj.undo_stack.user_data.layer_info(frm).twtt(lay_idx,:);
+        obj.eg.layers.y{idx}(end+(1:length(twtt))) = twtt; % twtt
+        type = obj.undo_stack.user_data.layer_info(frm).type(lay_idx,:);
+        obj.eg.layers.type{idx}(end+(1:length(type))) = type; % this is either 1 (manual) or 2 (auto)
       else
         % Layer does not exist in this file, set to defaults
-        obj.eg.layers.qual{idx} = cat(2,obj.eg.layers.qual{idx},ones(size(GPS_time))); % quality (integer 1-3)
-        obj.eg.layers.y{idx} = cat(2,obj.eg.layers.y{idx},nan(size(GPS_time))); % twtt
-        obj.eg.layers.type{idx} = cat(2,obj.eg.layers.type{idx},2*ones(size(GPS_time))); % this is either 1 (manual) or 2 (auto)
+        obj.eg.layers.qual{idx}(end+(1:length(gps_time))) = 1; % quality (integer 1-3)
+        obj.eg.layers.y{idx}(end+(1:length(gps_time))) = nan; % twtt
+        obj.eg.layers.type{idx}(end+(1:length(gps_time))) = 2; % this is either 1 (manual) or 2 (auto)
       end
     end
   end

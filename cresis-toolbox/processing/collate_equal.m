@@ -920,8 +920,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   equal.param_equal = param;
   equal.in_fn = dir(fn);
   equal.sw_version = current_software_version;
+  equal.file_version = '1';
+  equal.file_type = 'equal';
   fprintf('Saving %s\n', equal_fn);
-  save(equal_fn,'-struct','equal');
+  ct_save(equal_fn,'-struct','equal');
   
 end
 

@@ -28,7 +28,7 @@ function my_struct = records_create_sync_gps(param,my_struct,radar_time,comp_tim
 %  will be one day behind local time (which is what should be used for
 %  the segment name).
 %
-% Called from records_create*
+% Called from records_create_sync.m
 
 if ~isfield(param.records.gps,'fn')
   param.records.gps.fn = '';
@@ -83,11 +83,8 @@ if any(param.records.file.version == [102 410])
     %% Interpolate gps.sync_gps_time to radar gps_time using gps.radar_time
     % and radar_time
     radar_gps_time = interp1(good_radar_time, good_sync_gps_time, ...
-      radar_time,'linear','extrap');
+      radar_time + max(param.records.gps.time_offset),'linear','extrap');
   end
-  
-  %% DO NOT Apply GPS sync correction to radar time (this is done already
-  % in records_create for these radars)
 elseif any(param.records.file.version == [405 406])
   % ACORDS
   comp_time = radar_time;
@@ -97,7 +94,7 @@ elseif any(param.records.file.version == [405 406])
   good_comp_time = gps.comp_time(good_idxs);
   good_sync_gps_time = gps.sync_gps_time(good_idxs);
   radar_gps_time = interp1(good_comp_time, good_sync_gps_time, ...
-      comp_time,'linear','extrap');
+      comp_time + max(param.records.gps.time_offset),'linear','extrap');
   
 elseif any(param.records.file.version == [409])
   % ICARDS
@@ -141,7 +138,7 @@ elseif any(param.records.file.version == [9 10 103 412])
   % Interpolate gps.sync_gps_time to radar gps_time using gps.radar_time
   % and radar_time
   radar_gps_time = interp1(gps.radar_time, gps.sync_gps_time, ...
-    radar_time,'linear','extrap');
+    radar_time + max(param.records.gps.time_offset),'linear','extrap');
   
 else
   % NI based, Ledford systems

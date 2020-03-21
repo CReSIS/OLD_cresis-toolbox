@@ -151,6 +151,11 @@ end
 
 fprintf('  Delta GPS time offset is %.1f sec\n', delta_offset);
 
+if isfield(records,'surface')
+  warning('Removing defunct field "surface" from records.');
+  records = rmfield(records,'surface');
+end
+
 if save_changes
   % Save outputs
   fprintf('  Saving records %s\n', records_fn);

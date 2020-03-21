@@ -73,6 +73,7 @@ classdef popupmenu_edit < handle
       % Define the context menu items and install their callbacks
       uimenu(obj.h_valueCM, 'Label', 'Add', 'Callback', @obj.valueCM_callback);
       uimenu(obj.h_valueCM, 'Label', 'Edit', 'Callback', @obj.valueCM_callback);
+      uimenu(obj.h_valueCM, 'Label', 'Delete', 'Callback', @obj.valueCM_callback);
       set(obj.h_valuePM,'uicontextmenu',obj.h_valueCM)
 
     end
@@ -103,6 +104,12 @@ classdef popupmenu_edit < handle
           set(obj.h_valuePM,'String',obj.list_values(obj.value));
           set(obj.h_valuePM,'uicontextmenu',[]);
           obj.style_mode = 0;
+        end
+      elseif strcmpi(event.Source.Label,'Delete')
+        if obj.style_mode == 1
+          obj.value = get(obj.h_valuePM,'Value');
+          obj.list_values(obj.value) = [];
+          obj.update_PM;
         end
       end
     end

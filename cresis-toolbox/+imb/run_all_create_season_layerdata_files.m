@@ -69,7 +69,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2011_Antarctica_TO.xls';
 % param_fns{end+1} = 'rds_param_2011_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2011_Greenland_TO.xls';
-param_fns{end+1} = 'rds_param_2012_Antarctica_DC8.xls';
+% param_fns{end+1} = 'rds_param_2012_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2013_Antarctica_Basler.xls';
 % param_fns{end+1} = 'rds_param_2013_Antarctica_P3.xls';
@@ -84,14 +84,14 @@ param_fns{end+1} = 'rds_param_2012_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2016_Greenland_TOdtu.xls';
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Basler.xls';
 % param_fns{end+1} = 'rds_param_2017_Antarctica_P3.xls';
-param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
+% param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
-% param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
+param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
 % param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
@@ -189,7 +189,7 @@ for param_idx = 1:length(param_fns)
     end
     
     try
-      [tmp.lat,tmp.lon,tmp.frm_id,tmp.elev,tmp.surf,tmp.bottom,tmp.quality,tmp.frm_info] = imb.create_season_layerdata_files(param,param_override);
+      [tmp.lat,tmp.lon,tmp.frm_id,tmp.elev,tmp.surf,tmp.bottom,tmp.quality,tmp.frm_info,gps_source] = imb.create_season_layerdata_files(param,param_override);
     catch ME
       fprintf('%s\terror!!!\t%s\n', param.day_seg, ME.getReport);
       continue;
@@ -220,5 +220,9 @@ for param_idx = 1:length(param_fns)
   if ~exist(out_fn_dir,'dir')
     mkdir(out_fn_dir);
   end
-  ct_save(out_fn,'lat','lon','frm_id','elev','surf','bottom','quality','frm_info');
+  file_type = 'layer_season';
+  file_version = '1';
+  param = struct('day_seg',param.day_seg,'radar_name',param.radar_name, ...
+    'season_name',param.season_name,'sw_version',param.sw_version);
+  ct_save(out_fn,'bottom','elev','file_type','file_version','frm_id','frm_info','gps_source','lat','lon','param','quality','surf');
 end

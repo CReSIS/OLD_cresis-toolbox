@@ -56,7 +56,7 @@ proj = geotiffinfo(geotiff_fn);
 
 %% Fabricating a heading now (pulled from gps_make.m)
 gps = records;
-along_track = geodetic_to_along_track(gps.lat,gps.lon,gps.elev);
+along_track = geodetic_to_along_track(gps.lat,gps.lon);
 rlines = get_equal_alongtrack_spacing_idxs(along_track,0.75);
 physical_constants;
 est_heading = size(gps.heading);

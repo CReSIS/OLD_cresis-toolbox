@@ -304,7 +304,7 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load frames file
-load(ct_filename_support(param,'','frames'));
+frames = load(ct_filename_support(param,'','frames'));
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');

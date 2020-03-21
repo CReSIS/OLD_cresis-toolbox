@@ -73,55 +73,72 @@ function layers = opsLoadLayers(param, layer_params)
 
 %% Input checks
 
-if ~isfield(param,'debug') || isempty(param.debug)
-  param.debug = false;
-end
-
 if ~isfield(param,'records')
   param.records = [];
 end
 
+% Check layers defined by regular expression regexp
+layer_idx = 1;
+while layer_idx <= length(layer_params)
+  if ~isfield(layer_params,'name') || isempty(layer_params(layer_idx).name)
+    % Name is not specified, so check regular expression field
+    if ~isfield(layer_params,'regexp') || isempty(layer_params(layer_idx).regexp)
+      % Default is surface
+      warning('No name specified for layer %d, defaulting to use layer "surface.', layer_idx);
+      layer_params(layer_idx).name = 'surface';
+    else
+      layer_names = {'surface','bottom'};
+      layer_params = layer_params([1:layer_idx-1 layer_idx*ones(1,length(layer_names)) layer_idx+1:end]);
+      for layer_regexp_idx = 1:length(layer_names)
+        layer_params(layer_idx+layer_regexp_idx-1) = layer_params(layer_idx);
+        layer_params(layer_idx+layer_regexp_idx-1).name = layer_names{layer_regexp_idx};
+        layer_params(layer_idx+layer_regexp_idx-1).regexp = '';
+      end
+    end
+  end
+  layer_idx = layer_idx + 1;
+end
+
+% Check layer parameters
+ops_en = false;
+records_en = false;
+echogram_en = false;
+lidar_layer_idx = [];
+layerdata_sources = {};
 for layer_idx = 1:length(layer_params)
   if ~isfield(layer_params,'echogram_source_img') || isempty(layer_params(layer_idx).echogram_source_img)
     % Default is a combined file Data_YYYYMMDD_SS.mat
     layer_params(layer_idx).echogram_source_img = 0;
   end
-  if ~isfield(layer_params,'name') || isempty(layer_params(layer_idx).name)
-    % Default is layerdata
-    warning('No name specified for layer %d, using surface.', layer_idx);
-    layer_params(layer_idx).name = 'surface';
-  end
   if ~isfield(layer_params,'source') || isempty(layer_params(layer_idx).source)
     % Default is layerdata
-    warning('No source specified for layer %d, using layerdata.', layer_idx);
+    warning('No source specified for layer %d, defaulting to use layerdata.', layer_idx);
     layer_params(layer_idx).source = 'layerdata';
+  end
+  if ~isfield(layer_params,'layerdata_source') || isempty(layer_params(layer_idx).layerdata_source)
+    % Default is layerData
+    layer_params(layer_idx).layerdata_source = 'layer';
   end
   if ~isfield(layer_params,'lever_arm_en') || isempty(layer_params(layer_idx).lever_arm_en)
     layer_params(layer_idx).lever_arm_en = false;
   end
-end
-
-physical_constants;
-
-% Load frames file
-frames = load(ct_filename_support(param,'','frames'));
-
-if isfield(layer_params,'frms')
-  param.cmd.frms = layer_params.frms;
-end
-
-%% Determine which frames need to be processed
-if isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-% Remove frames that do not exist from param.cmd.frms list
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
+  if ~isfield(layer_params(layer_idx),'existence_check') || isempty(layer_params(layer_idx).existence_check)
+    layer_params(layer_idx).existence_check = true;
+  end
+  switch lower(layer_params(layer_idx).source)
+    case 'ops'
+      ops_en = true;
+    case 'layerdata'
+      if ~any(strcmp(layer_params(layer_idx).layerdata_source,layerdata_sources))
+        layerdata_sources{end+1} = layer_params(layer_idx).layerdata_source;
+      end
+    case 'records'
+      records_en = true;
+    case 'echogram'
+      echogram_en = true;
+    case 'lidar'
+      lidar_layer_idx(end+1) = layer_idx;
+  end
 end
 
 % Nothing to do, return
@@ -130,8 +147,41 @@ if isempty(layer_params)
   return;
 end
 
-if any(strcmpi('ops',{layer_params.source}))
-  %% Get all the frames for this segment
+physical_constants;
+
+%% Get all the frames for this segment
+if ~isempty(layerdata_sources) || records_en || echogram_en || ~isempty(lidar_layer_idx)
+  % Load frames file
+  frames = load(ct_filename_support(param,'','frames'));
+  
+  if records_en || ~isempty(lidar_layer_idx) || ~isfield(frames,'frame_idxs')
+    records_fn = ct_filename_support(param,'','records');
+    records = load(records_fn);
+  end
+  
+  if ~isfield(frames,'frame_idxs')
+    warning('Old frames file format. frames_update.m should be run on this segment %s.', param.day_seg);
+    % Convert loaded frames file to new format
+    frames = frames.frames;
+    frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
+  end
+  
+  % Determine which frames need to be processed
+  if isempty(param.cmd.frms)
+    param.cmd.frms = 1:length(frames.frame_idxs);
+  end
+  % Remove frames that do not exist from param.cmd.frms list
+  [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+  if length(valid_frms) ~= length(param.cmd.frms)
+    bad_mask = ones(size(param.cmd.frms));
+    bad_mask(keep_idxs) = 0;
+    warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+      param.cmd.frms(find(bad_mask,1)));
+    param.cmd.frms = valid_frms;
+  end
+end
+
+if ops_en
   opsAuthenticate(param,false);
   sys = ct_output_dir(param.radar_name);
   ops_param = struct('properties',[]);
@@ -139,14 +189,7 @@ if any(strcmpi('ops',{layer_params.source}))
   ops_param.properties.segment = param.day_seg;
   [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
 end
-if ~all(strcmpi('ops',{layer_params.source}))
-  % All other sources use records file for
-  % framing gps time info
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn);
-end
 
-lidar_layer_idx = find(strcmpi('lidar',{layer_params.source}));
 if ~isempty(lidar_layer_idx)
   %% Load LIDAR surface
   lidar_source = {layer_params.lidar_source};
@@ -189,7 +232,7 @@ if ~isempty(lidar_layer_idx)
     lidar_param.month = month;
     lidar_param.day = day;
     lidar = read_lidar_netcdf(lidar_fns,lidar_param);
-  
+    
   elseif any(strcmpi('dtu',{layer_params.lidar_source}))
     lidar_fns = get_filenames_lidar(param, 'dtu', ...
       records.gps_time([1 end]));
@@ -280,48 +323,31 @@ for layer_idx = 1:length(layer_params)
   layers(layer_idx).point_path_id = [];
 end
 
-%% Load each of the frames
+%% Load each of the frames (lidar, echogram, records file layer sources)
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   
-  if param.debug
+  if 0
     fprintf('  Loading %s frame %03d (%d of %d) (%s)\n', param.day_seg, ...
       frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
   end
   
   for layer_idx = 1:length(layer_params)
     layer_param = layer_params(layer_idx);
-    if ~isfield(layer_param,'existence_check') || isempty(layer_param.existence_check)
-      layer_param.existence_check = true;
-    end
-    if ~isfield(layer_param,'fix_broken_layerdata') || isempty(layer_param.fix_broken_layerdata)
-      layer_param.fix_broken_layerdata = false;
-    end
     
     %% Load LIDAR Data
     if strcmpi(layer_param.source,'lidar')
       if strcmpi(layer_param.name,'surface')
-        if frm == length(frames.frame_idxs)
-          last_idx = length(records.gps_time);
-        else
-          last_idx = frames.frame_idxs(frm+1);
-        end
-        good_idxs = lidar.gps_time >= records.gps_time(frames.frame_idxs(frm)) ...
-          & lidar.gps_time <= records.gps_time(last_idx);
-        layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
-          lidar.gps_time(good_idxs));
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
-          (lidar.elev(good_idxs)-lidar.surface(good_idxs))/(c/2));
-        layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
-          lidar.elev(good_idxs));
-        layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
-          lidar.lat(good_idxs));
-        layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
-          lidar.lon(good_idxs));
-        layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
-          NaN*zeros(1,sum(good_idxs)));
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          NaN*zeros(1,sum(good_idxs)));
+        good_idxs = find(lidar.gps_time >= frames.gps_time(frm) ...
+          & lidar.gps_time < frames.gps_time(frm+1);
+        Nx = length(good_idxs);
+        layers(layer_idx).gps_time(end+(1:Nx)) = lidar.gps_time(good_idxs);
+        layers(layer_idx).twtt(end+(1:Nx)) = (lidar.elev(good_idxs)-lidar.surface(good_idxs))/(c/2);
+        layers(layer_idx).elev(end+(1:Nx)) = lidar.elev(good_idxs);
+        layers(layer_idx).lat(end+(1:Nx)) = lidar.lat(good_idxs);
+        layers(layer_idx).lon(end+(1:Nx)) = lidar.lon(good_idxs);
+        layers(layer_idx).type(end+(1:Nx)) = 2*ones(1,Nx);
+        layers(layer_idx).quality(end+(1:Nx)) = ones(1,Nx);
       else
         error('Unsupported layer %s for lidar source.', layer_param.name);
       end
@@ -330,29 +356,15 @@ for frm_idx = 1:length(param.cmd.frms)
     %% Load Records Data
     if strcmpi(layer_param.source,'records')
       if strcmpi(layer_param.name,'surface')
-        if frm == length(frames.frame_idxs)
-          last_idx = length(records.gps_time);
-          good_idxs = records.gps_time >= records.gps_time(frames.frame_idxs(frm)) ...
-            & records.gps_time <= records.gps_time(last_idx);
-        else
-          last_idx = frames.frame_idxs(frm+1);
-          good_idxs = records.gps_time >= records.gps_time(frames.frame_idxs(frm)) ...
-            & records.gps_time < records.gps_time(last_idx);
-        end
-        layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
-          records.gps_time(good_idxs));
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
-          records.surface(good_idxs));
-        layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
-          records.elev(good_idxs));
-        layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
-          records.lat(good_idxs));
-        layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
-          records.lon(good_idxs));
-        layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
-          NaN*zeros(1,sum(good_idxs)));
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          NaN*zeros(1,sum(good_idxs)));
+        good_idxs = frames.frame_idxs(frm):last_idx;
+        Nx = length(good_idxs);
+        layers(layer_idx).gps_time(end+(1:Nx)) = records.gps_time(good_idxs);
+        layers(layer_idx).twtt(end+(1:Nx)) = records.surface(good_idxs);
+        layers(layer_idx).elev(end+(1:Nx)) = records.elev(good_idxs);
+        layers(layer_idx).lat(end+(1:Nx)) = records.lat(good_idxs);
+        layers(layer_idx).lon(end+(1:Nx)) = records.lon(good_idxs);
+        layers(layer_idx).type(end+(1:Nx)) = 2*ones(1,Nx);
+        layers(layer_idx).quality(end+(1:Nx)) = ones(1,Nx);
       else
         error('Unsupported layer %s for records source.', layer_param.name);
       end
@@ -386,7 +398,7 @@ for frm_idx = 1:length(param.cmd.frms)
         echogram_layer_name = layer_params(layer_idx).name;
       end
       
-      % Load data
+      % Load layer data
       warning off;
       mdata = load(data_fn,echogram_layer_name,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
         'Elevation_Correction','Truncate_Bins','Time');
@@ -394,32 +406,20 @@ for frm_idx = 1:length(param.cmd.frms)
       mdata = uncompress_echogram(mdata);
       
       % Remove data that is not contained within frame boundaries
-      frms_mask = logical(zeros(size(mdata.GPS_time)));
-      if frm < length(frames.frame_idxs)
-        frms_mask(mdata.GPS_time >= records.gps_time(frames.frame_idxs(frm))...
-          & mdata.GPS_time < records.gps_time(frames.frame_idxs(frm+1))) = true;
-      else
-        frms_mask(mdata.GPS_time >= records.gps_time(frames.frame_idxs(frm))...
-          & mdata.GPS_time < records.gps_time(end)) = true;
-      end
-      
-      layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
-        mdata.GPS_time(frms_mask));
-      layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
-        mdata.Elevation(frms_mask));
-      layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
-        mdata.Latitude(frms_mask));
-      layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
-        mdata.Longitude(frms_mask));
-      layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
-        NaN*zeros(size(mdata.GPS_time(frms_mask))));
-      layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-        NaN*zeros(size(mdata.GPS_time(frms_mask))));
+      good_idxs = find(mdata.GPS_time >= frames.gps_time(frm) ...
+        & mdata.GPS_time < frames.gps_time(frm+1);
+      Nx = length(good_idxs);
+      layers(layer_idx).gps_time(end+(1:Nx)) = mdata.GPS_time(good_idxs);
+      layers(layer_idx).twtt(end+(1:Nx)) = records.surface(good_idxs);
+      layers(layer_idx).elev(end+(1:Nx)) = mdata.Elevation(good_idxs);
+      layers(layer_idx).lat(end+(1:Nx)) = mdata.Latitude(good_idxs);
+      layers(layer_idx).lon(end+(1:Nx)) = mdata.Longitude(good_idxs);
+      layers(layer_idx).type(end+(1:Nx)) = 2*ones(1,Nx);
+      layers(layer_idx).quality(end+(1:Nx)) = ones(1,Nx);
       
       if isfield(mdata,echogram_layer_name)
         % Layer exists in the file, concatenate it on to twtt
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
-          mdata.(echogram_layer_name)(frms_mask));
+        layers(layer_idx).twtt(end+(1:Nx)) = mdata.(echogram_layer_name)(good_idxs);
       else
         % Layer does not exist in the file
         if layer_param.existence_check
@@ -429,241 +429,160 @@ for frm_idx = 1:length(param.cmd.frms)
         end
         
         % Concatenate NaN on to twtt
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt,...
-          NaN*zeros(size(mdata.GPS_time(frms_mask))));
+        layers(layer_idx).twtt(end+(1:Nx)) = nan(1,Nx);
       end
       
     end
+  end
+end
+
+%% Load layerdata
+for layerdata_source_idx = 1:length(layerdata_sources)
+  layerdata_source = layerdata_sources{layerdata_source_idx};
+  
+  lay = layerdata(param, layerdata_source);
+  
+  for layer_idx = 1:length(layer_params)
+    layer_param = layer_params(layer_idx);
+    if ~strcmpi(layer_param.source,'layerdata')
+      continue;
+    end
     
-    %% Load layerData Data
-    if strcmpi(layer_param.source,'layerdata')
-      % 1. Open the specific layer data file
-      if ~isfield(layer_param,'layerdata_source') || isempty(layer_param.layerdata_source)
-        layer_param.layerdata_source = 'layerData';
-      end
-      layer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
-        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-      if ~exist(layer_fn,'file')
-        if isfield(layer_param,'echogram_source') && ~isempty(layer_param.echogram_source)
-          % Create the layer data file from the echogram source
-          warning('Layer data file does not exist. Since echogram_source specified, creating layer data:\n%s.', layer_fn);
-          
-          % Load the echogram
-          echogram_fn_dir = ct_filename_out(param,layer_param.echogram_source);
-          if layer_param.echogram_source_img == 0
-            echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_%s_%03d.mat', ...
-              param.day_seg, frm));
-          else
-            echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
-              layer_param.echogram_source_img, param.day_seg, frm));
-          end
-          if ~exist(echogram_fn,'file')
-            if layer_param.existence_check
-              error('Echogram file %s does not exist', echogram_fn);
-            else
-              warning('Echogram file %s does not exist', echogram_fn);
-              continue;
-            end
-          end
-          % Load and uncompress echogram file
-          warning off;
-          lay = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
-            'Elevation_Correction','Truncate_Bins','Time');
-          warning on;
-          lay = uncompress_echogram(lay);
-          
-          % In case an old echogram file which has overlap, we remove this
-          % overlap region.
-          if frm == 1
-            start_gps_time = -inf;
-          else
-            start_gps_time = records.gps_time(frames.frame_idxs(frm));
-          end
-          if frm == length(frames.frame_idxs)
-            stop_gps_time = inf;
-          else
-            stop_gps_time = records.gps_time(frames.frame_idxs(frm+1));
-          end
-          good_mask = lay.GPS_time >= start_gps_time & lay.GPS_time < stop_gps_time;
-          lay.GPS_time = lay.GPS_time(good_mask);
-          lay.Latitude = lay.Latitude(good_mask);
-          lay.Longitude = lay.Longitude(good_mask);
-          lay.Elevation = lay.Elevation(good_mask);
-          lay.Surface = lay.Surface(good_mask);
-          if isfield(lay,'Bottom')
-            lay.Bottom = lay.Bottom(good_mask);
-          else
-            lay.Bottom = nan(size(lay.GPS_time));
-          end
-          Nx = length(lay.GPS_time);
+    id = lay.get_id(layer_param.source.name);
+    
+    layers(layer_idx).gps_time = lay.gps_time(param.cmd.frms);
+    layers(layer_idx).lat = lay.lat(param.cmd.frms);
+    layers(layer_idx).lon = lay.lon(param.cmd.frms);
+    layers(layer_idx).elev = lay.elev(param.cmd.frms);
+    [layers(layer_idx).twtt,layers(layer_idx).quality,layers(layer_idx).type] = lay.load(id,param.cmd.frms);
+  end
+end
 
-          % Create the layer structure
-          for lay_idx = 1:2
-            % Manually picked points
-            %  inf/nan: no pick
-            %  finite: propagation time to target
-            lay.layerData{lay_idx}.value{1}.data ...
-              = inf*ones(1,Nx);
-            % Automatically generated points
-            %  inf/nan: no pick
-            %  finite: propagation time to target
-            if lay_idx == 1 && isfield(lay,'Surface')
-              lay.layerData{lay_idx}.value{2}.data = lay.Surface;
-            elseif lay_idx == 2 && isfield(lay,'Bottom')
-              lay.layerData{lay_idx}.value{2}.data = lay.Bottom;
-            else
-              lay.layerData{lay_idx}.value{2}.data ...
-                = inf*ones(1,Nx);
-            end
-            % Quality control level
-            %  1: good
-            %  2: moderate
-            %  3: derived
-            lay.layerData{lay_idx}.quality ...
-              = ones(1,Nx);
-          end
+%   % Load the layer organization file
+%   layer_organizer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
+%     sprintf('layer_%s.mat', param.day_seg));
+%   if ~exist(layer_organizer_fn,'file')
+%     warning('Layer organizer file %s does not exist. Creating file.', layer_organizer_fn);
+%         param
+%     layer_organizer
+%   end
+%   layer_organizer = load(layer_organizer_fn);
+%       
+%   for frm_idx = 1:length(param.cmd.frms)
+%     frm = param.cmd.frms(frm_idx);
+%     
+%     if 0
+%       fprintf('  Loading %s frame %03d (%d of %d) (%s)\n', param.day_seg, ...
+%         frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+%     end
+%       
+%       % Open the layer data file for this frame and layerdata source
+%       layer_fn = fullfile(ct_filename_out(param,layerdata_source,''), ...
+%         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+%       
+%       if ~exist(layer_fn,'file')
+%         if layer_param.existence_check
+%           error('Layer file %s does not exist', layer_fn);
+%         end
+%         warning('Layer file %s does not exist. Creating file.', layer_fn);
+%         records
+%         param
+%         layer_fn
+%       end
+%       lay = load(layer_fn);
+%       
+%       for layer_idx = 1:length(layer_params)
+%         layer_param = layer_params(layer_idx);
+%         if ~strcmpi(layer_param.source,'layerdata')
+%           continue;
+%         end
+%         
+%         % Load the layerData file
+%         Nx = length(lay.gps_time);
+%         
+%         match_idx = find(strcmp(layer_param.name,layer_organizer.lyr_name));
+%         if isempty(match_idx)
+%           if layer_param.existence_check
+%             error('Reference layer %s not found. Set layer_params().existence_check to false to ignore this error.\n', layer_param.name);
+%           else
+%             warning('Reference layer %s not found. Set layer_param().existence_check to true to stop on this error.\n', layer_param.name);
+%           end
+%         end
+%         
+%         layers(layer_idx).gps_time(end+(1:Nx)) = lay.gps_time;
+%         if isempty(match_idx)
+%           % Fill with NaN since layer does not exist
+%           layers(layer_idx).twtt(end+(1:Nx)) = NaN;
+%           % Fill with 1's since layer does not exist
+%           layers(layer_idx).quality(end+(1:Nx)) = 1;
+%           % Fill with 2's since layer does not exist
+%           layers(layer_idx).type(end+(1:Nx)) = 2;
+%         else
+%           layers(layer_idx).twtt(end+(1:Nx)) = lay.twtt(match_idx,:);
+%           layers(layer_idx).quality(end+(1:Nx)) = lay.quality(match_idx,:);
+%           layers(layer_idx).type(end+(1:Nx)) = lay.type(match_idx,:);
+%         end
+%         layers(layer_idx).lat(end+(1:Nx)) = lay.lat;
+%         layers(layer_idx).lon(end+(1:Nx)) = lay.lon;
+%         layers(layer_idx).elev(end+(1:Nx)) = lay.elev;
+%       end
+%     end
+%   end
 
-          layer_fn_dir = fileparts(layer_fn);
-          if ~exist(layer_fn_dir,'dir')
-            mkdir(layer_fn_dir);
-          end
-          save(layer_fn,'-v6','-struct','lay','layerData','Latitude','Longitude','Elevation','GPS_time');
-
-        elseif layer_param.existence_check
-          error('Layer file %s does not exist', layer_fn);
-        else
-          warning('Layer file %s does not exist', layer_fn);
-          continue;
-        end
-      end
-      % Load the layerData file
-      lay = load(layer_fn);
-
-      % Remove data that is not contained within frame boundaries
-      frms_mask = logical(zeros(size(lay.GPS_time)));
-      if frm < length(frames.frame_idxs)
-        frms_mask(lay.GPS_time >= records.gps_time(frames.frame_idxs(frm))...
-          & lay.GPS_time < records.gps_time(frames.frame_idxs(frm+1))) = true;
-      else
-        frms_mask(lay.GPS_time >= records.gps_time(frames.frame_idxs(frm))...
-          & lay.GPS_time < records.gps_time(end)) = true;
-      end
-
+%% Load OPS Data
+if strcmpi(layer_param.source,'ops')
+  start_gps = ops_seg_data.properties.start_gps_time(frm);
+  stop_gps = ops_seg_data.properties.stop_gps_time(frm);
+  
+  found = true;
+  if ~layer_param.existence_check
+    % If the layer does not exist, we need to determine this before
+    % we call opsGetLayerPoints, otherwise we will get an error in
+    % that function.
+    [status,data] = opsGetLayers(sys);
+    if ~any(strcmpi(data.properties.lyr_name,layer_param.name))
       found = false;
-      if strcmpi(layer_param.name,'surface')
-        lay_idx = 1;
-        found = true;
-      elseif strcmpi(layer_param.name,'bottom')
-        lay_idx = 2;
-        found = true;
-      else
-        for lay_idx = 1:length(lay.layerData)
-          if isfield(lay.layerData{lay_idx},'name') ...
-              && strcmpi(lay.layerData{lay_idx}.name,layer_param.name)
-            found = true;
-            break;
-          end
-        end
-        if ~found
-          if layer_param.existence_check
-            error('Reference layer %s not found. Set layer_params().existence_check to false to ignore this error.\n', layer_param.name);
-          else
-            warning('Reference layer %s not found. Set layer_param().existence_check to true to stop on this error.\n', layer_param.name);
-          end
-        end
-      end
-      if found && length(frms_mask) ~= length(lay.layerData{lay_idx}.value{2}.data)
-        if ~layer_param.fix_broken_layerdata
-            error('Expected layer "%s" to have length of %d, but found %d instead. This layerData file needs to be fixed. Set layer_param().fix_broken_layerdata to true to ignore this error.', layer_param.name, length(frms_mask), length(lay.layerData{lay_idx}.value{2}.data));
-        else
-            warning('Expected layer "%s" to have length of %d, but found %d instead. This layerData file needs to be fixed. Set layer_param().fix_broken_layerdata to false to stop on this error.', layer_param.name, length(frms_mask), length(lay.layerData{lay_idx}.value{2}.data));
-            found = false;
-        end
-      end
-      layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
-        lay.GPS_time(frms_mask));
-      layer_type = 2*ones(size(lay.GPS_time(frms_mask)));
-      if ~found
-        % Fill with NaN since layer does not exist
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
-          NaN*zeros(size(lay.GPS_time(frms_mask))));
-        % Fill with 1's since layer does not exist
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          ones(size(lay.GPS_time(frms_mask))));
-      else
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
-          lay.layerData{lay_idx}.value{2}.data(frms_mask));
-        layer_type(isfinite(lay.layerData{lay_idx}.value{1}.data(frms_mask))) = 1;
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          lay.layerData{lay_idx}.quality(frms_mask));
-      end
-      layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
-        layer_type);
-      layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
-        lay.Elevation(frms_mask));
-      layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
-        lay.Latitude(frms_mask));
-      layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
-        lay.Longitude(frms_mask));
+      warning('Layer %s does not exist in OPS.', layer_param.name);
     end
+  end
+  
+  if found
+    ops_param = struct('properties',[]);
+    ops_param.tmp_path = param.tmp_path;
+    ops_param.properties.location = param.post.ops.location;
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    ops_param.properties.start_gps_time = start_gps;
+    ops_param.properties.stop_gps_time = stop_gps;
+    ops_param.properties.lyr_name = layer_param.name;
+    ops_param.properties.return_geom = 'geog';
+    [status,data] = opsGetLayerPoints(sys,ops_param);
     
-    %% Load OPS Data
-    if strcmpi(layer_param.source,'ops')
-      start_gps = ops_seg_data.properties.start_gps_time(frm);
-      stop_gps = ops_seg_data.properties.stop_gps_time(frm);
-      
-      found = true;
-      if ~layer_param.existence_check
-        % If the layer does not exist, we need to determine this before
-        % we call opsGetLayerPoints, otherwise we will get an error in
-        % that function.
-        [status,data] = opsGetLayers(sys);
-        if ~any(strcmpi(data.properties.lyr_name,layer_param.name))
-          found = false;
-          warning('Layer %s does not exist in OPS.', layer_param.name);
-        end
-      end
-      
-      if found
-        ops_param = struct('properties',[]);
-        ops_param.tmp_path = param.tmp_path;
-        ops_param.properties.location = param.post.ops.location;
-        ops_param.properties.season = param.season_name;
-        ops_param.properties.segment = param.day_seg;
-        ops_param.properties.start_gps_time = start_gps;
-        ops_param.properties.stop_gps_time = stop_gps;
-        ops_param.properties.lyr_name = layer_param.name;
-        ops_param.properties.return_geom = 'geog';
-        [status,data] = opsGetLayerPoints(sys,ops_param);
-        
-        [data.properties.gps_time,sort_idxs] = sort(data.properties.gps_time);
-        data.properties.twtt = data.properties.twtt(sort_idxs);
-        data.properties.elev = data.properties.elev(sort_idxs);
-        data.properties.lat = data.properties.lat(sort_idxs);
-        data.properties.lon = data.properties.lon(sort_idxs);
-        data.properties.type = data.properties.type(sort_idxs);
-        data.properties.quality = data.properties.quality(sort_idxs);
-        data.properties.point_path_id = data.properties.point_path_id(sort_idxs);
-        
-        layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
-          data.properties.gps_time);
-        layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
-          data.properties.twtt);
-        layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
-          data.properties.elev);
-        layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
-          data.properties.lat);
-        layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
-          data.properties.lon);
-        layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
-          data.properties.type);
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          data.properties.quality);
-        layers(layer_idx).point_path_id = cat(2,layers(layer_idx).point_path_id, ...
-          data.properties.point_path_id);
-      end
-    end
+    [data.properties.gps_time,sort_idxs] = sort(data.properties.gps_time);
+    data.properties.twtt = data.properties.twtt(sort_idxs);
+    data.properties.elev = data.properties.elev(sort_idxs);
+    data.properties.lat = data.properties.lat(sort_idxs);
+    data.properties.lon = data.properties.lon(sort_idxs);
+    data.properties.type = data.properties.type(sort_idxs);
+    data.properties.quality = data.properties.quality(sort_idxs);
+    data.properties.point_path_id = data.properties.point_path_id(sort_idxs);
     
+    layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
+      data.properties.gps_time);
+    layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
+      data.properties.twtt);
+    layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
+      data.properties.elev);
+    layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
+      data.properties.lat);
+    layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
+      data.properties.lon);
+    layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
+      data.properties.type);
+    layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
+      data.properties.quality);
+    layers(layer_idx).point_path_id = cat(2,layers(layer_idx).point_path_id, ...
+      data.properties.point_path_id);
   end
 end
 
