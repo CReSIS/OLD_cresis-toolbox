@@ -1,7 +1,7 @@
 % script run_records_update
 %
-% This script setsup the parameters and calls records_update.  Make
-% a local copy of the file in your personal folder.
+% This script sets up the parameters and calls records_update.  Rename to
+% a local copy of the file in your personal folder before making changes.
 %
 % Author: John Paden
 %

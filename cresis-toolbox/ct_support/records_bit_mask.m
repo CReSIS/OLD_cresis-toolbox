@@ -43,12 +43,11 @@ if ~isfield(param.records_bit_mask,'debug_plot') || isempty(param.records_bit_ma
   param.records_bit_mask.debug_plot = 1;
 end
 
-%% Load records and frames
+%% Load records and background geotiff for GUI
 
-records_fn = ct_filename_support(param,'','records');
 geotiff_fn = ct_filename_gis(param,param.records.frames.geotiff_fn);
 
-records = load(records_fn);
+records = records_load(param);
 
 proj = geotiffinfo(geotiff_fn);
 
@@ -150,6 +149,7 @@ for board_idx = 1:size(records.offset,1)
   records.bit_mask(board_idx,mask) = 0;
 end
 
+records_fn = ct_filename_support(param,'','records');
 fprintf('  Saving records %s\n', records_fn);
 ct_save(records_fn,'-struct','records');
 records_aux_files_create(records_fn);

@@ -61,7 +61,7 @@ try
   % bit 1 is stationary record (e.g. stationary ground collection, used by sar.m/load_data.m and records_bit_mask.m)
   records.bit_mask = ncread(cdf_fn,'bit_mask',[1 recs(1)],[inf recs(2)-recs(1)+1]);
 catch
-  % Default is no big flags set
+  % Default is no bit flags set
   records.bit_mask = zeros(size(records.offset));
 end
 

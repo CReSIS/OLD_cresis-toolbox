@@ -27,8 +27,7 @@ physical_constants;
 % -------------------------------------------------------------------------
 
 % Load the frames file
-frames_fn = ct_filename_support(param, '', 'frames');
-frames = load(frames_fn);
+frames = frames_load(param);
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);

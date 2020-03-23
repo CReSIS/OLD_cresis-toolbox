@@ -582,7 +582,8 @@ for frm_idx = 1:length(param.cmd.frms)
       new_layer = tracker_snake_simple(data,track);
       new_quality = ones(1,Nx);
     elseif strcmpi(track.method,'fixed')
-      new_layer = ones(size(mdata.GPS_time)) * track.fixed_value;
+      new_layer = ones(size(mdata.GPS_time)) ...
+        * interp1(mdata.Time, 1:length(mdata.Time), track.fixed_value,'linear','extrap');
       new_quality = ones(1,Nx);
     elseif isempty(track.method)
       new_layer = track.dem;
@@ -682,44 +683,20 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     if strcmpi(layer_param.source,'layerdata')
-      layer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
-        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-      if ~exist(layer_fn,'file')
-        fprintf('  Create  %s (%s)\n', layer_fn, datestr(now));
-        
-        lay.GPS_time = mdata.GPS_time;
-        lay.Latitude = mdata.Latitude;
-        lay.Longitude = mdata.Longitude;
-        lay.Elevation = mdata.Elevation;
-        
-        lay.layerData{1}.name = 'surface';
-        lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
-        lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
-        lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
-        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
-        
-        lay.layerData{2}.name = 'bottom';
-        lay.layerData{2}.quality = ones(size(lay.GPS_time));
-        lay.layerData{2}.value{1}.data = nan(size(lay.GPS_time));
-        lay.layerData{2}.value{2}.data = nan(size(lay.GPS_time));
-        
-        layer_fn_dir = fileparts(layer_fn);
-        if ~exist(layer_fn_dir,'dir')
-          mkdir(layer_fn_dir);
+      if ~exist('layers','var') || isempty(layers)
+        layers = layerdata(param,layer_param.layerdata_source);
+        id = layers.get_id(layer_param.name);
+        if isempty(id)
+          layer_organizer = [];
+          layer_organizer.lyr_name = {layer_param.name};
+          if isfield(layer_param,'group_name')
+            layer_organizer.lyr_group_name = {layer_param.group_name};
+          end
+          layers.insert_layers(layer_organizer);
         end
-        save(layer_fn,'-struct','lay');
-        
-      else
-        % Load the layerData file
-        lay = load(layer_fn);
-        % Update the surface auto picks
-        lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
-        lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
-        lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
-        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
-        % Append the new results back to the layerData file
-        fprintf('  Saving %s (%s)\n', layer_fn, datestr(now));
-        save(layer_fn,'-append','-struct','lay','layerData');
+        layers.update_layer(frm,layer_param.name,mdata.GPS_time,Surface,new_quality,2*ones(size(mdata.GPS_time)));
+        fprintf('  Saving %s (%s)\n', layers.layer_fn(frm), datestr(now));
+        layers.save();
       end
     end
     

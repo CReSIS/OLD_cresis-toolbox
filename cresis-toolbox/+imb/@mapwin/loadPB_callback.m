@@ -143,33 +143,40 @@ if strcmpi(param.layer_source,'layerdata')
   %   param.layers.lyr_id % Immutable lyr_id
   %   param.layers.lyr_name % layer_organizer.lyr_name
   %   param.layers.lyr_order % layer_organizer.lyr_order (positive integer contained in 1 to N)
+  
   layer_organizer_fn = fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('layer_%s.mat',param.cur_sel.day_seg));
   fprintf('Loading layer organizer: %s\n', layer_organizer_fn);
-  layer_organizer = load(layer_organizer_fn);
-  
   layer_fn_dir = ct_filename_out(param.cur_sel,param.layer_data_source,'');
   fprintf('Loading layer files: %s\n', layer_fn_dir);
+  param_layerdata = param.cur_sel;
+  param_layerdata.sw_version = current_software_version();
+  param_layerdata.records.gps.time_offset = NaN;
+  param_layerdata.radar.lever_arm_fh = [];
+  layers = layerdata(param_layerdata,param.layer_data_source);
+  layers.check_all();
+  
   for frm = 1:num_frm
-    layer_fn=fullfile(layer_fn_dir,sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
-    lay = load(layer_fn);
-
-    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
+    % stores the filename for all frames in the segment
+    param.filename{frm} = layers.layer_fn(frm);
+    gps_time = layers.gps_time(frm);
+    Nx = length(gps_time);
+    param.frame(end+(1:Nx)) = frm; % stores the frame number for each point path id in each frame
+    param.frame_idxs(end+(1:Nx)) = 1:length(gps_time);  % contains the point number for each individual point in each frame
+    % stores the layer information for all frames in the segment
     if frm == 1
-      layer_info = lay;
+      layer_info = layers.layer{frm};
     else
-      layer_info(end+1) = lay; % stores the layer information for all frames in the segment
+      layer_info(end+1) = layers.layer{frm};
     end
-    param.frame(end+(1:length(lay.gps_time))) = frm; % stores the frame number for each point path id in each frame
-    param.frame_idxs(end+(1:length(lay.gps_time))) = 1:length(lay.gps_time);  % contains the point number for each individual point in each frame
   end
   
-  param.layers.lyr_age = layer_organizer.lyr_age;
-  param.layers.lyr_age_source = layer_organizer.lyr_age_source;
-  param.layers.lyr_desc = layer_organizer.lyr_desc;
-  param.layers.lyr_group_name = layer_organizer.lyr_group_name;
-  param.layers.lyr_id = layer_organizer.lyr_id;
-  param.layers.lyr_name = layer_organizer.lyr_name;
-  param.layers.lyr_order = layer_organizer.lyr_order;
+  param.layers.lyr_age = layers.layer_organizer.lyr_age;
+  param.layers.lyr_age_source = layers.layer_organizer.lyr_age_source;
+  param.layers.lyr_desc = layers.layer_organizer.lyr_desc;
+  param.layers.lyr_group_name = layers.layer_organizer.lyr_group_name;
+  param.layers.lyr_id = layers.layer_organizer.lyr_id;
+  param.layers.lyr_name = layers.layer_organizer.lyr_name;
+  param.layers.lyr_order = layers.layer_organizer.lyr_order;
   
   [~,new_order] = sort(param.layers.lyr_order);
   param.layers.lyr_age = param.layers.lyr_age(new_order);
@@ -206,7 +213,7 @@ obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(undo_stack_ma
 obj.undo_stack_list(undo_stack_match_idx).user_data.layer_source = param.layer_source; % string containing layer source ('OPS' or 'layerdata')
 obj.undo_stack_list(undo_stack_match_idx).user_data.layer_data_source = param.layer_data_source; % string containing layer source ('OPS' or 'layerdata')
 obj.undo_stack_list(undo_stack_match_idx).user_data.layer_info = layer_info; % contains the layer twtt/name/quality/type/etc information
-obj.undo_stack_list(undo_stack_match_idx).user_data.layer_organizer = layer_organizer; % contains the layer parameters (age, desc, group_name, id, name, order)
+obj.undo_stack_list(undo_stack_match_idx).user_data.layer_organizer = layers.layer_organizer; % contains the layer parameters (age, desc, group_name, id, name, order)
 obj.undo_stack_list(undo_stack_match_idx).user_data.frame = param.frame; % contains the frame number for each point path id
 obj.undo_stack_list(undo_stack_match_idx).user_data.frame_idxs = param.frame_idxs; % contains the point number for each individual point in each frame
 obj.undo_stack_list(undo_stack_match_idx).user_data.filename = param.filename; % contains the frame filenames

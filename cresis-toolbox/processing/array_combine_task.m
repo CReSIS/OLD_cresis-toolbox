@@ -33,7 +33,7 @@ if ~exist(array_out_dir,'dir')
   mkdir(array_out_dir);
 end
 
-frames = load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');

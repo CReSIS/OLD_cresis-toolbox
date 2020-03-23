@@ -114,7 +114,8 @@ SAR_coord_param.Lsar = Lsar;
 fcs = SAR_coord_system(SAR_coord_param,ref,ref,along_track,output_along_track);
 
 sar = [];
-sar.version = 1.0;
+sar.file_version = '1';
+sar.file_type = 'sar_coord';
 sar.Lsar = Lsar;
 sar.gps_source = records.gps_source;
 sar.gps_time_offset = records.param_records.records.gps.time_offset;
@@ -143,7 +144,7 @@ else
   file_version = '1';
 end
 file_type = 'sar_coord';
-ct_save(sar_fn,'-struct','sar','version','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time','file_version','file_type');
+ct_save(sar_fn,'-struct','sar','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time','file_version','file_type');
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 

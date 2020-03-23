@@ -72,6 +72,9 @@ param_fns{end+1} = 'rds_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
 
 param_override = [];
+param_override.layer_update.in_path = 'layerData';
+param_override.layer_update.out_path = 'layer';
+param_override.layer_update.frames_records_en = true;
 
 %% Automated Section
 % =========================================================================

@@ -56,4 +56,38 @@ if any(strcmpi('frames',{var_list.name}))
   
   fprintf('Saving updated frames file: %s\n', frames_fn);
   ct_save(frames_fn,'-struct','frames');
+else
+  % New format
+  frames = load(frames_fn);
+  
+  % Load records file
+  records_fn = ct_filename_support(param,'','records');
+  records = load(records_fn);
+
+  frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
+  Nfrms = length(frames.frame_idxs);
+  if ~isfield(frames,'notes')
+    frames.notes = cell(1,Nfrms);
+  end
+  if ~isfield(frames,'quality')
+    frames.quality = zeros(1,Nfrms);
+  end
+  if ~isfield(frames,'proc_mode')
+    frames.proc_mode = zeros(1,Nfrms);
+  end
+  frames.Nx = length(records.gps_time);
+  frames.param.day_seg = param.day_seg;
+  frames.param.season_name = param.season_name;
+  frames.param.radar_name = param.radar_name;
+  frames.param.sw_version = param.sw_version;
+  
+  if param.ct_file_lock
+    frames.file_version = '1L';
+  else
+    frames.file_version = '1';
+  end
+  frames.file_type = 'frames';
+  
+  fprintf('Saving updated frames file: %s\n', frames_fn);
+  ct_save(frames_fn,'-struct','frames');
 end

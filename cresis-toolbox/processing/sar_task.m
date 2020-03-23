@@ -201,8 +201,7 @@ param_records.gps_source = records.gps_source;
 
 %% Load surface layer
 % =========================================================================
-frames_fn = ct_filename_support(param,'','frames');
-frames = load(frames_fn);
+frames = frames_load(param);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 layer_params = [];
@@ -253,7 +252,7 @@ end
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.sar.presums;
-param.load.bit_mask = 3; % Skip stationary records and bad records marked in records.bit_mask
+param.load.bit_mask = param.sar.bit_mask; % Skip stationary records and bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;

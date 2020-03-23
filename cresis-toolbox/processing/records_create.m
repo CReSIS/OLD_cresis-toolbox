@@ -486,11 +486,11 @@ records_create_sync;
 if param.records.frames.mode == 1
   frames_fn = ct_filename_support(param,'','frames');
   if ~exist(frames_fn,'file')
-    autogenerate_frames(param,param_override);
+    frames_autogenerate(param,param_override);
   end
   obj = frames_create(param,param_override);
 elseif param.records.frames.mode >= 2
-  autogenerate_frames(param,param_override);
+  frames_autogenerate(param,param_override);
 end
 
 diary off;

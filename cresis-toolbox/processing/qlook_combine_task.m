@@ -1,7 +1,7 @@
 function success = qlook_combine_task(param)
 % success = qlook_combine_task(param)
 %
-% Task for combining get heights temporary outputs into images and running
+% Task for combining qlook temporary outputs into images and running
 % surface tracking.
 %
 % param = struct with processing parameters
@@ -18,7 +18,7 @@ function success = qlook_combine_task(param)
 %% Setup Processing
 % =====================================================================
 
-frames = load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');

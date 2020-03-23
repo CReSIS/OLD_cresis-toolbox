@@ -16,13 +16,16 @@ function [data,metadata] = load_sar_data(param)
 % Also used in: run_load_sar_data.m
 
 %% Check input arguments
-% =====================================================================
+% =========================================================================
 
-% debug_level
-if ~isfield(param.load_sar_data,'debug_level') || isempty(param.load_sar_data.debug_level)
-  param.load_sar_data.debug_level = 1;
+%% Input: sar param
+% subap: list of subapertures to load (array of integers, default is 1)
+if ~isfield(param.sar,'sub_aperture_steering') || isempty(param.sar.sub_aperture_steering)
+  % Single aperture which points broadside to SAR is default
+  param.sar.sub_aperture_steering = [0];
 end
 
+%% Input: load_sar_data param
 % combine_channels: sum wf-adc pairs together in each image
 if ~isfield(param.load_sar_data,'combine_channels') || isempty(param.load_sar_data.combine_channels)
   param.load_sar_data.combine_channels = false;
@@ -39,6 +42,11 @@ end
 % number of chunks. The default is to load all chunks which is [1 inf].
 if ~isfield(param.load_sar_data,'chunk') || isempty(param.load_sar_data.chunk)
   param.load_sar_data.chunk = [1 inf];
+end
+
+% debug_level
+if ~isfield(param.load_sar_data,'debug_level') || isempty(param.load_sar_data.debug_level)
+  param.load_sar_data.debug_level = 1;
 end
 
 % detrend: structure controlling detrending. Arguments are passed into
@@ -67,7 +75,8 @@ end
 
 % frm: Data frame to load
 if ~isfield(param.load_sar_data,'frm') || isempty(param.load_sar_data.frm)
-  error('The param.load_sar_data.frm field must be set to an integer indicating which frame to load.');
+  warning('The param.load_sar_data.frm field must be set to an integer indicating which frame to load. Defaulting to param.load_sar_data.frm = 1.');
+  param.load_sar_data.frm = 1;
 end
 
 % imgs: cell array of images to load. Each cell array contains a 2 by N
@@ -90,21 +99,24 @@ if ~isfield(param.load_sar_data,'sar_type') || isempty(param.load_sar_data.sar_t
   param.load_sar_data.sar_type = 'fk';
 end
 
-% subap: list of subapertures to load (array of integers, default is 1)
+% subap: list of subapertures to load (array of integers, default is all
+% subapertures specified in param.sar.sub_aperture_steering)
 if ~isfield(param.load_sar_data,'subap') || isempty(param.load_sar_data.subap)
-  param.load_sar_data.subap = 1;
+  param.load_sar_data.subap = 1:length(param.sar.sub_aperture_steering);
 end
+
+physical_constants;
+
+%% Load subapertures
+% =========================================================================
 
 % The base path for all the data
 base_path = ct_filename_out(param,param.load_sar_data.fn,'');
-
-physical_constants;
 
 % Initialize memory for outputs
 data     = cell(length(param.load_sar_data.imgs),1);
 metadata = [];
 
-%% Load subapertures
 for subap_idx = 1:length(param.load_sar_data.subap)
   subap = param.load_sar_data.subap(subap_idx);
   

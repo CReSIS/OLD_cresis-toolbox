@@ -131,21 +131,23 @@ if ~any(copy_param.quality.value == [1 2 3])
   error('Invalid quality value %d', copy_param.quality.value);
 end
 
+if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
+  % Default is a combined file Data_YYYYMMDD_SS.mat
+  copy_param.layer_dest.layerdata_source = 'layer';
+end
+
+if ~isfield(copy_param.layer_source,'layerdata_source') || isempty(copy_param.layer_source.layerdata_source)
+  % Default is a combined file Data_YYYYMMDD_SS.mat
+  copy_param.layer_source.layerdata_source = 'layer';
+end
+
 if ~isfield(copy_param.layer_source,'echogram_source_img') || isempty(copy_param.layer_source.echogram_source_img)
   % Default is a combined file Data_YYYYMMDD_SS.mat
   copy_param.layer_source.echogram_source_img = 0;
 end
 
 %% Load "frames" file
-frames = load(ct_filename_support(param,'','frames'));
-if ~isfield(frames,'frame_idxs')
-  warning('Old frames file format. frames_update.m should be run on this segment %s.', param.day_seg);
-  % Convert loaded frames file to new format
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn,'gps_time');
-  frames = frames.frames;
-  frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
-end
+frames = frames_load(param);
 
 %% Determine which frames to be processed
 if isempty(param.cmd.frms)
@@ -492,46 +494,12 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   opsCreateLayerPoints(sys,ops_param);
   
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
-  
-  layer_organizer_match_idx = find(strcmp(copy_param.layer_dest.name,layer_organizer.lyr_name));
-  if isempty(layer_organizer_match_idx)
-    if copy_param.layer_dest.existence_check
-      error('Reference layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error.\n', layer_param.name, layer_organizer_fn);
-    end
-    % Create layer in layer organizer file
-    layer_organizer.name(end+1) = copy_param.layer_dest.name;
-    id = max(layer_organizer.id) + 1;
-    layer_organizer.id
-  else
-    id = layer_organizer.id(layer_organizer_match_idx)
+  layers = layerdata(param, copy_param.layer_dest.layerdata_source);
+  id = layers.get_id(copy_param.layer_dest.name);
+  if isempty(id) && copy_param.layer_dest.existence_check
+    error('Reference layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error.\n', copy_param.layer_dest.name, layers.layer_organizer_fn());
   end
-  
-  for frm = param.cmd.frms
-    %% Loop through and update selected frame files with surface
-    layer_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.layerdata_source,''),...
-      sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-    lay = layerdata(param, copy_param.layer_dest.layerdata_source);
-    gps_time = lay.gps_time(frm);
-    lay.update_layer(frm,interp1_robust(all_points.gps_time,surface,gps_time), ...
-      interp1_robust(all_points.gps_time,quality,gps_time,'nearest'), ...
-      interp1_robust(all_points.gps_time,layer_type,gps_time,'nearest'));
-    lay.save();
-    
-    match_idx = find(id == lay.id);
-    if isempty(match_idx)
-      if copy_param.layer_dest.existence_check
-        error('Reference layer %s not found in layer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error.\n', layer_param.name, layer_fn);
-      end
-      % Create layer in layer file
-      lay.id(end+1) = id;
-      match_idx = length(lay.id);
-    end
-    lay.twtt(match_idx,:) = interp1_robust(all_points.gps_time,surface,lay.gps_time);
-    lay.quality(match_idx,:) = interp1_robust(all_points.gps_time,quality,lay.gps_time,'nearest');
-    lay.type(match_idx,:) = interp1_robust(all_points.gps_time,layer_type,lay.gps_time,'nearest');
-    
-    % Append the new results back to the layerData file
-    save(layer_fn,'-append','-struct','lay','twtt','quality','type','id');
-  end
+  layers.update_layer(param.cmd.frms, id, all_points.gps_time,surface,quality,layer_type);
+  layers.save();
   
 end

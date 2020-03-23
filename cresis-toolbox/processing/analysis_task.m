@@ -45,8 +45,8 @@ param_records.gps_source = records.gps_source;
 
 %% Load surface layer
 % =========================================================================
-frames_fn = ct_filename_support(param,'','frames');
-frames = load(frames_fn);
+frames = frames_load(param);
+
 tmp_param = param;
 % Determine which frames have the records that are needed
 frms = find(task_recs(1) >= frames.frame_idxs,1,'last') : find(task_recs(2) >= frames.frame_idxs,1,'last');
