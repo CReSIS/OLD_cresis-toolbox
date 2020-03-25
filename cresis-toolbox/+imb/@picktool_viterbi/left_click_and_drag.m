@@ -95,13 +95,6 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
-      % TODO[reece]: Allow user to input transition_weight and input num pixels for
-      % expected slope (Max variation) input based on twtt rather than resolution;
-      % - e.g. "don't allow slopes greater than 1% ..."
-      % - make into vector, for 2d, same value throughout (1x(Nx-1))
-      % TODO[reece]: Update tool params to allow user input of weights
-      % TODO[reece]: Update wiki. Update markdown files.
-      
       % Surface and multiple suppression weights
       surf_weight = -1;
       mult_weight = -1;
