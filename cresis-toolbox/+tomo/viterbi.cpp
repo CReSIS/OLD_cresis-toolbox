@@ -15,6 +15,8 @@
 //
 // mex -v -largeArrayDims viterbi.cpp
 
+// TODO[reece]: Mention self in author listings of all edited files 
+
 #include "viterbi.h"
 
 //  Used to define unary cost of target at position x, y

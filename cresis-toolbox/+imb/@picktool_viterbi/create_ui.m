@@ -225,9 +225,21 @@ obj.top_panel.image_mag_weight_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.image_mag_weight_TE,'Style','edit');
 set(obj.top_panel.image_mag_weight_TE,'String', obj.image_mag_weight);
 set(obj.top_panel.image_mag_weight_TE,'TooltipString', tooltip);
+
+%----gt weight label
+tooltip = 'The weight by which to multiply the ground truth cost. Greater weight = prefer closer to ground truth';
+obj.top_panel.ground_truth_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.ground_truth_weight_label,'Style','text');
+set(obj.top_panel.ground_truth_weight_label,'String','Ground Truth Weight:');
+set(obj.top_panel.ground_truth_weight_label,'TooltipString', tooltip);
+%----gt weight box
+obj.top_panel.ground_truth_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.ground_truth_weight_TE,'Style','edit');
+set(obj.top_panel.ground_truth_weight_TE,'String', obj.ground_truth_weight);
+set(obj.top_panel.ground_truth_weight_TE,'TooltipString', tooltip);
 %%
 %---------------------------------------------------------------------------------------------
-rows = 14;  % Update with number of rows and columns
+rows = 15;  % Update with number of rows and columns
 cols = 2;
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -285,6 +297,9 @@ obj.top_panel.table.handles{13,2}  = obj.top_panel.transition_weight_TE;
 %% Image magnitude weight
 obj.top_panel.table.handles{14,1}  = obj.top_panel.image_mag_weight_label;
 obj.top_panel.table.handles{14,2}  = obj.top_panel.image_mag_weight_TE;
+%% gt weight
+obj.top_panel.table.handles{15,1}  = obj.top_panel.ground_truth_weight_label;
+obj.top_panel.table.handles{15,2}  = obj.top_panel.ground_truth_weight_TE;
 clear rows cols
 
 % Draw table

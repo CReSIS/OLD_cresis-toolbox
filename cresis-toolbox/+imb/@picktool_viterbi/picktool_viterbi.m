@@ -26,6 +26,7 @@ classdef picktool_viterbi < imb.picktool
     max_slope;
     transition_weight;
     image_mag_weight;
+    ground_truth_weight;
     
   end
   
@@ -55,7 +56,7 @@ classdef picktool_viterbi < imb.picktool
       obj.top_panel = [];
       obj.table = [];
       obj.w = 230;
-      obj.h = 430;  
+      obj.h = 460;  
       obj.first_time = true;
 
       obj.in_rng_sv = 5;
@@ -75,6 +76,7 @@ classdef picktool_viterbi < imb.picktool
       obj.max_slope = -1;
       obj.transition_weight = 1;
       obj.image_mag_weight = 1;
+      obj.ground_truth_weight = 1;
       
       obj.create_ui();
 

@@ -149,6 +149,12 @@ if tool_idx == 1
         image_mag_weight = str2double(obj.top_panel.image_mag_weight_TE.String);
       catch ME
       end
+      try
+        gt_weight = str2double(obj.top_panel.ground_truth_weight_TE.String);
+        gt_weights = gt_weights * gt_weight;
+      catch ME
+      end
+
       % TODO[reece]: Scale with method Paden suggested, not based on axis resolutions -- ask paden for refresher
       transition_weights = ones(1, size(viterbi_data, 2) - 1) * transition_weight;
 

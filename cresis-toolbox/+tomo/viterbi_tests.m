@@ -16,7 +16,7 @@ function viterbi_tests()
   matrix(grnd, :) = ones(1, cols) * 10; % Bottom
   
   surf_bins = ones(1, cols) * surf;
-  gt = [1 cols; mult mult];
+  gt = [1 cols; surf surf];
   
   % Viterbi params
   transition_weights = ones(1, cols-1);
