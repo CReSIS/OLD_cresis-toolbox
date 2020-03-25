@@ -204,6 +204,17 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
     {
       // Allow addition of unary cost to final column but do not
       // add binary cost for next column since there are no more columns
+
+      // Overwrite path_prob with path_prob_next if that is more recent
+      // path_prob is always searched for the best index after the viterbi_right call
+      if (next) 
+      {
+        for (int i = 0; i < f_row; i++) 
+        {
+          path_prob[i] = path_prob_next[i];
+        }
+      }
+
       continue;
     }
 

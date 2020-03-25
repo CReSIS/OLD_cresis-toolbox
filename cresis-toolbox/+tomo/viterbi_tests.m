@@ -6,7 +6,7 @@ function viterbi_tests()
   
   % CONSTANTS
   rows = 20;
-  cols = 10;
+  cols = 9;
   surf = 5;
   mult = 10;
   grnd = 17;
