@@ -24,7 +24,7 @@ if strcmpi(cmds_direction,'redo')
 else
   %% Undo commands (cmds_direction == 'undo')
   for cmd_idx = 1:length(cmds_list)
-    for sub_idx = 1:length(cmds_list{cmd_idx})
+    for sub_idx = length(cmds_list{cmd_idx}):-1:1
       if strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'insert')
         cmds_execute_insert(obj,cmds_list{cmd_idx}(sub_idx).undo_args);
       elseif strcmpi(cmds_list{cmd_idx}(sub_idx).undo_cmd,'delete')

@@ -82,10 +82,12 @@ elseif source == obj.left_panel.ascopeCM_delete
   vals = get(obj.left_panel.ascopeLB,'Value');
   
   delete(obj.h_ascope(vals));
+  delete(obj.h_cursor(vals));
   
   delete_mask = true(size(obj.ascope.echowin));
   delete_mask(vals) = false;
   obj.h_ascope = obj.h_ascope(delete_mask);
+  obj.h_cursor = obj.h_cursor(delete_mask);
   obj.ascope.echowin = obj.ascope.echowin(delete_mask);
   obj.ascope.sys = obj.ascope.sys(delete_mask);
   obj.ascope.season_name = obj.ascope.season_name(delete_mask);

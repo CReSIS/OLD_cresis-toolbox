@@ -73,27 +73,32 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 
 % -------------------------------------------------------------------------
 % 2018 Antarctica Ground
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181217');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181219');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181220');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181221');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181222');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181223');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181225');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181226');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181227');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181228');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181229');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181231');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190102');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190103');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190104');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190105');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190106');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190107');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190108');
-params = ct_set_params(params,['cmd.' cmd_method],0,'cmd.notes','do not process');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181217');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181219');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181220');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181221');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181222');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181223');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181225');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181226');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181227');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181228');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181229');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181231');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190102');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190103');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190104');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190105');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190106');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190107');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190108');
+% params = ct_set_params(params,['cmd.' cmd_method],0,'cmd.notes','do not process');
+% -------------------------------------------------------------------------
+% 2019 Antarctica Ground
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200108_02');
+
+  
 
 % params = ct_set_params(params,'radar.wfs(1).deconv.en',true);
 % params = ct_set_params(params,'radar.wfs(2).deconv.en',true);
@@ -108,28 +113,26 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  for wf = 1:length(params(param_idx).radar.wfs)
-    params(param_idx).radar.wfs(wf).deconv.en = 0;
-    if strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
-    elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
-    elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
-    elseif strcmpi(params(param_idx).season_name,'2012_Greenland_P3')
-    elseif strcmpi(params(param_idx).season_name,'2013_Greenland_P3')
-    elseif strcmpi(params(param_idx).season_name,'2014_Greenland_P3')
-      if any(strcmp(param.day_seg,{'20140429_01','20140502_01'}))
-      else
-        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
-      end
-    elseif strcmpi(params(param_idx).season_name,'2016_Greenland_P3')
-    elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
-    else
-      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
-    end
+  %% qlook
+  params = ct_set_params(params,'qlook.out_path','qlook');
+  if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+    params = ct_set_params(params,'qlook.out_path','qlook');
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
   end
   
+  %% general
+  if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+%     params = ct_set_params(params,'records.data_map',{[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8]});
+%     params = ct_set_params(params,'records.data_map',{[2 0 1 1; 2 1 1 2; 5 0 2 1; 5 1 2 2; 8 0 3 1; 8 1 3 2; 11 0 4 1; 11 1 4 2],[2 0 ...
+%       1 3; 2 1 1 4; 5 0 2 3; 5 1 2 4; 8 0 3 3; 8 1 3 4; 11 0 4 3; 11 1 4 4],[2 0 1 5; 2 1 1 6; 5 0 2 5; 5 1 2 6; 8 0 3 ...
+%       5; 8 1 3 6; 11 0 4 5; 11 1 4 6],[2 0 1 7; 2 1 1 8; 5 0 2 7; 5 1 2 8; 8 0 3 7; 8 1 3 8; 11 0 4 7; 11 1 4 8]}, ...
+%       'day_seg','20200101_02|20200101_03|20200101_04|20200104_01|20200104_02|20200104_03|20200104_04|20200104_05|20200105_01|20200105_02|20200105_03|20200105_04|20200106_01|20200106_02|20200107_01|20200107_02|20200107_03|20200108_01|20200108_02');
+  end
+
+  %% radar.wfs
   for wf = 1:length(params(param_idx).radar.wfs)
+    params(param_idx).radar.wfs(wf).deconv.en = 0;
     if strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
     elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
@@ -141,23 +144,30 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).chan_equal_deg = [-33.1 53.9 0 -175.8 116.8 84.5 96.3 -107.9 173.4 63.2 -28.2 -15.2 52.3 -178.4 73];
       params(param_idx).radar.wfs(wf).chan_equal_dB = [2.4 0.8 0 -3.6 0.1 0.5 -0.4 3.2 0 1.4 1.9 3.6 0.9 -2.5 2.4];
       params(param_idx).radar.wfs(wf).Tsys = [0 1.79 0.4 2.97 1.94 1.95 1.9 -37.59 -38.09 -34.75 -36.44 -35.97 -34.49 -37.66 -34.95]/1e9;
-      params = ct_set_params(params,'qlook.out_path','qlook_equal');
     elseif strcmpi(params(param_idx).season_name,'2012_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2013_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2014_Greenland_P3')
+      if any(strcmp(param.day_seg,{'20140429_01','20140502_01'}))
+      else
+        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+      end
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.00000164;
       params(param_idx).radar.wfs(wf).chan_equal_deg = [-96.4 142.3 0 -146.9 173.2 41.2 148.2 -168 -136.2 174.3 -169.6 -48.2 -131.4 -119.2 -119.2];
       params(param_idx).radar.wfs(wf).chan_equal_dB = [2.9 1.3 0 -2.5 0.5 0.1 1.4 2.5 1.5 -0.3 2 2.8 1.8 1.1 2.2];
       params(param_idx).radar.wfs(wf).Tsys = [3.73 3.09 0 5.59 3.05 0.92 2.28 -19.24 -22.03 -26.23 -29.8 -28.74 -25.71 -22.8 -19.42]/1e9;
-      params = ct_set_params(params,'qlook.out_path','qlook_equal');
     elseif strcmpi(params(param_idx).season_name,'2016_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.00000164;
       params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;
       params(param_idx).radar.wfs(wf).chan_equal_dB = [6.8 -0.6 3 0.1 0 3.5 3.9 7 3.3 4.8 6.1 6.2 4.6 3.1 6.2];
       params(param_idx).radar.wfs(wf).chan_equal_deg = [-166.2 -142.7 177 -95.9 0 -25.9 -86.5 -27.4 128.1 41.6 -46.8 43 90.7 121.3 31.6];
-      params = ct_set_params(params,'qlook.out_path','qlook_equal');
     elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+      params(param_idx).radar.wfs(wf).Tadc_adjust = -0.556e-6;
+    elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+    else
+      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
     end
   end
 end
@@ -180,6 +190,7 @@ if 1
   elseif any(strcmpi(params(param_idx).season_name,{'2014_Greenland_P3'}))
     params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
   elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
   else
     keyboard
   end
@@ -209,6 +220,7 @@ elseif 0
     if any(strcmpi(params(param_idx).season_name,{'2011_Greenland_P3','2012_Greenland_P3','2014_Greenland_P3'}))
       params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
     elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+    elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
     else
       keyboard
     end
@@ -231,6 +243,7 @@ elseif 0
   elseif any(strcmpi(params(param_idx).season_name,{'2014_Greenland_P3'}))
     params = ct_set_params(params,'array.imgs',{[ones(1,15); 2:16].', [2*ones(1,15); 2:16].', [3*ones(1,15); 2:16].'});
   elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
   else
     keyboard
   end
@@ -249,6 +262,7 @@ elseif 1
   elseif any(strcmpi(params(param_idx).season_name,{'2014_Greenland_P3'}))
     params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
   elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
   else
     keyboard
   end
@@ -266,6 +280,7 @@ elseif 0
   elseif any(strcmpi(params(param_idx).season_name,{'2014_Greenland_P3'}))
     params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
   elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
   else
     keyboard
   end

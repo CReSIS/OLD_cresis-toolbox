@@ -140,7 +140,7 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
         else
           
           % Get id for new layer
-          new_lyr_id = max(obj.eg.layers.lyr_id) + 1;
+          new_lyr_id = max(max(obj.undo_stack.user_data.layer_organizer.lyr_id),max(obj.eg.layers.lyr_id)) + 1;
           id = new_lyr_id;
           
           fprintf('Add layer %s:%s age %g desc "%s"\n', group_name, name, age, desc);
@@ -207,7 +207,7 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
               else
                 new_name = sprintf(sprintf('%%s_%%0%dd',zero_pad_len),base_name,old_count+1);
               end
-                
+              
             else
               new_name = old_name;
             end
@@ -293,7 +293,7 @@ elseif source == obj.left_panel.layerCM_edit
       if length(answer) == 2
         desc = answer{1};
         group_name = answer{2};
-
+        
         cmds = [];
         for val = vals
           old_age = obj.eg.layers.lyr_age(val);
@@ -317,133 +317,137 @@ elseif source == obj.left_panel.layerCM_edit
       
     end
   end
-    
+  
 elseif source == obj.left_panel.layerCM_sequence
-  vals = get(obj.left_panel.layerLB,'Value');
-  vals = vals(vals>2);
-  
-  prompt = {'Basename (BASENAME_001):','Zero padding length ("003" is 3):','Start count at:'};
-  old_base_name = obj.eg.layers.lyr_name{vals(1)};
-  last_underscore = find(old_base_name=='_',1,'last');
-  if ~isempty(last_underscore) && all(isstrprop(old_base_name(last_underscore+1:end),'digit'))
-    old_base_name = old_base_name(1:last_underscore-1);
-  end
-  old_zero_pad_len = '3';
-  old_start_count = '1';
-  def = {old_base_name,old_zero_pad_len,old_start_count};
-  dlg_title = 'Rename selected layers as sequence:';
-  num_lines = 1;
-  answer = inputdlg(prompt,dlg_title,num_lines,def);
-  
-  if length(answer) == 3
-    base_name = answer{1};
-    try
-      zero_pad_len = eval(answer{2});
-      start_count = eval(answer{3});
-    catch ME
-      fprintf('Invalid inputs to sequence layer names.\n');
-      return;
-    end
+  if strcmpi(obj.eg.layers.source,'layerData')
+    vals = get(obj.left_panel.layerLB,'Value');
+    vals = vals(vals>2);
     
+    prompt = {'Basename (BASENAME_001):','Zero padding length ("003" is 3):','Start count at:'};
+    old_base_name = obj.eg.layers.lyr_name{vals(1)};
+    last_underscore = find(old_base_name=='_',1,'last');
+    if ~isempty(last_underscore) && all(isstrprop(old_base_name(last_underscore+1:end),'digit'))
+      old_base_name = old_base_name(1:last_underscore-1);
+    end
+    old_zero_pad_len = '3';
+    old_start_count = '1';
+    def = {old_base_name,old_zero_pad_len,old_start_count};
+    dlg_title = 'Rename selected layers as sequence:';
+    num_lines = 1;
+    answer = inputdlg(prompt,dlg_title,num_lines,def);
+    
+    if length(answer) == 3
+      base_name = answer{1};
+      try
+        zero_pad_len = eval(answer{2});
+        start_count = eval(answer{3});
+      catch ME
+        fprintf('Invalid inputs to sequence layer names.\n');
+        return;
+      end
+      
+      cmds = [];
+      for val = vals
+        old_age = obj.eg.layers.lyr_age(val);
+        old_age_source_age = '[]';
+        old_age_source_source = '{}';
+        old_age_source_type = '{}';
+        old_id = obj.eg.layers.lyr_id(val);
+        old_desc = obj.eg.layers.lyr_desc{val};
+        old_group_name = obj.eg.layers.lyr_group_name{val};
+        old_name = obj.eg.layers.lyr_name{val};
+        old_order = obj.eg.layers.lyr_order(val);
+        new_name = sprintf(sprintf('%%s_%%0%dd',zero_pad_len),base_name,start_count);
+        
+        fprintf('Edit layer %s:%s to %s:%s age: %g desc: "%s"\n', old_group_name, old_name, old_group_name, new_name, old_age, old_desc);
+        
+        cmds(end+1).undo_cmd = 'layer_edit';
+        cmds(end).undo_args = {old_id,old_age,old_desc,old_group_name,old_name,old_order};
+        cmds(end).redo_cmd = 'layer_edit';
+        cmds(end).redo_args = {old_id,old_age,old_desc,old_group_name,new_name,old_order};
+        
+        start_count = start_count + 1;
+      end
+      % Push the new command(s) to the stack
+      obj.undo_stack.push(obj.cmds_convert_units(cmds));
+    end
+  end
+  
+elseif source == obj.left_panel.layerCM_order
+  if strcmpi(obj.eg.layers.source,'layerData')
+    vals = get(obj.left_panel.layerLB,'Value');
+    vals = vals(vals>2);
+    done = false;
+    order_unsorted = obj.eg.layers.lyr_order;
+    name_unsorted = obj.eg.layers.lyr_name;
+    y_unsorted = obj.eg.layers.y;
+    iterations = 0;
+    % Sort list using simple bubble sort
+    while ~done && iterations <= length(vals)
+      done = true;
+      % Since the comparison operator does not satisify the axiom of a sort
+      % operator that a > b and b > c implies a > c, to prevent potential
+      % oscillations in layer sorting that may cause this to loop infinitely,
+      % we keep track of the number of iterations and stop after the number
+      % is equal to length(vals) which is the maximum number of iterations
+      % for a bubble sort that does have a proper comparison operator.
+      iterations = iterations + 1;
+      for val_idx = 2:length(vals)
+        prev_val = vals(val_idx-1);
+        val = vals(val_idx);
+        if 0
+          % For debugging
+          figure(1000);clf;
+          plot(y_unsorted{val});
+          hold on;
+          plot(y_unsorted{prev_val});
+        end
+        % Try to do direct comparison of the twtt
+        comparison = y_unsorted{val} - y_unsorted{prev_val};
+        if ~all(isnan(comparison))
+          % At least one point has valid twtt for both layers so compare
+          % these overlapping points
+          comparison = nansum(comparison) < 0;
+        else
+          % No points in the two layers overlap, use the mean twtt to compare
+          comparison = nanmean(y_unsorted{val}) - nanmean(y_unsorted{prev_val});
+          if ~isnan(comparison)
+            comparison = comparison < 0
+          else
+            % At least one layer is all NaN, so use layer names to sort
+            comparison = issorted(name_unsorted([val,prev_val]));
+          end
+        end
+        if comparison
+          % Layer is out of order
+          order_unsorted([prev_val val]) = order_unsorted([val prev_val]);
+          name_unsorted([prev_val val]) = name_unsorted([val prev_val]);
+          y_unsorted([prev_val val]) = y_unsorted([val prev_val]);
+          done = false;
+        end
+      end
+    end
     cmds = [];
-    for val = vals
+    for val = find(order_unsorted ~= obj.eg.layers.lyr_order)
       old_age = obj.eg.layers.lyr_age(val);
       old_age_source_age = '[]';
       old_age_source_source = '{}';
       old_age_source_type = '{}';
-      old_id = obj.eg.layers.lyr_id(val);
       old_desc = obj.eg.layers.lyr_desc{val};
-      old_group_name = obj.eg.layers.lyr_group_name{val};
+      old_group_name = char(obj.eg.layers.lyr_group_name{val});
+      old_id = obj.eg.layers.lyr_id(val);
       old_name = obj.eg.layers.lyr_name{val};
       old_order = obj.eg.layers.lyr_order(val);
-      new_name = sprintf(sprintf('%%s_%%0%dd',zero_pad_len),base_name,start_count);
-      
-      fprintf('Edit layer %s:%s to %s:%s age: %g desc: "%s"\n', old_group_name, old_name, old_group_name, new_name, old_age, old_desc);
-      
+      new_order = find(order_unsorted == old_order);
       cmds(end+1).undo_cmd = 'layer_edit';
       cmds(end).undo_args = {old_id,old_age,old_desc,old_group_name,old_name,old_order};
       cmds(end).redo_cmd = 'layer_edit';
-      cmds(end).redo_args = {old_id,old_age,old_desc,old_group_name,new_name,old_order};
-
-      start_count = start_count + 1;
+      cmds(end).redo_args = {old_id,old_age,old_desc,old_group_name,old_name,new_order};
     end
-    % Push the new command(s) to the stack
-    obj.undo_stack.push(obj.cmds_convert_units(cmds));
-  end
-  
-elseif source == obj.left_panel.layerCM_order
-  vals = get(obj.left_panel.layerLB,'Value');
-  vals = vals(vals>2);
-  done = false;
-  order_unsorted = obj.eg.layers.lyr_order;
-  name_unsorted = obj.eg.layers.lyr_name;
-  y_unsorted = obj.eg.layers.y;
-  iterations = 0;
-  % Sort list using simple bubble sort
-  while ~done && iterations <= length(vals)
-    done = true;
-    % Since the comparison operator does not satisify the axiom of a sort
-    % operator that a > b and b > c implies a > c, to prevent potential
-    % oscillations in layer sorting that may cause this to loop infinitely,
-    % we keep track of the number of iterations and stop after the number
-    % is equal to length(vals) which is the maximum number of iterations
-    % for a bubble sort that does have a proper comparison operator.
-    iterations = iterations + 1;
-    for val_idx = 2:length(vals)
-      prev_val = vals(val_idx-1);
-      val = vals(val_idx);
-      if 0
-        % For debugging
-        figure(1000);clf;
-        plot(y_unsorted{val});
-        hold on; 
-        plot(y_unsorted{prev_val});
-      end
-      % Try to do direct comparison of the twtt
-      comparison = y_unsorted{val} - y_unsorted{prev_val};
-      if ~all(isnan(comparison))
-        % At least one point has valid twtt for both layers so compare
-        % these overlapping points
-        comparison = nansum(comparison) < 0;
-      else
-        % No points in the two layers overlap, use the mean twtt to compare
-        comparison = nanmean(y_unsorted{val}) - nanmean(y_unsorted{prev_val});
-        if ~isnan(comparison)
-          comparison = comparison < 0
-        else
-          % At least one layer is all NaN, so use layer names to sort
-          comparison = issorted(name_unsorted([val,prev_val]));
-        end
-      end
-      if comparison
-        % Layer is out of order
-        order_unsorted([prev_val val]) = order_unsorted([val prev_val]);
-        name_unsorted([prev_val val]) = name_unsorted([val prev_val]);
-        y_unsorted([prev_val val]) = y_unsorted([val prev_val]);
-        done = false;
-      end
+    if ~isempty(cmds)
+      % Push the new command(s) to the stack
+      obj.undo_stack.push(obj.cmds_convert_units(cmds));
     end
-  end
-  cmds = [];
-  for val = find(order_unsorted ~= obj.eg.layers.lyr_order)
-    old_age = obj.eg.layers.lyr_age(val);
-    old_age_source_age = '[]';
-    old_age_source_source = '{}';
-    old_age_source_type = '{}';
-    old_desc = obj.eg.layers.lyr_desc{val};
-    old_group_name = char(obj.eg.layers.lyr_group_name{val});
-    old_id = obj.eg.layers.lyr_id(val);
-    old_name = obj.eg.layers.lyr_name{val};
-    old_order = obj.eg.layers.lyr_order(val);
-    new_order = find(order_unsorted == old_order);
-    cmds(end+1).undo_cmd = 'layer_edit';
-    cmds(end).undo_args = {old_id,old_age,old_desc,old_group_name,old_name,old_order};
-    cmds(end).redo_cmd = 'layer_edit';
-    cmds(end).redo_args = {old_id,old_age,old_desc,old_group_name,old_name,new_order};
-  end
-  if ~isempty(cmds)
-    % Push the new command(s) to the stack
-    obj.undo_stack.push(obj.cmds_convert_units(cmds));
   end
   
 elseif source == obj.left_panel.layerCM_up
@@ -612,6 +616,128 @@ elseif source == obj.left_panel.layerCM_bottom
     end
   end
   
+elseif source == obj.left_panel.layerCM_merge
+  if strcmpi(obj.eg.layers.source,'layerData')
+    % Get the currently selected layers.
+    vals = get(obj.left_panel.layerLB,'Value');
+    vals = vals(vals>2);
+    if length(vals) < 2
+        return;
+    end
+      
+    cancel_operation = obj.undo_stack_modified_check();
+    
+    if cancel_operation
+      return
+    end
+    
+    % Copy points from all layers (except the first) to the first layer
+    y = nan(length(vals),length(obj.undo_stack.user_data.frame));
+    quality = ones(length(vals),length(obj.undo_stack.user_data.frame));
+    type = 2*ones(length(vals),length(obj.undo_stack.user_data.frame));
+    for frm = 1:length(obj.eg.layers.y)
+      point_ids = find(obj.undo_stack.user_data.frame==frm);
+      for val_idx = 1:length(vals)
+        val = vals(val_idx);
+        id = obj.eg.layers.lyr_id(val);
+        
+        found = false;
+        for lay_idx = 1:length(obj.undo_stack.user_data.layer_info(frm).layerData)
+          if id == obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
+            found = true;
+            break;
+          end
+        end
+        if found
+          quality(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality;
+          y(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data;
+          type(val_idx,point_ids) = 1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data);
+        else
+          % Layer does not exist in this file, set to defaults
+          quality(val_idx,point_ids) = ones(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
+          y(val_idx,point_ids) = nan(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
+          type(val_idx,point_ids) = 2*ones(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
+        end
+      end
+    end
+
+    % Merge the layers and determine a mask of where changes will be made
+    merged_y = nan(size(obj.undo_stack.user_data.frame));
+    merged_quality = ones(size(obj.undo_stack.user_data.frame));
+    merged_type = 2*ones(size(obj.undo_stack.user_data.frame));
+    for val_idx = length(vals):-1:1
+      mask = ~isnan(y(val_idx,:));
+      merged_y(mask) = y(val_idx,mask);
+      merged_quality(mask) = quality(val_idx,mask);
+      merged_type(mask) = type(val_idx,mask);
+    end
+    mask = ~(y(1,:) == merged_y) & ~isnan(merged_y);
+    
+    h_fig = figure; clf(h_fig);
+    h_axes = axes('parent',h_fig);
+    h_plot = plot(y(1,:).','b.','parent',h_axes,'LineWidth',2);
+    hold(h_axes,'on');
+    h_plot(end+(1:length(vals)-1)) = plot(y(2:end,:).','r^','parent',h_axes,'LineWidth',2);
+    h_plot(end+1) = plot(find(mask),merged_y(mask),'go','parent',h_axes,'LineWidth',2);
+    legend(h_plot([1 2 end]),'Original','Merging layers','Merged');
+
+    prompt = questdlg(sprintf('Are you sure you want to merge the %d selected layers? See plot showing the merge operation. All layers will be deleted except for layer %d.', ...
+      length(vals), vals(1)), ...
+      'Merge Layers','Yes','Cancel','Cancel');
+    if ~strcmpi(prompt,'Yes')
+      return;
+    end
+    
+    cmds = [];
+    
+    merged_id = obj.eg.layers.lyr_id(vals(1));
+    cmds(end+1).undo_cmd = 'insert';
+    cmds(end).undo_args = {merged_id, find(mask), ...
+      y(1,mask), ...
+      type(1,mask), ...
+      quality(1,mask)};
+    cmds(end).redo_cmd = 'insert';
+    cmds(end).redo_args = {merged_id, find(mask), ...
+      merged_y(mask), ...
+      merged_type(mask), ...
+      merged_quality(mask)};
+    
+    % Delete all selected layers (except the first)
+    for val_idx = length(vals):-1:2
+      val = vals(val_idx);
+      age = obj.eg.layers.lyr_age(val);
+      desc = obj.eg.layers.lyr_desc{val};
+      group_name = obj.eg.layers.lyr_group_name{val};
+      id = obj.eg.layers.lyr_id(val);
+      name = obj.eg.layers.lyr_name{val};
+      order = obj.eg.layers.lyr_order(val);
+      fprintf('Delete layer %s:%s\n', group_name, name);
+
+      % Delete all the points in the layer
+      nan_mask = ~isnan(y(val_idx,:));
+      cmds(end+1).undo_cmd = 'insert';
+      cmds(end).undo_args = {id, find(nan_mask), ...
+        y(val_idx,nan_mask), ...
+        type(val_idx,nan_mask), ...
+        quality(val_idx,nan_mask)};
+      cmds(end).redo_cmd = 'insert';
+      point_id = find(nan_mask);
+      cmds(end).redo_args = {id, point_id, ...
+        nan(size(point_id)), ...
+        2*ones(size(point_id)), ...
+        ones(size(point_id))};
+      
+      cmds(end+1).undo_cmd = 'layer_new';
+      cmds(end).undo_args = {id,age,desc,group_name,name,order};
+      cmds(end).redo_cmd = 'layer_delete';
+      cmds(end).redo_args = {id};
+    end
+    
+    % Push the new command(s) to the stack
+    obj.undo_stack.push(cmds);
+    
+  end
+  
 elseif source == obj.left_panel.layerCM_delete
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
@@ -642,9 +768,8 @@ elseif source == obj.left_panel.layerCM_delete
             cmds(end).undo_args = {id,age,desc,group_name,name,order};
             cmds(end).redo_cmd = 'layer_delete';
             cmds(end).redo_args = {id};
-            
-            % Push the new command(s) to the stack
           end
+          % Push the new command(s) to the stack
           obj.undo_stack.push(obj.cmds_convert_units(cmds));
         case 'Cancel'
       end
@@ -672,7 +797,7 @@ elseif source == obj.left_panel.layerCM_delete
           cmds(end).redo_args = {id};
           
           % Push the new command(s) to the stack
-          obj.undo_stack.push(obj.cmds_convert_units(cmds));
+          obj.undo_stack.push(cmds);
         case 'Cancel'
       end
     end
