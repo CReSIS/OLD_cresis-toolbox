@@ -31,13 +31,23 @@ if ~exist(records_fn,'file')
   warning('Records file does not exist: %s (%s).\n', records_fn, datestr(now));
   return;
 end
-records = load(records_fn);
+records = records_load(param);
 if isfield(records,'settings') && isfield(records.settings,'wfs') && isfield(records.settings.wfs,'wfs')
   warning('Old records.settings format with "settings.wfs.wfs" field found in records file. Updating format.');
   records.settings.wfs = records.settings.wfs.wfs;
   if isfield(records.settings,'wfs_records')
     records.settings = rmfield(records.settings,'wfs_records');
   end
+end
+if isfield(records,'settings') && isfield(records.settings,'nyquist_zone_hw')
+  warning('Old records.settings format with "settings.nyquist_zone_hw" field found in records file. Updating format.');
+  records.nyquist_zone_hw = records.settings.nyquist_zone_hw;
+  records.settings = rmfield(records.settings,'nyquist_zone_hw');
+end
+if isfield(records,'settings') && isfield(records.settings,'nyquist_zone')
+  warning('Old records.settings format with "settings.nyquist_zone" field found in records file. Updating format.');
+  records.nyquist_zone_sig = records.settings.nyquist_zone;
+  records.settings = rmfield(records.settings,'nyquist_zone');
 end
 if isfield(records.param_records,'vectors')
   warning('Old parameter format with "vectors" field found in records file. Updating format.');
@@ -159,14 +169,13 @@ end
 if save_changes
   % Save outputs
   fprintf('  Saving records %s\n', records_fn);
-  if param.ct_file_lock
+  if isfield(param,'ct_file_lock') && param.ct_file_lock
     records.file_version = '1L';
   else
     records.file_version = '1';
   end
   records.file_type = 'records';
   ct_save(records_fn,'-v7.3','-struct','records');
-  records_aux_files_create(records_fn);
 else
   fprintf('  Not saving information (TEST MODE)\n');
 end

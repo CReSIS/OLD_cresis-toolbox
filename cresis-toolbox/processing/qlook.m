@@ -165,11 +165,7 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-if ~exist(records_fn)
-  error('You must run create the records file before running anything else:\n  %s', records_fn);
-end
-records = load(records_fn);
+records = records_load(param);
 
 % Quick look radar echogram output directory
 out_fn_dir = ct_filename_out(param, param.qlook.out_path);

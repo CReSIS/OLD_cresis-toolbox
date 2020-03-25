@@ -92,7 +92,7 @@ if ~isfield(param.post.ops,'gaps_dist') || isempty(param.post.ops.gaps_dist)
 end
 
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames'));
+frames = frames_load(param);
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end

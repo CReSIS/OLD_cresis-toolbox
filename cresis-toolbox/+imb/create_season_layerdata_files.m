@@ -78,10 +78,8 @@ end
 
 %% Loading frames and records files
 % =====================================================================
-frames_fn = ct_filename_support(param,'','frames');
-frames = load(frames_fn); % loads "frames" variable
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn,'gps_time','gps_source'); % loads "gps_time" variable
+frames = frames_load(param);
+records = records_load(param,[],'gps_time','gps_source'); % loads "gps_time", "gps_source" variables
 
 %% Create outputs
 % =====================================================================

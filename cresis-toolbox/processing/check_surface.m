@@ -149,8 +149,7 @@ end
 % =========================================================================
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 
 % Load frames file
 frames_fn = ct_filename_support(param,'','frames');
@@ -169,9 +168,6 @@ gdem.ocean_mask_mode = 'l';
 
 gdem_str = sprintf('%s:%s:%s',param.radar_name,param.season_name,param.day_seg);
 if ~strcmpi(gdem_str,gdem.name)
-  % Load records file
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn);
   gdem.set_vector(records.lat,records.lon,gdem_str);
 end
 
@@ -510,8 +506,8 @@ if strcmpi(radar_type,'deramp')
   records.settings.nyquist_zone = interp1(layers(radar_idx).gps_time,nz,records.gps_time,'nearest','extrap');
   
   if param.check_surface.save_records_en
+    records_fn = ct_filename_support(param,'','records');
     save(records_fn,'-append','-struct','records','settings');
-    records_aux_files_create(records_fn,false);
   end
   
   clf(h_fig(5));
@@ -604,7 +600,7 @@ if param.check_surface.refine_Tsys_en
   fprintf('  %d specularity records\n', length(spec_gps_time));
   records = load(ct_filename_support(param,'','records'));
   along_track = geodetic_to_along_track(records.lat,records.lon);
-  load(ct_filename_support(param,'','frames'));
+  frames = frames_load(param);
   
   record = [];
   spec_frm = [];

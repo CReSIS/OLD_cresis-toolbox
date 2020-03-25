@@ -51,7 +51,7 @@ if ~isfield(param.(mode),'img_comb_bins') || isempty(param.(mode).img_comb_bins)
 end
 
 % Load frames file
-load(ct_filename_support(param,'','frames'));
+frames = frames_load(param);
 
 % If no frames specified, then do all frames
 if isempty(param.cmd.frms)

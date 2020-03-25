@@ -188,8 +188,7 @@ if L1B_cmd
   data_type = '1B';
   
   % Find the records information for updating global attributes
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn);
+  records = records_load(param);
   
   % Remove frames that do not exist from param.cmd.frms list
   [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));

@@ -147,7 +147,7 @@ if ~isfield(param.records_check,'vel_threshold') || isempty(param.records_check.
   param.records_check.vel_threshold = 10;
 end
 
-records = load(records_fn);
+records = records_load(param);
 
 if isfield(records,'records')
   warning('Old records file format, skipping');

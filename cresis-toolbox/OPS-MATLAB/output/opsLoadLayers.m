@@ -119,6 +119,10 @@ for layer_idx = 1:length(layer_params)
     % Default is layerData
     layer_params(layer_idx).layerdata_source = 'layer';
   end
+  if ~isfield(layer_params,'read_only') || isempty(layer_params(layer_idx).read_only)
+    % Default is layerData
+    layer_params(layer_idx).read_only = true;
+  end
   if ~isfield(layer_params,'lever_arm_en') || isempty(layer_params(layer_idx).lever_arm_en)
     layer_params(layer_idx).lever_arm_en = false;
   end
@@ -155,8 +159,7 @@ if ~isempty(layerdata_sources) || records_en || echogram_en || ~isempty(lidar_la
   frames = frames_load(param);
 
   if records_en || ~isempty(lidar_layer_idx) || ~isfield(frames,'frame_idxs')
-    records_fn = ct_filename_support(param,'','records');
-    records = load(records_fn);
+    records = records_load(param);
   end
   
   % Determine which frames need to be processed
@@ -457,7 +460,9 @@ for layerdata_source_idx = 1:length(layerdata_sources)
       tmp_layers.insert_layers(layer_organizer);
     end
     [layers(layer_idx).twtt,layers(layer_idx).quality,layers(layer_idx).type] = tmp_layers.get_layer(param.cmd.frms,layer_param.name);
-    tmp_layers.save();
+    if ~layer_param.read_only
+      tmp_layers.save();
+    end
   end
 end
 

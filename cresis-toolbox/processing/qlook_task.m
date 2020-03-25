@@ -7,7 +7,6 @@ function [success] = qlook_task(param)
 % param = struct controlling the loading, processing, surface tracking,
 %   and quick look generation
 %  .load = structure for which records to load
-%   .records_fn = filename of records file
 %   .recs = current records
 %   .imgs = cell vector of images to load, each image is Nx2 array of
 %     wf/adc pairs
@@ -87,7 +86,6 @@ physical_constants;
 
 %% Load records file
 % =========================================================================
-records_fn = ct_filename_support(param,'','records');
 
 % Adjust the load records to account for filtering and decimation. Care is
 % taken to ensure that when blocks and frames are concatenated together,
@@ -130,7 +128,7 @@ param.load.recs(1) = param.qlook.presums * (input_recs_ps(1) - 1) + 1;
 param.load.recs(2) = param.qlook.presums * input_recs_ps(2);
 
 % Load the records
-records = records_aux_files_read(records_fn,param.load.recs);
+records = records_load(param,param.load.recs);
 
 % Adjust stop_buffer_ps and loaded records in case at the end of the segment
 stop_buffer_ps = stop_buffer_ps + floor(length(records.gps_time)/param.qlook.presums) - (diff(input_recs_ps)+1);

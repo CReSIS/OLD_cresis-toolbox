@@ -152,6 +152,5 @@ end
 records_fn = ct_filename_support(param,'','records');
 fprintf('  Saving records %s\n', records_fn);
 ct_save(records_fn,'-struct','records');
-records_aux_files_create(records_fn);
 
 

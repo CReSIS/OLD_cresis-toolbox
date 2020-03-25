@@ -10,7 +10,6 @@ function [success] = sar_task(param)
 %  .radar = structured used by load_mcords_hdr
 %
 %  .load = structure containing info about what data to load
-%   .records_fn = records filename
 %   .recs = 2 element vector containing the start and stop records
 %   .imgs = cell vector of images to load, each image is Nx2 array of
 %     wf/adc pairs
@@ -74,8 +73,7 @@ wgs84 = wgs84Ellipsoid('meters');
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn,'settings','param_records');
+records = records_load(param,'settings','param_records');
 
 if param.sar.combine_rx && param.sar.mocomp.en
   warning('SAR motion compensation mode must be 0 for combine_rx (setting to 0)');
@@ -180,7 +178,7 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 % =========================================================================
 recs = [(param.load.recs(1)-1)*param.sar.presums+1, ...
         param.load.recs(2)*param.sar.presums];
-records = records_aux_files_read(records_fn,recs);
+records = records_load(param,recs);
 % Decimate records according to presums
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);

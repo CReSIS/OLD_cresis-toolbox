@@ -13,7 +13,6 @@ physical_constants;
 
 %% Load records file
 % =========================================================================
-records_fn = ct_filename_support(param,'','records');
 
 % Adjust the load records to account for filtering and decimation. Care is
 % taken to ensure that when blocks and frames are concatenated together,
@@ -32,7 +31,7 @@ task_recs = param.load.recs; % Store this for later when creating output fn
 load_recs_ps(1) = floor((param.load.recs(1)-1)/param.analysis.presums)+1;
 load_recs_ps(2) = floor(param.load.recs(2)/param.analysis.presums);
 
-records = records_aux_files_read(records_fn,param.load.recs);
+records = records_load(param,param.load.recs);
 
 % Store the parameters that were used to create the records file
 param_records = records.param_records;
@@ -53,9 +52,9 @@ frms = find(task_recs(1) >= frames.frame_idxs,1,'last') : find(task_recs(2) >= f
 tmp_param.cmd.frms = max(1,min(frms)-1) : min(length(frames.frame_idxs),max(frms)+1);
 surf_layer = opsLoadLayers(tmp_param,param.analysis.surf_layer);
 if isempty(surf_layer.gps_time)
-  records.surface(:) = 0;
+  records.surface = zeros(size(records.gps_time));
 elseif length(surf_layer.gps_time) == 1;
-  records.surface(:) = surf_layer.twtt;
+  records.surface = surf_layer.twtt*ones(size(records.gps_time));
 else
   records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time),0);
 end

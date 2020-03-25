@@ -11,7 +11,7 @@ warning('This is an example file, copy to personal directory and remove this war
 % User Settings
 % =======================================================================
 
-param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20191231_04');
+param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
 
 % param.load_sar_data.fn = ''; % Leave empty for default 'sar'
 
@@ -27,7 +27,8 @@ param.load_sar_data.frm = 1; % Specify data frame to load
 % {Images} with [wf,adc] pairs to load
 % param.load_sar_data.imgs = {[1 1; 1 2; 1 3; 1 4; 1 5; 1 6]};
 % param.load_sar_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14]};
-param.load_sar_data.imgs = {[1*ones(8,1) (1:8)'],[2*ones(8,1) (1:8)'],[3*ones(8,1) (1:8)']};
+% param.load_sar_data.imgs = {[1*ones(8,1) (1:8)'],[2*ones(8,1) (1:8)'],[3*ones(8,1) (1:8)']};
+param.load_sar_data.imgs = {[1*ones(8,1) (1:8)'],[2*ones(8,1) (1:8)'],[[3*ones(8,1) (1:8)'];[4*ones(8,1) (1:8)']]};
 
 % Debug level (1 = default)
 param.load_sar_data.debug_level = 2;

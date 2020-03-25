@@ -25,11 +25,8 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
-% Load frames file
-load(ct_filename_support(param,'','frames'));
-
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
@@ -90,11 +87,7 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-if ~exist(records_fn)
-  error('You must run create the records file before running anything else:\n  %s', records_fn);
-end
-records = load(records_fn);
+records = records_load(param);
 
 % Along-track
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);

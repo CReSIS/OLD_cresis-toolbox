@@ -66,7 +66,7 @@ for param_idx = 1:length(params)
   end
   
   % Load frames file
-  frames = load(ct_filename_support(param,'','frames'));
+  frames = frames_load(param);
   
   %% Determine which frames need to be processed
   if isempty(param.cmd.frms)

@@ -271,9 +271,7 @@ if isfield(track,'init') && strcmpi(track.init.method,'dem')
 
   gdem_str = sprintf('%s:%s:%s',param.radar_name,param.season_name,param.day_seg);
   if ~strcmpi(gdem_str,gdem.name)
-    % Load records file
-    records_fn = ct_filename_support(param,'','records');
-    records = load(records_fn);
+    records = records_load(param,[],'lat','lon');
     gdem.set_vector(records.lat,records.lon,gdem_str);
   end
 end

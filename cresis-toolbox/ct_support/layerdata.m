@@ -121,6 +121,7 @@ classdef layerdata < handle
         layerdata_source = 'layer';
       end
       obj.param = param;
+      obj.param.radar_name = ct_output_dir(obj.param.radar_name);
       obj.layerdata_source = layerdata_source;
       obj.frames = [];
       obj.records = [];

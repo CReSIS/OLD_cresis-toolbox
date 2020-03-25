@@ -198,6 +198,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     plot_bins = zero_surf_bin;
     
     clf(h_fig(1));
+    set(h_fig(1),'Name','Power-Phase-Roll');
     pos = get(h_fig(1),'Position');
     set(h_fig(1),'Position',[pos(1:2) 700 800]);
     h_axes = subplot(3,1,1,'parent',h_fig(1));
@@ -208,7 +209,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     h_axes(2) = subplot(3,1,2,'parent',h_fig(1));
     plot(h_axes(2), 180/pi*angle(wf_data(plot_bins,:,debug_wf_adc_idx) .* conj(wf_data(plot_bins,:,ref_wf_adc_idx)) ).','.')
     grid(h_axes(2),'on');
-    ylabel(h_axes(2),'Relative angle (deg)');
+    ylabel(h_axes(2),'Relative phase (deg)');
     h_axes(3) = subplot(3,1,3,'parent',h_fig(1));
     plot(h_axes(3),180/pi*roll.');
     grid(h_axes(3),'on');
@@ -216,6 +217,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     xlabel(h_axes(3),'Range line');
     
     clf(h_fig(2));
+    set(h_fig(2),'Name','Echogram-Surface');
     h_axes(4) = subplot(3,1,1:2,'parent',h_fig(2));
     imagesc(lp(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
     ylabel(h_axes(4), 'Relative range bin');
@@ -226,6 +228,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     grid(h_axes(5), 'on');
     
     clf(h_fig(3));
+    set(h_fig(3),'Name','Relative Angle');
     h_axes(6) = axes('parent',h_fig(3));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);
@@ -296,8 +299,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   
   %% Retrack surface
   % =====================================================================
-  if param.collate_equal.retrack_en
-    ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
+  ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
+  if ~param.collate_equal.retrack_en
+    surf_bin = zero_surf_bin*ones(1,Nx);
+  else
     
     surf_param = param;
     surf_param.cmd.frms = 1;
@@ -325,6 +330,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   
   if any(strcmp('surf',param.collate_equal.debug_plots))
     clf(h_fig(1));
+    set(h_fig(1),'Name','Echogram');
     h_axes = axes('parent',h_fig(1));
     imagesc(lp(ml_data),'parent',h_axes(1));
     colormap(h_axes(1),1-gray(256));
@@ -335,6 +341,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if param.collate_equal.retrack_en
       % Check to make sure surface is flat
       clf(h_fig(2));
+      set(h_fig(2),'Name','Echogram Surface Corrected');
       h_axes(2) = axes('parent',h_fig(2));
       imagesc(lp(fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1)),'parent',h_axes(2));
       colormap(h_axes(2),1-gray(256));
@@ -351,8 +358,12 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track2_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
-    fprintf('Saving %s\n', fig_fn);
-    ct_saveas(h_fig(2),fig_fn);
+    if param.collate_equal.retrack_en
+      fprintf('Saving %s\n', fig_fn);
+      ct_saveas(h_fig(2),fig_fn);
+    elseif exist(fig_fn,'file')
+      delete(fig_fn);
+    end
     
     if enable_visible_plot
       keyboard
@@ -492,6 +503,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     plot_bins = zero_surf_bin;
     
     clf(h_fig(1));
+    set(h_fig(1),'Name','Power-Phase-Roll');
     pos = get(h_fig(1),'Position');
     set(h_fig(1),'Position',[pos(1:2) 700 800]);
     h_axes = subplot(3,1,1,'parent',h_fig(1));
@@ -510,6 +522,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     xlabel(h_axes(3),'Range line');
     
     clf(h_fig(2));
+    set(h_fig(2),'Name','Echogram-Surface');
     h_axes(4) = subplot(3,1,1:2,'parent',h_fig(2));
     imagesc(lp(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
     ylabel(h_axes(4), 'Relative range bin');
@@ -520,6 +533,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     grid(h_axes(5), 'on');
     
     clf(h_fig(3));
+    set(h_fig(3),'Name','Relative Phase');
     h_axes(6) = subplot(3,1,1:2,'parent',h_fig(3));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);

@@ -16,8 +16,7 @@ function [success] = analysis_combine_task(param)
 %% Setup
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.analysis.presums > 1
   records.lat = fir_dec(records.lat,param.analysis.presums);

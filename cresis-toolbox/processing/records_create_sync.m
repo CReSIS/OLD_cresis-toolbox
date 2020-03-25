@@ -546,6 +546,7 @@ for board_idx = 1:length(board_hdrs)
   end
   records.offset(board_idx,:) = board_hdrs{board_idx}.offset;
 end
+records.bit_mask = zeros(size(records.offset),'uint8');
 records.radar_name = param.radar_name;
 if param.ct_file_lock
   records.file_version = '1L';
@@ -566,10 +567,3 @@ records.param_records = param;
 fprintf('Saving records file %s (%s)\n',records_fn,datestr(now));
 ct_file_lock_check(records_fn,3);
 ct_save(records_fn,'-v7.3','-struct','records');
-
-%% Create record aux files for faster loading times
-% =====================================================================
-
-fprintf('Creating auxiliary records files %s (%s)\n',records_fn,datestr(now));
-records_aux_files_create(records_fn);
-

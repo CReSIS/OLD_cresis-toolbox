@@ -19,10 +19,8 @@ function success = qlook_combine_task(param)
 % =====================================================================
 
 frames = frames_load(param);
-
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 
 % Quick look radar echogram output directory
 out_dir = ct_filename_out(param, param.qlook.out_path);

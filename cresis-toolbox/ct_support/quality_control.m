@@ -48,7 +48,11 @@ else
   error('Invalid field type update_field_type=%s', update_field_type);
 end
 
+fprintf('Loading records file %s\n',records_fn);
 records_fn = ct_filename_support(param,'','records');
+records = load(records_fn,'relative_filename','relative_rec_num');
+[records_fn_dir,records_fn_name] = fileparts(records_fn);
+param.day_seg = records_fn_name(9:end);
 
 img_type = param.img_type;
 
@@ -66,10 +70,6 @@ for img = 1:num_img
 end
 linkaxes(h_axes,'xy');
 
-fprintf('Loading records file %s\n',records_fn);
-records = load(records_fn,'relative_filename','relative_rec_num');
-[records_fn_dir,records_fn_name] = fileparts(records_fn);
-param.day_seg = records_fn_name(9:end);
 
 for img=1:num_img
   image_fn_dir{img} = ct_filename_out(param,param.image_out_dir{img}{:});

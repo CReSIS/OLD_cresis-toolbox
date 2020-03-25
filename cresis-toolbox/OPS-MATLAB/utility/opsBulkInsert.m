@@ -123,14 +123,8 @@ if insertPathCmd
       start = tic; % SET UP TIMING
       
       % GET THE RECORDS AND FRAMES FILENAMES
-      recordsFn = ct_filename_support(param,'','records');
-      framesFn = ct_filename_support(param,'','frames');
-      
-      frames = load(framesFn); % LOAD FRAMES FILE
-      records = load(recordsFn); % LOAD RECORDS FILE
-      if isfield(records,'records')
-        records = records.records; % SUPPORT OLD RECORDS FORMAT
-      end
+      frames = frames_load(param);
+      records = records_load(param);
       
       % GET THE START GPS TIME OF EACH FRAME
       frameStartGpsTime = zeros(1,length(frames.frame_idxs));
@@ -271,7 +265,7 @@ if insertLayerCmd
       continue;
     end
     
-    load(ct_filename_support(param,'','frames')); % LOAD FRAMES FILE
+    frames = frames_load(param);
     
     % CROSS VERIFY FRAMES FILE WITH PARAM.CMD.FRMS LIST
     if isempty(param.cmd.frms)

@@ -64,9 +64,16 @@ if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
   param.analysis.presums = 1;
 end
 
+if ~isfield(param.analysis,'resample') || isempty(param.analysis.resample)
+  param.analysis.resample = [1 1; 1 1];
+end
+if ~isequal(param.analysis.resample(2,1:2),[1 1])
+  error('The bottom row of param.analysis.resample must be [1 1] because resampling in the along-track is not supported. Use line_rng and dline instead.');
+end
+
 if ~isfield(param.analysis,'surf_layer') || isempty(param.analysis.surf_layer)
   param.analysis.surf_layer.name = 'surface';
-  param.analysis.surf_layer.source = 'layerData';
+  param.analysis.surf_layer.source = 'layerdata';
 end
 % Never check for the existence of files
 param.analysis.surf_layer.existence_check = false;
@@ -304,8 +311,7 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.analysis.presums > 1
   records.lat = fir_dec(records.lat,param.analysis.presums);
@@ -315,7 +321,6 @@ if param.analysis.presums > 1
   records.pitch = fir_dec(records.pitch,param.analysis.presums);
   records.heading = fir_dec(records.heading,param.analysis.presums);
   records.gps_time = fir_dec(records.gps_time,param.analysis.presums);
-  records.surface = fir_dec(records.surface,param.analysis.presums);
 end
 
 % Compute all estimates with pulse compressed numbers even though raw data

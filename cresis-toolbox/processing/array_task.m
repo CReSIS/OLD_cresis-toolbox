@@ -408,7 +408,7 @@ for img = 1:length(param.array.imgs)
   
   %% Process: Fast-time oversampling
   % =======================================================================
-  if isfield(param.array,'ft_over_sample') && ~isempty(param.array.ft_over_sample)
+  if param.array.ft_over_sample ~= 1
     % param.array.ft_over_sample should be a positive integer
     for ml_idx = 1:length(data)
       data{ml_idx} = interpft(data{ml_idx},size(data{ml_idx},1) * param.array.ft_over_sample);
