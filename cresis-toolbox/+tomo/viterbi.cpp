@@ -10,12 +10,12 @@
 //
 // Changes to cost function (shifted exponential decay): Victor Berger and John Paden 2018
 // Changes to cost function (geostatistical analysis): Victor Berger and John Paden 2019
+// Various changes throughout (purge dead code, fix bugs, add more weights): Reece Mathews 2020 
 //
 // See also: viterbi.h
 //
 // mex -v -largeArrayDims viterbi.cpp
 
-// TODO[reece]: Mention self in author listings of all edited files 
 
 #include "viterbi.h"
 
@@ -37,8 +37,6 @@ double viterbi::unary_cost(int x, int y)
 
   double cost = 0;
 
-  // TODO[reece]: Compare binary costs with unary costs/multiple bin costs. Adjust accordingly. Perhaps use constants for easy nudging.
-  // TODO[reece]: Weight such that manual points can be over-written by better points on occasion
   // Increase cost if far from extra ground truth
   for (int f = 0; f < (f_num_extra_tr / 2); ++f)
   {
@@ -133,7 +131,7 @@ double *viterbi::find_path(void)
   viterbi_right(path, path_prob, path_prob_next, index);
 
   int encode;
-  int viterbi_index = calculate_best(path_prob); // TODO[reece]: Should this always be path_prob?
+  int viterbi_index = calculate_best(path_prob);
   int idx = end_col;
   f_result[end_col] = (f_mask[end_col] == 1 || std::isinf(f_mask[end_col])) ? viterbi_index + 1 : f_sgt[end_col] + 1;
 
@@ -239,7 +237,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
   {
-    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, gt_weight, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
+    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, gt_weights, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
   }
 
   // Input checking
@@ -283,7 +281,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   {
     if (mxGetNumberOfDimensions(prhs[arg]) != 2)
     {
-      mexErrMsgTxt("usage: egt must be a 2xN array");
+      mexErrMsgTxt("usage: egt must be a 2xNgt array");
     }
   }
   const double *t_egt = mxGetPr(prhs[arg]);

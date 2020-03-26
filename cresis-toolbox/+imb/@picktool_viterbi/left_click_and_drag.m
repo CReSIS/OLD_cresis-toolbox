@@ -57,7 +57,7 @@ if tool_idx == 1
       mask           = inf * ones([1 Nx]);
       slope          = round(diff(surf_bins));
       bounds         = [];
-      gt_weights = ones([1 Nx]);
+      gt_weights     = ones([1 Nx]);
       mask_dist      = round(bwdist(mask == 0));
       
       %% Detrending
@@ -81,7 +81,7 @@ if tool_idx == 1
         surf_bins      = surf_bins(:, auto_idxs);
         mask           = mask(:, auto_idxs);
         mask_dist      = round(bwdist(mask == 0));
-        gt_weights = gt_weights(:, auto_idxs);
+        gt_weights     = gt_weights(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
       
@@ -148,7 +148,7 @@ if tool_idx == 1
       catch ME
       end
 
-      % TODO[reece]: Scale with method Paden suggested, not based on axis resolutions -- ask paden for refresher
+      % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
       transition_weights = ones(1, size(viterbi_data, 2) - 1) * transition_weight;
 
       manual_slope = ones(1, size(viterbi_data, 2) - 1) * manual_slope;
