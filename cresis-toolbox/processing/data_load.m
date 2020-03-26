@@ -672,8 +672,12 @@ for state_idx = 1:length(states)
               % the loop.
               data{img}(1) = data{img}(1) + 1i;
             end
-            data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
-              data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
+            if state.reset_sum(ai)
+              data{img}(1:Nt{img}(1),out_rec,wf_adc) = state.weight(ai)*state.data{ai} / num_accum(ai);
+            else
+              data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
+                data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
+            end
             data{img}(Nt{img}(1)+1:end,out_rec,wf_adc) = wfs(wf).bad_value;
             
             hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw{img}(1);
