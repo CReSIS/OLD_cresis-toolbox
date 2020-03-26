@@ -4,7 +4,7 @@
 %
 % Author: John Paden, Logan Smith
 
-warning('This is an example file, copy to personal directory and remove this warning/return to use');
+warning('This is an example file, copy to personal directory, rename, and remove this warning/return to use');
 %return;
 
 % =======================================================================
@@ -13,7 +13,7 @@ warning('This is an example file, copy to personal directory and remove this war
 
 param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
 
-% param.load_sar_data.fn = ''; % Leave empty for default 'sar'
+% param.load_sar_data.in_path = ''; % Leave empty for default 'sar'
 
 % Start and stop chunk to load (inf for second element loads to the end)
 % param.load_sar_data.chunk = []; % Leave empty for all chunks

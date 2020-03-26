@@ -31,7 +31,7 @@ if ~exist(records_fn,'file')
   warning('Records file does not exist: %s (%s).\n', records_fn, datestr(now));
   return;
 end
-records = records_load(param);
+records = load(records_fn);
 if isfield(records,'settings') && isfield(records.settings,'wfs') && isfield(records.settings.wfs,'wfs')
   warning('Old records.settings format with "settings.wfs.wfs" field found in records file. Updating format.');
   records.settings.wfs = records.settings.wfs.wfs;

@@ -32,6 +32,10 @@ function records = records_load(param,varargin)
 %
 % Author: John Paden
 
+if ischar(param)
+  records = load(param,'param_records');
+  param = records.param_records;
+end
 records_fn = ct_filename_support(param,'','records');
 if ~exist(records_fn,'file')
   error('Records file does not exist: %s (%s).', records_fn, datestr(now));

@@ -69,8 +69,8 @@ if ~isfield(param.load_sar_data.detrend,'minVal') || isempty(param.load_sar_data
 end
 
 % fn: Data directory. Default is "sar" which loads from "CSARP_sar".
-if ~isfield(param.load_sar_data,'fn') || isempty(param.load_sar_data.fn)
-  param.load_sar_data.fn = 'sar';
+if ~isfield(param.load_sar_data,'in_path') || isempty(param.load_sar_data.in_path)
+  param.load_sar_data.in_path = 'sar';
 end
 
 % frm: Data frame to load
@@ -111,7 +111,7 @@ physical_constants;
 % =========================================================================
 
 % The base path for all the data
-base_path = ct_filename_out(param,param.load_sar_data.fn,'');
+base_path = ct_filename_out(param,param.load_sar_data.in_path,'');
 
 % Initialize memory for outputs
 data     = cell(length(param.load_sar_data.imgs),1);

@@ -140,6 +140,12 @@ for param_idx = 1:length(params)
   %% sar
   if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
     params = ct_set_params(params,'sar.out_path','sar_tukey');
+    records = records_load(params(param_idx),'gps_source');
+    if ~isempty(regexpi(records.gps_source,'cresis'))
+      params(param_idx).sar.mocomp.en = true;
+    else
+      params(param_idx).sar.mocomp.en = false;
+    end
   end
   
   %% general
@@ -209,12 +215,12 @@ for param_idx = 1:length(params)
   %% analysis waveform cmd
   if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'waveform')
     if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground') && strcmp(params(param_idx).day_seg,'20200107_01')
-      if 0
+      if 1
         params(param_idx).analysis.imgs = {[2*ones([8 1]),(1:8).']};
-        params(param_idx).analysis.cmd{1}.start_time = struct('name','Herc_002','eval',struct('cmd','s=s-1.5e-6;'));
+        params(param_idx).analysis.cmd{1}.start_time = struct('name','HERC_002','eval',struct('cmd','s=s-1.5e-6;'));
       else
         params(param_idx).analysis.imgs = {[[3*ones([8 1]),(1:8).']; [4*ones([8 1]),(1:8).']]};
-        params(param_idx).analysis.cmd{1}.start_time = struct('name','Herc_006','eval',struct('cmd','s=s-1.5e-6;'));
+        params(param_idx).analysis.cmd{1}.start_time = struct('name','HERC_006','eval',struct('cmd','s=s-1.5e-6;'));
       end
     end
   end
