@@ -38,11 +38,6 @@ if ~isfield(param,'analysis') || isempty(param.analysis)
   error('The analysis field (worksheet) is missing.');
 end
 
-if ~isfield(param.analysis,'bit_mask') || isempty(param.analysis.bit_mask)
-  % Set to 3 to mask out stationary and bad records (useful for coherent noise estimation on ground based data that may have stationary records)
-  param.analysis.bit_mask = 1;
-end
-
 if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
   param.analysis.block_size = 6000;
 end
@@ -79,7 +74,7 @@ end
 param.analysis.surf_layer.existence_check = false;
 
 % For each command in the list, set its default settings
-enabled_cmds = 0;
+enabled_cmds = {};
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};
   
@@ -89,7 +84,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
   if ~cmd.en
     continue;
   end
-  enabled_cmds = enabled_cmds + 1;
   
   if ~isfield(cmd,'out_path') || isempty(cmd.out_path)
     cmd.out_path = param.analysis.out_path;
@@ -297,11 +291,23 @@ for cmd_idx = 1:length(param.analysis.cmd)
   
   % Update the command structure
   param.analysis.cmd{cmd_idx} = cmd;
+  enabled_cmds{end+1} = cmd.method;
 end
 
-if enabled_cmds == 0
+if isempty(enabled_cmds)
   ctrl_chain = {};
   return;
+end
+
+if ~isfield(param.analysis,'bit_mask') || isempty(param.analysis.bit_mask)
+  % Set to 3 to mask out stationary and bad records (useful for coherent noise estimation on ground based data that may have stationary records)
+  if all(strcmp('coh_noise',enabled_cmds))
+    % If coherent noise only command, the default is 3
+    param.analysis.bit_mask = 3;
+  else
+    % Otherwise the default is 1
+    param.analysis.bit_mask = 1;
+  end
 end
 
 %% Setup processing

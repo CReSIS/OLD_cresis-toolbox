@@ -13,19 +13,20 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 % param = param spreadsheet structure
 % layer_params = N element struct array indicating which layers are to be loaded
 %   and which source to use for each layer
-%  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
+%  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
+%    is "surface"
 %  .source: string
 %    'records': Loads layer data from records file
 %    'echogram': Loads layer data from echogram files
-%    'layerdata': Loads layer data from layer data files
+%    'layerdata': Loads layer data from layer data files (default)
 %    'lidar': Loads (ATM, AWI, or DTU) lidar data
 %    'ops': Loads layer data from Open Polar Server
 %  .echogram_source = string containing ct_filename_out argument if using
 %    'echogram' source
 %    (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
-%  .layerdata_source = string containing ct_filename_out argument if using
-%    'echogram' source
-%    (e.g. 'layerData', 'CSARP_post/layerData')
+%  .layerdata_source = string containing ct_filename_out argument of where
+%    the layerdata is (default is "layer")
+%    (e.g. 'layer', 'CSARP_post/layer')
 %  .lidar_source = string containing 'atm', 'awi', or 'dtu' if using lidar source
 %  .existence_check = boolean, default is true and causes an error to be
 %    thrown if the layer does not exist. If false, no data points are

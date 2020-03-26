@@ -422,6 +422,7 @@ for img = 1:length(param.array.imgs)
       sar_data.wfs(wf).freq = sar_data.wfs(wf).fc ...
         + sar_data.wfs(wf).df * ifftshift( -floor(sar_data.wfs(wf).Nt/2) : floor((sar_data.wfs(wf).Nt-1)/2) ).';
     end
+    Time = sar_data.wfs(wf_base).time;
   end
   
   param.array_proc.chan_equal = chan_equal;

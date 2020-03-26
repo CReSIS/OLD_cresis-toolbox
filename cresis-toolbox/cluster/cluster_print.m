@@ -434,8 +434,8 @@ if print_mode == 2
     info(id_idx).task = NaN;
     info(id_idx).job_est = '';
     info(id_idx).job = '';
+    info(id_idx).mem_est = NaN;
     info(id_idx).mem = NaN;
-    info(id_idx).mem_actual = NaN;
    
     if job_id ~= -1
       if strcmpi(ctrl.cluster.type,'torque')
@@ -509,13 +509,13 @@ if print_mode == 2
             tmp_result = tmp_result(idx:end);
             mem_units = sscanf(tmp_result,'%s');
             if strcmpi(mem_units,'mb')
-              info(id_idx).mem_actual = mem;
+              info(id_idx).mem = mem;
             elseif strcmpi(mem_units,'kb')
-              info(id_idx).mem_actual = mem/1e3;
+              info(id_idx).mem = mem/1e3;
             elseif strcmpi(mem_units,'gb')
-              info(id_idx).mem_actual = mem*1e3;
+              info(id_idx).mem = mem*1e3;
             else
-              info(id_idx).mem_actual = mem/1e6;
+              info(id_idx).mem = mem/1e6;
             end
           end
           
@@ -540,17 +540,17 @@ if print_mode == 2
             tmp_result = tmp_result(idx+2:end);
             idx = find(tmp_result==10|tmp_result==13,1);
             tmp_result = tmp_result(1:idx);
-            [mem,~,~,idx] = sscanf(tmp_result,'%d');
+            [mem_est,~,~,idx] = sscanf(tmp_result,'%d');
             tmp_result = tmp_result(idx:end);
             mem_units = sscanf(tmp_result,'%s');
             if strcmpi(mem_units,'mb')
-              info(id_idx).mem = uint32(mem);
+              info(id_idx).mem_est = uint32(mem_est);
             elseif strcmpi(mem_units,'kb')
-              info(id_idx).mem = uint32(mem/1e3);
+              info(id_idx).mem_est = uint32(mem_est/1e3);
             elseif strcmpi(mem_units,'gb')
-              info(id_idx).mem = uint32(mem*1e3);
+              info(id_idx).mem_est = uint32(mem_est*1e3);
             else
-              info(id_idx).mem = uint32(mem/1e6);
+              info(id_idx).mem_est = uint32(mem_est/1e6);
             end
           end
         end
@@ -634,8 +634,8 @@ if print_mode == 2
     end
 
     task_in = merge_structs(sparam.static_param,dparam.dparam{task_id});
-    if isnan(info(id_idx).mem)
-      info(id_idx).mem = task_in.mem/1e6;
+    if isnan(info(id_idx).mem_est)
+      info(id_idx).mem_est = task_in.mem/1e6;
     end
     
     % Read output file
@@ -667,7 +667,7 @@ if print_mode == 2
     
     info(id_idx).notes = task_in.notes;
     
-    if isnan(info(id_idx).mem_actual)
+    if isnan(info(id_idx).mem)
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
       [fid,msg] = fopen(fn);
       if fid > 0
@@ -676,18 +676,19 @@ if print_mode == 2
         try
           % Memory requested in megabytes
           idx = regexp(result,'Max Mem');
-          tmp_result = result(idx:end);
+          tmp_result = result(idx(end):end);
           idx = find(tmp_result==':',1);
           tmp_result = tmp_result(idx+2:end);
           idx = find(tmp_result==10|tmp_result==13,1);
           tmp_result = tmp_result(1:idx);
           [mem,~,~,idx] = sscanf(tmp_result,'%d');
-          info(id_idx).mem_actual = mem/1e3;
-          
+          info(id_idx).mem = mem/1e3;
+        end
+        try
           if isempty(info(id_idx).exec_node)
             % Exec host
             idx = regexp(result,'hostname:');
-            tmp_result = result(idx:end);
+            tmp_result = result(idx(end):end);
             idx = find(tmp_result==':',1);
             tmp_result = tmp_result(idx+2:end);
             idx = find(tmp_result==' ');

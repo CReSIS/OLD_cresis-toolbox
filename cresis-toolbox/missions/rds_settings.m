@@ -3,6 +3,7 @@
 % Script that should be called from run scripts to do standard processing of RDS data.
 % Has many seasons and different projects setup.
 
+%% cmd
 % Example to run a specific segment and frame by overriding parameter spreadsheet values
 params = ct_set_params(params,['cmd.' cmd_method],0);
 % -------------------------------------------------------------------------
@@ -131,7 +132,14 @@ for param_idx = 1:length(params)
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
     params = ct_set_params(params,'qlook.out_path','qlook');
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
-    params = ct_set_params(params,'qlook.out_path','qlook_equal');
+    params = ct_set_params(params,'qlook.out_path','qlook_no_stationary');
+    adcs = [1:6]; Nchan = length(adcs);
+    params = ct_set_params(params,'qlook.imgs',{[ones(1,Nchan); adcs].', [2*ones(1,Nchan); adcs].', [3*ones(1,Nchan) 4*ones(1,Nchan); adcs adcs].'});
+  end
+  
+  %% sar
+  if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+    params = ct_set_params(params,'sar.out_path','sar_tukey');
   end
   
   %% general
@@ -179,9 +187,18 @@ for param_idx = 1:length(params)
     elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.25e-6;
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+      params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.25e-6;
-      params(param_idx).radar.wfs(wf).chan_equal_dB = [0 0 0 0 0 0 0 0];
-      params(param_idx).radar.wfs(wf).chan_equal_deg = [-56 -61.8 116.5 134.1 87.1 65.9 0 -53.7];
+      if wf  < 3
+        params(param_idx).radar.wfs(wf).chan_equal_dB = [10 6 10 9.6 -11.4 -0.8 0 9];
+        params(param_idx).radar.wfs(wf).chan_equal_deg = [-56 -61.8 116.5 134.1 87.1 65.9 0 -53.7];
+      elseif wf == 3
+        params(param_idx).radar.wfs(wf).chan_equal_dB = [10.5 5.7 10.2 9 -11.2 2.3 0 9.3];
+        params(param_idx).radar.wfs(wf).chan_equal_deg = [-54.8 -60.8 115.8 131.5 87.4 75.8 0 -54.3];
+      elseif wf == 4
+        params(param_idx).radar.wfs(wf).chan_equal_dB = [10.7 6.1 10.9 10.4 -9.9 -21.2 1.2 10.6];
+        params(param_idx).radar.wfs(wf).chan_equal_deg = [-44.1 -51.4 129 147.9 100.6 113.5 10.1 -40.2];
+      end
     else
       params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
       params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
@@ -204,12 +221,17 @@ for param_idx = 1:length(params)
   
 end
 
-if 0
+%% array
+if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+  params = ct_set_params(params,'array.in_path','sar_tukey');
+  params = ct_set_params(params,'array.ft_over_sample',2);
+end
+
+if 1
   % Standard
   params = ct_set_params(params,'array.tomo_en',false);
 %   params = ct_set_params(params,'array.out_path','standard');
-  params = ct_set_params(params,'array.out_path','standard_equal');
-  params = ct_set_params(params,'array.in_path','sar');
+  params = ct_set_params(params,'array.out_path','standard_equal_tukey');
   params = ct_set_params(params,'array.method','standard');
   if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
     params = ct_set_params(params,'array.imgs',{[ones(1,7); 6:12].', [2*ones(1,7); 6:12].', [3*ones(1,7); 6:12].'});
@@ -225,6 +247,8 @@ if 0
     params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
   elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+    adcs = [1:6]; Nchan = length(adcs);
+    params = ct_set_params(params,'array.imgs',{[ones(1,Nchan); adcs].', [2*ones(1,Nchan); adcs].', [3*ones(1,Nchan) 4*ones(1,Nchan); adcs adcs].'});
   else
     keyboard
   end
@@ -237,6 +261,8 @@ elseif 1
   params = ct_set_params(params,'array.tomo_en',false);
   params = ct_set_params(params,'array.method','mvdr');
   if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+    adcs = [1:6]; Nchan = length(adcs);
+    params = ct_set_params(params,'array.imgs',{[ones(1,Nchan); adcs].', [2*ones(1,Nchan); adcs].', [3*ones(1,Nchan) 4*ones(1,Nchan); adcs adcs].'});
   else
     if 1
       % 15 Elements

@@ -522,6 +522,11 @@ for state_idx = 1:length(states)
               missed_wf_adc = true;
               while sub_rec_offset < rec_size
                 total_offset = rec_offset + sub_rec_offset;
+                if length(file_data) < total_offset+72
+                  % Unexpected end of file, so we missed the record
+                  missed_wf_adc = true;
+                  break;
+                end
                 if swap_bytes_en
                   radar_header_type = mod(swapbytes(typecast(file_data(total_offset+(9:12)),'uint32')),2^31); % Ignore MSB
                   radar_header_len = double(swapbytes(typecast(file_data(total_offset+(13:16)),'uint32')));

@@ -58,6 +58,10 @@ end
 %% Input Checks: qlook
 % =====================================================================
 
+if ~isfield(param.qlook,'bit_mask') || isempty(param.qlook.bit_mask)
+  param.qlook.bit_mask = 1;
+end
+
 if ~isfield(param.qlook,'block_size') || isempty(param.qlook.block_size)
   error('param.qlook.block_size must be specified. This is the number of range lines or records to process at a time.');
 end
