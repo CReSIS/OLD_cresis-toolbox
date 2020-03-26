@@ -86,7 +86,7 @@ sar_coord_dir = ct_filename_out(param, param.sar.coord_path);
 
 % Load SAR coordinate system
 sar_fn = fullfile(sar_coord_dir,'sar_coord.mat');
-sar = load(sar_fn,'version','Lsar','gps_source','type','sigma_x','presums','along_track','surf_pp');
+sar = load(sar_fn,'file_version','Lsar','gps_source','type','sigma_x','presums','along_track','surf_pp');
 
 % Determine output range lines
 output_along_track = 0 : param.sar.sigma_x : sar.along_track(end);

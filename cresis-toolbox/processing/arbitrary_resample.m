@@ -46,7 +46,7 @@ if strcmpi(param.method,'sinc')
       data(:,rline) = data_in(:,idxs);
     else
       Hwin = Hwin / param.dx * param.filt_len/length(idxs);
-      Hwin = Hwin .* [x_off(2)-x_off(1); (x_off(3:end)-x_off(1:end-2))/2; x_off(end)-x_off(end-1)];
+      Hwin = Hwin .* abs([x_off(2)-x_off(1); (x_off(3:end)-x_off(1:end-2))/2; x_off(end)-x_off(end-1)]);
       Hwin = Hwin / sum(Hwin);
       data(:,rline) = data_in(:,idxs)*Hwin;
     end
