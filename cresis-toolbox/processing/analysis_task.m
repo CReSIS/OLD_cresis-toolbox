@@ -612,8 +612,8 @@ for img = 1:length(store_param.load.imgs)
           cmd.start_time.eval.Tstart = time(1);
           cmd.start_time.eval.Tend = time(end);
           layers = opsLoadLayers(param,cmd.start_time);
-          layers.twtt = interp1(layers.gps_time, layers.twtt, gps_time);
           layers.twtt = interp_finite(layers.twtt,0);
+          layers.twtt = interp1(layers.gps_time, layers.twtt, gps_time);
           start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
           start_bin = min(max(1,start_bin),size(data,1));
         elseif ischar(cmd.start_time)
@@ -705,8 +705,8 @@ for img = 1:length(store_param.load.imgs)
           cmd.start_time.eval.Tstart = time(1);
           cmd.start_time.eval.Tend = time(end);
           layers = opsLoadLayers(param,cmd.start_time);
-          layers.twtt = interp1(layers.gps_time, layers.twtt, hdr.gps_time(1,:));
           layers.twtt = interp_finite(layers.twtt,0);
+          layers.twtt = interp1(layers.gps_time, layers.twtt, hdr.gps_time(1,:));
           start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
           start_bin = min(max(1,start_bin),size(data,1));
         elseif ischar(cmd.start_time)

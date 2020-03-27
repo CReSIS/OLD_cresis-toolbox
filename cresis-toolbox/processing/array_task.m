@@ -276,10 +276,8 @@ for img = 1:length(param.array.imgs)
           % Load next chunk data
           % ===============================================================
           
-          % If on the first chunk of the frame, then look at the previous
-          % frame. Special cases (like frm == 1 and empty
-          % param.load.prev_frm_num_chunks are handled by letting the file
-          % search fail).
+          % If on the last chunk of the frame, then look at the next 
+          % frame. Special case when frm > number-of-frames checked.
           if param.load.chunk_idx == param.load.num_chunks
             load_frm = param.load.frm+1;
             load_chunk_idx = 1;
@@ -298,7 +296,7 @@ for img = 1:length(param.array.imgs)
               sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
           end
           
-          if ~next_chunk_failed_flag && ~isempty(sar_type_fn)
+          if ~next_chunk_failed_flag && ~isempty(sar_type_fn) && load_frm <= length(frames.frame_idxs)
             % If file exists, then load it
             sar_data = load(sar_type_fn{1});
             

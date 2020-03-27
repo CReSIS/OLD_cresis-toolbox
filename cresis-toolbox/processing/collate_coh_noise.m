@@ -274,7 +274,7 @@ for img = param.collate_coh_noise.imgs
         if enable_threshold
           cn_before_mag(:,bin_idx) = coh_bin_mag;
           if size(coh_bin_mag,2) < param.collate_coh_noise.threshold_fir_dec
-            threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2),1);
+            threshold(bin_idx) = lp(nanmean(abs(coh_bin_mag).^2,2),1);
           else
             threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,param.collate_coh_noise.threshold_fir_dec),1),[],2);
           end

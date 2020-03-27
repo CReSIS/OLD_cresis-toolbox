@@ -772,10 +772,11 @@ classdef layerdata < handle
       obj.check_layer_organizer();
       if ischar(id)
         % name passed in rather than id
-        id = find(strcmpi(id,obj.layer_organizer.lyr_name));
+        match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
         if isempty(id)
           error('Layer does not exist in layer organizer. Run insert_layer() first.');
         end
+        id = obj.layer_organizer.lyr_id(match_idx);
       else
         % id passed in
         if all(obj.layer_organizer.lyr_id ~= id)

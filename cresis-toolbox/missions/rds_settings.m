@@ -139,7 +139,10 @@ for param_idx = 1:length(params)
   
   %% sar
   if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
-    params = ct_set_params(params,'sar.out_path','sar_tukey');
+    %params = ct_set_params(params,'sar.out_path','sar');
+    params = ct_set_params(params,'sar.out_path','sar_tukey_1m');
+    %params = ct_set_params(params,'sar.sigma_x',2.5);
+    params = ct_set_params(params,'sar.sigma_x',1);
     records = records_load(params(param_idx),'gps_source');
     if ~isempty(regexpi(records.gps_source,'cresis'))
       params(param_idx).sar.mocomp.en = true;
@@ -193,6 +196,7 @@ for param_idx = 1:length(params)
     elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.25e-6;
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+      %params(param_idx).radar.wfs(wf).ft_wind = @hanning;
       params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.25e-6;
       if wf  < 3
@@ -211,6 +215,12 @@ for param_idx = 1:length(params)
     end
   end
   
+  %% analysis coh_noise cmd
+  if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'coh_noise')
+    for wf = 1:length(params(param_idx).radar.wfs)
+      params(param_idx).radar.wfs(wf).bad_value = NaN;
+    end
+  end
   
   %% analysis waveform cmd
   if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'waveform')
@@ -229,7 +239,10 @@ end
 
 %% array
 if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
-  params = ct_set_params(params,'array.in_path','sar_tukey');
+  params = ct_set_params(params,'array.in_path','sar');
+%   params = ct_set_params(params,'array.in_path','sar_tukey');
+%   params = ct_set_params(params,'array.in_path','sar_1m');
+%   params = ct_set_params(params,'array.in_path','sar_tukey_1m');
   params = ct_set_params(params,'array.ft_over_sample',2);
 end
 
@@ -237,7 +250,10 @@ if 1
   % Standard
   params = ct_set_params(params,'array.tomo_en',false);
 %   params = ct_set_params(params,'array.out_path','standard');
-  params = ct_set_params(params,'array.out_path','standard_equal_tukey');
+  params = ct_set_params(params,'array.out_path','standard_equal');
+%   params = ct_set_params(params,'array.out_path','standard_equal_1m');
+%   params = ct_set_params(params,'array.out_path','standard_equal_tukey');
+%   params = ct_set_params(params,'array.out_path','standard_equal_tukey_1m');
   params = ct_set_params(params,'array.method','standard');
   if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
     params = ct_set_params(params,'array.imgs',{[ones(1,7); 6:12].', [2*ones(1,7); 6:12].', [3*ones(1,7); 6:12].'});
