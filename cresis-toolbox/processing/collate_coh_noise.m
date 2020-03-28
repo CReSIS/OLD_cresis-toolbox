@@ -326,13 +326,22 @@ for img = param.collate_coh_noise.imgs
             error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each image. Image %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',img,numel(param.collate_coh_noise.threshold_eval));
           end
           
+          cmd_str = param.collate_coh_noise.threshold_eval;
+          if iscell(cmd_str)
+            % Not a string, so threshold_eval is specified on a per image basis
+            cmd_str = cmd_str{img};
+            if iscell(cmd_str)
+              % Not a string, so threshold_eval is specified on a per wf-adc pair basis
+              cmd_str = cmd_str{wf_adc};
+            end
+          end
           %figure(100); plot(threshold); hold on;
           % Examples:
           % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'
           % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
           % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(dft_noise(:,1)).^2)+6);';
           % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(nt,threshold+6),max_filt1(10*log10(abs(dft_noise(:,1)).^2)+15-1e6*(time>(Tpd+1.2e-6)),5));';
-          eval(param.collate_coh_noise.threshold_eval{img});
+          eval(cmd_str);
         end
       end
       

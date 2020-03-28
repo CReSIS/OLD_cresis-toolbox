@@ -601,8 +601,8 @@ for break_idx = 1:length(breaks)
   
   % Rerun only mode: Test to see if we need to run this task
   % =================================================================
-  dparam.notes = sprintf('%s%s:%s:%s %s %d of %d recs %d-%d', ...
-    mfilename, cmd_method_str, param.radar_name, param.season_name, param.day_seg, ...
+  dparam.notes = sprintf('%s%s %s:%s:%s %s %d of %d recs %d-%d', ...
+    mfilename, cmd_method_str, param.analysis.cmd{1}.out_path, param.radar_name, param.season_name, param.day_seg, ...
     break_idx, length(breaks), actual_cur_recs);
   if ctrl.cluster.rerun_only
     % If we are in rerun only mode AND the analysis task file success
@@ -714,8 +714,8 @@ for img = 1:length(param.analysis.imgs)
   end
 end
 sparam.file_success = combine_file_success;
-sparam.notes = sprintf('%s:%s:%s %s combine', ...
-  mfilename, param.radar_name, param.season_name, param.day_seg);
+sparam.notes = sprintf('%s %s:%s:%s %s combine', ...
+  mfilename, param.analysis.cmd{1}.out_path, param.radar_name, param.season_name, param.day_seg);
 
 ctrl = cluster_new_task(ctrl,sparam,[]);
 

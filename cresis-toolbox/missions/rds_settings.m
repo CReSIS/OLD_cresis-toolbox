@@ -232,17 +232,96 @@ for param_idx = 1:length(params)
     for wf = 1:length(params(param_idx).radar.wfs)
       params(param_idx).radar.wfs(wf).bad_value = NaN;
     end
+    
+    % radar.wfs
+    if isfield(param_override,'analysis') && isfield(param_override.analysis,'out_path')
+      for wf = 1:length(params(param_idx).radar.wfs)
+        if ~isempty(regexp('tukey',param_override.analysis.out_path))
+          params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
+          if ~isempty(regexp('threshold',param_override.analysis.out_path))
+            params = ct_set_params(params,'analysis.cmd{1}.threshold','analysis_tukey');
+          end
+        else
+          if ~isempty(regexp('threshold',param_override.analysis.out_path))
+            params = ct_set_params(params,'analysis.cmd{1}.threshold','');
+          end
+        end
+      end
+    end
+    
+    if isfield(param_override,'collate_coh_noise')
+      if strcmp(param_override.collate_coh_noise.in_path,'analysis_tukey')
+        param_override.collate_coh_noise.debug_out_dir = 'collate_coh_noise_tukey';
+      elseif strcmp(param_override.collate_coh_noise.in_path,'analysis')
+        param_override.collate_coh_noise.debug_out_dir = 'collate_coh_noise';
+      elseif strcmp(param_override.collate_coh_noise.in_path,'analysis_threshold')
+        param_override.collate_coh_noise.debug_out_dir = 'collate_coh_noise_threshold';
+      elseif strcmp(param_override.collate_coh_noise.in_path,'analysis_threshold_tukey')
+        param_override.collate_coh_noise.debug_out_dir = 'collate_coh_noise_threshold_tukey';
+      end
+      for img = 1:length(params(param_idx).analysis.imgs)
+        for wf_adc = 1:size(params(param_idx).analysis.imgs{img},1)
+          wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+          adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+          Tpd = params(param_idx).radar.wfs(wf).Tpd;
+          if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+            params(param_idx).collate_coh_noise.method{img} = 'firdec';
+            params(param_idx).collate_coh_noise.firdec_fs{img} = 1/7.5;
+            params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t)(t<Tpd+1.2e-6)*1/120+(t>=Tpd+1.2e-6)*1/120;
+            if wf == 1
+              params(param_idx).collate_coh_noise.threshold_eval{img}{wf_adc} ...
+                = 'threshold = max_filt1(threshold+6,11);';
+            elseif wf == 2
+              params(param_idx).collate_coh_noise.threshold_eval{img}{wf_adc} ...
+                = 'threshold = max_filt1(threshold+6,11);';
+            elseif any(wf == [3 4])
+              if any(adc == [1 2 3 4 5 6 7 8])
+                params(param_idx).collate_coh_noise.threshold_eval{img}{wf_adc} ...
+                  = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1((10*log10(abs(dft_noise(:,1)).^2)+9).*(time<Tpd+0e-6) + (threshold+9).*(time>=Tpd+0e-6 & time<=Tpd+13e-6)-1e6*(time>(Tpd+13e-6)),21));';
+              end
+            else
+              params(param_idx).collate_coh_noise.threshold_eval{img}{wf_adc} = 'threshold = -inf(size(threshold));';
+            end
+          else
+            % Coherent noise estimate by finding DC of the entire segment
+            % (as opposed to using a firdec low pass filter):
+            params(param_idx).collate_coh_noise.method{img} = 'dft';
+            params(param_idx).collate_coh_noise.dft_corr_time{img} = inf;
+            
+            % For time >= Tpd+1.2e-6, the minimum threshold used that is
+            % estimated by the collate process is used in the region of time >=
+            % Tpd+1.2e-6 and time(end)-Tpd. The first part of the time gate is
+            % ignored because the transmission is occuring and the last part is
+            % ignored due to pulse compression roll off.  A guard of 6 dB is
+            % added to this threshold to ensure random noise fluctuation is
+            % accounted for. There is some risk that this data dependent minimum
+            % threshold value is too high and a fixed threshold should be used
+            % instead of "nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))"
+            %
+            % For time < Tpd+1.2e-6, the max_filt1 filtered version of the
+            % minimum of the (DC coherent noise + 15 dB) and the (threshold + 6
+            % dB) waveforms are used. max_filt1 is used because the nulls
+            % sometimes shift around with time. Threshold+6 dB is ideal, but is
+            % occasionally too high due to signal interference so the DC average
+            % is also used.
+            params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(noise_dft(:,1)).^2)+15)-1e6*(time>(Tpd+1.2e-6)),5));';
+          end
+        end
+      end
+    end
   end
-  
-  %% analysis waveform cmd
+    
+    %% analysis waveform cmd (equalization)
   if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'waveform')
-    if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground') && strcmp(params(param_idx).day_seg,'20200107_01')
-      if 1
+    if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
+      if 0
         params(param_idx).analysis.imgs = {[2*ones([8 1]),(1:8).']};
-        params(param_idx).analysis.cmd{1}.start_time = struct('name','HERC_002','eval',struct('cmd','s=s-1.5e-6;'));
+        params(param_idx).analysis.cmd{1}.start_time = struct('name','equal_002','eval',struct('cmd','s=s-1.5e-6;'));
+        params(param_idx).analysis.out_path = 'analysis_equal_002';
       else
         params(param_idx).analysis.imgs = {[[3*ones([8 1]),(1:8).']; [4*ones([8 1]),(1:8).']]};
-        params(param_idx).analysis.cmd{1}.start_time = struct('name','HERC_006','eval',struct('cmd','s=s-1.5e-6;'));
+        params(param_idx).analysis.cmd{1}.start_time = struct('name','equal_003','eval',struct('cmd','s=s-1.5e-6;'));
+        params(param_idx).analysis.out_path = 'analysis_equal_003';
       end
     end
   end

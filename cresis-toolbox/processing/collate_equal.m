@@ -877,7 +877,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if any(strcmp('final',param.collate_equal.debug_plots))
       sw_version = current_software_version;
       
-      diary_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_table_img_%02d',param.collate_equal.out_path,img)) '.txt'];
+      diary_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_table_img_%02d_wf_%02d',param.collate_equal.out_path,img,wf)) '.txt'];
       fid = fopen(diary_fn,'wb');
       for fid = [1 fid]
         if fid == 1; fid_error = 2; else fid_error = fid; end;
