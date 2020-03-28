@@ -35,8 +35,8 @@ if 0
   
 elseif 1
   % Herc
-  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2019_Antarctica_Ground/CSARP_music_noise/20200107_01/Data_20200107_01_001.mat';
-
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2019_Antarctica_Ground/CSARP_music3D/20200107_01/Data_img_03_20200107_01_001.mat';
+  
   % Multipass
   rbin = [200]; % Start bin
   rbins = [500]; % Number of bins

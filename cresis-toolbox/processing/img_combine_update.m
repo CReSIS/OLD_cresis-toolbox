@@ -1,11 +1,11 @@
-function update_img_combine(param, param_override)
-% update_img_combine(param, param_override)
+function img_combine_update(param, param_override)
+% img_combine_update(param, param_override)
 %
 % Function for running img_combine on echogram files. Works with
 % get_heights and combine files.
 %
 % param = struct with processing parameters
-%  .update_img_combine: struct with processing parameters
+%  .img_combine_update: struct with processing parameters
 %   .mode: string containing 'get_heights' or 'combine' depending on which
 %     one generated the echogram files
 % param_override = parameters in this struct will override parameters
@@ -13,12 +13,12 @@ function update_img_combine(param, param_override)
 %         Typically global gRadar; param_override = gRadar;
 %
 % Example:
-%  See run_update_img_combine.m for how to run this function directly.
+%  See run_img_combine_update.m for how to run this function directly.
 %  This function may be called from the run_master.m script using the
 %  param spreadsheet and the cmd.generic column.
 %
 % Authors: John Paden
-% See also: run_update_img_combine.m, update_img_combine.m
+% See also: run_img_combine_update.m, img_combine_update.m
 
 %% General Setup
 % =====================================================================
@@ -32,7 +32,7 @@ fprintf('=====================================================================\n
 %% Input checks
 % =====================================================================
 
-mode = param.update_img_combine.mode;
+mode = param.img_combine_update.mode;
 
 if ~isfield(param.(mode),'img_comb_mult') || isempty(param.(mode).img_comb_mult)
   param.(mode).img_comb_mult = inf;

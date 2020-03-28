@@ -325,17 +325,17 @@ for img = 1:length(param.load.imgs)
           end
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           % Interpolate coherent noise onto current data's gps time
-          if all(hdr.gps_time>noise.fir_dec_gps_time(end))
+          if all(hdr.gps_time>noise.firdec_gps_time(end))
             % All current data's gps time is after the coherent noise
             % estimates gps time
             cn.data = -repmat(coh_noise(:,end),[1 length(hdr.gps_time)]);
-          elseif all(hdr.gps_time<noise.fir_dec_gps_time(1))
+          elseif all(hdr.gps_time<noise.firdec_gps_time(1))
             % All current data's gps time is before the coherent noise
             % estimates gps time
             cn.data = -repmat(coh_noise(:,1),[1 length(hdr.gps_time)]);
           else
             % Current data gps time overlaps with coherent noise estimates
-            cn.data = -interp_finite(interp1(noise.fir_dec_gps_time, coh_noise.', hdr.gps_time)).';
+            cn.data = -interp_finite(interp1(noise.firdec_gps_time, coh_noise.', hdr.gps_time)).';
           end
         end
         clear coh_noise;
@@ -1323,8 +1323,8 @@ for img = 1:length(param.load.imgs)
           
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
-          rel_gps_time = single(noise.fir_dec_gps_time - noise.fir_dec_gps_time(1));
-          rel_gps_time_interp = single(hdr.gps_time - noise.fir_dec_gps_time(1));
+          rel_gps_time = single(noise.firdec_gps_time - noise.firdec_gps_time(1));
+          rel_gps_time_interp = single(hdr.gps_time - noise.firdec_gps_time(1));
           for block = 1:length(blocks)-1
             rlines = blocks(block) : blocks(block+1)-1;
             

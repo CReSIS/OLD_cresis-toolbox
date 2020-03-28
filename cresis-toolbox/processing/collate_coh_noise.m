@@ -87,7 +87,7 @@ if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise
 end
 
 if ~isfield(param.collate_coh_noise,'out_path') || isempty(param.collate_coh_noise.out_path)
-  param.collate_coh_noise.out_path = 'analysis';
+  param.collate_coh_noise.out_path = param.collate_coh_noise.in_path;
 end
 
 if ~isfield(param.collate_coh_noise,'threshold_en') || isempty(param.collate_coh_noise.threshold_en)

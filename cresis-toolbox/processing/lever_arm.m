@@ -1322,7 +1322,7 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(radar_name,'r
     0 46.0889	10.5
     0 64.5141	10.5].' * 2.54/100;
   
-  LAtx = LArx(:,[1 2 7 8]);
+  LAtx = LArx(:,[1 7 2 8]);
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 4;

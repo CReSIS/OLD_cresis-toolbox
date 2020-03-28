@@ -139,6 +139,7 @@ while ~feof(fid)
       C = textscan(remain(2:end),format_str_GPRMC,'delimiter',', ','emptyvalue',NaN);
       [tag,UTC_time_file_tmp,nav_rx_warning,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,speed,heading_tmp,...
         gps_date_tmp,mag_Var,mag_var_E_W,checksum] = deal(C{:});
+      heading_tmp = NaN; % Do not use (low quality)
       if nmea_idx > 1
         % We __think__ that the GPRMC string always comes after the
         % corresponding GPGGA string with the same time stamp. Therefore,

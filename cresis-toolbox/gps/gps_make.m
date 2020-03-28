@@ -254,12 +254,12 @@ for file_idx = 1:length(in_fns)
   gps = gps_make_monotonic(gps);
   
   %% Fabricating a heading now
-  along_track = geodetic_to_along_track(gps.lat,gps.lon,gps.elev);
-  rlines = get_equal_alongtrack_spacing_idxs(along_track,10);
+  along_track = geodetic_to_along_track(gps.lat,gps.lon);
+  rlines = get_equal_alongtrack_spacing_idxs(along_track,40);
   physical_constants;
-  est_heading = size(gps.heading);
+  est_heading = zeros(size(gps.heading));
   clear origin heading east north;
-  for rline_idx = 1:length(rlines)
+  for rline_idx = 1:length(rlines)-1
     rline = rlines(rline_idx);
     if rline_idx < length(rlines)
       rline_end = rlines(rline_idx+1);
@@ -276,8 +276,12 @@ for file_idx = 1:length(in_fns)
     [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
     north = north - origin;
     % Determine heading
-    est_heading(rline:rline_end) = atan2(dot(east,heading),dot(north,heading));
+    est_heading(rline:rline_end) = atan2(dot(north,heading),dot(east,heading));
   end
+  speed = diff(along_track)./diff(gps.gps_time);
+  speed(end+1) = speed(end);
+  est_heading(speed < 0.5) = NaN;
+  est_heading = interp_finite(est_heading,0);
   
   %% Load INS data for special case where it is separate from GPS
   if separate_ins_data_flag ...

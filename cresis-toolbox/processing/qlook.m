@@ -81,7 +81,7 @@ if ~mod(length(param.qlook.B_filter),2)
   error('param.qlook.B_filter must be odd length.');
 end
 param.qlook.B_filter = param.qlook.B_filter(:).'; % Must be row vector
-if abs(sum(param.qlook.B_filter)-1) > 1e4*eps
+if abs(sum(param.qlook.B_filter)-1) > 1e4*eps % Ensure filter weights sum to 1 to preserve radiometry
   param.qlook.B_filter = param.qlook.B_filter / sum(param.qlook.B_filter);
 end
 
@@ -120,7 +120,7 @@ if ~mod(length(param.qlook.inc_B_filter),2)
   error('param.qlook.inc_B_filter must be odd length.');
 end
 param.qlook.inc_B_filter = param.qlook.inc_B_filter(:).'; % Must be row vector
-if abs(sum(param.qlook.inc_B_filter)-1) > 1e4*eps
+if abs(sum(param.qlook.inc_B_filter)-1) > 1e4*eps % Ensure filter weights sum to 1 to preserve radiometry
   param.qlook.inc_B_filter = param.qlook.inc_B_filter / sum(param.qlook.inc_B_filter);
 end
 
