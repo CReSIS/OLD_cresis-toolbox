@@ -78,6 +78,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 
 % -------------------------------------------------------------------------
 % 2018 Antarctica Ground
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181217');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181219');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181220');
@@ -102,7 +103,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % -------------------------------------------------------------------------
 % 2019 Antarctica Ground
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190925_04');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200107_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200107_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191231');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200101');
@@ -126,10 +127,12 @@ for param_idx = 1:length(params)
   %% qlook
   params = ct_set_params(params,'qlook.out_path','qlook');
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
-    params = ct_set_params(params,'qlook.out_path','qlook');
+    params = ct_set_params(params,'qlook.out_path','qlook_test');
+    params = ct_set_params(params,'qlook.motion_comp',false);
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
     %params = ct_set_params(params,'qlook.out_path','qlook_test');
     params = ct_set_params(params,'qlook.out_path','qlook');
+    params = ct_set_params(params,'qlook.motion_comp',false);
     adcs = [1:6]; Nchan = length(adcs);
     if length(params(param_idx).radar.wfs) == 3
       params(param_idx).qlook.imgs = {[ones(1,Nchan); adcs].', [2*ones(1,Nchan); adcs].', [3*ones(1,Nchan); adcs].'};
@@ -207,9 +210,13 @@ for param_idx = 1:length(params)
           params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold_tukey';
         end
       elseif strcmpi(cmd_method,'qlook')
-        params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
-        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold_tukey';
+        if strcmp(params(param_idx).qlook.out_path,'qlook')
+          params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
+          params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+          params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold_tukey';
+        elseif strcmp(params(param_idx).qlook.out_path,'qlook_test')
+          params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
+        end
       end
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.25e-6;
       if wf  < 3
@@ -368,7 +375,7 @@ for param_idx = 1:length(params)
 end
 
 %% array
-if isfield(param_override.array,'out_path')
+if isfield(param_override,'array') && isfield(param_override.array,'out_path')
   for param_idx = 1:length(params)
     param = params(param_idx);
     if strcmpi(cmd_method,'generic')
