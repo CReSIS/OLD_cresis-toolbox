@@ -31,6 +31,11 @@ if ~isfield(param.collate_equal,'cmd_idx') || isempty(param.collate_equal.cmd_id
 end
 cmd = param.analysis.cmd{param.collate_equal.cmd_idx};
 
+if ~isfield(param.collate_equal,'debug_out_dir') || isempty(param.collate_equal.debug_out_dir)
+  param.collate_equal.debug_out_dir = 'collate_equal';
+end
+debug_out_dir = param.collate_equal.debug_out_dir;
+
 if ~isfield(param.collate_equal,'debug_plots')
   param.collate_equal.debug_plots = {'before_comp','after_comp','surf','final','visible','comp_image'};
 end
@@ -268,25 +273,25 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     linkaxes(h_axes,'x');
     xlim(h_axes(1), [1 size(wf_data,2)]);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_single_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_single_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
     ct_saveas(h_fig(1),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_single_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_single_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_surface_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_surface_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_all_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_all_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
     
@@ -349,7 +354,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       linkaxes(h_axes);
     end
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track1_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_track1_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
@@ -357,7 +362,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     end
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track2_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_track2_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     if param.collate_equal.retrack_en
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(2),fig_fn);
@@ -582,25 +587,25 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       xlim(h_axes(1), [1 size(wf_data,2)]);
     end
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_single_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_single_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
     ct_saveas(h_fig(1),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_single_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_single_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_surface_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_surface_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_all_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_all_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
     
@@ -748,28 +753,28 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     set(h_fig(2),'Position',[pos{2}(1:2) 700 pos{2}(4)]);
     set(h_fig(3),'Position',[pos{3}(1:2) 700 pos{3}(4)]);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_amp_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_amp_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
     ct_saveas(h_fig(1),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_amp_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_amp_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_phase_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_phase_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_time_img_%02d',param.collate_equal.out_path,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_time_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
     
@@ -877,7 +882,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if any(strcmp('final',param.collate_equal.debug_plots))
       sw_version = current_software_version;
       
-      diary_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_table_img_%02d_wf_%02d',param.collate_equal.out_path,img,wf)) '.txt'];
+      diary_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_table_img_%02d_wf_%02d',param.collate_equal.out_path,img,wf)) '.txt'];
       fid = fopen(diary_fn,'wb');
       for fid = [1 fid]
         if fid == 1; fid_error = 2; else fid_error = fid; end;
