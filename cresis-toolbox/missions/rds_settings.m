@@ -321,6 +321,15 @@ for param_idx = 1:length(params)
   
   %% analysis waveform cmd (equalization)
   if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'waveform') && isfield(param_override,'analysis')
+    if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+      if strcmp(param_override.analysis.out_path,'analysis_equal_001')
+        params(param_idx).analysis.imgs = {[1*ones([8 1]),(1:8).']};
+        params(param_idx).analysis.cmd{1}.start_time = struct('name','equal_001','eval',struct('cmd','s=s-0.75e-6;'));
+      elseif strcmp(param_override.analysis.out_path,'analysis_equal_002')
+        params(param_idx).analysis.imgs = {[2*ones([8 1]),(1:8).']};
+        params(param_idx).analysis.cmd{1}.start_time = struct('name','equal_002','eval',struct('cmd','s=s-0.75e-6;'));
+      end
+    end
     if strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
       if strcmp(param_override.analysis.out_path,'analysis_equal_002')
         params(param_idx).analysis.imgs = {[2*ones([8 1]),(1:8).']};

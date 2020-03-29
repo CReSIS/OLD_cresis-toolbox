@@ -774,13 +774,13 @@ classdef layerdata < handle
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
         if isempty(id)
-          error('Layer does not exist in layer organizer. Run insert_layer() first.');
+          error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
         id = obj.layer_organizer.lyr_id(match_idx);
       else
         % id passed in
         if all(obj.layer_organizer.lyr_id ~= id)
-          error('Layer does not exist in layer organizer. Run insert_layer() first.');
+          error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
       end
       twtt = [];
@@ -1031,11 +1031,11 @@ classdef layerdata < handle
         % name passed in rather than id
         id = find(strcmpi(id,obj.layer_organizer.lyr_name));
         if isempty(id)
-          error('Layer does not exist in layer organizer. Run insert_layer() first.');
+          error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
       else
         if all(obj.layer_organizer.lyr_id ~= id)
-          error('Layer does not exist in layer organizer. Run insert_layer() first.');
+          error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
       end
       

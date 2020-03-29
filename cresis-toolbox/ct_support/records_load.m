@@ -84,7 +84,7 @@ if nargin == 1
   % =======================================================================
   records = load(records_fn);
   if ~isfield(records,'bit_mask')
-    records.bit_mask = zeros(size(records.gps_time),'uint8');
+    records.bit_mask = zeros(size(records.offset),'uint8');
   end
   
 elseif nargin == 2 && isnumeric(varargin{1})
@@ -116,7 +116,7 @@ elseif nargin == 2 && isnumeric(varargin{1})
   if any(strcmp('bit_mask',{mat_vars.name}))
     records.bit_mask = records_mat.bit_mask(:,recs(1):recs(2));
   else
-    records.bit_mask = zeros(size(records.gps_time),'uint8');
+    records.bit_mask = zeros(size(records.offset),'uint8');
   end
   
   if any(strcmp('phase_correction',{mat_vars.name}))

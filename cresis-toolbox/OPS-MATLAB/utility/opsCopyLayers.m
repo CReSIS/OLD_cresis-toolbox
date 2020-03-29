@@ -131,6 +131,11 @@ if ~any(copy_param.quality.value == [1 2 3])
   error('Invalid quality value %d', copy_param.quality.value);
 end
 
+if ~isfield(copy_param.layer_dest,'group_name') || isempty(copy_param.layer_dest.group_name)
+  % Default is a combined file Data_YYYYMMDD_SS.mat
+  copy_param.layer_dest.group_name = '';
+end
+
 if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
   % Default is a combined file Data_YYYYMMDD_SS.mat
   copy_param.layer_dest.layerdata_source = 'layer';
@@ -436,7 +441,7 @@ end
 
 update_mask = frms_mask & update_mask;
 
-%% Overwrite quality level
+%% Quality level overwrite
 if isempty(layer_source.gps_time)
   all_points.quality_interp = NaN*zeros(size(all_points.gps_time));
 elseif length(layer_source.gps_time) == 1
@@ -448,7 +453,7 @@ if strcmpi(copy_param.quality.mode,'overwrite')
   all_points.quality_interp(:) = copy_param.quality.value;
 end
 
-%% Write the new layer data to the destination
+%% Mask the output
 surface = all_points.twtt;
 surface(update_mask) = all_points.twtt_interp(update_mask);
 quality = all_points.quality;
@@ -469,7 +474,10 @@ if 0
 end
 
 if strcmpi(copy_param.layer_dest.source,'ops')
-  %% Check to see if layer exists
+  %% Save OPS
+  
+  % Check to see if layer exists
+  % -----------------------------------------------------------------------
   [status,data] = opsGetLayers(sys);
   if ~any(strcmpi(data.properties.lyr_name,copy_param.layer_dest.name))
     % Create the layer if it does not exist
@@ -482,22 +490,32 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     [status,ops_data] = opsCreateLayer(sys,ops_param);
   end
   
-  %% Remove all_points that are not in the selected frames
+  % Remove all_points that are not in the selected frames
   % Use update_mask to exclude all points that are not getting updated
+  % -----------------------------------------------------------------------
   ops_param.properties.point_path_id = all_points.ids(update_mask);
   ops_param.properties.twtt = surface(update_mask);
   ops_param.properties.type = layer_type(update_mask);
   ops_param.properties.quality = quality(update_mask);
   ops_param.properties.lyr_name = copy_param.layer_dest.name;
   
-  %% Update these points
+  % Update these points
+  % -----------------------------------------------------------------------
   opsCreateLayerPoints(sys,ops_param);
   
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
+  %% Save layerdata
   layers = layerdata(param, copy_param.layer_dest.layerdata_source);
   id = layers.get_id(copy_param.layer_dest.name);
-  if isempty(id) && copy_param.layer_dest.existence_check
-    error('Reference layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error.\n', copy_param.layer_dest.name, layers.layer_organizer_fn());
+  if isempty(id)
+    if copy_param.layer_dest.existence_check
+      error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', copy_param.layer_dest.name, layers.layer_organizer_fn());
+    else
+      layer_organizer = [];
+      layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name};
+      layer_organizer.lyr_name = {copy_param.layer_dest.name};
+      id = layers.insert_layers(layer_organizer);
+    end
   end
   layers.update_layer(param.cmd.frms, id, all_points.gps_time,surface,quality,layer_type);
   layers.save();
