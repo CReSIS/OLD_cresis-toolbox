@@ -79,7 +79,7 @@ end
 %% Loading frames and records files
 % =====================================================================
 frames = frames_load(param);
-records = records_load(param,[],'gps_time','gps_source'); % loads "gps_time", "gps_source" variables
+records = records_load(param,'gps_time','gps_source'); % loads "gps_time", "gps_source" variables
 
 %% Create outputs
 % =====================================================================

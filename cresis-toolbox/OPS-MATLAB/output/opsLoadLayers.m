@@ -565,12 +565,12 @@ for layer_idx = 1:length(layer_params)
       if frm == 1
         start_gps_time = 0;
       else
-        start_gps_time = records.gps_time(frames.frame_idxs(frm));
+        start_gps_time = frames.gps_time(frm);
       end
       if frm == length(frames.frame_idxs)
         stop_gps_time = inf;
       else
-        stop_gps_time = records.gps_time(frames.frame_idxs(frm+1));
+        stop_gps_time = frames.gps_time(frm+1);
       end
       layers(layer_idx).frm(layers(layer_idx).gps_time >= start_gps_time ...
         & layers(layer_idx).gps_time < stop_gps_time) = frm;

@@ -23,24 +23,29 @@ fig_h = 1;
 dt = 1;
 
 % data_source: string 'gps' or 'records' (which files in csarp_support to use)
-data_source = 'gps';
+data_source = 'records';
+
+% South Dakota
+geotiff_fn = ct_filename_gis(gRadar,fullfile('SouthDakota','Model_Landsat_UTM.tif'));
+axis_limits = [567         622        4856        4907];
 
 % Greenland
-geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif')); % (use for OIB coverage maps)
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif')); % (use for OIB coverage maps)
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','Landsat-7','arctic_natural_90m.tif'));
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('greenland','Landsat-7','Greenland_natural.tif'));
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('canada','Landsat-7','Canada_90m.tif'));
-axis_limits = [-2300 1000 -3500 1500]; % All of Arctic (use for OIB coverage maps)
+% axis_limits = [-2300 1000 -3500 1500]; % All of Arctic (use for OIB coverage maps)
 
 % Antarctica
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('antarctica','NaturalEarth_Data','Antarctica_NaturalEarth.tif')); % (use for OIB coverage maps)
 % axis_limits = [-3000 1000 -1500 2500]; % All of Antarctica (use for OIB coverage maps)
 
 % Cell vector of param spreadsheet filenames
-param_fns = {ct_filename_param('rds_param_2016_Greenland_P3.xls'),ct_filename_param('rds_param_2017_Greenland_P3.xls')};
+param_fns = {ct_filename_param('snow_param_2019_SouthDakota_CESSNA.xls')};
 
 % plot_args: cell array of argument to plot function (e.g. 'b.' for blue dots)
-plot_args = {'LineWidth',1};
+% plot_args = {'LineWidth',2,'Color','black'};
+plot_args = {'LineWidth',2};
 
 % along_track_sampling: desired along track sampling of plot (m)
 along_track_sampling = 100;
@@ -65,7 +70,7 @@ figure(fig_h); clf;
 if exist(figure_position,'var') && ~isempty(figure_position)
   set(fig_h,'Position',figure_position);
 end
-proj = plot_geotiff(geotiff_fn,[],[],fig_h);
+proj = geotiff_plot(geotiff_fn,[],[],fig_h);
 axis normal; axis equal;
 if ~isempty(axis_limits)
   axis(axis_limits);

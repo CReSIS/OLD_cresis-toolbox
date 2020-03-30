@@ -91,10 +91,10 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
-param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
+% param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
 % param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
-% param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
+param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
 
 %% User Settings: Select layers
 % First layer is the "surface"
@@ -102,7 +102,7 @@ param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 if 1
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
-  % layer_params(2).layerdata_source = 'CSARP_post/layerData';
+  % layer_params.layerdata_source = 'CSARP_post/layerData';
   layer_params.existence_check = true;
   layer_params(2).name = 'bottom';
   layer_params(2).source = 'layerdata';
@@ -188,6 +188,7 @@ for param_idx = 1:length(param_fns)
       continue;
     end
     
+    tmp = [];
     try
       [tmp.lat,tmp.lon,tmp.frm_id,tmp.elev,tmp.surf,tmp.bottom,tmp.quality,tmp.frm_info,gps_source] = imb.create_season_layerdata_files(param,param_override);
     catch ME
@@ -212,17 +213,23 @@ for param_idx = 1:length(param_fns)
     frm_info.stop_gps_time = [frm_info.stop_gps_time tmp.frm_info.stop_gps_time];
   end
   
-  %% Save output for this season
-  out_fn_dir = ct_filename_support(param,'layer','');
-  out_fn_name = sprintf('layer_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
-  out_fn = fullfile(out_fn_dir,out_fn_name);
-  fprintf('  Saving %s\n\n', out_fn);
-  if ~exist(out_fn_dir,'dir')
-    mkdir(out_fn_dir);
+  if isempty(lat)
+    %% No data error
+    error('There is no data available and so no season layer file can be saved.');
+    
+  else
+    %% Save output for this season
+    out_fn_dir = ct_filename_support(param,'layer','');
+    out_fn_name = sprintf('layer_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('  Saving %s\n\n', out_fn);
+    if ~exist(out_fn_dir,'dir')
+      mkdir(out_fn_dir);
+    end
+    file_type = 'layer_season';
+    file_version = '1';
+    param = struct('day_seg',param.day_seg,'radar_name',param.radar_name, ...
+      'season_name',param.season_name,'sw_version',param.sw_version);
+    ct_save(out_fn,'bottom','elev','file_type','file_version','frm_id','frm_info','gps_source','lat','lon','param','quality','surf');
   end
-  file_type = 'layer_season';
-  file_version = '1';
-  param = struct('day_seg',param.day_seg,'radar_name',param.radar_name, ...
-    'season_name',param.season_name,'sw_version',param.sw_version);
-  ct_save(out_fn,'bottom','elev','file_type','file_version','frm_id','frm_info','gps_source','lat','lon','param','quality','surf');
 end

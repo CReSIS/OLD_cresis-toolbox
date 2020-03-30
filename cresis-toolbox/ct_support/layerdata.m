@@ -173,7 +173,7 @@ classdef layerdata < handle
     %% delete: delete layer file
     function delete_layer_file(obj,frms)
       for frm = frms(:).'
-        layer_fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+        layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
         try
           delete(layer_fn);
         end
@@ -189,7 +189,7 @@ classdef layerdata < handle
     
     %% delete_layer_organizer: delete layer organizer file
     function delete_layer_organizer(obj)
-      layer_organizer_fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('layer_%s.mat',obj.param.day_seg));
+      layer_organizer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
       try
         delete(layer_organizer_fn);
       end
@@ -871,17 +871,17 @@ classdef layerdata < handle
     
     %% layer_fn: get layer filename
     function fn = layer_fn(obj,frm)
-      fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+      fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
     end
     
     %% layer_organizer_fn: get layer organizer filename
     function fn = layer_organizer_fn(obj,frm)
-      fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('layer_%s.mat',obj.param.day_seg));
+      fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
     end
     
     %% load: load layer
     function load(obj,frm)
-      layer_fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+      layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
       if ~exist(layer_fn,'file')
         obj.create(frm);
       else
@@ -893,7 +893,7 @@ classdef layerdata < handle
     
     %% load_layer_organizer: load layer organizer
     function load_layer_organizer(obj)
-      layer_organizer_fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('layer_%s.mat',obj.param.day_seg));
+      layer_organizer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
       if ~exist(layer_organizer_fn,'file')
         obj.create_layer_organizer();
       else
@@ -964,7 +964,7 @@ classdef layerdata < handle
       end
       
       if obj.layer_organizer_modified == true
-        layer_organizer_fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('layer_%s.mat',obj.param.day_seg));
+        layer_organizer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
         layer_organizer = obj.layer_organizer;
         fprintf('Saving %s\n', layer_organizer_fn);
         ct_save(layer_organizer_fn,'-struct','layer_organizer');
@@ -973,7 +973,7 @@ classdef layerdata < handle
 
       for frm = 1:length(obj.layer_modified)
         if obj.layer_modified(frm) == true
-          layer_fn = fullfile(ct_filename_out(obj.param,'',obj.layerdata_source),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+          layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
           layer = obj.layer{frm};
           fprintf('Saving %s\n', layer_fn);
           ct_save(layer_fn,'-struct','layer');

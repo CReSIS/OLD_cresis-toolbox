@@ -198,6 +198,13 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).chan_equal_deg = [-166.2 -142.7 177 -95.9 0 -25.9 -86.5 -27.4 128.1 41.6 -46.8 43 90.7 121.3 31.6];
     elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.25e-6;
+      if wf == 1
+        params(param_idx).radar.wfs(wf).chan_equal_dB = [2.3 4 3.2 3.6 2.5 0 -0.1 1.2];
+        params(param_idx).radar.wfs(wf).chan_equal_deg = [-177.8 -173.6 -174.8 -167.1 -51.1 0 -26 -34.5];
+      elseif wf == 2
+        params(param_idx).radar.wfs(wf).chan_equal_dB = [8.6 13 15.9 7.5 2.7 0 -0.1 1.1];
+        params(param_idx).radar.wfs(wf).chan_equal_deg = [9.4 6.5 12.9 -178.9 -52.8 0 -25.8 -34.1];
+      end
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
       if strcmpi(cmd_method,'sar')
         if strcmp(params(param_idx).sar.out_path,'sar')
@@ -362,14 +369,27 @@ for param_idx = 1:length(params)
       
       param_override.collate_equal.retrack_en = true;
       
+    elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground') && strcmpi(params.day_seg,'20181224_03')
+      if strcmp(param_override.collate_equal.in_path,'analysis_equal_001')
+        params(param_idx).analysis.imgs = {[1*ones([8 1]),(1:8).']};
+        param_override.collate_equal.rlines = []; % wf == 1, equal_001 layer
+        param_override.collate_equal.debug_out_dir = 'collate_equal_001';
+      elseif strcmp(param_override.collate_equal.in_path,'analysis_equal_002')
+        params(param_idx).analysis.imgs = {[2*ones([8 1]),(1:8).']};
+        param_override.collate_equal.rlines = []; % wf == 2 equal_002 layer
+        param_override.collate_equal.debug_out_dir = 'collate_equal_002';
+      end
+      param_override.collate_equal.debug_plots = {'visible','before_comp','after_comp','surf','final','comp_image'};
+      %       param_override.collate_equal.debug_plots = {'before_comp','after_comp','surf','final','comp_image'};
+      param_override.collate_equal.retrack_en = false;
+      
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground') && strcmpi(params.day_seg,'20200107_01')
       if strcmp(param_override.collate_equal.in_path,'analysis_equal_002')
-        param_override.collate_equal.rlines = [1:13500]; % wf == 2, equal_002 layer
-        param_override.collate_equal.debug_out_dir = 'collate_equal_002';
         params(param_idx).analysis.imgs = {[2*ones([8 1]),(1:8).']};
+        param_override.collate_equal.rlines = []; % wf == 2 equal_002 layer
+        param_override.collate_equal.debug_out_dir = 'collate_equal_002';
       elseif strcmp(param_override.collate_equal.in_path,'analysis_equal_003')
         params(param_idx).analysis.imgs = {[[3*ones([8 1]),(1:8).']; [4*ones([8 1]),(1:8).']]};
-        param_override.collate_equal.rlines = [379:4691]; % wf == 3,4, equal_003 layer
         param_override.collate_equal.rlines = []; % wf == 3,4, equal_003 layer
         param_override.collate_equal.debug_out_dir = 'collate_equal_003';
       end
