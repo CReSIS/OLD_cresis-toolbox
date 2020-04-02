@@ -2,6 +2,11 @@
 %
 % Runs layer_tracker_2D.m
 %
+% Need to set track_override.track_data to true if LSM tuning results are
+% needed. Once the results are saved, it is possible to compare them, find
+% the lowest combination (y, dy and iterations) and then run the LSM 
+% tracker with the tuned results. Set track_override.track_data to false in
+% that case.
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -12,7 +17,7 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
-params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.frms',[1:3]); % Specify specific frames (or leave empty/undefined to do all frames)
 
 param_override.layer_tracker.debug_plots = {'debug'};
 
@@ -37,13 +42,19 @@ param_override.layer_tracker.layer_params(idx).echogram_source = 'CSARP_post/sta
 % param_override.layer_tracker.layer_params(idx).source = 'ops';
 
 param_override.layer_tracker.N = 2; % no of frames to be loaded at a time
+% Enter name for saving the data
+param_override.layer_tracker.name = 'test_vit';
+param_override.layer_tracker.save_ops_copy_layers = false;
 
 track_override = [];
-track_override.name       = 'CSARP_post/standard';
-track_override.debug      = true;
-track_override.ops_write  = false;
-track_override.save_img   = false;
-track_override.save_add_f = false;
+track_override.name             = 'mvdr';
+track_override.debug            = true;
+track_override.ops_write        = false;
+track_override.save_layerData   = true;
+track_override.save_img         = false;
+track_override.save_add_f       = false;
+track_override.track_data       = false; % for LSM tuning
+
 
 %% Image saving options
 % Only effective if options.save_img == true
@@ -57,32 +68,52 @@ track_override.save_img_path   = '';
 track_override.layer_dest_source = 'layerdata';
 
 % If using 'layerdata':
-track_override.layer_dest_layerdata_source = 'layerData_CP'; % layerData file will be saved in this location
+track_override.layer_dest_layerdata_source = 'layerData_test'; % layerData file will be saved in this location
 track_override.layer_dest_echogram_source  = 'CSARP_post/standard';   % Only required if layerData files do not exist and need to be created
-
 %% Additional file writing options
 % Only effective if options.save_add_f == true
 track_override.save_add_f_path = '';
 
 %% Ice mask options
-if 0 % If using GeoTIFF file for ice mask
-  track_override.binary_icemask = false;
-  track_override.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
-  track_override.icemask_fn = ct_filename_gis([], options.icemask_fn);
-                       
-  % Useful for Antarctica seasons:
-  % track_override.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
-  % track_override.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
-  %   if isfield(track_override, 'icemask2_fn') && ~isempty(track_override.icemask2_fn)
-  %     track_override.icemask2_fn = ct_filename_gis([],track_override.icemask2_fn);
-  %   end
-else
-  track_override.binary_icemask = true;
-  track_override.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
-  [track_override.ice_mask_fn_dir,track_override.ice_mask_fn_name] = fileparts(track_override.icemask_fn);
-  track_override.ice_mask_mat_fn = fullfile(track_override.ice_mask_fn_dir,[track_override.ice_mask_fn_name '.mat']);
-end
+% if 1 % If using GeoTIFF file for ice mask
+%   track_override.binary_icemask = false;
+%   track_override.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
+%   track_override.icemask_fn = ct_filename_gis([], track_override.icemask_fn);
+%                        
+%   % Useful for Antarctica seasons:
+%   % track_override.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
+%   % track_override.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
+%   %   if isfield(track_override, 'icemask2_fn') && ~isempty(track_override.icemask2_fn)
+%   %     track_override.icemask2_fn = ct_filename_gis([],track_override.icemask2_fn);
+%   %   end
+% else
+%   track_override.binary_icemask = true;
+%   track_override.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
+%   [track_override.ice_mask_fn_dir,track_override.ice_mask_fn_name] = fileparts(track_override.icemask_fn);
+%   track_override.ice_mask_mat_fn = fullfile(track_override.ice_mask_fn_dir,[track_override.ice_mask_fn_name '.mat']);
+% end
 
+if 1 % If using GeoTIFF file for ice mask
+  if strcmpi(params(1).post.ops.location,'arctic')
+    if 1
+      % Greenland
+      track_override.binary_icemask = false;
+      track_override.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
+      track_override.icemask_fn = ct_filename_gis([], track_override.icemask_fn);
+    else
+      % Canada
+      track_override.binary_icemask = true;
+      track_override.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
+      [track_override.ice_mask_fn_dir,track_override.ice_mask_fn_name] = fileparts(track_override.icemask_fn);
+      track_override.ice_mask_mat_fn = fullfile(track_override.ice_mask_fn_dir,[track_override.ice_mask_fn_name '.mat']);
+    end
+  else
+    % Useful for Antarctica seasons:
+    track_override.binary_icemask = false;
+    track_override.icemask_fn = ct_filename_gis([], 'greenland/IceMask/GimpIceMask_90m_v1.1.tif');
+  end
+
+end
 
 %% Enable one set of parameters
 track_override.en = true;
@@ -139,7 +170,7 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     % Override default method
-    if 0
+    if 1
       track_override.method = 'snake';
       track_override.snake_rng	= [-0.15e-6 0.15e-6];
     end
@@ -149,10 +180,10 @@ switch ct_output_dir(params(1).radar_name)
       %% Viterbi User Settings
       track_override.method                 = 'viterbi';
       track_override.viterbi.crossoverload  = true;
-      track_override.viterbi.layername      = 'viterbi_bot';
-      track_override.viterbi.detrending     = false;
+      track_override.viterbi.layername      = 'viterbi_bot'; %surface or bottom
+      track_override.viterbi.detrending     = true;
       track_override.viterbi.top_sup        = false;
-      track_override.viterbi.mult_sup       = true;
+      track_override.viterbi.mult_sup       = false;
       track_override.viterbi.custom_combine = false;
       track_override.viterbi.DIM_matrix     = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
 
@@ -174,16 +205,16 @@ switch ct_output_dir(params(1).radar_name)
     if 0
       %% MCMC User Settings
       track_override.method      = 'mcmc';
-      track_override.mcmc.lyrtop = 'mcmc_top';
+      track_override.mcmc.lyrtop = 'mcmc_top'; %layername, layer_dest.name
       track_override.mcmc.lyrbot = 'mcmc_bot';
       track_override.mcmc.alg    = 'MCMC';
     end
     
     %% LSM
-    if 1
+    if 0
       %% LSM User Settings
       track_override.method           = 'lsm';
-      track_override.lsm.lyrtop       = 'lsm_top';
+      track_override.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
       track_override.lsm.lyrbot       = 'lsm_bot';
       track_override.lsm.y            = 220; % = '' for y = mean(SURF)
       track_override.lsm.dy           = 10;
@@ -195,7 +226,7 @@ switch ct_output_dir(params(1).radar_name)
     if 0
       %% Stereo User Settings
       track_override.method               = 'stereo';
-      track_override.stereo.lyrtop        = 'stereo_top';
+      track_override.stereo.lyrtop        = 'stereo_top'; %layername, layer_dest.name
       track_override.stereo.lyrbot        = 'stereo_bot';
       track_override.stereo.surfaceload   = true;
       track_override.stereo.crossoverload = true;
@@ -207,7 +238,15 @@ switch ct_output_dir(params(1).radar_name)
       track_override.stereo.alg           = 'HMM';
     end
     
+    %% Threshold
+    if 0
+      track_override.method = 'threshold';
+    end
     
+    %% Fixed
+    if 0
+      track_override.method = 'fixed';
+    end
   case 'accum'
     % ACCUM
     track_override.profile = 'ACCUM';
@@ -274,6 +313,7 @@ ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
+    
     ctrl_chain{end+1} = layer_tracker_2D(param,param_override);
   end
 end

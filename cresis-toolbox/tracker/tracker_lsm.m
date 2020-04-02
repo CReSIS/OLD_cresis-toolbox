@@ -1,37 +1,43 @@
-function labels = tracker_lsm(data_struct,param)
+function labels = tracker_lsm(data,param)
 %% Automated Section
 % =====================================================================
 % Create param structure array
 % =====================================================================
-
+labels = [];
+result.top = [];
+result.bot = [];
 global gRadar
 % params = merge_structs(params,gRadar);
   % Load frames file
-  load(ct_filename_support(param,'','frames'));
-  
-  if isempty(param.cmd.frms)
-    param.cmd.frms = 1:length(frames.frame_idxs);
-  end
-  
-  data_fn_dir = ct_filename_out(param, param.layer_tracker.track.name, '');
-  
-  for frm = param.frm_nums
-    
-    fprintf('\nLSM: Running frame %s_%03d (%s)\n',param.day_seg, frm, datestr(now,'HH:MM:SS'));
-    
-    lsm_tic = tic;
-    
-    try
-      data = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
-    catch ME
-      fprintf('\nProblem with frame %s_%03d, verify.\n' ,param.day_seg,frm);
-      continue;
-    end
-
-    data_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
-    data_fn      = fullfile(data_fn_dir, data_fn_name);
-    imds         = datastore(data_fn, 'Type','image','FileExtensions', '.mat');
-    obj          = tomo.LSMObject(imds.Files);
+%   load(ct_filename_support(param,'','frames'));
+%   
+%   if isempty(param.cmd.frms)
+%     param.cmd.frms = 1:length(frames.frame_idxs);
+%   end
+%   
+%   data_fn_dir = ct_filename_out(param, param.layer_tracker.layer_params.echogram_source, '');
+%   
+  %for frm = param.frm_nums
+%     
+     %fprintf('\nLSM: Running frame %s_%03d (%s)\n',param.day_seg, frm, datestr(now,'HH:MM:SS'));
+   frm = param.layer_tracker.tracker.frm;
+   lsm_tic = tic;
+   %for idx = 1:length(param.layer_tracker.fname)
+     data_fn = param.layer_tracker.fname(1);
+%     
+%     try
+%       data = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
+%     catch ME
+%       fprintf('\nProblem with frame %s_%03d, verify.\n' ,param.day_seg,frm);
+%       continue;
+%     end
+% 
+%     data_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
+%     data_fn      = fullfile(data_fn_dir, data_fn_name);
+    %imds         = datastore(data_fn, 'Type','image','FileExtensions', '.mat');
+    %imds         = datastore({data}, 'Type','image','FileExtensions', '.mat');
+    obj          = tomo.LSMObject({lp(data.Data)});
+    %obj          = tomo.LSMObject(imds.Files);
     obj.setLSMOptions('y', param.layer_tracker.track.lsm.y, 'dy', param.layer_tracker.track.lsm.dy, 'outerIter', param.layer_tracker.track.lsm.numOuterIter);
     
     [flag, Labels.top, Labels.bot] = obj.runLSM();
@@ -105,13 +111,25 @@ global gRadar
       fprintf('\n  Complete (%s)\n', datestr(now));
       warning('on');
     end
+    %result.top = cat(2,result.top,Labels.top.y);
+    %result.bot = cat(1,result.bot,Labels.bot.y);
     
-    labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).top = ...
-      Labels.top.y;
-    labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).bot = ...
-      Labels.bot.y;
-    labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).toc = ...
-      lsm_toc;
+%     labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).top = ...
+%       Labels.top.y;
+%     labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).bot = ...
+%       Labels.bot.y;
+%     labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).toc = ...
+%       lsm_toc;
+   %end
+%     if param.layer_tracker.track.debug
+%       figure; imagesc(lp(data.Data)); colormap(1 - gray(256)); hold on;
+%       plot(result.top, 'g'); plot(result.bot, 'r');
+%       legend('Ice-surface', 'Ice-bottom');
+%       keyboard
+%     end
+
+labels(1,:) = Labels.top.y;
+labels(2,:) = Labels.bot.y';
     
-  end
+  %end
 end
