@@ -514,10 +514,8 @@ for param_idx = 1:length(params)
   end
   
   global gRadar;
+  param = merge_structs(param,ds.param_records);
   param = merge_structs(param,gRadar);
-  param.day_seg = ds.frm_id(1:11);
-  param.cmd.frms = ds.start_frame:ds.stop_frame;
-  param.post.ops.location = ds.param_records.post.location;
 
   surface_layer = {opsLoadLayers(param, surface_source)};
   

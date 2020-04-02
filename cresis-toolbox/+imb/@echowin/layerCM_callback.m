@@ -15,12 +15,12 @@ if source == obj.left_panel.layerCM_visible || source == obj.left_panel.layerCM_
   % Update plot based on selection
   obj.set_visibility();
 elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_copy || source == obj.left_panel.layerCM_insert
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers. The new layer will be inserted
     % before the first of the currently selected layers or at the bottom
     % of the listbox.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2);
+    val = val(val>1);
     % Ensure that there is at least one layer selected if copying
     if source == obj.left_panel.layerCM_new || ~isempty(val)
       if isempty(val)
@@ -232,7 +232,6 @@ elseif source == obj.left_panel.layerCM_edit
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
     if length(vals) == 1
       val = vals(1);
       prompt = {'Layer Age:','Layer Age Source:','Layer Age Source Age:','Layer Age Source Type:','Description:','Layer Group Name:','Layer Name:'};
@@ -321,7 +320,7 @@ elseif source == obj.left_panel.layerCM_edit
 elseif source == obj.left_panel.layerCM_sequence
   if strcmpi(obj.eg.layers.source,'layerData')
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
+    vals = vals(vals>1);
     
     prompt = {'Basename (BASENAME_001):','Zero padding length ("003" is 3):','Start count at:'};
     old_base_name = obj.eg.layers.lyr_name{vals(1)};
@@ -454,7 +453,7 @@ elseif source == obj.left_panel.layerCM_up
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>3);
+    val = val(val>2);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -493,7 +492,7 @@ elseif source == obj.left_panel.layerCM_down
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2 & val<length(obj.eg.layers.lyr_name));
+    val = val(val>1 & val<length(obj.eg.layers.lyr_name));
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -532,7 +531,7 @@ elseif source == obj.left_panel.layerCM_top
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>3);
+    val = val(val>2);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -542,7 +541,7 @@ elseif source == obj.left_panel.layerCM_top
       name = obj.eg.layers.lyr_name{val};
       order = obj.eg.layers.lyr_order(val);
       
-      new_val = 3;
+      new_val = 2;
       new_order = obj.eg.layers.lyr_order(new_val);
       
       fprintf('Move layer top %s:%s\n', group_name, name);
@@ -576,7 +575,7 @@ elseif source == obj.left_panel.layerCM_bottom
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2);
+    val = val(val>1);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);

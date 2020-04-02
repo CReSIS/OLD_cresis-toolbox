@@ -120,6 +120,9 @@ param.load.bit_mask = param.load_data.bit_mask;
 %% Load records file
 % =====================================================================
 records = records_load(param,param.load.recs);
+if param.load.recs(2) == inf
+  param.load.recs(2) = param.load.recs(1) + length(records.gps_time)-1;
+end
 old_param_records = records.param_records;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
@@ -133,7 +136,7 @@ tmp_param = param;
 frms = find(param.load.recs(1) >= frames.frame_idxs,1,'last') : find(param.load.recs(2) >= frames.frame_idxs,1,'last');
 tmp_param.cmd.frms = max(1,min(frms)-1) : min(length(frames.frame_idxs),max(frms)+1);
 surf_layer = opsLoadLayers(tmp_param,param.load_data.surf_layer);
-if isempty(surf_layer.gps_time)
+if isempty(surf_layer.gps_time) || all(isnan(surf_layer.gps_time))
   records.surface = zeros(size(records.gps_time));
 elseif length(surf_layer.gps_time) == 1;
   records.surface = surf_layer.twtt*ones(size(records.gps_time));

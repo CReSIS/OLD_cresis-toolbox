@@ -198,7 +198,7 @@ classdef layerdata < handle
     %% elev: get elev
     function elev = elev(obj,frms)
       elev = [];
-      for frm = 1:frms(:).'
+      for frm = frms(:).'
         obj.check(frm);
         elev(end+(1:length(obj.layer{frm}.elev))) = obj.layer{frm}.elev;
       end
@@ -786,7 +786,7 @@ classdef layerdata < handle
       twtt = [];
       quality = [];
       type = [];
-      for frm = 1:frms(:).'
+      for frm = frms(:).'
         obj.check(frm);
         lay_idx = find(obj.layer{frm}.id == id);
         Nx = length(obj.layer{frm}.gps_time);
@@ -807,7 +807,7 @@ classdef layerdata < handle
     %% gps_time: get gps_time
     function gps_time = gps_time(obj,frms)
       gps_time = [];
-      for frm = 1:frms(:).'
+      for frm = frms(:).'
         obj.check(frm);
         gps_time(end+(1:length(obj.layer{frm}.gps_time))) = obj.layer{frm}.gps_time;
       end
@@ -863,7 +863,7 @@ classdef layerdata < handle
     %% lat: get lat
     function lat = lat(obj,frms)
       lat = [];
-      for frm = 1:frms(:).'
+      for frm = frms(:).'
         obj.check(frm);
         lat(end+(1:length(obj.layer{frm}.lat))) = obj.layer{frm}.lat;
       end
@@ -948,7 +948,7 @@ classdef layerdata < handle
     %% lon: get lon
     function lon = lon(obj,frms)
       lon = [];
-      for frm = 1:frms(:).'
+      for frm = frms(:).'
         obj.check(frm);
         lon(end+(1:length(obj.layer{frm}.lon))) = obj.layer{frm}.lon;
       end
@@ -1039,7 +1039,7 @@ classdef layerdata < handle
         end
       end
       
-      for frm = 1:frms(:).'
+      for frm = frms(:).'
         obj.check(frm);
         lay_idx = find(obj.layer{frm}.id == id);
         if isempty(lay_idx)

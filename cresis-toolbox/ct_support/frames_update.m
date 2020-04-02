@@ -29,8 +29,7 @@ if any(strcmpi('frames',{var_list.name}))
   load(frames_fn,'frames');
   
   % Load records file
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn);
+  records = records_load(param,'gps_time');
   
   frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
   Nfrms = length(frames.frame_idxs);
@@ -47,7 +46,7 @@ if any(strcmpi('frames',{var_list.name}))
   frames.param.radar_name = param.radar_name;
   frames.param.sw_version = param.sw_version;
   
-  if param.ct_file_lock
+  if isfield(param,'ct_file_lock') && param.ct_file_lock
     frames.file_version = '1L';
   else
     frames.file_version = '1';
@@ -61,8 +60,7 @@ else
   frames = load(frames_fn);
   
   % Load records file
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn);
+  records = records_load(param,'gps_time');
 
   frames.gps_time = [records.gps_time(frames.frame_idxs), records.gps_time(end)];
   Nfrms = length(frames.frame_idxs);

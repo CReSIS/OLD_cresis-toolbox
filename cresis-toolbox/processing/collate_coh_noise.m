@@ -245,7 +245,7 @@ for img = param.collate_coh_noise.imgs
             if size(noise.coh_ave_samples{block_idx},1) == 0
               % This block was all bad data so it has fast time dimension
               % of zero. We handle this case separately.
-              coh_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = tmp;
+              coh_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = NaN;
               if enable_threshold
                 coh_bin_mag(block_start(block_idx)+(0:block_size(block_idx)-1)) = NaN;
               end

@@ -246,15 +246,8 @@ else
   [tmp records_fn_name] = fileparts(records_fn);
   param.day_seg = records_fn_name(9:end);
   
-  frames_fn = ct_filename_support(param, '', 'frames');
-  load(frames_fn);
-  
-  records_ver = load(records_fn,'ver','file_version');
-  if isfield(records_ver,'ver') || isfield(records_ver,'file_version')
-    records = load(records_fn);
-  else
-    load(records_fn, 'records');
-  end
+  frames = frames_load(param);
+  records = records_load(param);
   
   % Determine which records must be loaded
   start_record = find(records.gps_time >= start.gps_time,1);

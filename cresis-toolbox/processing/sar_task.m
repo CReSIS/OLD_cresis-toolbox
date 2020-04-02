@@ -443,6 +443,11 @@ for img = 1:length(param.load.imgs)
         % of a hack.
         x_lin = linspace(along_track(1), ...
           along_track(end),length(along_track));
+        dx = mean(diff(x_lin));
+        pre_x_lin = fliplr(x_lin(1)-dx:-dx:output_along_track_full(1));
+        post_x_lin = x_lin(end)+dx:dx:output_along_track_full(end);
+        x_lin = [pre_x_lin, x_lin, post_x_lin];
+        fk_data = [zeros(size(fk_data,1),length(pre_x_lin)), fk_data, zeros(size(fk_data,1),length(post_x_lin))];
         
         % Create kx (along-track wavenumber) axis of input data
         kx = gen_kx(x_lin);

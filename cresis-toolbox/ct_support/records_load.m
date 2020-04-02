@@ -94,11 +94,14 @@ elseif nargin == 2 && isnumeric(varargin{1})
   recs = varargin{1};
   match_idx = find(strcmp('gps_time',{mat_vars.name}));
   num_recs = mat_vars(match_idx).size(2);
-  if recs(2) == inf || recs(2) > num_recs
+  if recs(2) == inf
     recs(2) = num_recs;
   end
+  if recs(2) > num_recs
+    error('Requested records beyond the end of the records file: recs(2)=%d > num_recs=%d. There are %d records in the records file: %s.', recs(2), num_recs, num_recs, records_fn);
+  end
   if recs(2) < recs(1)
-    error('Requested records beyond the end of the records file or requested zero records: recs(1)=%d > recs(2)=%d. There are %d records in the records file: %s.', recs(1), recs(2), recs(2), records_fn);
+    error('Requested records beyond the end of the records file or requested zero records: recs(1)=%d > recs(2)=%d. There are %d records in the records file: %s.', recs(1), recs(2), num_recs, records_fn);
   end
 
   records = load(records_fn,'gps_source','param_records','relative_filename','relative_rec_num','settings');

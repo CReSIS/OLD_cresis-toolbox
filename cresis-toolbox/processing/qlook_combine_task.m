@@ -375,9 +375,7 @@ if param.qlook.surf.en
     copy_param.layer_source.echogram_source_img = echogram_source_img;
     
     copy_param.layer_dest = param.qlook.surf_layer;
-    if strcmpi(param.qlook.surf_layer.source,'layerdata')
-      copy_param.layer_dest.echogram_source = param.qlook.out_path;
-    end
+    copy_param.layer_dest.group_name = 'standard';
     copy_param.layer_dest.existence_check = false;
     copy_param.layer_dest.echogram_source_img = echogram_source_img;
     
