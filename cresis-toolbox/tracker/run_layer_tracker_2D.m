@@ -33,10 +33,10 @@ param_override.layer_tracker.layer_params = []; idx = 0;
 % param_override.layer_tracker.layer_params(idx).source = 'echogram';
 % param_override.layer_tracker.layer_params(idx).echogram_source = 'deconv';
 idx = idx + 1;
-param_override.layer_tracker.layer_params(idx).name = 'surface';
-param_override.layer_tracker.layer_params(idx).source = 'layerdata';
-param_override.layer_tracker.layer_params(idx).layerdata_source = 'layerData';
-param_override.layer_tracker.layer_params(idx).echogram_source = 'CSARP_post/standard';
+
+% Done in run_layer_tracker_2D param.layer_tracker.ice_mask_fn;
+
+
 % idx = idx + 1;
 % param_override.layer_tracker.layer_params(idx).name = 'surface';
 % param_override.layer_tracker.layer_params(idx).source = 'ops';
@@ -44,7 +44,7 @@ param_override.layer_tracker.layer_params(idx).echogram_source = 'CSARP_post/sta
 param_override.layer_tracker.N = 2; % no of frames to be loaded at a time
 % Enter name for saving the data
 param_override.layer_tracker.name = 'test_vit';
-param_override.layer_tracker.save_ops_copy_layers = false;
+param_override.layer_tracker.save_ops_copy_layers = true;
 
 track_override = [];
 track_override.name             = 'mvdr';
@@ -296,6 +296,22 @@ switch ct_output_dir(params(1).radar_name)
     
 end
 param_override.layer_tracker.track = track_override;
+
+param_override.layer_tracker.img = 0;
+
+param_override.layer_tracker.cmds = [];
+if strcmpi(param_override.layer_tracker.track.method,'viterbi')
+  layer_params_list = {struct('name',{'bottom'},'source',{'layerdata'},'echogram_source',{'CSARP_post/standard'},'layerdata_source',{'layerData'})};
+  param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list{1};
+
+elseif any(strcmp(param_override.layer_tracker.track.method,'lsm')) || any(strcmp(param_override.layer_tracker.track.method,'stereo')) || any(strcmp(param_override.layer_tracker.track.method,'mcmc'))
+  layer_params_list = {struct('name','surface','source','layerdata','echogram_source','CSARP_post/standard','layerdata_source','layerData'),struct('name','bottom','source','layerdata','echogram_source','CSARP_post/standard','layerdata_source','layerData')};
+  param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list;
+
+else
+  layer_params_list = {struct('name',{'surface'},'source',{'layerdata'},'echogram_source',{'CSARP_post/standard'},'layerdata_source',{'layerData'})};
+  param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list;
+end
 
 %% Automated Section
 % ----------------------------------------------------------------------

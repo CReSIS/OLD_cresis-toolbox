@@ -45,15 +45,11 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
   orig_track = param.layer_tracker.tracker;
   %%
   
-  save_name = '/cresis/snfs1/scratch/anjali/CSARP_layerData_Anjali';
-  dir_name1 = 'CSARP_layer_tracker_tmp';
-  dir_name2 = 'CSARP_layer_tracker';
   frm_dir = sprintf('layer_tracker_%03d_%03d', param.frm_nums(1),param.frm_nums(end));
-  if ~exist(fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir))
-    mkdir(fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir));
+  tmp_out_fn_dir = fullfile(ct_filename_out(param,'layer_tracker_tmp','',1),['CSARP_' param.layer_tracker.track.layer_dest_layerdata_source]);
+  if ~exist(fullfile(tmp_out_fn_dir,frm_dir),'file')
+    mkdir(fullfile(tmp_out_fn_dir,frm_dir));
   end
-  tmp_out_fn_dir = fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir);
-  
   
   mdata = [];
   mdata.GPS_time = [];
@@ -463,7 +459,7 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
           % Append the new results back to the layerData file
           fprintf('  Saving %s (%s)\n', layer_fn, datestr(now));
           %filename = fullfile(save_name,param.season_name,dir_name,param.day_seg,frm_dir, sprintf('layers_%s_%03d.mat',param.layer_tracker.track.method,layer_idx));
-          filename = fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
+          filename = fullfile(tmp_out_fn_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
           tmp_name = sprintf('%s_%s_%03d',param.layer_tracker.track.method,param.layer_tracker.name,layer_idx);
           %quality{layer_idx} = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
           
@@ -528,6 +524,6 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
   else
     file_version = '1';
   end
-    save(filename,'twtt','gps_time','param_layer_tracker','file_version');%,'indexes','twtt_test');
+  ct_save(filename,'twtt','gps_time','param_layer_tracker','file_version');%,'indexes','twtt_test');
   success = true;
 end
