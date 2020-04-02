@@ -26,6 +26,7 @@ if strcmpi(obj.eg.layers.source,'OPS')
 %% LayerData: Loading flight path from layerData
 else
   fprintf(' Loading flight path from layerData(%s)\n', datestr(now,'HH:MM:SS'));
+  obj.eg.map_id = [];
   obj.eg.map_gps_time = [];
   obj.eg.map_elev = [];
   obj.eg.map_x = [];
