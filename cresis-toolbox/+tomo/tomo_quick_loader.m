@@ -34,6 +34,14 @@ if 0
   rbins = [200]; % Number of bins
   
 elseif 1
+  % Herc
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2019_Antarctica_Ground/CSARP_music3D/20200107_01/Data_img_03_20200107_01_001.mat';
+  
+  % Multipass
+  rbin = [200]; % Start bin
+  rbins = [500]; % Number of bins
+  
+elseif 0
   % Summit Multipass
   % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2_music.mat';
   % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2_2012_music.mat';

@@ -185,7 +185,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});

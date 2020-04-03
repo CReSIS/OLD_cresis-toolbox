@@ -1,7 +1,7 @@
 function success = qlook_combine_task(param)
 % success = qlook_combine_task(param)
 %
-% Task for combining get heights temporary outputs into images and running
+% Task for combining qlook temporary outputs into images and running
 % surface tracking.
 %
 % param = struct with processing parameters
@@ -18,11 +18,9 @@ function success = qlook_combine_task(param)
 %% Setup Processing
 % =====================================================================
 
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
-
+frames = frames_load(param);
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 
 % Quick look radar echogram output directory
 out_dir = ct_filename_out(param, param.qlook.out_path);
@@ -242,15 +240,16 @@ for frm_idx = 1:length(param.cmd.frms);
     else
       file_version = '1';
     end
+    file_type = 'qlook';
     Data = single(Data);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version');
+        'param_qlook','param_records','file_version','file_type');
     else
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version','custom');
+        'param_qlook','param_records','file_version','file_type','custom');
     end
   end
   
@@ -376,9 +375,7 @@ if param.qlook.surf.en
     copy_param.layer_source.echogram_source_img = echogram_source_img;
     
     copy_param.layer_dest = param.qlook.surf_layer;
-    if strcmpi(param.qlook.surf_layer.source,'layerdata')
-      copy_param.layer_dest.echogram_source = param.qlook.out_path;
-    end
+    copy_param.layer_dest.group_name = 'standard';
     copy_param.layer_dest.existence_check = false;
     copy_param.layer_dest.echogram_source_img = echogram_source_img;
     

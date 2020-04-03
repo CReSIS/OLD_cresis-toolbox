@@ -15,7 +15,7 @@
 %
 % Authors: John Paden
 %
-% See also: run_create_posting.m, create_posting.m, run_echogram_to_jpeg.m,
+% See also: run_post.m, post.m, run_echogram_to_jpeg.m,
 %  echogram_to_jpeg.m
 
 %% General Setup
@@ -92,7 +92,7 @@ if ~isfield(param.post.ops,'gaps_dist') || isempty(param.post.ops.gaps_dist)
 end
 
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames'));
+frames = frames_load(param);
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end

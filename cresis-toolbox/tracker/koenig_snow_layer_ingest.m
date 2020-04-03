@@ -204,13 +204,9 @@ for day_idx=13:13 %1:length(days)
       end
     end
     
-    % Load records file associated with this segment
-    records_fn = ct_filename_support(param,'','records');
-    records = load(records_fn);
-    % Load frames associated with this segment
-    frames_fn = ct_filename_support(param,'','frames');
-    load(frames_fn);
-    
+    frames = frames_load(param);
+    records = records_load(param);
+
     % Write layer information into layerData files
     %   update opsCopyLayers to create new layerData files if they do not exist
     for frm = 1:length(frames.frame_idxs)

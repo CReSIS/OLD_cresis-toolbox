@@ -77,15 +77,18 @@ classdef dem_class < handle
       
       % Arctic DEM
       % -------------------------------------------------------------------
+      % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/500m/arcticdem_mosaic_500m_v3.0.tif
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/10m/11_41/11_41_10m_v3.0.tar.gz
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/2m/48_63/48_63_1_1_2m_v3.0.tar.gz
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/2m/48_63/48_63_2_2_2m_v3.0.tar.gz
+      % 
       try
         new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/';
         new_dem_info.res = [2 10 32 100 500 1000];
         new_dem_info.res_str = {'2m' '10m' '32m' '100m' '500m' '1km'};
         new_dem_info.tile_en = [1 1 1 0 0 0];
         new_dem_info.subtile_en = [1 0 0 0 0 0];
+        new_dem_info.tile_fn_ext = '_reg_dem.tif';
         new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/arcticdem_mosaic_%s_v3.0.tif',res_str,res_str);
         new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,res_str);
         new_dem_info.subtile_fn_fh = @(x,y,x_sub,y_sub,res_str) sprintf('%s/%d_%d/%d_%d_%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,y_sub,x_sub,res_str);
@@ -107,6 +110,7 @@ classdef dem_class < handle
       
       % REMA
       % -------------------------------------------------------------------
+      % http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/100m/REMA_100m_dem.tif
       % http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/8m/09_38/09_38_8m.tar.gz
       try
         new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/';
@@ -114,6 +118,7 @@ classdef dem_class < handle
         new_dem_info.res_str = {'8m' '100m' '200m' '1km'};
         new_dem_info.tile_en = [1 0 0 0];
         new_dem_info.subtile_en = [0 0 0 0];
+        new_dem_info.tile_fn_ext = '_dem.tif';
         new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/REMA_%s_dem.tif',res_str,res_str);
         new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s.tar.gz',res_str,y,x,y,x,res_str);
         new_dem_info.acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Byrd Polar and Climate Research Center and the Polar Geospatial Center under NSF-OPP awards 1543501, 1810976, 1542736, 1559691, 1043681, 1541332, 0753663, 1548562, 1238993 and NASA award NNX10AN61G. Computer time provided through a Blue Waters Innovation Initiative. DEMs produced using data from DigitalGlobe, Inc.';
@@ -432,6 +437,7 @@ classdef dem_class < handle
                 for sub_y_idx = 1:2
                   if any(tile_x >= tiles(tiles_idx,1) & tile_x <= tiles(tiles_idx,1)+1 ...
                       & tile_y >= tiles(tiles_idx,2) & tile_y <= tiles(tiles_idx,2)+1)
+                    % Create URL for subtile file and add to url_list to download
                     url_list{end+1} = [obj.dem_info{di}.url,obj.dem_info{di}.subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info{di}.res_str{ri})];
                     xi_list(end+1) = 2*tiles(tiles_idx,1) + sub_x_idx - 2;
                     yi_list(end+1) = 2*tiles(tiles_idx,2) + sub_y_idx - 2;
@@ -443,6 +449,7 @@ classdef dem_class < handle
                 end
               end
             else
+              % Create URL for tile file and add to url_list to download
               url_list{end+1} = [obj.dem_info{di}.url,obj.dem_info{di}.tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info{di}.res_str{ri})];
               xi_list(end+1) = tiles(tiles_idx,1);
               yi_list(end+1) = tiles(tiles_idx,2);
@@ -460,9 +467,12 @@ classdef dem_class < handle
               
               [~,url_name,url_ext1] = fileparts(url);
               [~,url_name,url_ext2] = fileparts(url_name);
+              % fn: archive file to be downloaded (will be deleted after we are done extracting the tif file)
               fn = fullfile(obj.dem_info{di}.out_path,[url_name,url_ext2,url_ext1]);
-              tif_fn = fullfile(obj.dem_info{di}.out_path,[url_name '_reg_dem.tif']);
+              % tif_fn: tif file inside the archive file that we want
+              tif_fn = fullfile(obj.dem_info{di}.out_path,[url_name obj.dem_info{di}.tile_fn_ext]);
               
+              % Check to see if download file AND tif file do not exist
               if ~exist(fn,'file') && ~exist(tif_fn,'file')
                 cmd = sprintf('wget -P %s %s', obj.dem_info{di}.out_path, url);
                 fprintf('  %s\n', cmd);
@@ -473,14 +483,16 @@ classdef dem_class < handle
                 end
               end
               
+              % 
               if ~exist(tif_fn,'file')
-                fprintf('Untar %s\n  %s\n', fn, obj.dem_info{di}.out_path);
+                fprintf('Untar tar file %s\n  to tif file: %s\n', fn, tif_fn);
                 untar(fn, obj.dem_info{di}.out_path);
                 if ~exist(tif_fn,'file')
-                  error('Failed to untar file or file not found in tar archive.');
+                  error('Failed to find tif file after untar. If tar file is corrupted, try deleting the tar file and starting over so that it will be downloaded again.');
                 end
               end
               
+              % Delete tar file, but keep tif file
               if exist(fn,'file')
                 delete(fn);
               end

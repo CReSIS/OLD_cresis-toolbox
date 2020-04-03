@@ -105,4 +105,4 @@ for adc = bad_adcs
 end
 
 save(records_fn,'-struct','records');
-create_records_aux_files(records_fn);
+records_aux_files_create(records_fn);

@@ -164,33 +164,25 @@ for cur_layer = unique_layers
           manual_frame_idxs = undo_stack.user_data.frame_idxs(cmds_list{cmd_idx}(sub_idx).redo_args{2}(frm_mask & manual_mask));
           
           % Determine the layer index associated with this layer ID
-          found = false;
-          for lay_idx = 1:length(undo_stack.user_data.layer_info(frm).layerData)
-            if undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id == cur_layer
-              found = true;
-              break;
-            end
-          end
-          if ~found
+          lay_idx = find(cur_layer == undo_stack.user_data.layer_info(frm).id);
+          if isempty(lay_idx)
             % Layer does not exist in this layerData file yet
-            lay_idx = length(undo_stack.user_data.layer_info(frm).layerData) + 1;
-            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id = cur_layer;
-            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality = ones(size(undo_stack.user_data.layer_info(frm).GPS_time));
-            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data = nan(size(undo_stack.user_data.layer_info(frm).GPS_time));
-            undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data = nan(size(undo_stack.user_data.layer_info(frm).GPS_time));
+            lay_idx = length(undo_stack.user_data.layer_info(frm).id) + 1;
+            undo_stack.user_data.layer_info(frm).id(lay_idx) = cur_layer;
+            undo_stack.user_data.layer_info(frm).quality(lay_idx,:) = ones(size(undo_stack.user_data.layer_info(frm).gps_time));
+            undo_stack.user_data.layer_info(frm).twtt(lay_idx,:) = nan(size(undo_stack.user_data.layer_info(frm).gps_time));
+            undo_stack.user_data.layer_info(frm).type(lay_idx,:) = 2*ones(size(undo_stack.user_data.layer_info(frm).gps_time));
           end
           
-          % Update automated points
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data(all_frame_idxs) ...
-            = cmds_list{cmd_idx}(sub_idx).redo_args{3}(frm_mask);
-          % Update manual points
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data(all_frame_idxs) ...
-            = NaN;
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data(manual_frame_idxs) ...
-            = cmds_list{cmd_idx}(sub_idx).redo_args{3}(frm_mask & manual_mask);
           % Update quality
-          undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality(all_frame_idxs) ...
+          undo_stack.user_data.layer_info(frm).quality(lay_idx,all_frame_idxs) ...
             = cmds_list{cmd_idx}(sub_idx).redo_args{5}(frm_mask);
+          % Update type
+          undo_stack.user_data.layer_info(frm).type(lay_idx,all_frame_idxs) ...
+            = cmds_list{cmd_idx}(sub_idx).redo_args{4}(frm_mask);
+          % Update twtt
+          undo_stack.user_data.layer_info(frm).twtt(lay_idx,all_frame_idxs) ...
+            = cmds_list{cmd_idx}(sub_idx).redo_args{3}(frm_mask);
         end
         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
         
@@ -218,14 +210,8 @@ for cur_layer = unique_layers
           all_frame_idxs = undo_stack.user_data.frame_idxs(point_ids(frm_mask));
           
           % Determine the layer index associated with this layer ID
-          found = false;
-          for lay_idx = 1:length(undo_stack.user_data.layer_info(frm).layerData)
-            if undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id == cur_layer
-              found = true;
-              break;
-            end
-          end
-          if found
+          lay_idx = find(cur_layer == undo_stack.user_data.layer_info(frm).id);
+          if ~isempty(lay_idx)
             % Only need to delete points if the layer exists in the data
             % file.
             
@@ -239,11 +225,7 @@ for cur_layer = unique_layers
             if ~isempty(all_frame_idxs)
               % 1. Add frm to the layerdata_frms list
               layerdata_frms = [layerdata_frms frm];
-              % 2. Update automated points
-              undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data(all_frame_idxs) ...
-                = NaN;
-              % 3. Update manual points
-              undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data(all_frame_idxs) ...
+              undo_stack.user_data.layer_info(frm).twtt(lay_idx,all_frame_idxs) ...
                 = NaN;
             end
           end
@@ -276,11 +258,11 @@ for cur_layer = unique_layers
         for frm = 1:length(undo_stack.user_data.layer_info)
           % Create a mask for the modified points that is this frame only
           Nx = sum(undo_stack.user_data.frame == frm);
-          undo_stack.user_data.layer_info(frm).layerData{end+1}.value{1}.data = nan(1,Nx);
-          undo_stack.user_data.layer_info(frm).layerData{end}.value{2}.data = nan(1,Nx);
-          undo_stack.user_data.layer_info(frm).layerData{end}.quality = ones(1,Nx);
-          undo_stack.user_data.layer_info(frm).layerData{end}.type = 2*ones(1,Nx);
-          undo_stack.user_data.layer_info(frm).layerData{end}.id = id;
+          lay_idx = length(undo_stack.user_data.layer_info(frm).id) + 1;
+          undo_stack.user_data.layer_info(frm).twtt(lay_idx,:) = nan(1,Nx);
+          undo_stack.user_data.layer_info(frm).quality(lay_idx,:) = ones(1,Nx);
+          undo_stack.user_data.layer_info(frm).type(lay_idx,:) = 2*ones(1,Nx);
+          undo_stack.user_data.layer_info(frm).id(lay_idx) = id;
           layerdata_frms(end+1) = frm;
         end
 
@@ -306,16 +288,12 @@ for cur_layer = unique_layers
         % Update layer files
         % =================================================================
         for frm = 1:length(undo_stack.user_data.layer_info)
-          found = false;
-          for lay_idx = 1:length(undo_stack.user_data.layer_info(frm).layerData)
-            if id == undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
-              found = true;
-              break;
-            end
-          end
-          if found
-            undo_stack.user_data.layer_info(frm).layerData ...
-              = [undo_stack.user_data.layer_info(frm).layerData(1:lay_idx-1) undo_stack.user_data.layer_info(frm).layerData(lay_idx+1:end)];
+          lay_idx = find(id == undo_stack.user_data.layer_info(frm).id);
+          if ~isempty(lay_idx)
+            undo_stack.user_data.layer_info(frm).id = undo_stack.user_data.layer_info(frm).id([1:lay_idx-1,lay_idx+1:end]);
+            undo_stack.user_data.layer_info(frm).quality = undo_stack.user_data.layer_info(frm).quality([1:lay_idx-1,lay_idx+1:end],:);
+            undo_stack.user_data.layer_info(frm).type = undo_stack.user_data.layer_info(frm).type([1:lay_idx-1,lay_idx+1:end],:);
+            undo_stack.user_data.layer_info(frm).twtt = undo_stack.user_data.layer_info(frm).twtt([1:lay_idx-1,lay_idx+1:end],:);
             layerdata_frms(end+1) = frm;
           end
         end
@@ -358,11 +336,13 @@ if strcmpi(undo_stack.user_data.layer_source,'layerdata')
     frm = layerdata_frms(idx);
     if frm == 0
       layer_organizer = undo_stack.user_data.layer_organizer;
-      ct_save(layer_organizer.layer_fn,'-struct','layer_organizer','lyr_name','lyr_age','lyr_age_source','lyr_desc','lyr_group_name','lyr_id','lyr_order');
+      layer_organizer_fn = fullfile(ct_filename_out(layer_organizer.param,undo_stack.user_data.layer_data_source,''), ...
+        sprintf('layer_%s.mat',layer_organizer.param.day_seg));
+      ct_save(layer_organizer_fn,'-struct','layer_organizer');
     else
-      layerData = undo_stack.user_data.layer_info(frm).layerData;
+      lay = undo_stack.user_data.layer_info(frm);
       layer_fn = undo_stack.user_data.filename{frm};
-      save(layer_fn,'-append','layerData') % saving to layerData file
+      ct_save(layer_fn,'-struct','lay') % saving to layerData file
     end
   end
 end

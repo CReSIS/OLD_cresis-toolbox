@@ -180,12 +180,12 @@ for rline = 1:Nx
   physical_constants;
   [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
   
-  origin = mdata.param_array.array_proc.fcs{1}{1}.origin(:,rline);
+  origin = mdata.param_array.array_proc.fcs.origin(:,rline);
   
   % Convert from ECEF to FCS/SAR
-  Tfcs_ecef = [mdata.param_array.array_proc.fcs{1}{1}.x(:,rline), ...
-    mdata.param_array.array_proc.fcs{1}{1}.y(:,rline), ...
-    mdata.param_array.array_proc.fcs{1}{1}.z(:,rline)];
+  Tfcs_ecef = [mdata.param_array.array_proc.fcs.x(:,rline), ...
+    mdata.param_array.array_proc.fcs.y(:,rline), ...
+    mdata.param_array.array_proc.fcs.z(:,rline)];
   Tecef_fcs = inv(Tfcs_ecef);
   
   tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];

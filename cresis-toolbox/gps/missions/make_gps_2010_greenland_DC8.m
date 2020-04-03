@@ -149,5 +149,5 @@ gps_source{file_idx} = 'atm-final_20101231';
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 

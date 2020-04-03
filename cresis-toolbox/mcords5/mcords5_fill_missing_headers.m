@@ -305,14 +305,14 @@ if 1
   records.relative_rec_num = new_relative_rec_num;
   
   save(records_fn,'-struct','records');
-  create_records_aux_files(records_fn);
+  records_aux_files_create(records_fn);
   if 0
     records_fn = '/home/administrator/Scratch/csarp_support/records/rds/2018_Greenland_Polar6/records_20180510_01.mat';
     records = load(records_fn);
     records.offset([1:5,8],end-132) = -2^31;
     records.offset(1,530001+1469)=-2^31;
     save(records_fn,'-struct','records');
-    create_records_aux_files(records_fn);
+    records_aux_files_create(records_fn);
   end
   if 0
     records_fn = '/home/administrator/Scratch/csarp_support/records/rds/2018_Greenland_Polar6/records_20180510_02.mat';
@@ -320,6 +320,6 @@ if 1
     records.offset(2,775001+4890-1)=-2^31;
     records.offset([1:5,8],2125001+4838-1)=-2^31;
     save(records_fn,'-struct','records');
-    create_records_aux_files(records_fn);
+    records_aux_files_create(records_fn);
   end
 end

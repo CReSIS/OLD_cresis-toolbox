@@ -94,7 +94,7 @@ if ~exist(records_fn_dir,'dir')
   mkdir(records_fn_dir);
 end
 save(records_fn,'-struct','records');
-create_records_aux_files(records_fn);
+records_aux_files_create(records_fn);
 
 global gRadar;
 autogenerate_frames(param,gRadar)

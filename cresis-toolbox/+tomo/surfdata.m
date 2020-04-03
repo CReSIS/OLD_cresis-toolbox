@@ -1049,9 +1049,7 @@ classdef surfdata < handle
       sar_coord = load(sar_coord_fn);
 
       % Load records file
-      records_fn = ct_filename_support(param,'','records');
-      records = load(records_fn);
-      
+      records = records_load(param);
       
       % Loop over frames
       for frm_idx = 1:length(param.cmd.frms)

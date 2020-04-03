@@ -31,18 +31,8 @@ fprintf('=====================================================================\n
 % =====================================================================
 
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
-if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
-end
+frames = frames_load(param);
+param.cmd.frms = frames_param_cmd_frms(param,frames);
 
 %% Input Checks: records
 % =====================================================================
@@ -57,6 +47,10 @@ end
 
 %% Input Checks: qlook
 % =====================================================================
+
+if ~isfield(param.qlook,'bit_mask') || isempty(param.qlook.bit_mask)
+  param.qlook.bit_mask = 1;
+end
 
 if ~isfield(param.qlook,'block_size') || isempty(param.qlook.block_size)
   error('param.qlook.block_size must be specified. This is the number of range lines or records to process at a time.');
@@ -77,7 +71,7 @@ if ~mod(length(param.qlook.B_filter),2)
   error('param.qlook.B_filter must be odd length.');
 end
 param.qlook.B_filter = param.qlook.B_filter(:).'; % Must be row vector
-if abs(sum(param.qlook.B_filter)-1) > 1e4*eps
+if abs(sum(param.qlook.B_filter)-1) > 1e4*eps % Ensure filter weights sum to 1 to preserve radiometry
   param.qlook.B_filter = param.qlook.B_filter / sum(param.qlook.B_filter);
 end
 
@@ -116,7 +110,7 @@ if ~mod(length(param.qlook.inc_B_filter),2)
   error('param.qlook.inc_B_filter must be odd length.');
 end
 param.qlook.inc_B_filter = param.qlook.inc_B_filter(:).'; % Must be row vector
-if abs(sum(param.qlook.inc_B_filter)-1) > 1e4*eps
+if abs(sum(param.qlook.inc_B_filter)-1) > 1e4*eps % Ensure filter weights sum to 1 to preserve radiometry
   param.qlook.inc_B_filter = param.qlook.inc_B_filter / sum(param.qlook.inc_B_filter);
 end
 
@@ -165,11 +159,7 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-if ~exist(records_fn)
-  error('You must run create the records file before running anything else:\n  %s', records_fn);
-end
-records = load(records_fn);
+records = records_load(param);
 
 % Quick look radar echogram output directory
 out_fn_dir = ct_filename_out(param, param.qlook.out_path);

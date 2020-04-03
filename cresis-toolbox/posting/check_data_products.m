@@ -177,7 +177,7 @@ for param_idx = 1:length(params)
         fprintf('  Records %s\n', records_fn);
         if exist(records_fn,'file')
           try
-            records = load(records_fn);
+            records = records_load(param);
             if isfield(records,'records')
               fprintf('    Exists: %s\n', records.records.gps_source);
             else

@@ -23,8 +23,7 @@ wgs84 = wgs84Ellipsoid('meters');
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -114,7 +113,8 @@ SAR_coord_param.Lsar = Lsar;
 fcs = SAR_coord_system(SAR_coord_param,ref,ref,along_track,output_along_track);
 
 sar = [];
-sar.version = 1.0;
+sar.file_version = '1';
+sar.file_type = 'sar_coord';
 sar.Lsar = Lsar;
 sar.gps_source = records.gps_source;
 sar.gps_time_offset = records.param_records.records.gps.time_offset;
@@ -137,7 +137,13 @@ if ~exist(sar_fn_dir,'dir')
   mkdir(sar_fn_dir);
 end
 fprintf('Saving SAR coord %s (%s)\n', sar_fn, datestr(now));
-save(sar_fn,'-v7','-struct','sar','version','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time');
+if param.ct_file_lock
+  file_version = '1L';
+else
+  file_version = '1';
+end
+file_type = 'sar_coord';
+ct_save(sar_fn,'-struct','sar','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time','file_version','file_type');
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 

@@ -32,8 +32,7 @@ param = merge_structs(param, param_override);
 % =====================================================================
 
 % Load records
-fn_records = ct_filename_support(param,'','records');
-records = load(fn_records);
+records = records_load(param);
 
 % Check BW_window_gen parameters
 if ~isfield(param,'BW_window_gen') || isempty(param.BW_window_gen)

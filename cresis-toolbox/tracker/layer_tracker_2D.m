@@ -243,24 +243,8 @@ end
 
 %% Determine valid frames to process
 if nargout ~= 1
-  frames_fn = ct_filename_support(param,'','frames');
-  if ~exist(frames_fn,'file')
-    warning('Cannot verify param.cmd.frms because frames file does not exist: %s.', frames_fn);
-  else
-    load(frames_fn);
-    if isempty(param.cmd.frms)
-      param.cmd.frms = 1:length(frames.frame_idxs);
-    end
-    % Remove frames that do not exist from param.cmd.frms list
-    [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-    if length(valid_frms) ~= length(param.cmd.frms)
-      bad_mask = ones(size(param.cmd.frms));
-      bad_mask(keep_idxs) = 0;
-      warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-        param.cmd.frms(find(bad_mask,1)));
-      param.cmd.frms = valid_frms;
-    end
-  end
+  frames = frames_load(param);
+  param.cmd.frms = frames_param_cmd_frms(param,frames);
 end
 
 % %% Load reference surface
@@ -284,47 +268,22 @@ end
 % ====================================================================
 
 [~,~,radar_name] = ct_output_dir(param.radar_name);
-records_fn = ct_filename_support(param,'','records');
-frames_fn = ct_filename_support(param,'','frames');
 
-if ~exist(records_fn)
-  error('You must run create the records file before running anything else');
-end
+records = records_load(param);
 
-records = load(records_fn);
-frames = load(frames_fn);
+% Remove frames that do not exist from param.cmd.frms list
+frames = frames_load(param);
+param.cmd.frms = frames_param_cmd_frms(param,frames);
 
-if isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frames.frame_idxs);
-end
-save_name = '/cresis/snfs1/scratch/anjali/CSARP_layerData_Anjali';
-dir_name1 = 'CSARP_layer_tracker_tmp';
-dir_name2 = 'CSARP_layer_tracker';
+% save_name = '/cresis/snfs1/scratch/anjali/CSARP_layerData_Anjali';
+% dir_name1 = 'CSARP_layer_tracker_tmp';
+% dir_name2 = 'CSARP_layer_tracker';
 out_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
-tmp_out_fn_dir = fullfile(save_name, param.season_name, dir_name1, dir_name2,param.day_seg);
+tmp_out_fn_dir = fullfile(ct_filename_out(param,'layer_tracker_tmp','',1),['CSARP_' param.layer_tracker.track.layer_dest_layerdata_source]);
 
 %% Adding inputs to param
 
-param.layer_tracker.in_path = ct_filename_out(param,param.layer_tracker.echogram_source,'');
-param.layer_tracker.img = 0;
-param.layer_tracker.cmds = [];
-layer_params_list = [];
-
-% Done in run_layer_tracker_2D param.layer_tracker.ice_mask_fn;
-if strcmpi(param.layer_tracker.track.method,'viterbi')
-  %layer_params_list = {struct('name',{'bottom','bottom_viterbi'},'source',{'layerdata','layerdata'},'echogram_source',{'CSARP_post/standard','CSARP_post/standard'},'layerdata_source',{'layerData','layerData'})};
-  layer_params_list = {struct('name',{'bottom'},'source',{'layerdata'},'echogram_source',{'CSARP_post/standard'},'layerdata_source',{'layerData'})};
-  param.layer_tracker.cmds(end+1).layer_params = layer_params_list{1};
-
-elseif any(strcmp(param.layer_tracker.track.method,'lsm')) || any(strcmp(param.layer_tracker.track.method,'stereo')) || any(strcmp(param.layer_tracker.track.method,'mcmc'))
-  layer_params_list = {struct('name','surface','source','layerdata','echogram_source','CSARP_post/standard','layerdata_source','layerData'),struct('name','bottom','source','layerdata','echogram_source','CSARP_post/standard','layerdata_source','layerData')};
-  param.layer_tracker.cmds(end+1).layer_params = layer_params_list;
-
-else
- 
-  layer_params_list = {struct('name',{'surface'},'source',{'layerdata'},'echogram_source',{'CSARP_post/standard'},'layerdata_source',{'layerData'})};
-  param.layer_tracker.cmds(end+1).layer_params = layer_params_list;
-end
+% param.layer_tracker.in_path = ct_filename_out(param,param.layer_tracker.echogram_source,'');
 
 
 %% Set up Cluster
@@ -347,7 +306,7 @@ ctrl_chain = {};
 tmp_out_fn = {};
 totalfrms = {};
 sparam.argsin{1} = param;
-sparam.task_function = 'layer_temp_task';
+sparam.task_function = 'layer_tracker_task';
 sparam.num_args_out = 1;
 sparam.argsin{1}.load.echogram_img = param.layer_tracker.echogram_img;
 sparam.cpu_time = 60;
@@ -417,10 +376,10 @@ frm = 1;
 %   end
 %   ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
 %else
-  %while frm <= length(frames.frames.frame_idxs)
-  while frm <= length(frames.frames.frame_idxs)
+  %while frm <= length(frames.frame_idxs)
+  while frm <= length(frames.frame_idxs)
     for i = 1:param.layer_tracker.N
-      if(frm <= 3) %length(frames.frames.frame_idxs))
+      if(frm <= 3) %length(frames.frame_idxs))
         out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,1));
         dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)',sparam.task_function,param.radar_name, param.season_name, out_fn_dir, param.day_seg, 1, 1,length(param.cmd.frms));
         dparam.file_success{end+1} = tmp_out_fn_dir;
@@ -431,10 +390,10 @@ frm = 1;
       frm=frm+1;
     end
     frm_dir = sprintf('layer_tracker_%03d_%03d', dparam.argsin{1}.frm_nums(1),dparam.argsin{1}.frm_nums(end));
-    if ~exist(fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir))
-      mkdir(fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir));
+    if ~exist(fullfile(tmp_out_fn_dir,frm_dir))
+      mkdir(fullfile(tmp_out_fn_dir,frm_dir));
     end
-    tmp_out_fn{end+1} = fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
+    tmp_out_fn{end+1} = fullfile(tmp_out_fn_dir,frm_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
     totalfrms{end+1} = [dparam.argsin{1}.frm_nums(1), dparam.argsin{1}.frm_nums(end)];
     %tmp_out_fn.(sprintf('number_frames_%d_%d',dparam.argsin{1}.frm_nums(1),dparam.argsin{1}.frm_nums(end))){end+1} = 
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);

@@ -39,25 +39,23 @@ function gps = read_gps_traj(in_fn, param)
 % traj_param.time_reference = 'utc'; % Maybe gps?
 % traj_param.input_format = '%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
 % gps = read_gps_traj(traj_fin,traj_param);
-% plot_gps(gps)
+% gps_plot(gps)
 %
 % % Read 2011 NASA .traj data:
 % traj_fin = '/cresis/data1/NASA/2011_Greenland_P3/110316.traj';
 % traj_param.time_reference = 'utc'; % Maybe gps?
 % gps = read_gps_traj(traj_fin,traj_param);
-% plot_gps(gps)
+% gps_plot(gps)
 %
 % % Read 2018 NASA .traj data:
 % traj_fin = '/cresis/snfs1/dataproducts/metadata/2018_Antarctica_DC8/Trajectory/181010_aa_l12_cfm_itrf14_29oct18_roth_amu2';
 % traj_param.time_reference = 'gps'; 
 % gps = read_gps_traj(traj_fin,traj_param);
-% plot_gps(gps)
+% gps_plot(gps)
 %
 % Author: John Paden, Kyle Purdon
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 % Set Defaults (If var does not exist)
 if ~isfield(param,'headerlines')

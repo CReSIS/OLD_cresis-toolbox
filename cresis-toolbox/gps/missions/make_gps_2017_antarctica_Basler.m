@@ -177,7 +177,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 if any(strcmpi('gps_?.mat',out_fns)) ...
   || any(strcmpi('gps_?.mat',out_fns))

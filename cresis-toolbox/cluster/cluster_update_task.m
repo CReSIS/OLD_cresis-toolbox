@@ -278,6 +278,7 @@ else
 end
 
 if update_mode && ctrl.error_mask(task_id)
+  fprintf('%s\n','='*ones(1,80));
   warning(' Job Error %d:%d/%d (lead task %d)\n', ctrl.batch_id, task_id, job_id, task_id_out);
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
     fprintf('   hostname:%s attempt:%d max_attempts:%d\n', hostname, attempt, max_attempts);

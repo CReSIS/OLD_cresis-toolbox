@@ -196,11 +196,6 @@ else
   % ====================================================================
   % ====================================================================
   
-  % Get list of records and frames files
-  %  records_fn = '/cresis/scratch1/mdce/csarp_support/records/mcords/2009_Antarctica_DC8/records_20091016_seg1.mat';
-  %  records = read_records_aux_files(records_fn,[1 4000]);
-  %  check = load(records_fn);
-  
   % Get list of records files
   records_dir = ct_filename_support(param, '', 'records');
   fns = get_filenames(records_dir,'records','','.nc');
@@ -251,15 +246,8 @@ else
   [tmp records_fn_name] = fileparts(records_fn);
   param.day_seg = records_fn_name(9:end);
   
-  frames_fn = ct_filename_support(param, '', 'frames');
-  load(frames_fn);
-  
-  records_ver = load(records_fn,'ver','file_version');
-  if isfield(records_ver,'ver') || isfield(records_ver,'file_version')
-    records = load(records_fn);
-  else
-    load(records_fn, 'records');
-  end
+  frames = frames_load(param);
+  records = records_load(param);
   
   % Determine which records must be loaded
   start_record = find(records.gps_time >= start.gps_time,1);

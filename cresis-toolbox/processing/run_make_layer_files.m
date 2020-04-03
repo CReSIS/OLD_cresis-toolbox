@@ -11,29 +11,25 @@
 param_override = [];
 
 % Parameters spreadsheet to use for updating
-params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20091224_01');
-params = ct_set_params(params,'cmd.frms',[16]);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20191231');
+params = ct_set_params(params,'cmd.frms',[]);
 
-% .echogram_input = ct_filename_out path argument for which 
-%   radar echograms to use for grabbing the initial surface values and the
-%   time axis from. Typical values are shown here.
-% layer.echogram_input = 'qlook';
-layer.echogram_input = 'standard';
-% layer.echogram_input = 'CSARP_post/qlook';
-% layer.echogram_input = 'CSARP_post/standard';
+% .out_path: string containing file path where layer files will be stored
+% to; string is passed to ct_filename_out to form the file path.
+%  Default is 'layer'.
+param_override.make_layer_files.out_path = 'layer';
+% param_override.make_layer_files.out_path = 'CSARP_post/layer';
 
-% 0: Data_YYYYMMDD_SS_FFF.mat file, I: Data_II_YYYYMMDD_SS_FFF.mat file
-layer.echogram_img = 1;
+% Uncomment to delete all layer files and start over:
+param_override.make_layer_files.update_mode = 1;
 
-layer.layer_output = 'layerData';
-% layer.layer_output = 'CSARP_post/layerData';
+% Uncomment to even update files that already exist:
+% param_override.make_layer_files.update_mode = 2;
 
 %% Automated section
 % =========================================================================
-
-param_override.make_layer_files = layer;
 
 global gRadar;
 
@@ -51,4 +47,5 @@ for param_idx = 1:length(params)
   end
   
   make_layer_files(param,param_override);
+  %make_layer_files
 end

@@ -33,11 +33,10 @@ if ~exist(array_out_dir,'dir')
   mkdir(array_out_dir);
 end
 
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -173,7 +172,7 @@ for frm_idx = 1:length(param.cmd.frms);
         param_array.array_proc.fcs.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
         param_array.array_proc.fcs.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
         if param.array.fcs_pos_averaged
-          % Average the fcs position
+          % Average the fcs position (default)
           pos = zeros(3,length(tmp.param_array.array_proc.lines));
           Nc = 0;
           for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
@@ -184,7 +183,8 @@ for frm_idx = 1:length(param.cmd.frms);
           end
           param_array.array_proc.fcs.pos = pos/Nc;
         else
-          % Store all the fcs positions without averaging
+          % Store all the fcs positions without averaging (just used for
+          % estimating steering vectors)
           pos = zeros(3,length(tmp.param_array.array_proc.lines),0);
           Nc = 0;
           for ml_idx = 1:length(tmp.param_array.array_proc.fcs)

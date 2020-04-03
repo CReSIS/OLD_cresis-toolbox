@@ -70,7 +70,7 @@ for param_idx = 1:length(params)
   if param.cmd.records
     % Remaining commands cannot run without records and frames files so
     % this function is run now.
-    create_records(param,param_override);
+    records_create(param,param_override);
     tmp_param = merge_structs(param, param_override);
     try
       % If manual frame mode specified, then wait until the user chooses

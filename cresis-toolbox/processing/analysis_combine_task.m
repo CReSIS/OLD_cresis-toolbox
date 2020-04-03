@@ -16,8 +16,7 @@ function [success] = analysis_combine_task(param)
 %% Setup
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.analysis.presums > 1
   records.lat = fir_dec(records.lat,param.analysis.presums);
@@ -101,10 +100,16 @@ for cmd_idx = 1:length(param.analysis.cmd)
         satur.gps_time = gps_time;
         satur.max_val_gps_time = max_val_gps_time;
         satur.max_val_gps_time_adc = max_val_gps_time_adc;
+        if param.ct_file_lock
+          satur.file_version = '1L';
+        else
+          satur.file_version = '1';
+        end
+        satur.file_type = 'analysis_saturation';
         
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('saturation_%s_img_%02d.mat', param.day_seg, img));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','satur');
+        ct_save(out_segment_fn,'-struct','satur');
       end
     end
     
@@ -190,9 +195,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           spec.file_version = '1';
         end
+        spec.file_type = 'analysis_spec';
+        
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','spec');
+        ct_save(out_segment_fn,'-struct','spec');
       end
     end
     
@@ -321,10 +328,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           noise.file_version = '1';
         end
+        noise.file_type = 'analysis_noise';
         
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
+        ct_save(out_segment_fn,'-struct','noise'); % Use HDF because of the large file size
       end
     end
     
@@ -392,9 +400,16 @@ for cmd_idx = 1:length(param.analysis.cmd)
         waveform.wf_data = wf_data;
         waveform.time_rng = time_rng;
         
+        if param.ct_file_lock
+          waveform.file_version = '1L';
+        else
+          waveform.file_version = '1';
+        end
+        waveform.file_type = 'analysis_waveform';
+        
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','waveform'); % Use HDF because of the large file size
+        ct_save(out_segment_fn,'-struct','waveform'); % Use HDF because of the large file size
       end
     end
     
@@ -484,10 +499,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           stats.file_version = '1';
         end
+        stats.file_type = 'analysis_stats';
         
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','stats'); % Use HDF because of the large file size
+        ct_save(out_segment_fn,'-struct','stats'); % Use HDF because of the large file size
       end
     end
     

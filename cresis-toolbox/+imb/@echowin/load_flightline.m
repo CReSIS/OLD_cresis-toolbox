@@ -32,16 +32,16 @@ else
   obj.eg.map_x = [];
   obj.eg.map_y = [];
   for idx = 1:length(obj.eg.frms)
-    Nx = length(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).GPS_time);
+    Nx = length(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).gps_time);
     obj.eg.map_gps_time(end+1:end+Nx) ...
-      = double(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).GPS_time);
+      = double(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).gps_time);
     obj.eg.map_elev(end+1:end+Nx) ...
-      = double(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Elevation);
+      = double(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).elev);
     if obj.eg.map.source == 1
-      [X,Y] = google_map.latlon_to_world(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Longitude);
+      [X,Y] = google_map.latlon_to_world(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).lat,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).lon);
       Y = 256-Y;
     else
-      [X,Y] = projfwd(obj.eg.proj,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Longitude);
+      [X,Y] = projfwd(obj.eg.proj,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).lat,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).lon);
     end
     obj.eg.map_x(end+1:end+Nx) = double(X)/obj.eg.map.scale;
     obj.eg.map_y(end+1:end+Nx) = double(Y)/obj.eg.map.scale;

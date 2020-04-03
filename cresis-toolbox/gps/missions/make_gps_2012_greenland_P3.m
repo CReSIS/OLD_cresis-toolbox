@@ -1334,7 +1334,7 @@ end
 
 %% make_gps
 % ======================================================================
-make_gps;
+gps_make;
 
 % Hand correction of gps_20120317 accum2 sync radar time information
 hand_idx = strmatch('gps_20120317.mat',out_fns);

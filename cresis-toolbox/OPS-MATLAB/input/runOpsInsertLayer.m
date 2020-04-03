@@ -147,7 +147,7 @@ elseif 0
   insert_param.gaps_fill.method_args = [300 60];
   opsInsertLayer(params, insert_param);
   
-elseif 1
+elseif 0
   %% Example 4: Merge Geoid data onto another (e.g. GIMP) layer
   % =====================================================================
   % =====================================================================
@@ -404,7 +404,7 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 1
+elseif 0
   %% Example 9: BEDMAP2 grid
   % =====================================================================
   % =====================================================================
@@ -414,14 +414,18 @@ elseif 1
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO_ndh_targetframes.xls'),'','post');
+  params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'','post');
+  params = ct_set_params(params,'cmd.generic',0);
+  %params = ct_set_params(params,'cmd.generic',1,'day_seg','20181224_03');
   
-  grid_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+  grid_fn = ct_filename_gis([],fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif'));
+  geoid_fn = ct_filename_gis([],fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','gl04c_geiod_to_WGS84.tif'));
   
   % Load the grid
   points = [];
   [points.elev,R] = geotiffread(grid_fn);
-  points.elev = double(points.elev);
+  [geoid.elev,R] = geotiffread(geoid_fn);
+  points.elev = double(points.elev) + double(geoid.elev);
   x_axis = R.XLimWorld(1) + [R.XLimIntrinsic(1):R.XLimIntrinsic(2)-1]'*R.DeltaX;
   y_axis = R.YLimWorld(2) + [R.YLimIntrinsic(1):R.YLimIntrinsic(2)-1]'*R.DeltaY;
   
@@ -434,14 +438,56 @@ elseif 1
   
   insert_param.type = 'raster'; % Raster data
   insert_param.layer_dest.name = 'BEDMAP_surface';
-  insert_param.layer_dest.source = 'ops';
+  insert_param.layer_dest.desc = 'BEDMAP 2 Surface'; % For OPS layer_dest source
+  insert_param.layer_dest.source = 'layerdata';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
-  insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
-  insert_param.layer_dest.description = 'BEDMAP 2 Surface'; % For OPS layer_dest source
-  insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
+  insert_param.layer_dest.group_name = ''; % For OPS layer_dest source
+  insert_param.layer_dest.layerdata_source = 'layer'; % For layerData layer_dest source
   insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
   insert_param.copy_method = 'overwrite';
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
-   
+  
+elseif 1
+  %% Example 10: South Dakota DEM
+  % =====================================================================
+  % =====================================================================
+  % Use parameters spreadsheet to select segment and frame list for creating layers
+  % Set the generic to 1 for the selected segments and frames
+  
+  physical_constants;
+  insert_param = [];
+  
+  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_CESSNA.xls'),'','post');
+  params = ct_set_params(params,'cmd.generic',0);
+  %params = ct_set_params(params,'cmd.generic',1,'day_seg','20200129_01');
+  
+  grid_fn = ct_filename_gis([],fullfile('SouthDakota','National_Elevation_Data_DEM_10m.tif'));
+  
+  % Load the grid
+  points = [];
+  [points.elev,R] = geotiffread(grid_fn);
+  points.elev = double(points.elev);
+  x_axis = R.XLimWorld(1) + [R.XLimIntrinsic(1):R.XLimIntrinsic(2)]'*R.DeltaX;
+  y_axis = R.YLimWorld(2) + [R.YLimIntrinsic(1):R.YLimIntrinsic(2)]'*R.DeltaY;
+  
+  insert_param.proj = geotiffinfo(grid_fn);
+  
+  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.x = x_axis;
+  insert_param.y = y_axis;
+  insert_param.data = points.elev;
+  
+  insert_param.type = 'raster'; % Raster data
+  insert_param.layer_dest.name = 'USGS_surface';
+  insert_param.layer_dest.desc = 'USGS Surface'; % For OPS layer_dest source
+  insert_param.layer_dest.source = 'layerdata';
+  insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
+  insert_param.layer_dest.group_name = ''; % For OPS layer_dest source
+  insert_param.layer_dest.layerdata_source = 'layer'; % For layerData layer_dest source
+  insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
+  insert_param.copy_method = 'overwrite';
+  insert_param.gaps_fill.method = 'interp_finite';
+  opsInsertLayer(params, insert_param);
+    
 end

@@ -1,5 +1,5 @@
-function create_records_acords(param,param_override)
-% create_records_acords(param,param_override)
+function records_create_acords(param,param_override)
+% records_create_acords(param,param_override)
 %
 % Corrects jumps in utc time, typically one second jumps. This script
 % obtains fmcw headers from data from data drives indicated in the param
@@ -120,7 +120,7 @@ records = [];
 % so that length(hdr.utc_time_sod) = records.relative_rec_num(end)-1
 records.relative_rec_num{1} = 1;
 
-%init_EPRI_estimate = create_records_epri_estimate(param,file_idxs,fns);
+%init_EPRI_estimate = records_create_epri_estimate(param,file_idxs,fns);
 
 for file_idx = 1:length(file_idxs)
   file_num = file_idxs(file_idx);
@@ -180,10 +180,10 @@ records.relative_rec_num{1} = records.relative_rec_num{1}(1:end-1);
 hdr.fraction = zeros(size(hdr.seconds));
 
 %% Save workspace in case there is a failure
-create_records_save_workspace;
+records_create_save_workspace;
 
 %% Correct time, sync GPS data, and save records
-create_records_acords_sync;
+records_create_acords_sync;
 
 return;
 

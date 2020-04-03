@@ -1,10 +1,9 @@
-function success = layer_temp_task(param)
+function success = layer_tracker_task(param)
 % layer_tracker_2D_task is used to set the parameters (options) for the
 % different tracking algorithms. Look into calling the algorithms and
 % running it on the cluster
 success = {};
 %% Load reference surface
-if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.layer_tracker.track.method,'threshold'))|| any(strcmp(param.layer_tracker.track.method,'max')) || any(strcmp(param.layer_tracker.track.method,'fixed')) || any(strcmp(param.layer_tracker.track.method,'viterbi')) || any(strcmp(param.layer_tracker.track.method,'lsm')) || any(strcmp(param.layer_tracker.track.method,'stereo')) || any(strcmp(param.layer_tracker.track.method,'mcmc'))
   
   %intialising twtt, gps_time to save layer information
   layer_params = param.layer_tracker.cmds.layer_params;
@@ -45,15 +44,12 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
   orig_track = param.layer_tracker.tracker;
   %%
   
-  save_name = '/cresis/snfs1/scratch/anjali/CSARP_layerData_Anjali';
-  dir_name1 = 'CSARP_layer_tracker_tmp';
-  dir_name2 = 'CSARP_layer_tracker';
   frm_dir = sprintf('layer_tracker_%03d_%03d', param.frm_nums(1),param.frm_nums(end));
-  if ~exist(fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir))
-    mkdir(fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir));
+  tmp_out_fn_dir = fullfile(ct_filename_out(param,'layer_tracker_tmp','',1),['CSARP_' param.layer_tracker.track.layer_dest_layerdata_source]);
+  if ~exist(fullfile(tmp_out_fn_dir,frm_dir),'file')
+    mkdir(fullfile(tmp_out_fn_dir,frm_dir));
   end
-  tmp_out_fn_dir = fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir);
-  
+  tmp_out_fn_dir = fullfile(tmp_out_fn_dir,frm_dir);
   
   mdata = [];
   mdata.GPS_time = [];
@@ -290,7 +286,7 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
         if param.layer_tracker.track.track_data
           %new_layer = tracker_lsm_track(mdata,param);
           %new_quality = ones(1,Nx);
-          new_layer = load('/cresis/snfs1/projects/LSM_anjali/LSM_result_part9.mat');
+          %new_layer = load('/cresis/snfs1/projects/LSM_anjali/LSM_result_part9.mat');
           new_quality = ones(1,Nx);
         else
           new_layer = tracker_lsm(mdata,param);
@@ -463,7 +459,7 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
           % Append the new results back to the layerData file
           fprintf('  Saving %s (%s)\n', layer_fn, datestr(now));
           %filename = fullfile(save_name,param.season_name,dir_name,param.day_seg,frm_dir, sprintf('layers_%s_%03d.mat',param.layer_tracker.track.method,layer_idx));
-          filename = fullfile(save_name,param.season_name,dir_name1,dir_name2,param.day_seg,frm_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
+          filename = fullfile(tmp_out_fn_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
           tmp_name = sprintf('%s_%s_%03d',param.layer_tracker.track.method,param.layer_tracker.name,layer_idx);
           %quality{layer_idx} = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
           
@@ -528,6 +524,5 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
   else
     file_version = '1';
   end
-    save(filename,'twtt','gps_time','param_layer_tracker','file_version');%,'indexes','twtt_test');
+  ct_save(filename,'twtt','gps_time','param_layer_tracker','file_version');%,'indexes','twtt_test');
   success = true;
-end

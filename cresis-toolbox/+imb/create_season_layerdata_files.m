@@ -1,5 +1,5 @@
-function [lat,lon,frm_id,elev,surf,bottom,quality,frm_info] = create_season_layerdata_files(param,param_override)
-% [lat,lon,frm_id,elev,surf,bottom,quality,frm_info] = create_season_layerdata_files(param,param_override)
+function [lat,lon,frm_id,elev,surf,bottom,quality,frm_info,gps_source] = create_season_layerdata_files(param,param_override)
+% [lat,lon,frm_id,elev,surf,bottom,quality,frm_info,gps_source] = create_season_layerdata_files(param,param_override)
 %
 % Return season layer file information including lat, lon. See imb. The imb.picker
 % loads this file when plotting flightlines without OPS. Loading all the
@@ -49,7 +49,7 @@ param = merge_structs(param, param_override);
 try
   layer = opsLoadLayers(param,param.create_season_layerdata_files.layer_params);
 catch ME
-  error(ME);
+  rethrow(ME);
 end
 
 if isempty(layer)
@@ -78,10 +78,8 @@ end
 
 %% Loading frames and records files
 % =====================================================================
-frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn,'frames'); % loads "frames" variable
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn,'gps_time'); % loads "gps_time" variable
+frames = frames_load(param);
+records = records_load(param,'gps_time','gps_source'); % loads "gps_time", "gps_source" variables
 
 %% Create outputs
 % =====================================================================
@@ -94,6 +92,11 @@ elev = layer(1).elev;
 surf = layer(1).twtt;
 bottom = layer(2).twtt;
 quality = layer(2).quality;
+if isfield(records,'gps_source')
+  gps_source = records.gps_source;
+else
+  gps_source = '';
+end
 
 % Store frame GPS time boundaries
 frm_info.frm_id = str2num(param.day_seg([1:8,10:11]))*1000+(1:length(frames.frame_idxs));

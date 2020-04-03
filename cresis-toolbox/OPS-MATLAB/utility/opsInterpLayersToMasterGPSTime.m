@@ -2,7 +2,7 @@ function lay = opsInterpLayersToMasterGPSTime(master,ops_layer,gaps_dist)
 % lay = opsInterpLayersToMasterGPSTime(master,ops_layer,gaps_dist)
 %
 % This function takes layer data from the OPS and re-interpolates it onto
-% a new GPS time axis (e.g. for create_posting.m or update_records.m).
+% a new GPS time axis (e.g. for post.m or records_update.m).
 %
 % master
 %  .GPS_time

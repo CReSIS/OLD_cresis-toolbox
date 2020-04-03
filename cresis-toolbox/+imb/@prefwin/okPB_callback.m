@@ -20,7 +20,11 @@ obj.default_params.system = systems{get(obj.h_gui.systemsLB,'Value')};
 layer_source = get(obj.h_gui.layerSourcePM,'String');
 obj.default_params.layer_source = layer_source{get(obj.h_gui.layerSourcePM,'Value')};
 layer_data_source = get(obj.h_gui.layerDataSourcePM,'String');
-obj.default_params.layer_data_source = layer_data_source{get(obj.h_gui.layerDataSourcePM,'Value')};
+if isempty(layer_data_source)
+  obj.default_params.layer_data_source = 'layer';
+else
+  obj.default_params.layer_data_source = layer_data_source{get(obj.h_gui.layerDataSourcePM,'Value')};
+end
 %
 obj.default_params.season_names = obj.h_gui.h_seasons.get_selected_strings();
 obj.default_params.layer_names = obj.h_gui.h_layers.get_selected_strings();
@@ -96,7 +100,11 @@ layer_sources = get(obj.h_gui.layerSourcePM,'String');
 obj.settings.layer_source = layer_sources{get(obj.h_gui.layerSourcePM,'Value')};
 
 layer_data_sources = get(obj.h_gui.layerDataSourcePM,'String');
-obj.settings.layer_data_source = layer_data_sources{get(obj.h_gui.layerDataSourcePM,'Value')};
+if isempty(layer_data_sources)
+  obj.settings.layer_data_source = 'layer';
+else
+  obj.settings.layer_data_source = layer_data_sources{get(obj.h_gui.layerDataSourcePM,'Value')};
+end
 
 obj.settings.layers = selected_layers;
 obj.settings.seasons = selected_seasons;

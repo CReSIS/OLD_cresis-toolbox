@@ -47,13 +47,11 @@ function gps = read_gps_arena(fn, param)
 %   plot(gps.lon,gps.lat);
 %   datestr(epoch_to_datenum(gps.gps_time(1)));
 %   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
-%   plot_gps(gps)
+%   gps_plot(gps)
 %
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 if ~exist('param','var') || isempty(param)
   error('Year, month, day must be specified in param struct');
@@ -86,6 +84,8 @@ relTimeCntrTmp = NaN;
 profileCntrTmp = NaN;
 ppsCntrTmp = NaN;
 heading_tmp = NaN;
+gps_date_tmp = NaN;
+gps_date_time_tmp = NaN;
 line_num = 0;
 while ~feof(fid)
   str = fgets(fid);
@@ -127,7 +127,11 @@ while ~feof(fid)
           profileCntr(nmea_idx) = profileCntrTmp;
           ppsCntr(nmea_idx) = ppsCntrTmp;
           heading(nmea_idx) = heading_tmp;
-          gps_date(nmea_idx) = NaN;
+          if UTC_time_file(nmea_idx) == gps_date_time_tmp
+            gps_date(nmea_idx) = gps_date_tmp;
+          else
+            gps_date(nmea_idx) = NaN;
+          end
           nmea_idx = nmea_idx + 1;
           relTimeCntrTmp = NaN;
           profileCntrTmp = NaN;
@@ -139,19 +143,28 @@ while ~feof(fid)
       end
     elseif numel(str)>=11 && strcmp(str(7:11),'GPRMC')
       C = textscan(remain(2:end),format_str_GPRMC,'delimiter',', ','emptyvalue',NaN);
-      [tag,UTC_time_file_tmp,nav_rx_warning,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,speed,heading_tmp,...
+      [tag,gps_date_time_tmp,nav_rx_warning,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,speed,heading_tmp,...
         gps_date_tmp,mag_Var,mag_var_E_W,checksum] = deal(C{:});
+      heading_tmp = NaN; % Do not use (low quality)
       if nmea_idx > 1
-        % We __think__ that the GPRMC string always comes after the
-        % corresponding GPGGA string with the same time stamp. Therefore,
-        % this string is just updating fields that the GPGGA string already
-        % provided. The most important field is the gps_date which the
-        % GPGGA does not provide. We __think__ that all the other fields
-        % should be the same as what were in the GPGGA string. As a backup,
-        % we update UTC_time_file just in case we are wrong about the GPRMC
-        % coming after the GPGGA.
-        UTC_time_file(nmea_idx-1) = UTC_time_file_tmp;
-        gps_date(nmea_idx-1) = gps_date_tmp;
+        % The GPRMC string may come before or after the corresponding GPGGA
+        % string with the same time stamp.
+        % 
+        % If it comes afterwards, this string is just updating fields that
+        % the GPGGA string already provided. The most important field is
+        % the gps_date which the GPGGA does not provide. We __think__ that
+        % all the other fields should be the same as what were in the GPGGA
+        % string.
+        %
+        % If GPRMC comes before the GPGGA string, we do nothing now, but
+        % use the gps_date_tmp and gps_date_time_tmp fields to update the
+        % next GPGGA string when it comes.
+        if UTC_time_file(nmea_idx-1) == gps_date_time_tmp
+          gps_date(nmea_idx-1) = gps_date_tmp;
+          gps_date_tmp = NaN;
+          gps_date_time_tmp = NaN;
+          % fprintf(2, '    GPRMC WITH DIFFERENT TIME THAN LAST GPGGA LINE %d: %.14g  ~= %.14g\n', line_num, UTC_time_file_tmp, UTC_time_file(nmea_idx-1));
+        end
       end
     end
   elseif strcmpi(token,'relTimeCntr')

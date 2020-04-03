@@ -1,7 +1,7 @@
 function success = layer_tracker_combine_task(param)
 %function to combine layer data information received from the tracker. To
 %store in layerData files. Use opsCopyLayers
-global gRadar;
+%global gRadar;
 if (param.layer_tracker.save_ops_copy_layers)
 layer_params = param.layer_tracker.cmds.layer_params;
   for layer_idx = 1:length(layer_params)
@@ -48,7 +48,7 @@ end
 % end
 % lay.layerData{layer_idx}.value{2}.data = interp1(tmp_info.GPS_time,tmp_info.layerData{layer_idx}.value{2}.data,lay.GPS_time);
 % 
-  keyboard;
+  %keyboard;
   copy_param = [];
   copy_param.layer_source.existence_check = false;
   copy_param.layer_dest.existence_check = false;
@@ -69,9 +69,8 @@ end
   %else
     
   %end
-  param = merge_structs(param,gRadar);
   
-  keyboard;
+  %keyboard;
   %for surface
   if strcmp(param.layer_tracker.track.method,'viterbi')
       copy_param.layer_source.gps_time = GPS_time;

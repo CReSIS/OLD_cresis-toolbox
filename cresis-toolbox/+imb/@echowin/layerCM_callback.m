@@ -15,12 +15,12 @@ if source == obj.left_panel.layerCM_visible || source == obj.left_panel.layerCM_
   % Update plot based on selection
   obj.set_visibility();
 elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_copy || source == obj.left_panel.layerCM_insert
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers. The new layer will be inserted
     % before the first of the currently selected layers or at the bottom
     % of the listbox.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2);
+    val = val(val>1);
     % Ensure that there is at least one layer selected if copying
     if source == obj.left_panel.layerCM_new || ~isempty(val)
       if isempty(val)
@@ -232,7 +232,6 @@ elseif source == obj.left_panel.layerCM_edit
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
     if length(vals) == 1
       val = vals(1);
       prompt = {'Layer Age:','Layer Age Source:','Layer Age Source Age:','Layer Age Source Type:','Description:','Layer Group Name:','Layer Name:'};
@@ -321,7 +320,7 @@ elseif source == obj.left_panel.layerCM_edit
 elseif source == obj.left_panel.layerCM_sequence
   if strcmpi(obj.eg.layers.source,'layerData')
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
+    vals = vals(vals>1);
     
     prompt = {'Basename (BASENAME_001):','Zero padding length ("003" is 3):','Start count at:'};
     old_base_name = obj.eg.layers.lyr_name{vals(1)};
@@ -412,7 +411,7 @@ elseif source == obj.left_panel.layerCM_order
           % No points in the two layers overlap, use the mean twtt to compare
           comparison = nanmean(y_unsorted{val}) - nanmean(y_unsorted{prev_val});
           if ~isnan(comparison)
-            comparison = comparison < 0
+            comparison = comparison < 0;
           else
             % At least one layer is all NaN, so use layer names to sort
             comparison = issorted(name_unsorted([val,prev_val]));
@@ -454,7 +453,7 @@ elseif source == obj.left_panel.layerCM_up
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>3);
+    val = val(val>2);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -493,7 +492,7 @@ elseif source == obj.left_panel.layerCM_down
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2 & val<length(obj.eg.layers.lyr_name));
+    val = val(val>1 & val<length(obj.eg.layers.lyr_name));
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -532,7 +531,7 @@ elseif source == obj.left_panel.layerCM_top
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>3);
+    val = val(val>2);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -542,7 +541,7 @@ elseif source == obj.left_panel.layerCM_top
       name = obj.eg.layers.lyr_name{val};
       order = obj.eg.layers.lyr_order(val);
       
-      new_val = 3;
+      new_val = 2;
       new_order = obj.eg.layers.lyr_order(new_val);
       
       fprintf('Move layer top %s:%s\n', group_name, name);
@@ -576,7 +575,7 @@ elseif source == obj.left_panel.layerCM_bottom
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2);
+    val = val(val>1);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -635,23 +634,17 @@ elseif source == obj.left_panel.layerCM_merge
     y = nan(length(vals),length(obj.undo_stack.user_data.frame));
     quality = ones(length(vals),length(obj.undo_stack.user_data.frame));
     type = 2*ones(length(vals),length(obj.undo_stack.user_data.frame));
-    for frm = 1:length(obj.eg.layers.y)
+    for frm = obj.eg.frms
       point_ids = find(obj.undo_stack.user_data.frame==frm);
       for val_idx = 1:length(vals)
         val = vals(val_idx);
         id = obj.eg.layers.lyr_id(val);
         
-        found = false;
-        for lay_idx = 1:length(obj.undo_stack.user_data.layer_info(frm).layerData)
-          if id == obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.id
-            found = true;
-            break;
-          end
-        end
-        if found
-          quality(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.quality;
-          y(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{2}.data;
-          type(val_idx,point_ids) = 1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{lay_idx}.value{1}.data);
+        lay_idx = find(id == obj.undo_stack.user_data.layer_info(frm).id);
+        if ~isempty(lay_idx)
+          quality(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).quality(lay_idx,:);
+          y(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).twtt(lay_idx,:);
+          type(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).type(lay_idx,:);
         else
           % Layer does not exist in this file, set to defaults
           quality(val_idx,point_ids) = ones(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
