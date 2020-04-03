@@ -1,10 +1,9 @@
-function success = layer_temp_task(param)
+function success = layer_tracker_task(param)
 % layer_tracker_2D_task is used to set the parameters (options) for the
 % different tracking algorithms. Look into calling the algorithms and
 % running it on the cluster
 success = {};
 %% Load reference surface
-if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.layer_tracker.track.method,'threshold'))|| any(strcmp(param.layer_tracker.track.method,'max')) || any(strcmp(param.layer_tracker.track.method,'fixed')) || any(strcmp(param.layer_tracker.track.method,'viterbi')) || any(strcmp(param.layer_tracker.track.method,'lsm')) || any(strcmp(param.layer_tracker.track.method,'stereo')) || any(strcmp(param.layer_tracker.track.method,'mcmc'))
   
   %intialising twtt, gps_time to save layer information
   layer_params = param.layer_tracker.cmds.layer_params;
@@ -50,6 +49,7 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
   if ~exist(fullfile(tmp_out_fn_dir,frm_dir),'file')
     mkdir(fullfile(tmp_out_fn_dir,frm_dir));
   end
+  tmp_out_fn_dir = fullfile(tmp_out_fn_dir,frm_dir);
   
   mdata = [];
   mdata.GPS_time = [];
@@ -286,7 +286,7 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
         if param.layer_tracker.track.track_data
           %new_layer = tracker_lsm_track(mdata,param);
           %new_quality = ones(1,Nx);
-          new_layer = load('/cresis/snfs1/projects/LSM_anjali/LSM_result_part9.mat');
+          %new_layer = load('/cresis/snfs1/projects/LSM_anjali/LSM_result_part9.mat');
           new_quality = ones(1,Nx);
         else
           new_layer = tracker_lsm(mdata,param);
@@ -526,4 +526,3 @@ if any(strcmp(param.layer_tracker.track.method,'snake')) || any(strcmp(param.lay
   end
   ct_save(filename,'twtt','gps_time','param_layer_tracker','file_version');%,'indexes','twtt_test');
   success = true;
-end

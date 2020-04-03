@@ -43,7 +43,7 @@ idx = idx + 1;
 
 param_override.layer_tracker.N = 2; % no of frames to be loaded at a time
 % Enter name for saving the data
-param_override.layer_tracker.name = 'test_vit';
+param_override.layer_tracker.name = 'testing';
 param_override.layer_tracker.save_ops_copy_layers = true;
 
 track_override = [];
