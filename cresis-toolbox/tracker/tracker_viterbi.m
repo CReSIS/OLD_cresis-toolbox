@@ -158,7 +158,7 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   mult_weight_decay = -1;
   mult_weight_local_decay = -1;
   max_slope = -1;
-  manual_slope = obj.transition_slope;
+  manual_slope = 0;
   image_mag_weight = 1;
   gt_weights = ones([1 Nx]);
   transition_weight = 1;
@@ -310,25 +310,22 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
   
   %% Detrending routine
-%   if param.layer_tracker.track.viterbi.detrending
-%     detect_data = big_matrix.Data;
-%     % Along track filtering
-%     detect_data = fir_dec(detect_data,ones(1,5)/5,1);
-%     % Estimate noise level
-%     noise_value = mean(mean(detect_data(end-80:end-60,:)));
-%     % Estimate trend
-%     trend = mean(detect_data,2);
-%     trend(trend<noise_value) = noise_value;
-%     % Subtract trend
-%     detect_data = bsxfun(@minus,detect_data,trend);
-%     % Remove bad circular convolution wrap around at end of record
-%     detect_data(end-70:end,:) = 0;
-%     big_matrix.Data = detect_data;
-%     
-%     if param.layer_tracker.track.debug
-%       fprintf('\nDone: detrending (%s)', datestr(now,'HH:MM:SS'));
-%     end
-%   end
+   if 1
+        % Along track filtering
+        big_matrix.Data = fir_dec(big_matrix.Data,ones(1,5)/5,1);
+        % Estimate noise level
+        noise_value = mean(mean(big_matrix.Data(end-80:end-60,:)));
+        % Estimate trend
+        trend = mean(big_matrix.Data,2);
+        trend(trend<noise_value) = noise_value;
+        % Subtract trend
+        big_matrix.Data = bsxfun(@minus,big_matrix.Data,trend);
+        % Remove bad circular convolution wrap around at end of record
+        big_matrix.Data(end-70:end,:) = 0;
+     if param.layer_tracker.track.debug
+       fprintf('\nDone: detrending (%s)', datestr(now,'HH:MM:SS'));
+     end
+   end
   
   ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
   ice_mask.mask_dist = round(ice_mask.mask_dist ./ 45);
@@ -341,7 +338,7 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   end
   viterbi_tic = tic;
 
-  y_new = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
+  labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
     double(gt), double(ice_mask.mask), double(image_mag_weight), double(slope), double(max_slope), ...
     int64(bounds), double(gt_weights), double(ice_mask.mask_dist), double(DIM_costmatrix), ...
     double(transition_weights), double(surf_weight), double(mult_weight), ...
