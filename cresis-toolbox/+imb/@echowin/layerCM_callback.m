@@ -375,7 +375,7 @@ elseif source == obj.left_panel.layerCM_sequence
 elseif source == obj.left_panel.layerCM_order
   if strcmpi(obj.eg.layers.source,'layerData')
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
+    vals = vals(vals>1);
     done = false;
     order_unsorted = obj.eg.layers.lyr_order;
     name_unsorted = obj.eg.layers.lyr_name;
@@ -619,12 +619,13 @@ elseif source == obj.left_panel.layerCM_merge
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
+    vals = vals(vals>1);
     if length(vals) < 2
-        return;
+      fprintf('Merge layers requires that two layers are selected.');
+      return;
     end
       
-    cancel_operation = obj.undo_stack_modified_check();
+    cancel_operation = obj.undo_stack_modified_check(true);
     
     if cancel_operation
       return
@@ -647,9 +648,9 @@ elseif source == obj.left_panel.layerCM_merge
           type(val_idx,point_ids) = obj.undo_stack.user_data.layer_info(frm).type(lay_idx,:);
         else
           % Layer does not exist in this file, set to defaults
-          quality(val_idx,point_ids) = ones(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
-          y(val_idx,point_ids) = nan(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
-          type(val_idx,point_ids) = 2*ones(size(obj.undo_stack.user_data.layer_info(frm).GPS_time));
+          quality(val_idx,point_ids) = ones(size(obj.undo_stack.user_data.layer_info(frm).gps_time));
+          y(val_idx,point_ids) = nan(size(obj.undo_stack.user_data.layer_info(frm).gps_time));
+          type(val_idx,point_ids) = 2*ones(size(obj.undo_stack.user_data.layer_info(frm).gps_time));
         end
       end
     end
@@ -668,13 +669,16 @@ elseif source == obj.left_panel.layerCM_merge
     
     h_fig = figure; clf(h_fig);
     h_axes = axes('parent',h_fig);
-    h_plot = plot(y(1,:).','b.','parent',h_axes,'LineWidth',2);
     hold(h_axes,'on');
-    h_plot(end+(1:length(vals)-1)) = plot(y(2:end,:).','r^','parent',h_axes,'LineWidth',2);
-    h_plot(end+1) = plot(find(mask),merged_y(mask),'go','parent',h_axes,'LineWidth',2);
-    legend(h_plot([1 2 end]),'Original','Merging layers','Merged');
+    h_plot = plot(y(1,:).'*1e6,'b.','parent',h_axes,'LineWidth',2);
+    xlabel('GPS time index');
+    ylabel('Two-way propagation (\mus)');
+    set(h_axes,'YDir',obj.eg.y_order);
+    h_plot(end+(1:length(vals)-1)) = plot(y(2:end,:).'*1e6,'r^','parent',h_axes,'LineWidth',2);
+    h_plot(end+1) = plot(find(mask),merged_y(mask)*1e6,'go','parent',h_axes,'LineWidth',2);
+    legend(h_plot([1 2 end]),sprintf('Master Layer %d',vals(1)),'Merged Layers','Merged Result');
 
-    prompt = questdlg(sprintf('Are you sure you want to merge the %d selected layers? See plot showing the merge operation. All layers will be deleted except for layer %d.', ...
+    prompt = questdlg(sprintf('Are you sure you want to merge the %d selected layers? See plot showing the merge operation. All selected layers will be deleted except for layer %d.', ...
       length(vals), vals(1)), ...
       'Merge Layers','Yes','Cancel','Cancel');
     if ~strcmpi(prompt,'Yes')
@@ -735,7 +739,7 @@ elseif source == obj.left_panel.layerCM_delete
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>2);
+    vals = vals(vals>1);
     if length(vals) > 1
       
       prompt = questdlg(sprintf('Are you sure you want to delete the %d selected layers?', ...
