@@ -19,67 +19,6 @@ physical_constants;
 
 %% Check parameters and set to default if needed
 for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
-  if isfield(param.layer_tracker.track.viterbi, 'bottom_bin') && ~isempty(param.layer_tracker.track.viterbi.bottom_bin)
-    bottom_bin = param.layer_tracker.track.viterbi.bottom_bin;
-  else
-    bottom_bin = -1;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'egt_weight') && ~isempty(param.layer_tracker.track.viterbi.egt_weight)
-    egt_weight = param.layer_tracker.track.viterbi.egt_weight;
-  else
-    egt_weight = -1;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'ice_bin_thr') && ~isempty(param.layer_tracker.track.viterbi.ice_bin_thr)
-    ice_bin_thr = param.layer_tracker.track.viterbi.ice_bin_thr;
-  else
-    ice_bin_thr = 10;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'mu_size') && ~isempty(param.layer_tracker.track.viterbi.mu_size)
-    mu_size = param.layer_tracker.track.viterbi.mu_size;
-  else
-    mu_size = 31;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'mu_thr') && ~isempty(param.layer_tracker.track.viterbi.mu_thr)
-    mu_thr = param.layer_tracker.track.viterbi.mu_thr;
-  else
-    mu_thr = -30;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'mu') && ~isempty(param.layer_tracker.track.viterbi.mu)
-    mu = param.layer_tracker.track.viterbi.mu;
-  else
-    mu = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
-    mu(mu < mu_thr) = mu_thr;
-    mu              = mu - mean(mu);
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'repulsion') && ~isempty(param.layer_tracker.track.viterbi.repulsion)
-    repulsion = param.layer_tracker.track.viterbi.repulsion;
-  else
-    repulsion = 150000;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'sigma') && ~isempty(param.layer_tracker.track.viterbi.sigma)
-    sigma = param.layer_tracker.track.viterbi.sigma;
-  else
-    sigma = sum(abs(mu))/10*ones(1, mu_size);
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'smooth_var') && ~isempty(param.layer_tracker.track.viterbi.smooth_var)
-    smooth_var = param.layer_tracker.track.viterbi.smooth_var;
-  else
-    smooth_var = Inf;
-  end
-  
-  if isfield(param.layer_tracker.track.viterbi, 'smooth_weight') && ~isempty(param.layer_tracker.track.viterbi.smooth_weight)
-    smooth_weight = param.layer_tracker.track.viterbi.smooth_weight;
-  else
-    smooth_weight = 5;
-  end
   
   if isfield(param.layer_tracker.track.viterbi, 'surf_layer_params') && ~isempty(param.layer_tracker.track.viterbi.surf_layer_params)
     surf_layer_params = param.layer_tracker.track.viterbi.surf_layer_params;
@@ -212,53 +151,71 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   big_matrix.Data = lp(big_matrix.Data); %(needed when not using data_struct but instead using mdata)
   surf_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), big_matrix.Surface));
   
-  %% Top suppression
-  if param.layer_tracker.track.viterbi.top_sup
-    topbuffer = 5;
-    botbuffer = 15;
-    filtvalue = 50;
-    for rline = 1 : size(big_matrix.Data, 2)
-      column_chunk = big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
-        round(surf_bins(rline) + botbuffer), rline);
-      big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
-        round(surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
-    end
-    
-    if param.layer_tracker.track.debug
-      fprintf('\nDone: top suppression (%s)', datestr(now,'HH:MM:SS'));
-    end
+  Nx = size(big_matrix.Data, 2);
+  slope = round(diff(surf_bins));
+  surf_weight = -1;
+  mult_weight = -1;
+  mult_weight_decay = -1;
+  mult_weight_local_decay = -1;
+  max_slope = -1;
+  manual_slope = obj.transition_slope;
+  image_mag_weight = 1;
+  gt_weights = ones([1 Nx]);
+  transition_weight = 1;
+
+  try
+    surf_weight = param.layer_tracker.track.viterbi.surf_weight;
+  catch ME
   end
-  
-  %% Multiple suppression
-  if param.layer_tracker.track.viterbi.mult_sup
-    topbuffer = 12;
-    botbuffer = 12;
-    filtvalue = 30;
-    
-    % Step one: Determine the bins associated with the surface multiple
-    surf_mult_twtt = 2*big_matrix.Surface;
-    surf_mult_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), surf_mult_twtt));
-    
-    % Step two: Filter the whole image
-    filt_img = fir_dec(fir_dec(big_matrix.Data,ones(1,31),1).',ones(1,31),1).';
-    
-    % Step three: replace the surface multiple bins with the filtered image
-    for rline = 1 : size(big_matrix.Data, 2)
-      try
-        big_matrix.Data(round(surf_mult_bins(rline) - topbuffer) : ...
-          round(surf_mult_bins(rline) + botbuffer), rline) = ...
-          filt_img(round(surf_mult_bins(rline) - topbuffer) : ...
-          round(surf_mult_bins(rline) + botbuffer), rline);
-      catch ME
-        continue;
-      end
-    end
+  try
+    mult_weight = param.layer_tracker.track.viterbi.mult_weight;
+  catch ME
   end
-  
-  Nx             = size(big_matrix.Data, 2);
-  slope          = round(diff(big_matrix.Surface));
-  viterbi_weight = ones([1 Nx]);
-  
+  try
+    mult_weight_decay = param.layer_tracker.track.viterbi.mult_weight_decay;
+  catch ME
+  end
+  try
+    mult_weight_local_decay = param.layer_tracker.track.viterbi.mult_weight_local_decay;
+  catch ME
+  end
+  if ~param.layer_tracker.track.viterbi.top_sup
+    surf_weight = 0;
+  end
+  if ~param.layer_tracker.track.viterbi.mult_sup
+    mult_weight = 0;
+  end
+  try
+    manual_slope = param.layer_tracker.track.viterbi.manual_slope;
+  catch ME
+  end
+  try
+    max_slope = param.layer_tracker.track.viterbi.max_slope;
+  catch ME
+  end
+  try
+    transition_weight = param.layer_tracker.track.viterbi.transition_weight;
+  catch ME
+  end
+  try
+    image_mag_weight = param.layer_tracker.track.viterbi.image_mag_weight;
+  catch ME
+  end
+  try
+    gt_weight = param.layer_tracker.track.viterbi.gt_weight;
+    gt_weights = gt_weights * gt_weight;
+  catch ME
+  end
+
+  transition_weights = ones(1, Nx-1) * transition_weight;
+  manual_slope = ones(1, Nx-1) * manual_slope;
+  if ~param.layer_tracker.track.viterbi.use_surf_for_slope
+    slope = manual_slope;
+  end
+
+  dt = big_matrix.Time(2) - big_matrix.Time(1);
+  zero_bin = floor(-big_matrix.Time(1)/dt + 1);
+
   %% Ice mask calculation
   if param.layer_tracker.track.binary_icemask
     mask = load(param.layer_tracker.track.ice_mask_mat_fn,'R','X','Y','proj');
@@ -351,8 +308,6 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   %% Set variable echogram tracking parameters
   bounds = [0 Nx];
   ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
-  transition_mu = -1 * ones(1, size(big_matrix.Data, 2));
-  transition_sigma = 0.3759 * ones(1, size(big_matrix.Data, 2));
   
   %% Detrending routine
 %   if param.layer_tracker.track.viterbi.detrending
@@ -385,14 +340,13 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
     fprintf('\nProceeding with Viterbi call... ');
   end
   viterbi_tic = tic;
-  labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
-    double(bottom_bin), double(gt), double(ice_mask.mask), double(mu), ...
-    double(sigma), double(egt_weight), double(smooth_weight), ...
-    double(smooth_var), double(slope), int64(bounds), ...
-    double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-    double(ice_mask.mask_dist), double(DIM_costmatrix), ...
-    double(transition_mu), double(transition_sigma));
-  
+
+  y_new = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
+    double(gt), double(ice_mask.mask), double(image_mag_weight), double(slope), double(max_slope), ...
+    int64(bounds), double(gt_weights), double(ice_mask.mask_dist), double(DIM_costmatrix), ...
+    double(transition_weights), double(surf_weight), double(mult_weight), ...
+    double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
+
   viterbi_toc = toc(viterbi_tic);
   
   fprintf('\nAverage time elapsed per frame: %.2f seconds', ...

@@ -40,8 +40,8 @@ function viterbi_tests()
   
   % RUN
   layer = tomo.viterbi(matrix, surf_bins, gt, mask, img_mag_weight, slope, max_slope, ...
-  bounds, gt_weights, mask_dist, cost_matrix, transition_weights, surf_weight, ...
-  mult_weight, mult_weight_decay, mult_weight_local_decay, int64(zero_bin));
+    bounds, gt_weights, mask_dist, cost_matrix, transition_weights, surf_weight, ...
+    mult_weight, mult_weight_decay, mult_weight_local_decay, int64(zero_bin));
   hfig = setup();
   resize(hfig);
   
