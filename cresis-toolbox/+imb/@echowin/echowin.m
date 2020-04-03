@@ -520,7 +520,7 @@ classdef (HandleCompatible = true) echowin < handle
     layerLB_str(obj);
     new_layerPB_OKbutton_callback(obj,hObj,event);
     new_layerPB_close_callback(obj,hObj,event);
-    cancel_operation = undo_stack_modified_check(obj);
+    cancel_operation = undo_stack_modified_check(obj,force_save_or_cancel_flag);
     toggle_imagewin_visibility(obj,h_obj,event);
     update_layer_plots(obj); % Update layer plots, called from cmds_execute
     
