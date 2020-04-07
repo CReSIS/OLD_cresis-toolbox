@@ -197,6 +197,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.viterbi.transition_weight = 1;
       track_override.viterbi.image_mag_weight = 1;
       track_override.viterbi.gt_weight = 1;
+      track_override.viterbi.gt_cutoff = -1;
 
     end
     

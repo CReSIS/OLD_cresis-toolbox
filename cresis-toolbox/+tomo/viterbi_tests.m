@@ -21,6 +21,7 @@ function viterbi_tests()
   % Viterbi params
   transition_weights = ones(1, cols-1);
   gt_weights = ones(1, cols);
+  gt_cutoffs = ones(1, cols) * -1;
   img_mag_weight = 1;
   
   surf_weight = 1000;
@@ -40,7 +41,7 @@ function viterbi_tests()
   
   % RUN
   layer = tomo.viterbi(matrix, surf_bins, gt, mask, img_mag_weight, slope, max_slope, ...
-    bounds, gt_weights, mask_dist, cost_matrix, transition_weights, surf_weight, ...
+    bounds, gt_weights, gt_cutoffs, mask_dist, cost_matrix, transition_weights, surf_weight, ...
     mult_weight, mult_weight_decay, mult_weight_local_decay, int64(zero_bin));
   hfig = setup();
   resize(hfig);

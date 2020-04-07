@@ -58,6 +58,7 @@ if tool_idx == 1
       slope          = round(diff(surf_bins));
       bounds         = [];
       gt_weights     = ones([1 Nx]);
+      gt_cutoffs     = ones([1 Nx]);
       mask_dist      = round(bwdist(mask == 0));
       
       %% Detrending
@@ -82,6 +83,7 @@ if tool_idx == 1
         mask           = mask(:, auto_idxs);
         mask_dist      = round(bwdist(mask == 0));
         gt_weights     = gt_weights(:, auto_idxs);
+        gt_cutoffs     = gt_cutoffs(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
       
@@ -146,6 +148,13 @@ if tool_idx == 1
         gt_weight = str2double(obj.top_panel.ground_truth_weight_TE.String);
         gt_weights = gt_weights * gt_weight;
       catch ME
+        gt_weights = gt_weights * obj.ground_truth_weight;
+      end
+      try
+        gt_cutoff  = str2double(obj.top_panel.ground_truth_cutoff_TE.String);
+        gt_cutoffs = gt_cutoffs * gt_cutoff;
+      catch ME
+        gt_cutoffs = gt_cutoffs * obj.ground_truth_cutoff;
       end
 
       % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
@@ -159,7 +168,7 @@ if tool_idx == 1
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(gt), double(mask), double(image_mag_weight), double(slope), double(max_slope), ...
-        int64(bounds), double(gt_weights), double(mask_dist), double(DIM_costmatrix), ...
+        int64(bounds), double(gt_weights), double(gt_cutoffs), double(mask_dist), double(DIM_costmatrix), ...
         double(transition_weights), double(surf_weight), double(mult_weight), ...
         double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
       toc

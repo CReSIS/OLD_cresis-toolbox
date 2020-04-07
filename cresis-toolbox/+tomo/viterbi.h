@@ -42,6 +42,7 @@ public:
           const double *d_egt_x,
           const double *d_egt_y,
           const double *d_gt_weights,
+          const double *d_gt_cutoffs,
           const double *d_mask_dist,
           const double *d_costmatrix,
           const int d_costmatrix_X,
@@ -65,6 +66,7 @@ public:
                               f_egt_x(d_egt_x),
                               f_egt_y(d_egt_y),
                               f_gt_weights(d_gt_weights),
+                              f_gt_cutoffs(d_gt_cutoffs),
                               f_mask_dist(d_mask_dist),
                               f_costmatrix(d_costmatrix),
                               f_costmatrix_X(d_costmatrix_X),
@@ -83,7 +85,7 @@ public:
   // VARIABLES
   const int f_row, f_col, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_zero_bin;
   const double *f_image, *f_mask, f_img_mag_weight, *f_smooth_slope, f_max_slope,
-      *f_egt_x, *f_egt_y, *f_gt_weights, *f_mask_dist, f_surf_weight, f_mult_weight, 
+      *f_egt_x, *f_egt_y, *f_gt_weights, *f_gt_cutoffs, *f_mask_dist, f_surf_weight, f_mult_weight, 
       f_mult_weight_decay, f_mult_weight_local_decay, *f_costmatrix, *f_transition_weights;
   const ptrdiff_t *f_bounds;
   double *f_result, *f_cost;

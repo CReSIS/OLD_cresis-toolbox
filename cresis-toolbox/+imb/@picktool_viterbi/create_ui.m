@@ -39,6 +39,7 @@ end
 obj.top_panel.handle = uipanel('Parent',obj.h_fig);
 set(obj.top_panel.handle,'HighlightColor',[0.8 0.8 0.8]);
 set(obj.top_panel.handle,'ShadowColor',[0.6 0.6 0.6]);
+obj.toolPM_callback = @(varargin) disp(''); % Not implemented, do nothing -- for switching modes
 %set(obj.top_panel.handle,'visible','off');
 
 %--------------------------------------
@@ -83,7 +84,7 @@ set(obj.top_panel.insert_range_TE,'String',obj.in_rng_sv);
 set(obj.top_panel.insert_range_TE,'TooltipString', tooltip);
 
 %----column restriction label
-tooltip = 'Crop echogram input to values between extreme ground truth points';
+tooltip = 'Crop echogram input horizontally to values between extreme ground truth points';
 obj.top_panel.column_restriction_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.column_restriction_label,'Style','text');
 set(obj.top_panel.column_restriction_label,'String','Column tracking restriction:');
@@ -98,7 +99,7 @@ set(obj.top_panel.column_restriction_cbox,'TooltipString', tooltip);
 tooltip = 'Prevent Viterbi from tracking the surface layer';
 obj.top_panel.top_sup_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.top_sup_label,'Style','text');
-set(obj.top_panel.top_sup_label,'String',sprintf('Top\nsuppression:'));
+set(obj.top_panel.top_sup_label,'String',sprintf('Surface Suppression:'));
 set(obj.top_panel.top_sup_label,'TooltipString', tooltip);
 %----top suppression cbox
 obj.top_panel.top_sup_cbox = uicontrol('Parent',obj.top_panel.handle);
@@ -119,10 +120,10 @@ set(obj.top_panel.mult_sup_cbox,'Value', 1);
 set(obj.top_panel.mult_sup_cbox,'TooltipString', tooltip);
 
 %----surface weight label
-tooltip = 'Amount by which to repel surface if suppression enabled';
+tooltip = 'Amount by which to repel surface if suppression enabled. Greater value = greater avoidance.';
 obj.top_panel.surf_weight_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.surf_weight_label,'Style','text');
-set(obj.top_panel.surf_weight_label,'String','Surface Weight:');
+set(obj.top_panel.surf_weight_label,'String','Surface Repulsion:');
 set(obj.top_panel.surf_weight_label,'TooltipString', tooltip);
 %----surface weight box
 obj.top_panel.surf_weight_TE = uicontrol('Parent',obj.top_panel.handle);
@@ -131,10 +132,10 @@ set(obj.top_panel.surf_weight_TE,'String', obj.surf_weight);
 set(obj.top_panel.surf_weight_TE,'TooltipString', tooltip);
 
 %----multiple weight label
-tooltip = 'Amount by which to repel surface multiples if suppression enabled';
+tooltip = 'Amount by which to repel surface multiples if suppression enabled. Greater value = greater avoidance.';
 obj.top_panel.mult_weight_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.mult_weight_label,'Style','text');
-set(obj.top_panel.mult_weight_label,'String','Multiple Weight:');
+set(obj.top_panel.mult_weight_label,'String','Multiple Repulsion:');
 set(obj.top_panel.mult_weight_label,'TooltipString', tooltip);
 %----multiple weight box
 obj.top_panel.mult_weight_TE = uicontrol('Parent',obj.top_panel.handle);
@@ -143,7 +144,7 @@ set(obj.top_panel.mult_weight_TE,'String', obj.mult_weight);
 set(obj.top_panel.mult_weight_TE,'TooltipString', tooltip);
 
 %----multiple weight decay label
-tooltip = 'Multiply weight of each subsequent multiple by this amount to reduce suppression of faded multiples';
+tooltip = 'Multiply repulsion of each subsequent multiple by this amount to reduce suppression of faded multiples. Smaller = faster repulsion decay.';
 obj.top_panel.mult_weight_decay_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.mult_weight_decay_label,'Style','text');
 set(obj.top_panel.mult_weight_decay_label,'String','Multiple Weight Decay:');
@@ -155,7 +156,7 @@ set(obj.top_panel.mult_weight_decay_TE,'String', obj.mult_weight_decay);
 set(obj.top_panel.mult_weight_decay_TE,'TooltipString', tooltip);
 
 %----multiple weight local decay label
-tooltip = 'Multiply the multiple suppression weight by this amount for every subsequent bin past the multiple';
+tooltip = 'Multiply the multiple suppression repulsion by this amount for every subsequent bin past the multiple. Smaller = faster repulsion decay.';
 obj.top_panel.mult_weight_local_decay_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.mult_weight_local_decay_label,'Style','text');
 set(obj.top_panel.mult_weight_local_decay_label,'String','Multiple Weight Local Decay:');
@@ -203,7 +204,7 @@ set(obj.top_panel.max_slope_TE,'String', obj.max_slope);
 set(obj.top_panel.max_slope_TE,'TooltipString', tooltip);
 
 %----transition weight label
-tooltip = 'The weight by which to multiply the binary cost. Greater weight = prefer less slope';
+tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
 obj.top_panel.transition_weight_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.transition_weight_label,'Style','text');
 set(obj.top_panel.transition_weight_label,'String','Transition weight:');
@@ -237,9 +238,21 @@ obj.top_panel.ground_truth_weight_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.ground_truth_weight_TE,'Style','edit');
 set(obj.top_panel.ground_truth_weight_TE,'String', obj.ground_truth_weight);
 set(obj.top_panel.ground_truth_weight_TE,'TooltipString', tooltip);
+
+%----gt cutoff label
+tooltip = 'Points must be chosen within this many rangebins of a ground truth point when present. -1 for any distance allowed.';
+obj.top_panel.ground_truth_cutoff_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.ground_truth_cutoff_label,'Style','text');
+set(obj.top_panel.ground_truth_cutoff_label,'String','Ground Truth Cutoff:');
+set(obj.top_panel.ground_truth_cutoff_label,'TooltipString', tooltip);
+%----gt cutoff box
+obj.top_panel.ground_truth_cutoff_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.ground_truth_cutoff_TE,'Style','edit');
+set(obj.top_panel.ground_truth_cutoff_TE,'String', obj.ground_truth_cutoff);
+set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %%
 %---------------------------------------------------------------------------------------------
-rows = 15;  % Update with number of rows and columns
+rows = 16;  % Update with number of rows and columns
 cols = 2;
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -300,6 +313,9 @@ obj.top_panel.table.handles{14,2}  = obj.top_panel.image_mag_weight_TE;
 %% gt weight
 obj.top_panel.table.handles{15,1}  = obj.top_panel.ground_truth_weight_label;
 obj.top_panel.table.handles{15,2}  = obj.top_panel.ground_truth_weight_TE;
+%% gt cutoff
+obj.top_panel.table.handles{16,1}  = obj.top_panel.ground_truth_cutoff_label;
+obj.top_panel.table.handles{16,2}  = obj.top_panel.ground_truth_cutoff_TE;
 clear rows cols
 
 % Draw table

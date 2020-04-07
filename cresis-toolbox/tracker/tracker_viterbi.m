@@ -161,6 +161,7 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   manual_slope = 0;
   image_mag_weight = 1;
   gt_weights = ones([1 Nx]);
+  gt_cutoffs = ones([1 Nx]);
   transition_weight = 1;
 
   try
@@ -206,7 +207,12 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
     gt_weights = gt_weights * gt_weight;
   catch ME
   end
-
+  try
+    gt_cutoff = param.layer_tracker.track.viterbi.gt_cutoff;
+    gt_cutoffs = gt_cutoffs * gt_cutoff;
+  catch ME
+  end
+  
   transition_weights = ones(1, Nx-1) * transition_weight;
   manual_slope = ones(1, Nx-1) * manual_slope;
   if ~param.layer_tracker.track.viterbi.use_surf_for_slope
@@ -340,7 +346,7 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
 
   labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
     double(gt), double(ice_mask.mask), double(image_mag_weight), double(slope), double(max_slope), ...
-    int64(bounds), double(gt_weights), double(ice_mask.mask_dist), double(DIM_costmatrix), ...
+    int64(bounds), double(gt_weights), double(gt_cutoffs), double(ice_mask.mask_dist), double(DIM_costmatrix), ...
     double(transition_weights), double(surf_weight), double(mult_weight), ...
     double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
 

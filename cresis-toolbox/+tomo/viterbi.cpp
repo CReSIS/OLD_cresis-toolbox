@@ -42,8 +42,17 @@ double viterbi::unary_cost(int x, int y)
   {
     if (f_egt_x[f] == x)
     {
-      cost += f_gt_weights[x] * 10 * sqr(((int)f_egt_y[f] - (int)y));
-      break;
+      mexPrintf("x:%d y:%d cutoff:%d dist:%d weight:%d \n", x, y, f_gt_cutoffs[x], abs((int)f_egt_y[f] - (int)y), f_gt_weights[x]);
+      if (f_gt_cutoffs[x] > -1 && abs((int)f_egt_y[f] - (int)y) > f_gt_cutoffs[x])
+      {
+        // Must be within cutoff range
+        return LARGE;
+      }
+      else
+      {
+        cost += f_gt_weights[x] * 10 * sqr(((int)f_egt_y[f] - (int)y));
+        break;
+      }
     }
   }
 
@@ -231,13 +240,13 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int max_args = 17;           // All args including optional
+  int max_args = 18;           // All args including optional
   int min_args = max_args - 1; // Number of required arguments
   int arg = 0;
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
   {
-    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, gt_weights, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
+    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, gt_weights, gt_cutoffs, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
   }
 
   // Input checking
@@ -382,6 +391,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   const double *_gt_weights = mxGetPr(prhs[arg]);
 
+  // gt_cutoffs ======================================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]))
+  {
+    mexErrMsgTxt("usage: gt_cutoffs must be type double");
+  }
+  if (mxGetNumberOfElements(prhs[arg]) != _col)
+  {
+    mexErrMsgTxt("usage: gt_cutoffs must have numel(gt_weights)=size(image,2)");
+  }
+  const double *_gt_cutoffs = mxGetPr(prhs[arg]);
+
   // mask_dist ==========================================================
   arg++;
   if (!mxIsDouble(prhs[arg]))
@@ -503,7 +524,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *_result = mxGetPr(plhs[0]);
   viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
               _smooth_slope, _max_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, 
-              _gt_weights, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, 
+              _gt_weights, _gt_cutoffs, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, 
               _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay, 
               _mult_weight_local_decay, _zero_bin, _result);
 }
