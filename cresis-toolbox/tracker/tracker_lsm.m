@@ -23,7 +23,7 @@ global gRadar
    frm = param.layer_tracker.tracker.frm;
    lsm_tic = tic;
    %for idx = 1:length(param.layer_tracker.fname)
-     data_fn = param.layer_tracker.fname(1);
+    
 %     
 %     try
 %       data = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
