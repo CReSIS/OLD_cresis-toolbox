@@ -321,7 +321,11 @@ param.filename = [];
 
 
 for frm_idx = 1:param.layer_tracker.N
+  try
   frm = param.cmd.frms(frm_idx);
+  catch ME
+    frm = param.cmd.frms;
+  end
   
   data_fn = fullfile(ct_filename_out(param,param.layer_tracker.echogram_source,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   data = load(data_fn, 'GPS_time','Time');
@@ -366,7 +370,7 @@ dparam.mem = 500e6*3; %mem_mult * Nx * length(Nt);
 %     % Mark file for deletion
 %     ct_file_lock_check(out_fn,3);
 %   end
-frm = 1;
+frm = param.cmd.frms(1);
 %if (N == inf)
 %   for frm = 1:length(param.cmd.frms)
 %     out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
@@ -377,9 +381,9 @@ frm = 1;
 %   ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
 %else
   %while frm <= length(frames.frame_idxs)
-  while frm <= length(frames.frame_idxs)
+  while frm <= length(param.cmd.frms)
     for i = 1:param.layer_tracker.N
-      if(frm <= 3) %length(frames.frame_idxs))
+      if(frm <= length(param.cmd.frms)) %length(frames.frame_idxs))
         out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,1));
         dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)',sparam.task_function,param.radar_name, param.season_name, out_fn_dir, param.day_seg, 1, 1,length(param.cmd.frms));
         dparam.file_success{end+1} = tmp_out_fn_dir;

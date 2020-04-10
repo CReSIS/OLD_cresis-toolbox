@@ -77,7 +77,8 @@ classdef LSMObject_tuning <handle
     end
     
     function showContours(this, k,s)
-      [img, ~, ftype]=readImage(this.imds{k});
+      %[img, ~, ftype]=readImage(this.imds{k});
+      img = double(this.imds{k});
       ce=this.contours{k,s}; %returns the contours for image k
       showImage(img, ftype)  %show the image
       hold on
@@ -98,7 +99,8 @@ classdef LSMObject_tuning <handle
       flag = ones(1,16);
       
       % Read the image
-      [img_orig,~,~] = readImage(this.imds{1});
+      %[img_orig,~,~] = readImage(this.imds{1});
+      img_orig = double(this.imds{1});
       img = imresize(img_orig, this.resizeRate);
       
       matrix_x = ones(2, size(img_orig, 2), 16);

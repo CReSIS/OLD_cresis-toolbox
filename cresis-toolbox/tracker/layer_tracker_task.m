@@ -11,7 +11,7 @@ success = {};
   if param.layer_tracker.track.track_data
     for iter = 1:16
       for layers_idx = 1:length(layer_params)
-        twtt{iter,layers_idx} = [];
+        twtt{layers_idx,iter} = [];
       end
     end
   else
@@ -284,8 +284,7 @@ success = {};
         new_quality = ones(1,Nx);
       elseif strcmpi(track.method,'lsm')
         if param.layer_tracker.track.track_data
-          %new_layer = tracker_lsm_track(mdata,param);
-          %new_quality = ones(1,Nx);
+          new_layer = tracker_lsm_track(mdata,param);
           %new_layer = load('/cresis/snfs1/projects/LSM_anjali/LSM_result_part9.mat');
           new_quality = ones(1,Nx);
         else
@@ -317,7 +316,205 @@ success = {};
   for layer_idx = 1:length(layer_params)
     
     layer_param = layer_params(layer_idx);
+    if param.layer_tracker.track.track_data
+      for iter = 1:16
+        new_layer = new_temp(layer_idx,:,iter);
+    track.init.max_diff = inf;
+    new_layer(abs(new_layer  - track.dem) > track.init.max_diff) = NaN;
+    switch (track.init.max_diff_method)
+      case 'merge_vectors'
+        new_layer = merge_vectors(new_layer, track.dem);
+      case 'interp_finite'
+        new_layer = interp_finite(new_layer,NaN);
+    end
+     %% Track: Median filtering
+    if isfield(track,'medfilt') && ~isempty(track.medfilt)
+      % This median filter is designed to only operate when the point in
+      % question is an outlier exceeding track.medfilt_threshold
+      for rline=1:Nx
+        rlines = rline + (-track.medfilt:track.medfilt);
+        rlines = rlines(rlines>=1 & rlines<=length(new_layer));
+        if abs(new_layer(rline) - nanmedian(new_layer(rlines))) > track.medfilt_threshold
+          new_layer(rline) = nanmedian(new_layer(rlines));
+        end
+      end
+    end
+    %% Track: Max search
+    if (length(track.max_rng) > 1 || track.max_rng ~= 0)
+      % Find the next peak after the threshold
+      for rline = 1:Nx
+        search_bins = round(new_layer(rline)) + track.max_rng;
+        search_bins = search_bins(find(search_bins >= 1 & search_bins <= size(data,1)));
+        [~,offset] = max(data(search_bins,rline));
+        if ~isempty(offset)
+          new_layer(rline) = search_bins(offset);
+        end
+      end
+    end
+     %% Track: Convert bins to twtt
+    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1,'linear','extrap');
+    %Bottom = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1,'linear','extrap');
+    %end x check if needed or not
+    % Some layer sources may not be "double", but we require that Surface be double:
+    Surface = double(Surface);
+    %Bottom = double(Bottom);
     
+    %% Track: Debug plot
+    if ~isempty(param.layer_tracker.debug_plots)
+      h_fig = get_figures(1,true);
+    end
+    if param.layer_tracker.enable_debug_plot
+      clf(h_fig(1));
+      %set(h_fig(1),'name',sprintf('layer_tracker %s',data_fn_name));
+      h_axes(1) = axes('parent',h_fig(1));
+      imagesc([],mdata.Time,lp(mdata.Data), 'parent', h_axes(1));
+      colormap(h_axes(1), 1-gray(256));
+      hold(h_axes(1),'on');
+      plot(h_axes(1),find(new_quality==1),Surface(new_quality==1),'g');
+      plot(h_axes(1),find(new_quality==3),Surface(new_quality==3),'r');
+      if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
+        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
+        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
+          track.dem+track.min_bin-1-track.init.max_diff),'r--')
+        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
+          track.dem+track.min_bin-1+track.init.max_diff),'b--')
+      end
+      hold(h_axes(1),'off');
+      if ~isempty(mdata.Time)
+        ylims = [max(mdata.Time(1),min(Surface)-track.debug_time_guard) min(mdata.Time(end),max(Surface)+track.debug_time_guard)];
+        %         if ylims(end)>ylims(1)
+        %           ylim(h_axes(1),ylims);
+        %         end
+      end
+      %title(h_axes(1),sprintf('%s',regexprep(data_fn_name,'_','\\_')));
+      %keyboard
+    end
+    
+        %% Track: Save
+    if param.layer_tracker.track.save_layerData
+      %     if nargout == 1
+      %       return;
+      %     end
+      %     layer_params = param.layer_tracker.layer_params;
+      %     for layer_idx = 1:length(layer_params)
+      %       layer_param = layer_params(layer_idx);
+      try
+        lay_param.source = layer_param{1}.source;
+        lay_param.echogram_source = layer_param{1}.echogram_source;
+        lay_param.layerdata_source = layer_param{1}.layerdata_source;
+      catch ME
+        lay_param.source = layer_param.source;
+        lay_param.echogram_source = layer_param.echogram_source;
+        lay_param.layerdata_source = layer_param.layerdata_source;
+      end
+      
+      if strcmpi(lay_param.source,'echogram')
+        if isempty(lay_param.echogram_source)
+          lay_param.echogram_source = echogram_source;
+        end
+        
+        data_fn = fullfile(ct_filename_out(param,lay_param.echogram_source,''), ...
+          sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+        fprintf('  Saving %s (%s)\n', data_fn, datestr(now));
+        %save(data_fn,'-append','Surface');
+      end
+      
+      if strcmpi(lay_param.source,'layerdata')
+        layer_fn = fullfile(ct_filename_out(param,lay_param.layerdata_source,''), ...
+          sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+        if ~exist(layer_fn,'file')
+          fprintf('  Create  %s (%s)\n', layer_fn, datestr(now));
+          
+          lay.GPS_time = mdata.GPS_time;
+          lay.Latitude = mdata.Latitude;
+          lay.Longitude = mdata.Longitude;
+          lay.Elevation = mdata.Elevation;
+          
+          lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
+          lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
+          lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
+          lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
+          
+          lay.layerData{2}.quality = ones(size(lay.GPS_time));
+          lay.layerData{2}.value{1}.data = nan(size(lay.GPS_time));
+          lay.layerData{2}.value{2}.data = nan(size(lay.GPS_time));
+          
+          layer_fn_dir = fileparts(layer_fn);
+          if ~exist(layer_fn_dir,'dir')
+            mkdir(layer_fn_dir);
+          end
+          %save(layer_fn,'-struct','lay');
+          
+        else
+          % Load the layerData file
+          %           lay = load(layer_fn);
+          %           % Update the surface auto picks
+          %           lay.layerData{layer_idx}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
+          %           lay.layerData{layer_idx}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
+          %           %lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,new_temp.(sprintf('layer_%s_%03d',param.day_seg,frm)).top,lay.GPS_time);
+          %           lay.layerData{layer_idx}.value{2}.data = interp_finite(lay.layerData{layer_idx}.value{2}.data,NaN);
+          % Append the new results back to the layerData file
+          fprintf('  Saving %s (%s)\n', layer_fn, datestr(now));
+          %filename = fullfile(save_name,param.season_name,dir_name,param.day_seg,frm_dir, sprintf('layers_%s_%03d.mat',param.layer_tracker.track.method,layer_idx));
+          filename = fullfile(tmp_out_fn_dir,sprintf('layer_%s_%s',param.layer_tracker.track.method,param.layer_tracker.name));
+          tmp_name = sprintf('%s_%s_%03d',param.layer_tracker.track.method,param.layer_tracker.name,layer_idx);
+          %quality{layer_idx} = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
+          
+          %           tmp.layerData{1} = cat(2,tmp.layerData{1},lay.layerData);
+          %           tmp.GPS_time{1} = cat(2,tmp.GPS_time{1},lay.GPS_time);
+          %           tmp.param_layer_tracker{1} = cat(2,tmp.tracker{1},param);
+          twtt{layer_idx,iter} = cat(2,twtt{layer_idx,iter},Surface);
+          
+          %           tmp.layerData = lay.layerData;
+          %           tmp.GPS_time  = cat(2,tmp.GPS_time,lay.GPS_time);
+          %           tmp.param_layer_tracker = param;
+          %           if param.ct_file_lock
+          %             tmp.file_version = '1L';
+          %           else
+          %             tmp.file_version = '1';
+          %           end
+          %           tracker_data{layer_idx} = struct(tmp_name,tmp);
+          %save(filename, '-struct','lay','layerData');
+          %save(layer_fn,'-append','-struct','lay','layerData');
+        end
+      end
+      
+      if strcmpi(lay_param.source,'ops')
+        % Get all the frames for this segment
+        if any(strcmpi({layer_params.source},'ops'))
+          opsAuthenticate(param,false);
+          sys = ct_output_dir(param.radar_name);
+          ops_param = struct('properties',[]);
+          ops_param.properties.season = param.season_name;
+          ops_param.properties.segment = param.day_seg;
+          [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
+        end
+        
+        % OPS query to get the point path ID's
+        ops_param = struct('properties',[]);
+        ops_param.properties.location = param.post.ops.location;
+        ops_param.properties.season = param.season_name;
+        ops_param.properties.start_gps_time = ops_seg_data.properties.start_gps_time(frm);
+        ops_param.properties.stop_gps_time = ops_seg_data.properties.stop_gps_time(frm);
+        
+        sys = ct_output_dir(param.radar_name);
+        [status,data] = opsGetPath(sys,ops_param);
+        
+        % Write the new layer information to these point path ID's
+        ops_param = struct('properties',[]);
+        ops_param.properties.point_path_id = data.properties.id;
+        ops_param.properties.twtt = interp_finite(interp1(mdata.GPS_time,Surface,data.properties.gps_time));
+        ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
+        ops_param.properties.quality = interp1(mdata.GPS_time,new_quality,data.properties.gps_time,'nearest');
+        ops_param.properties.lyr_name = layer_param.name;
+        
+        opsCreateLayerPoints(sys,ops_param);
+      end
+      %end
+    end
+      end
+      
+    else
     new_layer = new_temp(layer_idx,:);
     track.init.max_diff = inf;
     new_layer(abs(new_layer  - track.dem) > track.init.max_diff) = NaN;
@@ -514,6 +711,7 @@ success = {};
         opsCreateLayerPoints(sys,ops_param);
       end
       %end
+    end
     end
   end
   

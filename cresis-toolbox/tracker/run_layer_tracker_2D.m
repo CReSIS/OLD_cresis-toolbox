@@ -17,7 +17,7 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
-params = ct_set_params(params,'cmd.frms',[1:3]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.frms',[1 2]); % Specify specific frames (or leave empty/undefined to do all frames)
 
 param_override.layer_tracker.debug_plots = {'debug'};
 
@@ -43,7 +43,7 @@ idx = idx + 1;
 
 param_override.layer_tracker.N = 2; % no of frames to be loaded at a time
 % Enter name for saving the data
-param_override.layer_tracker.name = 'testing';
+param_override.layer_tracker.name = 'test_bot';
 param_override.layer_tracker.save_ops_copy_layers = true;
 
 track_override = [];
@@ -53,7 +53,7 @@ track_override.ops_write        = false;
 track_override.save_layerData   = true;
 track_override.save_img         = false;
 track_override.save_add_f       = false;
-track_override.track_data       = false; % for LSM tuning
+track_override.track_data       = true; % for LSM tuning
 
 
 %% Image saving options
@@ -170,7 +170,7 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     % Override default method
-    if 1
+    if 0
       track_override.method = 'snake';
       track_override.snake_rng	= [-0.15e-6 0.15e-6];
     end
@@ -210,7 +210,7 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     %% LSM
-    if 0
+    if 1
       %% LSM User Settings
       track_override.method           = 'lsm';
       track_override.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
@@ -218,6 +218,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.lsm.y            = 220; % = '' for y = mean(SURF)
       track_override.lsm.dy           = 10;
       track_override.lsm.numOuterIter = 350;
+      track_override.lsm.list = [25 50 75 100 125 150 175 200 225 250 275 300 325 350 375 400];
       track_override.lsm.maxOuterIter = 50;
     end
     
