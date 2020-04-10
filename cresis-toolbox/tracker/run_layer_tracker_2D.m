@@ -312,6 +312,8 @@ else
   param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list;
 end
 
+param_override.layer_tracker.track.viterbi.surf_layer_params = struct('name','surface','source','layerdata','layerdata_source','layerData');
+
 %% Automated Section
 % ----------------------------------------------------------------------
 

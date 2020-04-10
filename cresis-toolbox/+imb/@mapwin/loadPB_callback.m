@@ -156,13 +156,13 @@ if strcmpi(param.layer_source,'layerdata')
   layers.check_all();
   
   for frm = 1:num_frm
-    % stores the filename for all frames in the segment
+    % Stores the filename for all frames in the segment
     param.filename{frm} = layers.layer_fn(frm);
-    gps_time = layers.gps_time(frm);
+    gps_time = layers.gps_time(frm); % Get the gps_time to take its length
     Nx = length(gps_time);
     param.frame(end+(1:Nx)) = frm; % stores the frame number for each point path id in each frame
     param.frame_idxs(end+(1:Nx)) = 1:length(gps_time);  % contains the point number for each individual point in each frame
-    % stores the layer information for all frames in the segment
+    % Stores the layer information for all frames in the segment
     if frm == 1
       layer_info = layers.layer{frm};
     else

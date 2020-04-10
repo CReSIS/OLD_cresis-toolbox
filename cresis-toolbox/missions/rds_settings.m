@@ -163,8 +163,7 @@ for param_idx = 1:length(params)
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
     params = ct_set_params(params,'sar.out_path','sar');
     params = ct_set_params(params,'sar.sigma_x',1);
-    records = records_load(params(param_idx),'gps_source');
-    params(param_idx).sar.mocomp.en = false;
+    params(param_idx).sar.mocomp.en = true;
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
     params = ct_set_params(params,'sar.out_path','sar');
     %params = ct_set_params(params,'sar.out_path','sar_tukey');
@@ -275,13 +274,13 @@ for param_idx = 1:length(params)
     % radar.wfs
     if isfield(param_override,'analysis') && isfield(param_override.analysis,'out_path')
       for wf = 1:length(params(param_idx).radar.wfs)
-        if ~isempty(regexp('tukey',param_override.analysis.out_path))
+        if ~isempty(regexp(param_override.analysis.out_path,'tukey'))
           params(param_idx).radar.wfs(wf).ft_wind = @(N) tukeywin_trim(N,0.5);
-          if ~isempty(regexp('threshold',param_override.analysis.out_path))
+          if ~isempty(regexp(param_override.analysis.out_path,'threshold'))
             params = ct_set_params(params,'analysis.cmd{1}.threshold','analysis_tukey');
           end
         else
-          if ~isempty(regexp('threshold',param_override.analysis.out_path))
+          if ~isempty(regexp(param_override.analysis.out_path,'threshold'))
             params = ct_set_params(params,'analysis.cmd{1}.threshold','');
           end
         end
@@ -441,7 +440,7 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
       continue;
     end
     if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
-      params(param_idx).array.in_path = 'sar_pc';
+      params(param_idx).array.in_path = 'sar';
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
       if strcmpi(param_override.array.out_path,'standard')
         params(param_idx).array.in_path = 'sar';

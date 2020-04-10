@@ -1,5 +1,5 @@
-function get_echogram_stats(param,param_override)
-% get_echogram_stats(param,param_override)
+function echo_stats(param,param_override)
+% echo_stats(param,param_override)
 %
 % Author: John Paden
 
@@ -14,7 +14,7 @@ fprintf('=====================================================================\n
 %% Input arguments check and setup
 % =========================================================================
 
-echogram_fn_dir = ct_filename_out(param,param.get_echogram_stats.data_type);
+echogram_fn_dir = ct_filename_out(param,param.echo_stats.data_type);
 
 % Load frames associated with this segment
 frames_fn = ct_filename_support(param,'','frames');
@@ -28,8 +28,8 @@ layer_params.existence_check = false;
 
 surf = opsLoadLayers(param,layer_params);
 
-noise_bins = param.get_echogram_stats.noise_bins;
-signal_bins = param.get_echogram_stats.signal_bins;
+noise_bins = param.echo_stats.noise_bins;
+signal_bins = param.echo_stats.signal_bins;
 
 
 %% Echogram stats
@@ -50,11 +50,11 @@ noise_mean_vals = [];
 peak_wfs = [];
 for frm = 1:length(frames.frame_idxs)
   %% Echogram stats: Load echogram
-  if param.get_echogram_stats.echogram_img == 0
+  if param.echo_stats.echogram_img == 0
     echogram_fn = fullfile(echogram_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   else
     echogram_fn = fullfile(echogram_fn_dir, ...
-      sprintf('Data_img_%02d_%s_%03d.mat',param.get_echogram_stats.echogram_img,param.day_seg,frm));
+      sprintf('Data_img_%02d_%s_%03d.mat',param.echo_stats.echogram_img,param.day_seg,frm));
   end
   fprintf('%d of %d: %s\n', frm, length(frames.frame_idxs), echogram_fn);
   mdata = load_L1B(echogram_fn);
@@ -94,7 +94,7 @@ for frm = 1:length(frames.frame_idxs)
   end
   data = data_nomask;
   data(mask) = NaN;
-  data(data>param.get_echogram_stats.detrend_threshold) = NaN;
+  data(data>param.echo_stats.detrend_threshold) = NaN;
   
   %% Echogram stats: Average bin value
   % Mean value results
@@ -132,21 +132,21 @@ for frm = 1:length(frames.frame_idxs)
   first_bin = find(sums_frm~=0,1) + 0;
   last_bin = find(sums_frm~=0,1,'last') - 0;
   means_frm = sums_frm ./ counts_frm;
-  idxs = find(counts_frm > param.get_echogram_stats.sum_threshold);
+  idxs = find(counts_frm > param.echo_stats.sum_threshold);
   idxs = idxs(idxs>=first_bin & idxs <= last_bin);
   min_means(bin_start + idxs) = min(min_means(bin_start + idxs),means_frm(idxs));
   
   
   %% Echogram stats: Peak waveforms
   [max_vals,max_idxs] = max(data_nomask,[],1);
-  peak_wfs_idxs = 1:length(param.get_echogram_stats.peak_wfs_bins);
+  peak_wfs_idxs = 1:length(param.echo_stats.peak_wfs_bins);
   cur_rline = size(peak_wfs,2);
-  peak_wfs = [peak_wfs, nan(length(param.get_echogram_stats.peak_wfs_bins),Nx)];
+  peak_wfs = [peak_wfs, nan(length(param.echo_stats.peak_wfs_bins),Nx)];
   for rline = 1:Nx
     if ~isnan(max_vals(rline))
-      test = max_idxs(rline)+param.get_echogram_stats.peak_wfs_bins;
+      test = max_idxs(rline)+param.echo_stats.peak_wfs_bins;
       good_mask = test >= 1 & test <= Nt;
-      peak_wfs(peak_wfs_idxs(good_mask),cur_rline+rline) = data_nomask(max_idxs(rline)+param.get_echogram_stats.peak_wfs_bins(good_mask),rline);
+      peak_wfs(peak_wfs_idxs(good_mask),cur_rline+rline) = data_nomask(max_idxs(rline)+param.echo_stats.peak_wfs_bins(good_mask),rline);
     end
   end
 
@@ -224,8 +224,8 @@ h_fig = figure;
 h_axes = axes('parent',h_fig);
 plot_color = colormap(jet(length(SNR_bins)));
 for idx = 1:length(SNR_bins)
-  %scatter(h_axes,param.get_echogram_stats.peak_wfs_bins,SNR_wfs_norm(:,idx),[],SNR_bins(idx)*ones(size(SNR_wfs,1),1),'.');
-  plot(h_axes,param.get_echogram_stats.peak_wfs_bins,SNR_wfs_norm(:,idx),'Color', plot_color(idx,:));
+  %scatter(h_axes,param.echo_stats.peak_wfs_bins,SNR_wfs_norm(:,idx),[],SNR_bins(idx)*ones(size(SNR_wfs,1),1),'.');
+  plot(h_axes,param.echo_stats.peak_wfs_bins,SNR_wfs_norm(:,idx),'Color', plot_color(idx,:));
   hold(h_axes,'on');
 end
 xlabel(h_axes,'Range bin');
@@ -253,7 +253,7 @@ sidelobe_dB = sidelobe_dB(:,good_mask);
 [max_vals_rounded,unique_idxs] = unique(max_vals_rounded);
 sidelobe_dB = sidelobe_dB(:,unique_idxs);
 sidelobe_vals = min(max_vals_rounded) : max(max_vals_rounded);
-sidelobe_rows = param.get_echogram_stats.peak_wfs_bins;
+sidelobe_rows = param.echo_stats.peak_wfs_bins;
 if isempty(max_vals_rounded)
   sidelobe_dB = nan(size(sidelobe_rows));
   sidelobe_dB = sidelobe_dB(:);
@@ -290,5 +290,5 @@ close(h_fig);
 % Matlab file
 mat_fn = [ct_filename_ct_tmp(param,'','echogram_stats','stats') '.mat'];
 fprintf('Saving %s\n', mat_fn);
-param_get_echogram_stats = param;
-save(mat_fn,'-v7.3','param_get_echogram_stats','dt','gps_time','bins','sums','counts','min_means','all_bins','all_sums','all_counts','signal_max_vals','signal_mean_vals','noise_max_vals','noise_mean_vals','peak_wfs','SNR_wfs','SNR_bins','sidelobe_vals','sidelobe_rows','sidelobe_dB');
+param_echo_stats = param;
+save(mat_fn,'-v7.3','param_echo_stats','dt','gps_time','bins','sums','counts','min_means','all_bins','all_sums','all_counts','signal_max_vals','signal_mean_vals','noise_max_vals','noise_mean_vals','peak_wfs','SNR_wfs','SNR_bins','sidelobe_vals','sidelobe_rows','sidelobe_dB');

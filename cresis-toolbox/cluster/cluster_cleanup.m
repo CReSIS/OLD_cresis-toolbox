@@ -1,10 +1,15 @@
 function cluster_cleanup(ctrl_chain,mode)
 % cluster_cleanup(ctrl_chain,mode)
 %
-% Similar to cluster_stop, but also removes chain and batch files.
+% Similar to cluster_stop, but also removes chain and batch files. Run with
+% no arguments to clean everything.
 %
 % Inputs:
-% ctrl_chain = Several options to specify
+%
+% ctrl_chain: Optional argument. If no arguments are passed to
+%  cluster_cleanup you are given the option to remove all chains and
+%  batches. Otherwise, the first argument must be one of the following
+%  options:
 %   1. Vector of chain IDs or batch IDs, if batch ID, then mode must be set to 'batch'
 %   2. A ctrl structure identifying a batch
 %   3. A chain (cell array of ctrl)
@@ -14,6 +19,8 @@ function cluster_cleanup(ctrl_chain,mode)
 %   if mode is 'batch'.
 %
 % Examples:
+%   cluster_cleanup % And then answer "y"
+%
 %   cluster_cleanup(1)
 %
 % Author: John Paden
