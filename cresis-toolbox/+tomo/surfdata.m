@@ -896,6 +896,7 @@ classdef surfdata < handle
     end
     
     function [] = run_add_surf_from_dem()
+      %% run add surf from dem
       % script run_add_surf_from_dem
       %
       % script for running tomo.surfdata.add_surf_from_dem
@@ -905,15 +906,23 @@ classdef surfdata < handle
       % See also: tomo.surfdata
       
       
-      %% User Setup
+      % User Setup
       % =========================================================================
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
-      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140429_01');
-      params = ct_set_params(params,'cmd.frms',[22 23]);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
+      params = ct_set_params(params,'cmd.frms',[2 3 4]);
+%       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+      params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn','canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',ct_filename_gis(params,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif')));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%       param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+
+      params = ct_set_params(params, 'add_surf_from_dem.dem_guard', 30e3);
+%       params = ct_set_params(params, 'add_surf_from_dem.dem_per_slice_guard', 500e3);
       
-      %% Automated Section
+      % Automated Section
       % =========================================================================
       % Input checking
       global gRadar;
@@ -935,6 +944,7 @@ classdef surfdata < handle
     end
     
     function surf = add_surf_from_dem(param,param_override)
+      %% add surf from dem
       % tomo.add_surf_from_dem(param,param_override)
       %
       % param:  struct with processing parameters or function handle to
@@ -955,7 +965,7 @@ classdef surfdata < handle
       % See also:  run_add_surf_from_dem
       %
       %
-      %% General Setup
+      % General Setup
       % =================================================================
       physical_constants
       param = merge_structs(param,param_override);
@@ -964,7 +974,7 @@ classdef surfdata < handle
       fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
       fprintf('==========================================================\n');
       
-      %% Input Checks
+      % Input Checks
       % =================================================================
       
       % Load frames file
@@ -990,45 +1000,42 @@ classdef surfdata < handle
         param.add_surf_from_dem = [];
       end
       
-      if ~isfield(param.add_surf_from_dem,'dem_res') || isemtpy(param.add_surf_from_dem.dem_res)
+      if ~isfield(param.add_surf_from_dem,'dem_res') || isempty(param.add_surf_from_dem.dem_res)
         param.add_surf_from_dem.dem_res = 10;
       end
       
-      if ~isfield(param.add_surf_from_dem,'theta_vec') || isemtpy(param.add_surf_from_dem.theta_vec)
-        param.add_surf_from_dem.theta_vec = -60:60;
+      if ~isfield(param.add_surf_from_dem,'theta_vec') || isempty(param.add_surf_from_dem.theta_vec)
+        param.add_surf_from_dem.theta_vec = -85:85;
       end
       
-      if ~isfield(param.add_surf_from_dem,'dem_guard') || isemtpy(param.add_surf_from_dem.dem_guard)
+      if ~isfield(param.add_surf_from_dem,'dem_guard') || isempty(param.add_surf_from_dem.dem_guard)
         param.add_surf_from_dem.dem_guard = 12e3;
       end
       
-      if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isemtpy(param.add_surf_from_dem.ice_mask_fn)
+      if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isempty(param.add_surf_from_dem.ice_mask_fn)
         param.add_surf_from_dem.ice_mask_fn = [];
       end
       
-      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isemtpy(param.add_surf_from_dem.sv_cal_fn)
+      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isempty(param.add_surf_from_dem.sv_cal_fn)
         param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
       end
       
       % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
       %   Setting too high slows the process down, setting too low will miss
       %   DEM points needed to properly represent the surface.
-      if ~isfield(param.add_surf_from_dem,'dem_per_slice_guard') || isemtpy(param.add_surf_from_dem.dem_per_slice_guard)
+      if ~isfield(param.add_surf_from_dem,'dem_per_slice_guard') || isempty(param.add_surf_from_dem.dem_per_slice_guard)
         param.add_surf_from_dem.dem_per_slice_guard = 240;
       end
       
-      if ~isfield(param.add_surf_from_dem,'surfdata_mode') || isemtpy(param.add_surf_from_dem.surfdata_mode)
+      if ~isfield(param.add_surf_from_dem,'surfdata_mode') || isempty(param.add_surf_from_dem.surfdata_mode)
         param.add_surf_from_dem.surfdata_mode.overwrite = true;
       end
       
        
-      if ~isfield(param.add_surf_from_dem,'surf_out_path') || isemtpy(param.add_surf_from_dem.surf_out_path)
+      if ~isfield(param.add_surf_from_dem,'surf_out_path') || isempty(param.add_surf_from_dem.surf_out_path)
         param.add_surf_from_dem.surf_out_path = '';
       end
-      
-%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
-        param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
-
+        
       % Set doa_method_flag to false (always)
       doa_method_flag = false;
       
@@ -1072,19 +1079,31 @@ classdef surfdata < handle
         gps_mask = sar_coord.gps_time >= frm_gps_start & ... 
           sar_coord.gps_time <= frm_gps_stop;
         
+        % GPS time, origin, Xpos, Ypos, Zpos for the frame
+        frm_gps_time  = sar_coord.gps_time(gps_mask);
+        frm_origin    = sar_coord.origin(:,gps_mask);
+        frm_x         = sar_coord.x(:,gps_mask);
+        frm_z         = sar_coord.z(:,gps_mask);
+        frm_y         = cross(frm_z,frm_x);
+        
+        % Along track decimation factor
+        delta_at      = 10;
+        
         % Create surfdata
         sd = tomo.surfdata();
         sd.radar_name = param.radar_name;
         sd.season_name = param.season_name;
         sd.day_seg = param.day_seg;
         sd.frm = frm;
-        sd.gps_time = sar_coord.gps_time(gps_mask);       
-        sd.FCS.origin = sar_coord.origin(:,gps_mask);
-        sd.FCS.x = sar_coord.x(:,gps_mask);
-        sd.FCS.z = sar_coord.z(:,gps_mask);
-        sd.FCS.y = cross(sd.FCS.z, sd.FCS.x);
+        sd.gps_time = frm_gps_time(1:delta_at:end);       
+        sd.FCS.origin = frm_origin(:,1:delta_at:end);
+        sd.FCS.x = frm_x(:,1:delta_at:end);
+        sd.FCS.z = frm_z(:,1:delta_at:end);
+        sd.FCS.y = frm_y(:,1:delta_at:end);
         sd.theta = param.add_surf_from_dem.theta_vec(:);
         sd.time = zeros(0,1);
+        
+        clear frm_gps_time frm_origin frm_x frm_y frm_z
         
         %% Load Geotiff and Ice Mask
         % =================================================================
@@ -1324,7 +1343,7 @@ classdef surfdata < handle
               % Find ice mask for triangle coordinates
               ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
               % Set previously nan valued coordinates to 0 mask
-              ice_mask(nidx,rline) = 0;
+%               ice_mask(nidx,rline) = 0;
             else
               %         for ice_mask_idx = 1:length(mask_idx)
               %           ice_mask(theta_rline_row_idx(ice_mask_idx),theta_rline_col_idx(ice_mask_idx),rline) = ice_mask_all.mask(mask_idx(ice_mask_idx));
@@ -1358,7 +1377,7 @@ classdef surfdata < handle
         sd.insert_surf(surf);
         
         %% Create output filename
-        out_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar')
+        out_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar');
         
         if ~isdir(out_dir)
           mkdir(out_dir);

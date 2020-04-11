@@ -19,5 +19,3 @@ if ~isempty(obj.cursor.gps_time)
   
   clipboard('copy',str);
 end
-
-return;

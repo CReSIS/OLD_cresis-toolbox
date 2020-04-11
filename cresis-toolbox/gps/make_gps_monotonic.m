@@ -8,6 +8,10 @@ function [gps,error_flag] = make_gps_monotonic(gps)
 
 error_flag = false;
 
+if isempty(gps.gps_time)
+  return;
+end
+
 [~,sort_idxs] = sort(gps.gps_time);
 if any(sort_idxs ~= 1:length(sort_idxs))
   warning('GPS time is not monotonically increasing. Manual inspection is suggested. May need to run make_gps_monotonic.m in make_gps_SEASON.m for this particular file.');
@@ -55,6 +59,12 @@ if ~all(good_mask)
 end
 
 if isfield(gps,'radar_time')
+  [~,sort_idxs] = sort(radar_time);
+  if any(sort_idxs ~= 1:length(sort_idxs))
+    warning('Radar time is not monotonically increasing. Manual inspection is suggested.');
+    error_flag = true;
+  end
+
   good_mask = [true, (diff(gps.radar_time) > 0)];
   
   if ~all(good_mask)

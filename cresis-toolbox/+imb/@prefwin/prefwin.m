@@ -3,28 +3,58 @@ classdef (HandleCompatible = true) prefwin < handle
   
   properties
     % GUI variables
-    h_gui
     h_fig
+    h_gui
 
     % default_params = Default parameters loaded from default parameters file
     %   These parameters are updated every time Ok button is pushed and
     %   will be written back to the default parameters file on exit by mapwin.
     default_params
+    % default_params.sources: cell array of echogram file sources
+    % default_params.season_names: cell array of selected season names
+    % default_params.layer_names: cell array of selected layers
+    % default_params.system: String containing system name
+    %   ('accum','kuband','rds', 'snow', 'layerdata')
+    % default_params.map_name: string containing map selection
+    % default_params.flightlines: string containing flightline selection
+    %   ('layerdata Flightlines','OPS Flightlines','OPS Quality
+    %   Flightlines','OPS Coverage Flightlines', 'OPS Crossover
+    %   Errors','OPS Bottom Elevation')
+    % default_params.layer_source: string containing layer source ('OPS' or
+    %   'layerdata')
+    % default_params.layer_data_source: string containing layer data source
+    % default_params.x: x-position of pref window in pixels
+    % default_params.y: y-position of pref window in pixels
+    % default_params.w: width of pref window in pixels
+    % default_params.h: height of pref window in pixels
     
-    % List of all the data available from the OPS database (these are Nx1 cell arrays
-    % containing a list of the N possible datasets to load):
-    %   systems{n}, seasons{n}, and locations{n} --> make up the nth
-    %   dataset
-    profile
-    systems
-    seasons
-    locations
-    layers
-    wms_maps; % Contains names of all available maps from OPS
-
-    % Selections during most recent call to okPB_callback (these fields
-    % are set during the call to okPB_callback)
+    systems % Cell array of radar systems
+    seasons % Cell array of seasons
+    locations % Cell array of locations
+    
+    % ops: Struct with OPS information
+    ops
+    % ops.profile % Cell array of profiles
+    % ops.layers % Cell array of layers
+    % ops.wms; % WMS capabilities from OPS, read in during create_ui
+    % ops.wms_capabilities; % WMS capabilities from OPS, read in during create_ui
+    
+    % settings: Struct with settings from most recent okPB_callback call
+    % These represent the desired settings for mapwin to use. They are used
+    % to compare against mapwin's current settings
+    % (mapwin.cur_map_pref_settings) in imb.mapwin.get_map to see which
+    % settings have changed.
     settings
+    % settings.layer_source: string containing the current layer source
+    % settings.layer_data_source: string containing the current layer layerData source
+    % settings.layers: cell array of currently selected layers (OPS layer source only)
+    % settings.seasons: cell array of currently selected seasons
+    % settings.system: string containing current system
+    % settings.sources: cell array of echogram sources
+    % settings.map_zone: string containing 'arctic' or 'antarctic'
+    % settings.map_name: string containing the map name
+    % settings.flightlines: string containing flightline setting
+    
 
   end
   
@@ -50,14 +80,17 @@ classdef (HandleCompatible = true) prefwin < handle
       fprintf('Creating preference window (%s)\n', datestr(now,'HH:MM:SS'));
       obj.h_fig = h_fig;
       obj.default_params = default_params;
-      obj.settings.flightlines = 'Regular Flightlines';
-      obj.settings.mapname = 'none';
-      obj.settings.mapzone = '';
-      obj.settings.sources = {};
-      obj.settings.system = '';
-      obj.settings.seasons = {};
+      
+      obj.settings.layer_source = [];
+      obj.settings.layer_data_source = [];
       obj.settings.layers = {};
-    
+      obj.settings.seasons = {};
+      obj.settings.system = '';
+      obj.settings.sources = {};
+      obj.settings.map_zone = [];
+      obj.settings.map_name = [];
+      obj.settings.flightlines = [];
+      
       try
         create_ui(obj);
       catch ME
@@ -74,23 +107,24 @@ classdef (HandleCompatible = true) prefwin < handle
       end
       % Delete the GUI subclasses
       try
-        delete(obj.h_gui.layers);
+        delete(obj.h_gui.h_layers);
       end
       try
-        delete(obj.h_gui.seasons);
+        delete(obj.h_gui.h_seasons);
       end
     end
     
     close_win(obj,varargin);
     create_ui(obj,param);
-    addPB_callback(obj,hObj,event);
-    seasonLB_callback(obj,hObj,event);
-    selectedLB_callback(obj,hObj,event);
-    removePB_callback(obj,status,event);
+    status = ops_connect(obj);
+    
     okPB_callback(obj,status,event);
     systemsLB_callback(obj,status,event);
+    season_update(obj);
     sourceLB_callback(obj,status,event);
-    LayerSourcePM_callback(obj,status,event);
+    layerSourcePM_callback(obj,status,event);
+    mapsPM_callback(obj,status,event);
+    flightlinesPM_callback(obj,status,event);
     layers_callback(obj,status,event);
     layers_callback_new(obj,status,event);
     layers_callback_refresh(obj,status,event);

@@ -57,8 +57,28 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
+if ~isfield(param.load_data,'bit_mask') || isempty(param.load_data.bit_mask)
+  param.load_data.bit_mask = 1; % Only skip records marked as bad in records.bit_mask
+end
+
+if ~isfield(param.load_data,'combine_rx') || isempty(param.load_data.combine_rx)
+  param.load_data.combine_rx = false;
+end
+
 if ~isfield(param.load_data,'imgs') || isempty(param.load_data.imgs)
   param.load_data.imgs = {[1 1]};
+end
+
+if ~isfield(param.load_data,'motion_comp') || isempty(param.load_data.motion_comp)
+  param.load_data.motion_comp = false;
+end
+
+if ~isfield(param.load_data,'presums') || isempty(param.load_data.presums)
+  param.load_data.presums = 1;
+end
+
+if ~isfield(param.load_data,'pulse_comp') || isempty(param.load_data.pulse_comp)
+  param.load_data.pulse_comp = 1;
 end
 
 if ~isfield(param.load_data,'raw_data') || isempty(param.load_data.raw_data)
@@ -66,33 +86,15 @@ if ~isfield(param.load_data,'raw_data') || isempty(param.load_data.raw_data)
 elseif param.load_data.raw_data && param.load_data.pulse_comp
   error('Pulse compression (param.load_data.pulse_comp) cannot be enabled with raw data loading (param.load_data.raw_data).');
 end
-
-if ~isfield(param.load_data,'pulse_comp') || isempty(param.load_data.pulse_comp)
-  param.load_data.pulse_comp = 1;
-end
-
 if param.load_data.raw_data
   param.load_data.pulse_comp = 0;
-end
-
-if ~isfield(param.load_data,'presums') || isempty(param.load_data.presums)
-  param.load_data.presums = 1;
 end
 
 if ~isfield(param.load_data,'resample') || isempty(param.load_data.resample)
   param.load_data.resample = [1 1; 1 1];
 end
-
 if size(param.load_data.resample,1) == 1
   param.load_data.resample(2,1:2) = [1 1];
-end
-
-if ~isfield(param.load_data,'motion_comp') || isempty(param.load_data.motion_comp)
-  param.load_data.motion_comp = false;
-end
-
-if ~isfield(param.load_data,'combine_rx') || isempty(param.load_data.combine_rx)
-  param.load_data.combine_rx = false;
 end
 
 if ~isfield(param.load_data,'trim') || isempty(param.load_data.trim)
@@ -107,6 +109,7 @@ physical_constants;
 param.load.recs(1) = param.load_data.recs(1);
 param.load.recs(2) = param.load_data.recs(end);
 param.load.imgs = param.load_data.imgs;
+param.load.bit_mask = param.load_data.bit_mask;
 
 %% Load records file
 % =====================================================================

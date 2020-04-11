@@ -32,7 +32,12 @@ end
 
 for chain_idx = chain_sorted_idxs(:).'
   fprintf('%d: %s\n', chain_ids(chain_idx), chain_fns{chain_idx});
-  load(chain_fns{chain_idx});
+  try
+    load(chain_fns{chain_idx});
+  catch ME
+    warning(ME.getReport());
+    continue;
+  end
   fprintf('  %s: %d chain(s) with batches: ', datestr(time_stamps(chain_idx)), length(ctrl_chain));
   first_batch = true;
   notes_str = '';

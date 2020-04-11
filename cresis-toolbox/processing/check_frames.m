@@ -129,18 +129,24 @@ end
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 if any(strcmpi(output_dir,'rds'))
   default_frame_len = 50000;
+  default_min_rec = 1000;
 elseif any(strcmpi(output_dir,'accum'))
   default_frame_len = 20000;
+  default_min_rec = 1000;
 elseif any(strcmpi(output_dir,{'kaband','kuband','snow'}))
   default_frame_len = 5000;
+  default_min_rec = 1000;
 end
 
 for frm = 1:length(frames.frame_idxs)
   if frm < length(frames.frame_idxs)
     frame_len = along_track(frames.frame_idxs(frm+1)) - along_track(frames.frame_idxs(frm));
+    frame_num_recs = frames.frame_idxs(frm+1) - frames.frame_idxs(frm);
   else
     frame_len = along_track(end) - along_track(frames.frame_idxs(frm));
+    frame_num_recs = length(records.lat) - frames.frame_idxs(frm);
   end
+  % Check length of frame
   if length(frames.frame_idxs) == 1 && frame_len < default_frame_len/10
     fprintf(2,'%s\tsingle_frame_too_short\t%g km < %g km for frame \t%d\n', param.day_seg, frame_len/1e3, 1/5*default_frame_len/1e3, frm);
   elseif length(frames.frame_idxs) > 1 && frame_len < default_frame_len/5
@@ -148,6 +154,10 @@ for frm = 1:length(frames.frame_idxs)
   end
   if frame_len > 2*default_frame_len
     fprintf(2,'%s\ttoo_long\t%g km > %g km for frame \t%d\n', param.day_seg, frame_len/1e3, 2*default_frame_len/1e3, frm);
+  end
+  % Check number of records in frame
+  if frame_num_recs < default_min_rec
+    fprintf(2,'%s\tFrame has very few records\t%d\t%d\n', param.day_seg, frame_num_recs, frm);
   end
 end
 

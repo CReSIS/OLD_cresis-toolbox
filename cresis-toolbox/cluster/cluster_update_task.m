@@ -277,18 +277,6 @@ else
   
 end
 
-if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error)
-  fprintf('  Max memory potentially exceeded\n');
-  fprintf('    Job max_mem is %.1f GB\n', max_mem/1e9);
-  fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
-  fprintf('    Task memory %.1f GB\n', ctrl.mem(task_id)/1e9);
-  fprintf('    Job''s last executed task id %d\n', last_task_id);
-  if ctrl.error_mask(task_id) == max_mem_exceeded_error
-    fprintf('    Since no other error occured besides exceeding 90%% of memory request, setting error mask to 0.\n');
-    ctrl.error_mask(task_id) = 0;
-  end
-end
-
 if update_mode && ctrl.error_mask(task_id)
   warning(' Job Error %d:%d/%d (lead task %d)\n', ctrl.batch_id, task_id, job_id, task_id_out);
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
@@ -313,8 +301,16 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  errorstruct contains an error:\n');
     warning('%s',out.errorstruct.getReport);
     if ctrl.cluster.stop_on_error
+      fprintf('\nctrl.cluster.stop_on_error is enabled which causes the cluster running process to stop whenever there is a Matlab coding error. To disable this for this batch, you can run "ctrl.cluster.stop_on_error=false". Fix the coding bug printed above which might require running cluster_compile.m if you change cluster task code and then run "dbcont".\n');
       keyboard
     end
+  end
+  if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error)
+    fprintf('  Max memory potentially exceeded\n');
+    fprintf('    Job max_mem used is %.1f GB\n', max_mem/1e9);
+    fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
+    fprintf('    Task memory requested %.1f GB\n', ctrl.mem(task_id)/1e9);
+    fprintf('    Job''s last executed task id %d\n', last_task_id);
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
     fprintf('  Task max memory exceeded.\n');
@@ -346,10 +342,10 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  Task success condition failed to evaluate: %s\n', success_eval_ME.getReport);
   end
   if bitand(ctrl.error_mask(task_id),cluster_killed_error)
-    fprintf('  Cluster killed this job\n');
+    fprintf('  Cluster killed this job. The cause is not known.\n');
   end
   if bitand(ctrl.error_mask(task_id),walltime_exceeded_error)
-    fprintf('  Cluster killed this job due to wall time\n');
+    fprintf('  Cluster killed this job due to wall time. This means the job requested too little cpu time. cluster.cpu_time_mult should be increased.\n');
   end
   if bitand(ctrl.error_mask(task_id),file_success_error)
     fprintf('  File success check failed (missing files)\n');
@@ -357,6 +353,11 @@ if update_mode && ctrl.error_mask(task_id)
   if bitand(ctrl.error_mask(task_id),file_success_corrupt_error)
     fprintf('  File success check failed (corrupt files)\n');
   end
+end
+
+if update_mode && ctrl.error_mask(task_id) && ~bitand(ctrl.error_mask(task_id),critical_error)
+  fprintf('    Since no critical errors occured, setting error mask to 0.\n');
+  ctrl.error_mask(task_id) = 0;
 end
 
 if update_mode
@@ -397,7 +398,6 @@ if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
     new_job_id = -1;
     ctrl.job_id_list(task_id) = new_job_id;
     ctrl.job_status(task_id) = new_job_status;
-    ctrl.error_mask(task_id) = 0;
     
     % Update job IDs in job ID file
     fid = fopen(ctrl.job_id_fn,'r+');

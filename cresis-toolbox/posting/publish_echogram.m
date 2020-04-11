@@ -289,15 +289,16 @@ elseif param.elev_comp == 3
       new_time = cat(1,new_time, (time0 + dt_ice*(0:length(elev_axis)-length(new_time)-1)).');
     end
     if length(mdata.Time) < 2
-      mdata.Data(:,rline) = nan(size(new_time));
+      mdata.Data(1:length(new_time),rline) = nan(size(new_time));
     else
-      mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
+      mdata.Data(1:length(new_time),rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
     end
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
     for layer_idx = 1:length(lay.layers)
       lay.layers{layer_idx}(rline) = lay.layers{layer_idx}(rline) + dtime(rline);
     end
   end
+  mdata.Data = mdata.Data(1:length(new_time),:);
   warning on
 
 end
@@ -329,13 +330,13 @@ if param.elev_comp == 3
   % Example: param.depth = '[100 120]';
   % Example: param.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-1600,DBottom,-100),max(Surface_Elev+50)]';
   
-  if ~isempty(DLayers)
-    max_components = DLayers{1};
+  if length(DLayers) > 1
+    max_components = DLayers{2};
     for dlayer_idx = 2:length(DLayers)
       max_components = max(max_components, DLayers{dlayer_idx});
     end
   else
-    max_components = lay.Bottom;
+    max_components = nan(size(DSurface));
   end
 
   DBottom = max_components;
@@ -357,13 +358,13 @@ elseif param.elev_comp == 2
     DLayers{end + 1} = interp1(depth_time,depth,lay.layers{layer_idx});
   end
 
-  if ~isempty(DLayers)
-    max_components = DLayers{1};
+  if length(DLayers) > 1
+    max_components = DLayers{2};
     for dlayer_idx = 2:length(DLayers)
       max_components = max(max_components, DLayers{dlayer_idx});
     end
   else
-    max_components = lay.Bottom;
+    max_components = nan(size(DSurface));
   end
 
   DBottom = max_components;
@@ -387,13 +388,13 @@ else
     DLayers{end} = DLayers{end}*c/2/sqrt(param.er_ice);
   end
 
-  if ~isempty(DLayers)
-    max_components = DLayers{1};
+  if length(DLayers) > 1
+    max_components = DLayers{2};
     for dlayer_idx = 2:length(DLayers)
       max_components = max(max_components, DLayers{dlayer_idx});
     end
   else
-    max_components = lay.Bottom;
+    max_components = nan(size(DSurface));
   end
 
   DBottom = max_components;
@@ -550,9 +551,9 @@ elseif param.elev_comp == 2
     axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 (mean(lay.layers{1}) + depth_time([1 end]) + param.time_offset)*1e6]);
   end
   if length(param.er_ice) == 1;
-    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r = %.2f (m)', param.er_ice));
   else
-    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r from profile (m)', param.er_ice));
   end
   
 else
@@ -569,9 +570,9 @@ else
     axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 reshape(mdata.Time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])])
   end
   if length(param.er_ice) == 1;
-    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r = %.2f (m)', param.er_ice));
   else
-    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r from profile (m)', param.er_ice));
   end
 end
 ylabel(ah_echo_time,'Propagation delay (us)');

@@ -12,7 +12,7 @@
 % =====================================================================
 dbstack_info = dbstack;
 if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  new_param = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'20180817_01');
+  new_param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181217_03');
 
   fn = ct_filename_ct_tmp(new_param,'','records','workspace');
   fn = [fn '.mat'];
@@ -22,11 +22,12 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   else
     error('Temporary records file does not exist');
   end
-  param = new_param;
+  
+  % Update any parameters that the user changed in the spreadsheet
+  param = merge_structs(param,new_param);
   clear new_param;
   
   clear('param_override');
-  param_override.sched.type = 'no scheduler';
   
   % Input checking
   if ~exist('param','var')
@@ -39,6 +40,12 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
     param_override = gRadar;
   end
   param = merge_structs(param, param_override);
+  
+  if any(param.records.file.version == [9 10 103 412])
+    % Arena based systems
+    h_fig = get_figures(1,true);
+  end
+
 end
 
 fprintf('Running %s correction and gps sync (%s)\n', param.day_seg, datestr(now));
@@ -67,25 +74,38 @@ if any(param.records.file.version == [9 10 103 412])
   min_epri = inf;
   max_epri = -inf;
   epri_list = [];
+  good_offsets = {};
+  offset_scores = {};
+  special_epri_generation = false;
   for board_idx = 1:length(boards)
     % Cluster EPRI values
     
+    % PRI number (increments one per pulse)
     epri_pri_idxs = board_hdrs{board_idx}.profile_cntr_latch;
     
+    % Sort in case there are any out of order profiles or outliers caused
+    % by header errors
     [A,B] = sort(epri_pri_idxs);
+    % Find the median PRI-number
     med = median(A);
+    % Find the closest index to the median PRI-number
     [~,med_idx] = min(abs(A-med));
+    % A: PRI-number relative to median
     A = A-med;
     dA = diff(A);
+    % Look for too large jumps in the second half of the segment
     bad_mask = zeros(size(B));
     bad_start_idx = find(dA(med_idx:end) > param.records.epri_jump_threshold,1);
     if ~isempty(bad_start_idx)
       bad_mask(med_idx+bad_start_idx:end) = true;
     end
+    % Look for too large jumps in the first half of the segment
     bad_start_idx = find(dA(med_idx-1:-1:1) > param.records.epri_jump_threshold,1);
     if ~isempty(bad_start_idx)
       bad_mask(med_idx-bad_start_idx:-1:1) = true;
     end
+    % Drop all records before/after the first jump that occurs relative to
+    % the median PRI-number.
     back_idxs = 1:length(B);
     back_idxs = back_idxs(B);
     if sum(bad_mask) > 0
@@ -93,28 +113,87 @@ if any(param.records.file.version == [9 10 103 412])
     end
     epri_pri_idxs = epri_pri_idxs(back_idxs(logical(~bad_mask)));
     
-    % Remove isolated EPRI values
+    % Keep track of the smallest PRI-number and largest PRI-number
     min_epri = min(min_epri,min(epri_pri_idxs));
     max_epri = max(max_epri,max(epri_pri_idxs));
+    
+    % Store PRI-numbers captured by this board into list of all PRI-numbers
     epri_list(end+(1:length(epri_pri_idxs))) = epri_pri_idxs;
+    
+    % Find the median PRI-number jump between recorded records.
     diff_epri_pri_idxs = diff(epri_pri_idxs);
     diff_epri(board_idx) = median(diff_epri_pri_idxs);
+    % Assume that each board records data at the EPRI/EPRF rate (i.e. all the
+    % PRI-numbers align between boards and occur at a regular interval).
+    % Report the number of PRI-numbers that do not fall into this pattern.
     min_score = inf;
-    for offset = 0:diff_epri(board_idx)
-      score = sum(mod((epri_pri_idxs - offset)/diff_epri(board_idx),1) ~= 0);
-      if score < min_score
-        min_score = score;
+    best_offset = NaN;
+    offsets = 0:diff_epri(board_idx);
+    for offset_idx = 1:length(offsets)
+      offset = offsets(offset_idx);
+      offset_scores{board_idx}(offset_idx) = sum(mod((epri_pri_idxs - offset)/diff_epri(board_idx),1) ~= 0);
+      if offset_scores{board_idx}(offset_idx) < min_score
+        min_score = offset_scores{board_idx}(offset_idx);
+        best_offset = offset;
       end
     end
+    if 0
+      % For debugging, plot this to find which PRI-numbers do not fall into
+      % this pattern:
+      plot(mod((epri_pri_idxs - best_offset)/diff_epri(board_idx),1) ~= 0);
+      keyboard
+    end
+    % Keep track of any offsets that cause more than 1% of records to align
+    good_offsets{board_idx} = find(offset_scores{board_idx} < length(epri_pri_idxs)*0.99);
     if min_score > 0
       warning('%d of %d records show slipped EPRI values.', min_score, length(epri_pri_idxs));
+      if length(good_offsets{board_idx}) > 1
+        warning('An ADC link error probably occured since PRI-numbers do not fall a regular interval. Special generation of the EPRI vector is now enabled.')
+        special_epri_generation = true;
+      end
     end
   end
+  % Find the first EPRI with the most valid boards (if more than one EPRI
+  % has the most valid boards, mode returns the smallest or first EPRI;
+  % most of the EPRIs should have occured in each board and so most will
+  % have occured in all the boards)
   master_epri = mode(epri_list);
+  % Assume that each board records data at the EPRI/EPRF rate (i.e. all the
+  % PRI-numbers align between boards and occur at a regular interval)
   if any(diff_epri ~= diff_epri(1))
     error('Inconsistent EPRI step size between boards. Should all be the same: %s', mat2str_generic(diff_epri));
   end
-  epri = [fliplr(master_epri:-diff_epri(1):min_epri), master_epri+diff_epri:diff_epri:max_epri];
+  epri = [fliplr(master_epri:-diff_epri(1):min_epri), master_epri+diff_epri(1):diff_epri(1):max_epri];
+  %% Special generation of the EPRI vector
+  if special_epri_generation
+    epri_list = sort(epri_list);
+    epri_list_idx = 1;
+    epri_offset = 0;
+    for epri_idx = 1:length(epri)
+      total = 0;
+      match = 0;
+      epri(epri_idx) = epri(epri_idx) + epri_offset;
+      if epri(epri_idx) >= max_epri
+        break;
+      end
+      start_epri_list_idx = epri_list_idx;
+      while epri_list(epri_list_idx) <= epri(epri_idx)
+        total = total + 1;
+        if epri_list(epri_list_idx) == epri(epri_idx)
+          match = match + 1;
+        end
+        epri_list_idx = epri_list_idx + 1;
+      end
+      if total > 0 && match == 0
+        if all(epri_list(start_epri_list_idx:epri_list_idx-1) == epri_list(start_epri_list_idx))
+          warning('Special generation of EPRI: EPRI offset changed at record %d.', epri_idx);
+          epri_offset_correction = epri_list(start_epri_list_idx) - epri(epri_idx) + diff_epri(1);
+          epri_offset = epri_offset + epri_offset_correction;
+          epri(epri_idx) = epri(epri_idx) + epri_offset_correction;
+        end
+      end
+    end
+  end
   
   %% Align/Arena: Fill in missing records from each board
   records.raw.pps_cntr_latch = nan(size(epri));

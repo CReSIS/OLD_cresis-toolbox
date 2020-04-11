@@ -670,7 +670,7 @@ for img_idx = 1:length(load_param.load.imgs)
         %  currently lags behind)
         fcs.type = param.csarp.mocomp.type;
         fcs.filter = param.csarp.mocomp.filter;
-        [drange,dx] = csarp_motion_comp(fcs,records,ref,along_track,output_along_track);
+        [drange,dx] = sar_motion_comp(fcs,records,ref,along_track,output_along_track);
         
         % Time shift data in the frequency domain
         dtime = 2*drange/c;

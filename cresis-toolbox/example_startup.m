@@ -73,21 +73,25 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% Profile Linux/Mac (PROFILE 2)
   % ----------------------------------------------------------------------
   pidx = 2; % profile index
-  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
+  home_dir = getenv('HOME');
+  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',home_dir);
+  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',home_dir);
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',home_dir);
 
-  profile(pidx).tmp_file_path             = sprintf('%s/scratch/ct_user_tmp/',getenv('HOME'));
+  profile(pidx).tmp_file_path             = sprintf('%s/scratch/ct_user_tmp/',home_dir);
 
-  profile(pidx).data_path                 = sprintf('%s/scratch/',getenv('HOME'));
-  profile(pidx).data_support_path         = sprintf('%s/scratch/metadata/',getenv('HOME'));
-  profile(pidx).support_path              = sprintf('%s/scratch/csarp_support/',getenv('HOME'));
-  profile(pidx).out_path                  = sprintf('%s/scratch/',getenv('HOME'));
-  profile(pidx).gis_path                  = sprintf('%s/scratch/GIS_data/',getenv('HOME'));
+  profile(pidx).data_path                 = sprintf('%s/scratch/',home_dir);
+  profile(pidx).data_support_path         = sprintf('%s/scratch/metadata/',home_dir);
+  profile(pidx).support_path              = sprintf('%s/scratch/csarp_support/',home_dir);
+  profile(pidx).out_path                  = sprintf('%s/scratch/',home_dir);
+  profile(pidx).gis_path                  = sprintf('%s/scratch/GIS_data/',home_dir);
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
  
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
@@ -103,15 +107,20 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause            = 0.2;
   profile(pidx).cluster.stat_pause              = 2;
   profile(pidx).cluster.file_check_pause        = 4;
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% KU Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
   pidx = 3; % profile index
-  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
+  home_dir = getenv('HOME');
+  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',home_dir);
+  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',home_dir);
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',home_dir);
   
-  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/ct_user_tmp/',getenv('USER'));
+  username = getenv('USER');
+  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/ct_user_tmp/',username);
   
   profile(pidx).data_path                 = '/cresis/snfs1/data/';
   profile(pidx).data_support_path         = '/cresis/snfs1/dataproducts/metadata/';
@@ -134,9 +143,18 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.job_complete_pause    = 60;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 16e9 / 8;
+  % profile(pidx).cluster.mem_to_ppn            = 0.9 * 256e9 / 24;
   profile(pidx).cluster.max_ppn               = 4;
   profile(pidx).cluster.max_mem_per_job       = 15e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
+  %profile(pidx).cluster.qsub_submit_arguments = '-m n -q high -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
+  %profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
+  %profile(pidx).cluster.cpu_time_mult         = 2;
+  %profile(pidx).cluster.mem_mult              = 2;
+  %profile(pidx).cluster.ppn_fixed             = 4;
+
+  % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
 
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
@@ -171,6 +189,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.job_complete_pause    = 5;
   profile(pidx).cluster.max_mem_per_job       = 126e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -201,15 +222,20 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
+
+  % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% IU Profile Linux (PROFILE 6)
   % ----------------------------------------------------------------------
   pidx = 6; % profile index
-  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
+  home_dir = getenv('HOME');
+  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',home_dir);
+  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',home_dir);
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',home_dir);
   
-  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/ct_user_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
+  username = getenv('USER');
+  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/ct_user_tmp/',username); % scratch may be on dcwan or dc2
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
   profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
@@ -245,6 +271,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 0;
 
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
@@ -272,6 +301,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% AWI Profile Field Linux (PROFILE 8)
   % ----------------------------------------------------------------------
@@ -307,21 +339,25 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_mem_per_job       = 62e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
 
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
-  profile(pidx).path_override             = sprintf('/work/ollie/%s/scripts/matlab/',getenv('USER'));
-  profile(pidx).path                      = sprintf('/work/ollie/%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USER'));
-  profile(pidx).param_path                = sprintf('/work/ollie/%s/scripts/ct_params/',getenv('USER'));
-  profile(pidx).slurm_jobs_path           = sprintf('/work/ollie/%s/jobs/',getenv('USER'));
+  username = getenv('USER');
+  profile(pidx).path_override             = sprintf('/work/ollie/%s/scripts/matlab/',username);
+  profile(pidx).path                      = sprintf('/work/ollie/%s/scripts/cresis-toolbox/cresis-toolbox/',username);
+  profile(pidx).param_path                = sprintf('/work/ollie/%s/scripts/ct_params/',username);
+  profile(pidx).slurm_jobs_path           = sprintf('/work/ollie/%s/jobs/',username);
 
-  profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/ct_user_tmp/',getenv('USER'));
+  profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/ct_user_tmp/',username);
 
-  profile(pidx).data_path                 = sprintf('/work/ollie/%s/Data/',getenv('USER'));
-  profile(pidx).data_support_path         = sprintf('/work/ollie/%s/Scratch/metadata/',getenv('USER'));
-  profile(pidx).support_path              = sprintf('/work/ollie/%s/Scratch/csarp_support/',getenv('USER'));
-  profile(pidx).out_path                  = sprintf('/work/ollie/%s/Scratch/',getenv('USER'));
-  profile(pidx).gis_path                  = sprintf('/work/ollie/%s/GIS_data/',getenv('USER'));
+  profile(pidx).data_path                 = sprintf('/work/ollie/%s/Data/',username);
+  profile(pidx).data_support_path         = sprintf('/work/ollie/%s/Scratch/metadata/',username);
+  profile(pidx).support_path              = sprintf('/work/ollie/%s/Scratch/csarp_support/',username);
+  profile(pidx).out_path                  = sprintf('/work/ollie/%s/Scratch/',username);
+  profile(pidx).gis_path                  = sprintf('/work/ollie/%s/GIS_data/',username);
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
  
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
@@ -344,6 +380,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_mem_mode            = 'debug';
 
   profile(pidx).cluster.mcc                     = 'system_eval';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
 
   %% Startup code (Automated Section)
   % =====================================================================
@@ -490,6 +529,10 @@ if ~(~ismcc && isdeployed)
     profile(cur_profile).slurm_jobs_path = '';
   end  
   gRadar.slurm_jobs_path = profile(cur_profile).slurm_jobs_path;  
+  % .ops: structure of open polar server specific parameters
+  if isfield(profile(cur_profile),'ops')
+    gRadar.ops = profile(cur_profile).ops;
+  end
   
   clear profile cur_profile fn_dir fn_idx fn_name fns pidx;
 

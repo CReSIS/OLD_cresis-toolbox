@@ -75,7 +75,10 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) %...
+% For the full simulator, remove 'sim' at the end($) of param.season_name
+param.season_name = regexprep(param.season_name,'sim$','','ignorecase');
+
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
 %     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
@@ -83,9 +86,9 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) %...
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
-  % Platform: Ground based sled
+if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','trimble'})))
+  % Platform: Ground based tracked vehicles, GPS antenna on top of tracked
+  % vehicle
   %
   gps.x = 0;
   gps.y = 0;
@@ -93,7 +96,7 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'a
 end
 
 if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(gps_source,'arena'))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %
   gps.x = 0;
@@ -615,7 +618,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
   
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2017_Antarctica_Polar6','2018_Greenland_Polar6','2019_Antarctica_Polar6','2019_Arctic_Polar6'})) && any(strcmpi(gps_source,{'AWI','NMEA'})))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2017_Antarctica_Polar6','2018_Greenland_Polar6','2019_Antarctica_Polar6','2019_Arctic_Polar6','2020_Arctic_Polar6'})) && any(strcmpi(gps_source,{'AWI','NMEA'})))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -1152,6 +1155,32 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
+if any(strcmpi(param.season_name,{'2019_Antarctica_GV'})) ...
+    && strcmpi(radar_name,'rds')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  %
+  % NOTE: From Rick's student Pedro. Metadata folder "Phase Center Location
+  % Measurements - 18 Oct 19.xlsx"
+
+  LArx = [12.714	-0.864	-2.537
+          12.715	-0.399	-2.522
+          12.716	0.388	-2.521
+          12.716	0.852	-2.537].';
+  LArx([1 3],:) = -LArx([1 3],:); % x and z are negated
+  
+  LAtx = LArx;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 2;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(radar_name,'rds'))
   % Port - Belly - Starboard
   % mm
@@ -1219,21 +1248,64 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   % Japanese National Institute of Polar Research/Japanese Antarctic
   % Research Expedition
   %
-  % Log periodic antennas
-  LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = 0.75*[-3.5:3.5] - gps.y; % m
-  LArx(3,:)   = (5*0.0254 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  % Log periodic antennas: Four antennas mounted on the left side and four
+  % antennas mounted on the right side. The antennas were mounted from the
+  % roof of the tracked vehicle.
+  %
+  % See NDF_Field_Report_BVL_v012.docx for details
+  %
+  % Report is missing z-offset between Trimbal GPS antenna phase center and
+  % radar antenna phase centers.
+  % Report is missing the location of  the radar antenna phase centers on
+  % the antennas themselves. The model number of the antennas is not given.
+  % Assume here that the z-offset is zero.
+  %
+  % Report gives distance of antennas off the ground of 4.1 m.
+  %
+  % Report does not give the y-offset of the Trimbal antenna from the side
+  % of the vehicle. Assume here that the offset is 0.15 m.
+  %
+  % Distance from side of vehicle to first antenna is given as 250 cm and
+  % 262 cm. By measuring pixels in the picture, 250 cm seems correct on
+  % both sides of the vehicle.
+  %
+  % rx_paths are labeled from left to right in order:
+  % rx_paths adc
+  %    1      8 Rx only Antenna #8 in figure
+  %    2      7 Rx only Antenna #7 in figure
+  %    3      6 Rx only Antenna #6 in figure
+  %    4      5 Rx only Antenna #5 in figure
+  %    5      3 AWG0 T/R Antenna #1 in figure
+  %    6      1 AWG1 T/R Antenna #2 in figure
+  %    7      4 AWG2 T/R Antenna #3 in figure
+  %    8      2 AWG3 T/R Antenna #4 in figure
+  %
+  % adc    rx_paths
+  %    1      6
+  %    2      8
+  %    3      5
+  %    4      7
+  %    5      4
+  %    6      3
+  %    7      2
+  %    8      1
+  %
+  % [6 8 5 7 4 3 2 1]
   
-  LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = 0.75*[-3.5:2:3.5] - gps.y; % m
+  LArx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = ([0.15-2.85-2.5 + (3:-1:0)*-1.05, 0.15+2.5 + [0:3]*1.05]) - gps.y; % m
+  LArx(3,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  
+  LAtx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0.15+2.5 + [0:3]*1.05) - gps.y; % m
   LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
-    rxchannel = 4;
+    rxchannel = 5;
   end
   
   if rxchannel == 0
-    rxchannel = 4;
+    rxchannel = 5;
     tx_weights = ones(1,size(LAtx,2));
   end
 end
@@ -1886,22 +1958,16 @@ end
 %% Snow Radar
 % =========================================================================
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   % From Rick Hale's student Pedro Toledo: Lever_arm_for_snow_antennas.msg
   % x pointing aft, y pointing right, z pointing up so need to negate x and
   % z to match the lever_arm.m standard which has x forward and z down.
-  LArx = mean([12.481	0.458	-2.340
-    12.474	0.464	-2.343
-    12.473	0.466	-2.313
-    12.473	0.465	-2.313]).';
+  LArx = [12.475	0.463	-2.327].';
   LArx([1 3]) = -LArx([1 3]); % x and z are negated
-  
-  LAtx = mean([12.476	-0.474	-2.345
-    12.476	-0.467	-2.337
-    12.473	-0.470	-2.317
-    12.471	-0.470	-2.313]).';
+
+  LAtx = [12.474	-0.470	-2.328].';
   LAtx([1 3]) = -LAtx([1 3]); % x and z are negated
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
@@ -1958,7 +2024,7 @@ if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow')
   end
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6','2019_Arctic_Polar6'})) && strcmpi(radar_name,'snow'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6','2019_Arctic_Polar6','2020_Arctic_Polar6'})) && strcmpi(radar_name,'snow'))
   % See notes in GPS section
   
   LArx(1,1:2) = -[95.5 95.5]*2.54/100;
@@ -2198,7 +2264,7 @@ end
 
 
 % Amplitude (not power) weightings for transmit side.
-A = tx_weights;
+A = tx_weights(~isnan(tx_weights));
 magsum       = sum(A);
 if magsum == 0
   % A == 0 meaning transmitters are disabled, technically no transmit phase

@@ -253,6 +253,7 @@ end
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.sar.presums;
+param.load.bit_mask = 3; % Skip stationary records and bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
@@ -270,7 +271,8 @@ param.load.combine_rx = param.sar.combine_rx;
 ecef = zeros(3,size(hdr.ref.lat,2));
 [ecef(1,:) ecef(2,:) ecef(3,:)] = geodetic2ecef(hdr.ref.lat/180*pi, hdr.ref.lon/180*pi, hdr.ref.elev, WGS84.ellipsoid);
 % 2. Resample based on input and output along track
-ecef = interp1(along_track,ecef.',output_along_track,'linear','extrap').';
+mono_idxs = monotonic_indexes(along_track,true);
+ecef = interp1(along_track(mono_idxs),ecef(:,mono_idxs).',output_along_track,'linear','extrap').';
 % 3. Convert ecef to geodetic
 [lat,lon,elev] = ecef2geodetic(ecef(1,:), ecef(2,:), ecef(3,:), WGS84.ellipsoid);
 clear ecef;
@@ -354,7 +356,12 @@ for img = 1:length(param.load.imgs)
       good_mask = ~hdr.bad_rec{img}(1,:,wf_adc);
 
       % To save memory, shift the data out one wf_adc at a time
-      fk_data = data{img}(time_bins,:,1);
+      if isempty(data{img})
+        % All records were bad so data is an empty matrix
+        fk_data = wfs(wf).bad_value * ones(length(time_bins),size(data{img},2));
+      else
+        fk_data = data{img}(time_bins,:,1);
+      end
       data{img} = data{img}(:,:,2:end);
 
       fk_data(~isfinite(fk_data)) = 0;
@@ -372,7 +379,7 @@ for img = 1:length(param.load.imgs)
         %  currently lags behind)
         fcs.type = param.sar.mocomp.type;
         fcs.filter = param.sar.mocomp.filter;
-        [drange,dx] = csarp_motion_comp(fcs,hdr.records{img,wf_adc},hdr.ref,along_track,output_along_track);
+        [drange,dx] = sar_motion_comp(fcs,hdr.records{img,wf_adc},hdr.ref,along_track,output_along_track);
         
         % Time shift data in the frequency domain
         dtime = 2*drange/c;
@@ -420,7 +427,7 @@ for img = 1:length(param.load.imgs)
       %% Uniform resampling and subaperture selection for fk migration
       if param.sar.mocomp.uniform_en
         % Uniformly resample data in slow-time onto output along-track
-        if param.sar.mocomp.uniform_mask_en
+        if param.sar.mocomp.uniform_mask_en && any(good_mask)
           % Mask
           fk_data = arbitrary_resample(fk_data(:,good_mask), ...
             along_track_mc(good_mask),proc_along_track, struct('filt_len', ...

@@ -47,7 +47,7 @@ if (obj.control_pressed || (but == 4 && ~obj.zoom_mode)) && click_in_axis % cont
   if but == 3
     % ===================================================================
     % Ctrl + Normal click: Select closest frame
-    obj.update_map_selection(struct('x',x,'y',y));
+    obj.get_closest_frame(struct('x',x,'y',y));
     
   elseif but == 4
     % ===================================================================
@@ -64,15 +64,24 @@ elseif obj.shift_pressed && click_in_axis % shift click
     % Ctrl + Normal click: Get closest point to each echowin flightline and
     % move the echowin cursors to their respective closest points
     
+    if (obj.map.source == 1)
+      [lat, lon] = google_map.world_to_latlon(x*obj.map.scale, 256-y*obj.map.scale);
+    else
+      [lat,lon] = projinv(obj.map.proj,x*obj.map.scale,y*obj.map.scale);
+    end
     % Find closest point for each echowin and update cursor information
     for idx = 1:length(obj.echowin_list)
       % Update the echowin's cursor in the echogram (this finds the closest
       % point to the supplied x,y and that becomes the next cursor position
       % for this echowin)
-      obj.echowin_list(idx).set_cursor_by_map(x,y);
+      obj.echowin_list(idx).set_cursor_by_map(lat,lon,'mapwin_notify');
       % Update the echowin's cursor on the map
-      set(obj.echowin_maps(idx).h_cursor,'XData',obj.echowin_list(idx).cursor.x, ...
-        'YData',obj.echowin_list(idx).cursor.y);
+      if obj.map.source == 1
+        [x,y] = google_map.latlon_to_world(obj.echowin_list(idx).cursor.lat, obj.echowin_list(idx).cursor.lon); y = 256-y;
+      else
+        [x,y] = projfwd(obj.map.proj, obj.echowin_list(idx).cursor.lat, obj.echowin_list(idx).cursor.lon);
+      end
+      set(obj.echowin_maps(idx).h_cursor, 'XData', x/obj.map.scale, 'YData', y/obj.map.scale, 'Color', 'black');
       % Make the cursors be plotted on top
       uistack(obj.echowin_maps(idx).h_cursor,'top');
     end
@@ -99,7 +108,7 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
       if ~obj.zoom_mode
         % ===================================================================
         % Normal click: Select closest frame
-        obj.update_map_selection(struct('x',x,'y',y));
+        obj.get_closest_frame(struct('x',x,'y',y));
       else
         % zoom on click
         % get updated x and y axis
@@ -111,17 +120,17 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         new_xaxis = [obj.click_x - x_extent/4, obj.click_x + x_extent/4];
         new_yaxis = [obj.click_y - y_extent/4, obj.click_y + y_extent/4];
         
-        if new_yaxis(1) < obj.full_yaxis(1)
-          new_yaxis(1) = obj.full_yaxis(1);
+        if new_yaxis(1) < obj.map.yaxis_default(1)
+          new_yaxis(1) = obj.map.yaxis_default(1);
         end
-        if new_yaxis(end) > obj.full_yaxis(end)
-          new_yaxis(end) = obj.full_yaxis(end);
+        if new_yaxis(end) > obj.map.yaxis_default(end)
+          new_yaxis(end) = obj.map.yaxis_default(end);
         end
-        if new_xaxis(1) < obj.full_xaxis(1)
-          new_xaxis(1) = obj.full_xaxis(1);
+        if new_xaxis(1) < obj.map.xaxis_default(1)
+          new_xaxis(1) = obj.map.xaxis_default(1);
         end
-        if new_xaxis(end) > obj.full_xaxis(end)
-          new_xaxis(end) = obj.full_xaxis(end);
+        if new_xaxis(end) > obj.map.xaxis_default(end)
+          new_xaxis(end) = obj.map.xaxis_default(end);
         end
         
         % get a new map for these limits
@@ -143,17 +152,17 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     new_xaxis = [obj.click_x - 1.0*x_extent, obj.click_x + 1.0*x_extent];
     new_yaxis = [obj.click_y - 1.0*y_extent, obj.click_y + 1.0*y_extent];
     
-    if new_yaxis(1) < obj.full_yaxis(1)
-      new_yaxis(1) = obj.full_yaxis(1);
+    if new_yaxis(1) < obj.map.yaxis_default(1)
+      new_yaxis(1) = obj.map.yaxis_default(1);
     end
-    if new_yaxis(end) > obj.full_yaxis(end)
-      new_yaxis(end) = obj.full_yaxis(end);
+    if new_yaxis(end) > obj.map.yaxis_default(end)
+      new_yaxis(end) = obj.map.yaxis_default(end);
     end
-    if new_xaxis(1) < obj.full_xaxis(1)
-      new_xaxis(1) = obj.full_xaxis(1);
+    if new_xaxis(1) < obj.map.xaxis_default(1)
+      new_xaxis(1) = obj.map.xaxis_default(1);
     end
-    if new_xaxis(end) > obj.full_xaxis(end)
-      new_xaxis(end) = obj.full_xaxis(end);
+    if new_xaxis(end) > obj.map.xaxis_default(end)
+      new_xaxis(end) = obj.map.xaxis_default(end);
     end
     
     % get a new map for these limits
@@ -163,10 +172,8 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     % Double click: Zoom reset
     % Ctrl + double click: Select closest frame and load
     
-    new_yaxis(1) = obj.full_yaxis(1);
-    new_yaxis(2) = obj.full_yaxis(end);
-    new_xaxis(1) = obj.full_xaxis(1);
-    new_xaxis(2) = obj.full_xaxis(end);
+    new_yaxis = obj.map.yaxis_default;
+    new_xaxis = obj.map.xaxis_default;
     
     % get a new map for these limits
     obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));

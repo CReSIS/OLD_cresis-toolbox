@@ -267,44 +267,44 @@ for board_idx = 1:num_board_to_load
     
     try
       if any(param.config.file.version == [1])
-        hdr = basic_load_fmcw(fn);
+        hdr = basic_load_fmcw(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [2])
-        hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version));
+        hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [4])
         hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [3 5])
-        hdr = basic_load_fmcw3(fn, struct('file_version',param.config.file.version));
+        hdr = basic_load_fmcw3(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = struct('presums',hdr.presums);
       elseif any(param.config.file.version == [6])
-        hdr = basic_load_fmcw4(fn, struct('file_version',param.config.file.version));
+        hdr = basic_load_fmcw4(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = struct('presums',hdr.presums);
       elseif any(param.config.file.version == [7 11])
-        hdr = basic_load(fn);
+        hdr = basic_load(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
         hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fractions counter
       elseif any(param.config.file.version == [8])
-        hdr = basic_load_fmcw8(fn, struct('file_version',param.config.file.version));
+        hdr = basic_load_fmcw8(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = struct('presums',hdr.presums);
       elseif any(param.config.file.version == [101])
-        hdr = basic_load_accum(fn);
+        hdr = basic_load_accum(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [102])
-        hdr = basic_load_accum2(fn);
+        hdr = basic_load_accum2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [401])
-        hdr = basic_load_mcords(fn);
+        hdr = basic_load_mcords(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [402])
-        hdr = basic_load_mcords2(fn);
+        hdr = basic_load_mcords2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [403])
-        hdr = basic_load_mcords3(fn);
+        hdr = basic_load_mcords3(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [404])
-        hdr = basic_load_mcords4(fn);
+        hdr = basic_load_mcords4(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [405 406])
         % Load header information that never changes

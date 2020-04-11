@@ -364,13 +364,12 @@ default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
 for wf = 1:3
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).rx_paths = [7 8 1 2 3 4 5 6]; %correct adc to antenna assignments
+  default.radar.wfs(wf).rx_paths = [7 8 1 2 3 4 5 6];
   default.radar.wfs(wf).tx_paths = [1 2 3 4];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
@@ -390,18 +389,15 @@ default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[[3*ones(8,1),
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
 for wf = 1:4
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
-  %default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
-  default.radar.wfs(wf).rx_paths = [7 8 1 2 3 4 5 6]; %correct adc to antenna assignments
+  default.radar.wfs(wf).rx_paths = [7 8 1 2 3 4 5 6];
   default.radar.wfs(wf).tx_paths = [1 2 3 4];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
-
 default.config_regexp = '.*pingpong.*';
 default.name = 'Ping Pong Mode 180-210 MHz';
 defaults{end+1} = default;

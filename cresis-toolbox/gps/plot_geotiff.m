@@ -81,7 +81,7 @@ set(h_axes,'YDir','normal');
 
 if exist('lat','var') && ~isempty(lat)
   switch lower(proj.ModelType)
-    case {'ModelTypeProjected'}
+    case {'modeltypeprojected'}
       [X,Y] = projfwd(proj,lat,lon);
       X = X/1e3;
       Y = Y/1e3;

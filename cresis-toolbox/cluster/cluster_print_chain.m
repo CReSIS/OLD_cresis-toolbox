@@ -1,15 +1,19 @@
-function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check)
-% [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check)
+function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check, mode)
+% [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check, mode)
 %
-% Prints information about a list of batch chains. Also returns the
-% information.
+% Prints information about a list of batch chains, a chain, or a batch.
+% Also returns the % information.
 %
 % Inputs:
-% ctrl_chain: cell array of chains that can be run in parallel
-%  ctrl_chain{chain}: cell array of batches that must be run in series (stages)
-%   ctrl_chain{chain}{stage}: control structure for a batch
+% ctrl_chain: This input can be any of the following:
+%   1. A cell array of chains that can be run in parallel (e.g. ctrl_chain)
+%   2. A cell array of batches (aka chain) (e.g. ctrl_chain{chain})
+%   3. A batch (e.g. ctrl_chain{chain}{stage}
 % force_check: default to false, forces cluster_update_task to be run on all
 %   tasks (very slow)
+% mode: Only used if ctrl_chain is an integer, default is 'chain'.
+%   Integer will be treated as chain if mode is 'chain' and batch
+%   if mode is 'batch'.
 %
 % Outputs:
 % ctrl_chain: updated list of batch chains that was passed in
@@ -28,6 +32,10 @@ function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check)
 
 if ~exist('force_check','var') || isempty(force_check)
   force_check = false;
+end
+
+if ~exist('mode','var') || isempty(mode)
+  mode = 'chain';
 end
 
 if iscell(ctrl_chain)
@@ -112,8 +120,13 @@ elseif isstruct(ctrl_chain)
   ctrl_chain = ctrl;
   
 elseif isnumeric(ctrl_chain)
-  ctrl_chain = cluster_load_chain(ctrl_chain);
-  ctrl_chain = cluster_print_chain(ctrl_chain,force_check);
+  if strcmpi(mode,'batch')
+    ctrl = cluster_get_batch(ctrl_chain,false,0);
+    ctrl_chain = cluster_print_chain({{ctrl}},force_check);
+  else
+    ctrl_chain = cluster_load_chain(ctrl_chain);
+    ctrl_chain = cluster_print_chain(ctrl_chain,force_check);
+  end
   
 end
 

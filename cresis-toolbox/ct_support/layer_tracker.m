@@ -305,7 +305,8 @@ if isfield(track,'init') && isfield(track.init,'dem_layer') ...
     && ~isempty(track.init.dem_layer)
   layers = opsLoadLayers(param,track.init.dem_layer);
   
-  % Ensure that layer gps times are monotonically increasing
+  % Ensure that layer gps times are monotonically increasing (this should
+  % always be the case, but occasionally files are corrupt/have errors)
   lay_idx = 1;
   layers_fieldnames = fieldnames(layers(lay_idx));
   [~,unique_idxs] = unique(layers(lay_idx).gps_time);
@@ -553,7 +554,11 @@ for frm_idx = 1:length(param.cmd.frms)
       ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
       lay = opsInterpLayersToMasterGPSTime(mdata,ops_layer,ref_interp_gaps_dist);
       dem_layer = lay.layerData{1}.value{2}.data;
-      dem_layer = interp1(mdata.Time,1:length(mdata.Time),dem_layer);
+      % Convert from twtt to bins
+      dem_layer = interp1(mdata.Time,1:length(mdata.Time),dem_layer + track.init.dem_layer_offset);
+      % Correct for min_bin removal
+      dem_layer = dem_layer - track.min_bin + 1;
+      % Merge ref layer over track.dem
       track.dem = merge_vectors(dem_layer, track.dem);
     end
     

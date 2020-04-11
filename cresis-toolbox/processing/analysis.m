@@ -38,6 +38,11 @@ if ~isfield(param,'analysis') || isempty(param.analysis)
   error('The analysis field (worksheet) is missing.');
 end
 
+if ~isfield(param.analysis,'bit_mask') || isempty(param.analysis.bit_mask)
+  % Set to 3 to mask out stationary and bad records (useful for coherent noise estimation on ground based data that may have stationary records)
+  param.analysis.bit_mask = 1;
+end
+
 if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
   param.analysis.block_size = 6000;
 end
