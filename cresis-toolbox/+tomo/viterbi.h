@@ -32,23 +32,20 @@ public:
   viterbi(const int d_row,
           const int d_col,
           const double *d_image,
-          const int *d_sgt,
+          const int d_num_layers,
+          const double *d_layers,
+          const double *d_layer_costs,
+          const double *d_layer_cutoffs,
           const double *d_mask,
           const double d_img_mag_weight,
           const double *d_smooth_slope,
           const double d_max_slope,
           const ptrdiff_t *d_bounds,
-          const int d_num_extra_tr,
-          const double *d_egt_x,
-          const double *d_egt_y,
-          const double *d_gt_weights,
-          const double *d_gt_cutoffs,
           const double *d_mask_dist,
           const double *d_costmatrix,
           const int d_costmatrix_X,
           const int d_costmatrix_Y,
           const double *d_transition_weights,
-          const double d_surf_weight,
           const double d_mult_weight,
           const double d_mult_weight_decay,
           const double d_mult_weight_local_decay,
@@ -56,23 +53,20 @@ public:
           double *d_result) : f_row(d_row),
                               f_col(d_col),
                               f_image(d_image),
-                              f_sgt(d_sgt),
+                              f_num_layers(d_num_layers),
+                              f_layers(d_layers),
+                              f_layer_costs(d_layer_costs),
+                              f_layer_cutoffs(d_layer_cutoffs),
                               f_mask(d_mask),
                               f_img_mag_weight(d_img_mag_weight),
                               f_smooth_slope(d_smooth_slope),
                               f_max_slope(d_max_slope),
                               f_bounds(d_bounds),
-                              f_num_extra_tr(d_num_extra_tr),
-                              f_egt_x(d_egt_x),
-                              f_egt_y(d_egt_y),
-                              f_gt_weights(d_gt_weights),
-                              f_gt_cutoffs(d_gt_cutoffs),
                               f_mask_dist(d_mask_dist),
                               f_costmatrix(d_costmatrix),
                               f_costmatrix_X(d_costmatrix_X),
                               f_costmatrix_Y(d_costmatrix_Y),
                               f_transition_weights(d_transition_weights),
-                              f_surf_weight(d_surf_weight),
                               f_mult_weight(d_mult_weight),
                               f_mult_weight_decay(d_mult_weight_decay),
                               f_mult_weight_local_decay(d_mult_weight_local_decay),
@@ -83,10 +77,11 @@ public:
   }
 
   // VARIABLES
-  const int f_row, f_col, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_zero_bin;
-  const double *f_image, *f_mask, f_img_mag_weight, *f_smooth_slope, f_max_slope,
-      *f_egt_x, *f_egt_y, *f_gt_weights, *f_gt_cutoffs, *f_mask_dist, f_surf_weight, f_mult_weight, 
-      f_mult_weight_decay, f_mult_weight_local_decay, *f_costmatrix, *f_transition_weights;
+  const int f_row, f_col, f_num_layers, f_costmatrix_X, f_costmatrix_Y, f_zero_bin;
+  const double *f_image, *f_layers, *f_layer_costs, *f_layer_cutoffs, 
+    *f_mask, f_img_mag_weight, *f_smooth_slope, f_max_slope, *f_mask_dist, 
+    f_mult_weight, f_mult_weight_decay, f_mult_weight_local_decay, *f_costmatrix, 
+    *f_transition_weights;
   const ptrdiff_t *f_bounds;
   double *f_result, *f_cost;
 
@@ -102,6 +97,12 @@ public:
   inline T sqr(T x) { return x * x; }
 
   int encode(int x, int y) { return x * f_row + y; }
+
+  int layer_encode(int layer_num, int x) {return x*f_num_layers + layer_num; }
+  int get_y(int layer_num, int x) { return f_layers[layer_encode(layer_num, x)]; }
+  int get_y_cost(int layer_num, int x) { return f_layer_costs[layer_encode(layer_num, x)]; }
+  int get_y_cutoff(int layer_num, int x) { return f_layer_cutoffs[layer_encode(layer_num, x)]; }
+  bool is_valid(double value) { return !mxIsNaN(value) && value >= 0; }
 
   int vic_encode(int row, int col) { return f_row * col + row; }
 

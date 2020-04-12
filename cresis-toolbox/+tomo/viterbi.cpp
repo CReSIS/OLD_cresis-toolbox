@@ -23,87 +23,102 @@
 double viterbi::unary_cost(int x, int y)
 {
 
+  double sgt = get_y(0, x); // Surface layer is always layer 0
   // Merge layers when no ice exists
-  if (f_mask[x] == 0 && y != f_sgt[x])
+  if (f_mask[x] == 0 && y != sgt)
   {
     return LARGE;
   }
 
   // Set cost to large if bottom is above surface
-  if (y < f_sgt[x])
+  if (!mxIsNaN(sgt) && y < sgt)
   {
     return LARGE;
   }
 
   double cost = 0;
 
-  // Increase cost if far from extra ground truth
-  for (int f = 0; f < (f_num_extra_tr / 2); ++f)
-  {
-    if (f_egt_x[f] == x)
+  // Increase cost if far from layer ground truth
+  for (int layer_num = 0; layer_num < f_num_layers; layer_num++) {
+    double gt = get_y(layer_num, x);
+    if (is_valid(gt))
     {
-      mexPrintf("x:%d y:%d cutoff:%d dist:%d weight:%d \n", x, y, f_gt_cutoffs[x], abs((int)f_egt_y[f] - (int)y), f_gt_weights[x]);
-      if (f_gt_cutoffs[x] > -1 && abs((int)f_egt_y[f] - (int)y) > f_gt_cutoffs[x])
+      double cutoff = get_y_cutoff(layer_num, x);
+      int dist = abs((int)gt - (int)y);
+      if (is_valid(cutoff) && dist > cutoff)
       {
         // Must be within cutoff range
         return LARGE;
       }
       else
       {
-        cost += f_gt_weights[x] * 10 * sqr(((int)f_egt_y[f] - (int)y));
+        double layer_cost = get_y_cost(layer_num, x);
+        if (!mxIsNaN(layer_cost)) {
+          if (layer_cost > 0) {
+            // Positive cost decreases cost further away -- Repel from point
+            cost += layer_cost / (sqr(dist) + 1); 
+          }
+          else {
+            layer_cost *= -1;
+            // Negative cost increases cost further away -- Attract to point
+            cost += layer_cost * sqr(dist); 
+          }
+        }
         break;
       }
     }
   }
 
   // Increase cost if near surface or surface multiple bin
-  const int travel_time = f_sgt[x] - f_zero_bin; // Between multiples
-  int dist_to_surf = abs(y - f_sgt[x]);
-  int multiple_bin = travel_time == 0 ? -1 : (y - f_sgt[x]) / travel_time - 1;
-  int dist_to_bin = travel_time == 0 ? dist_to_surf : dist_to_surf % travel_time;
-  // If closer to next multiple, use that distance instead
-  if (dist_to_bin > travel_time / 2 && multiple_bin >= 0)
-  {
-    dist_to_bin = travel_time - dist_to_bin;
-    multiple_bin++;
-  }
-  double current_mult_weight = f_mult_weight;
-  if (multiple_bin < 0)
-  {
-    // multiple bin -1 is surface, others are multiples
-    multiple_bin = 0;
-    current_mult_weight = f_surf_weight;
-  }
-
-  double multiple_cost = current_mult_weight;
-  multiple_cost *= pow(f_mult_weight_decay, multiple_bin);
-  multiple_cost *= pow(f_mult_weight_local_decay, dist_to_bin);
-
-  multiple_cost = multiple_cost < 0 ? 0 : multiple_cost;
-  cost += multiple_cost;
-
-  // Distance from nearest ice-mask
-  // Probabilistic measurement
-  int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >= f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
-  int matrix_idx = f_costmatrix_X * DIM + y - f_sgt[x];
-  int matrix_final_idx = f_costmatrix_X * f_costmatrix_Y - 1;
-  if (matrix_idx >= 0 && matrix_idx <= matrix_final_idx)
-  {
-    // Index within bounds of costmatrix
-    cost += f_costmatrix[matrix_idx];
-  }
-  else if (f_costmatrix_X > 0)
-  {
-    // costmatrix provided but index outside bounds
-    if (matrix_idx < 0)
+  if (!mxIsNaN(sgt)) {
+    const int travel_time = sgt - f_zero_bin; // Between multiples
+    int dist_to_surf = abs((int)y - (int)sgt);
+    int multiple_bin = travel_time == 0 ? -1 : (y - sgt) / travel_time - 1;
+    int dist_to_bin = travel_time == 0 ? dist_to_surf : dist_to_surf % travel_time;
+    // If closer to next multiple, use that distance instead
+    if (dist_to_bin > travel_time / 2 && multiple_bin >= 0)
     {
-      // Use first cost in matrix when index is before matrix start
-      cost += f_costmatrix[0];
+      dist_to_bin = travel_time - dist_to_bin;
+      multiple_bin++;
     }
-    else
+    double current_mult_weight = f_mult_weight;
+    if (multiple_bin < 0)
     {
-      // Use last cost in matrix when index is after matrix end
-      cost += f_costmatrix[matrix_final_idx];
+      // multiple bin -1 is surface, others are multiples
+      multiple_bin = 0;
+      current_mult_weight = 0;  // Surface repulsion handled above as cost
+    }
+
+    double multiple_cost = current_mult_weight;
+    multiple_cost *= pow(f_mult_weight_decay, multiple_bin);
+    multiple_cost *= pow(f_mult_weight_local_decay, dist_to_bin);
+
+    multiple_cost = multiple_cost < 0 ? 0 : multiple_cost;
+    cost += multiple_cost;
+
+    // Distance from nearest ice-mask
+    // Probabilistic measurement
+    int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >= f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
+    int matrix_idx = f_costmatrix_X * DIM + y - sgt;
+    int matrix_final_idx = f_costmatrix_X * f_costmatrix_Y - 1;
+    if (matrix_idx >= 0 && matrix_idx <= matrix_final_idx)
+    {
+      // Index within bounds of costmatrix
+      cost += f_costmatrix[matrix_idx];
+    }
+    else if (f_costmatrix_X > 0)
+    {
+      // costmatrix provided but index outside bounds
+      if (matrix_idx < 0)
+      {
+        // Use first cost in matrix when index is before matrix start
+        cost += f_costmatrix[0];
+      }
+      else
+      {
+        // Use last cost in matrix when index is after matrix end
+        cost += f_costmatrix[matrix_final_idx];
+      }
     }
   }
   // Image magnitude
@@ -142,7 +157,7 @@ double *viterbi::find_path(void)
   int encode;
   int viterbi_index = calculate_best(path_prob);
   int idx = end_col;
-  f_result[end_col] = (f_mask[end_col] == 1 || std::isinf(f_mask[end_col])) ? viterbi_index + 1 : f_sgt[end_col] + 1;
+  f_result[end_col] = (f_mask[end_col] == 1 || std::isinf(f_mask[end_col])) ? viterbi_index + 1 : get_y(0, end_col) + 1;
 
   // Set result vector
   for (int k = start_col + 1; k <= end_col; ++k)
@@ -240,13 +255,13 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int max_args = 18;           // All args including optional
+  int max_args = 16;           // All args including optional
   int min_args = max_args - 1; // Number of required arguments
   int arg = 0;
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
   {
-    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, extra_gt, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, gt_weights, gt_cutoffs, mask_dist, costmatrix, transition_weights, surf_weight, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
+    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, layers, layer_costs, layer_cutoffs, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, mask_dist, costmatrix, transition_weights, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
   }
 
   // Input checking
@@ -263,37 +278,55 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   const int _col = mxGetN(prhs[arg]);
   const double *_image = mxGetPr(prhs[arg]);
 
-  // surface ground truth ===============================================
+  // layers ===============================================
+  arg++;
+  if (!mxIsDouble(prhs[arg]))  // Must be double to allow for NaN
+  {
+    mexErrMsgTxt("usage: layers must be type double");
+  }
+  const int _num_layers = mxGetM(prhs[arg]);
+  const int _layer_length = mxGetN(prhs[arg]);
+  if (_layer_length != _col)
+  {
+    mexErrMsgTxt("usage: layers must have size(layers,2)=size(image,2)");
+  }
+  double *_layers = (double *)mxGetPr(prhs[arg]);
+  
+  // layer costs ===============================================
   arg++;
   if (!mxIsDouble(prhs[arg]))
   {
-    mexErrMsgTxt("usage: sgt must be type double");
+    mexErrMsgTxt("usage: layer costs must be type double");
   }
-  if (mxGetNumberOfElements(prhs[arg]) != _col)
+  const int _num_layer_costs = mxGetM(prhs[arg]);
+  const int _layer_costs_length = mxGetN(prhs[arg]);
+  if (_layer_costs_length != _col)
   {
-    mexErrMsgTxt("usage: sgt must have numel(sgt)=size(image,2)");
+    mexErrMsgTxt("usage: layer costs must have size(layer costs,2)=size(image,2)");
   }
-  const double *_surf_tr = mxGetPr(prhs[arg]);
-
-  // extra ground truth =================================================
+  if (_num_layer_costs != _num_layers)
+  {
+    mexErrMsgTxt("usage: layer costs must have size(layer costs,1)=size(layers,1)");
+  }
+  const double *_layer_costs = (double *)mxGetPr(prhs[arg]);
+  
+  // layer cutoffs ===============================================
   arg++;
   if (!mxIsDouble(prhs[arg]))
   {
-    mexErrMsgTxt("usage: egt must be type double");
+    mexErrMsgTxt("usage: layer cutoffs must be type double");
   }
-  const int _num_extra_tr = mxGetNumberOfElements(prhs[arg]);
-  if (_num_extra_tr % 2 != 0)
+  const int _num_layer_cutoffs = mxGetM(prhs[arg]);
+  const int _layer_cutoffs_length = mxGetN(prhs[arg]);
+  if (_layer_cutoffs_length != _col)
   {
-    mexErrMsgTxt("usage: egt size must be a multiple of 2");
+    mexErrMsgTxt("usage: layer cutoffs must have size(layer cutoffs,2)=size(image,2)");
   }
-  if (mxGetNumberOfElements(prhs[arg]) > 0)
+  if (_num_layer_cutoffs != _num_layers)
   {
-    if (mxGetNumberOfDimensions(prhs[arg]) != 2)
-    {
-      mexErrMsgTxt("usage: egt must be a 2xNgt array");
-    }
+    mexErrMsgTxt("usage: layer cutoffs must have size(layer cutoffs,1)=size(layers,1)");
   }
-  const double *t_egt = mxGetPr(prhs[arg]);
+  const double *_layer_cutoffs = (double *)mxGetPr(prhs[arg]);
 
   // mask ===============================================================
   arg++;
@@ -379,30 +412,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     _bounds[1] = _col - 1;
   }
 
-  // gt_weights ======================================================
-  arg++;
-  if (!mxIsDouble(prhs[arg]))
-  {
-    mexErrMsgTxt("usage: gt_weights must be type double");
-  }
-  if (mxGetNumberOfElements(prhs[arg]) != _col)
-  {
-    mexErrMsgTxt("usage: gt_weights must have numel(gt_weights)=size(image,2)");
-  }
-  const double *_gt_weights = mxGetPr(prhs[arg]);
-
-  // gt_cutoffs ======================================================
-  arg++;
-  if (!mxIsDouble(prhs[arg]))
-  {
-    mexErrMsgTxt("usage: gt_cutoffs must be type double");
-  }
-  if (mxGetNumberOfElements(prhs[arg]) != _col)
-  {
-    mexErrMsgTxt("usage: gt_cutoffs must have numel(gt_weights)=size(image,2)");
-  }
-  const double *_gt_cutoffs = mxGetPr(prhs[arg]);
-
   // mask_dist ==========================================================
   arg++;
   if (!mxIsDouble(prhs[arg]))
@@ -436,18 +445,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("usage: transition_weights have numel(transition_weights)=size(image,2)-1");
   }
   const double *_transition_weights = mxGetPr(prhs[arg]);
-
-  // surf_weight ===================================================
-  arg++;
-  if (!mxIsDouble(prhs[arg]) || mxGetNumberOfElements(prhs[arg]) != 1)
-  {
-    mexErrMsgTxt("usage: surf_weight must be type scalar double");
-  }
-  double _surf_weight = *(double *)mxGetPr(prhs[arg]);
-  if (_surf_weight == -1)
-  {
-    _surf_weight = SURF_WEIGHT;
-  }
 
   // mult_weight ===================================================
   arg++;
@@ -505,26 +502,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("BUG: Viterbi.cpp mex function args incorrectly ordered.");
   }
 
-  // Initialize surface layer array
-  int _sgt[_col];
-  for (int k = 0; k < _col; ++k)
+  // Account for Matlab 1-indexing
+  double _layers_indexed[_col * _num_layers];
+  for (int k = 0; k < _col * _num_layers; k++)
   {
-    _sgt[k] = (int)_surf_tr[k] - 1;  // Account for matlab 1-indexing
-  }
-
-  double _egt_x[(_num_extra_tr / 2)], _egt_y[(_num_extra_tr / 2)];
-  for (int p = 0; p < (_num_extra_tr / 2); ++p)
-  {
-    _egt_x[p] = round(t_egt[(p * 2)]) - 1;  // Account for matlab 1-indexing
-    _egt_y[p] = round(t_egt[(p * 2) + 1]) - 1;
+    _layers_indexed[k] = round(_layers[k]) - 1;
   }
 
   // Allocate output
   plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
   double *_result = mxGetPr(plhs[0]);
-  viterbi obj(_row, _col, _image, _sgt, _mask, _img_mag_weight,
-              _smooth_slope, _max_slope, _bounds, _num_extra_tr, _egt_x, _egt_y, 
-              _gt_weights, _gt_cutoffs, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, 
-              _transition_weights, _surf_weight, _mult_weight, _mult_weight_decay, 
-              _mult_weight_local_decay, _zero_bin, _result);
+  viterbi obj(_row, _col, _image, _num_layers, _layers_indexed, _layer_costs, 
+    _layer_cutoffs, _mask, _img_mag_weight, _smooth_slope, _max_slope, _bounds, 
+    _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, _transition_weights, 
+    _mult_weight, _mult_weight_decay, _mult_weight_local_decay, _zero_bin, _result);
 }
