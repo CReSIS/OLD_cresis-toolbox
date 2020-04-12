@@ -50,15 +50,14 @@ if tool_idx == 1
       auto_idxs = gt(1, 1):gt(1, end);
       x_points = gt(1, :) - gt(1,1) + 1;
       y_points = gt(2, :);
-      gt = [x_points; y_points];
+      gt = ones(1, size(auto_idxs, 2)) * NaN;
+      gt(x_points) = y_points;
       
       % Echogram Parameters
       viterbi_data   = image_c;
       mask           = inf * ones([1 Nx]);
       slope          = round(diff(surf_bins));
       bounds         = [];
-      gt_weights     = ones([1 Nx]);
-      gt_cutoffs     = ones([1 Nx]);
       mask_dist      = round(bwdist(mask == 0));
       
       %% Detrending
@@ -82,8 +81,6 @@ if tool_idx == 1
         surf_bins      = surf_bins(:, auto_idxs);
         mask           = mask(:, auto_idxs);
         mask_dist      = round(bwdist(mask == 0));
-        gt_weights     = gt_weights(:, auto_idxs);
-        gt_cutoffs     = gt_cutoffs(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
       
@@ -98,14 +95,16 @@ if tool_idx == 1
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
       % Surface and multiple suppression weights
-      surf_weight = -1;
-      mult_weight = -1;
-      mult_weight_decay = -1;
-      mult_weight_local_decay = -1;
+      surf_weight = obj.surf_weight;
+      mult_weight = obj.mult_weight;
+      mult_weight_decay = obj.mult_weight_decay;
+      mult_weight_local_decay = obj.mult_weight_local_decay;
       manual_slope = obj.transition_slope;
-      max_slope = -1;
+      max_slope = obj.max_slope;
       transition_weight = obj.transition_weight;
       image_mag_weight = obj.image_mag_weight;
+      gt_weight = obj.ground_truth_weight;
+      gt_cutoff = obj.ground_truth_cutoff;
       try
         surf_weight = str2double(obj.top_panel.surf_weight_TE.String);
       catch ME
@@ -145,16 +144,12 @@ if tool_idx == 1
       catch ME
       end
       try
-        gt_weight = str2double(obj.top_panel.ground_truth_weight_TE.String);
-        gt_weights = gt_weights * gt_weight;
+        gt_weight = -str2double(obj.top_panel.ground_truth_weight_TE.String);
       catch ME
-        gt_weights = gt_weights * obj.ground_truth_weight;
       end
       try
         gt_cutoff  = str2double(obj.top_panel.ground_truth_cutoff_TE.String);
-        gt_cutoffs = gt_cutoffs * gt_cutoff;
       catch ME
-        gt_cutoffs = gt_cutoffs * obj.ground_truth_cutoff;
       end
 
       % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
@@ -165,12 +160,26 @@ if tool_idx == 1
         slope = manual_slope;
       end
 
+      layers = [surf_bins; gt];
+      gt_costs = ones(1, size(viterbi_data, 2))*NaN;
+      gt_costs(x_points) = gt_weight;
+      layer_costs = [
+        ones(1, size(viterbi_data, 2))*surf_weight;
+        gt_costs
+      ];
+      gt_cutoffs = ones(1, size(viterbi_data, 2))*NaN;
+      gt_cutoffs(x_points) = gt_cutoff;
+      layer_cutoffs = [
+        ones(1, size(viterbi_data, 2))*NaN;
+        gt_cutoffs
+      ];
+
       tic
-      y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
-        double(gt), double(mask), double(image_mag_weight), double(slope), double(max_slope), ...
-        int64(bounds), double(gt_weights), double(gt_cutoffs), double(mask_dist), double(DIM_costmatrix), ...
-        double(transition_weights), double(surf_weight), double(mult_weight), ...
-        double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
+      y_new = tomo.viterbi(double(viterbi_data), double(layers), double(layer_costs), ...
+        double(layer_cutoffs), double(mask), double(image_mag_weight), double(slope), ...
+        double(max_slope), int64(bounds), double(mask_dist), double(DIM_costmatrix), ...
+        double(transition_weights), double(mult_weight), double(mult_weight_decay), ...
+        double(mult_weight_local_decay), int64(zero_bin));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       

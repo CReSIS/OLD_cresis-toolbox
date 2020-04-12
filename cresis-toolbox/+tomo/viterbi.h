@@ -15,14 +15,12 @@
 #include <cmath>
 #include <limits>
 
-// Weight for being in surface bin
-const double SURF_WEIGHT = 1000;
 // Weight for being in first multiple bin
 const double MULT_WEIGHT = 100;
 // Weight decay for subsequent multiples
 const double MULT_WEIGHT_DECAY = .4;
 // Weight decay for subsequent bins from nearest multiple
-const double MULT_WEIGHT_LOCAL_DECAY = .9;
+const double MULT_WEIGHT_LOCAL_DECAY = .8;
 // Large cost
 const double LARGE = 1000000000;
 

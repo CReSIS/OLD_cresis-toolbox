@@ -70,7 +70,7 @@ classdef picktool_viterbi < imb.picktool
       obj.rep_sv = .5;
       obj.cur_mode = 1;
       
-      obj.surf_weight = 10000;
+      obj.surf_weight = 1000;
       obj.mult_weight = 100;
       obj.mult_weight_decay = .4;
       obj.mult_weight_local_decay = .8;
