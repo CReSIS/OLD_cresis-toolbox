@@ -153,15 +153,15 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   
   Nx = size(big_matrix.Data, 2);
   slope = round(diff(surf_bins));
-  surf_weight = -1;
+  surf_weight = 1000;
   mult_weight = -1;
   mult_weight_decay = -1;
   mult_weight_local_decay = -1;
   max_slope = -1;
   manual_slope = 0;
   image_mag_weight = 1;
-  gt_weights = ones([1 Nx]);
-  gt_cutoffs = ones([1 Nx]);
+  gt_weight = 1;
+  gt_cutoff = -1;
   transition_weight = 1;
 
   try
@@ -204,12 +204,10 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   end
   try
     gt_weight = param.layer_tracker.track.viterbi.gt_weight;
-    gt_weights = gt_weights * gt_weight;
   catch ME
   end
   try
     gt_cutoff = param.layer_tracker.track.viterbi.gt_cutoff;
-    gt_cutoffs = gt_cutoffs * gt_cutoff;
   catch ME
   end
   
@@ -342,12 +340,26 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   if param.layer_tracker.track.debug
     fprintf('\nProceeding with Viterbi call... ');
   end
+  
+  gt_layer = ones(1, size(surf_bins, 2)) * NaN;
+  gt_layer(gt(1, :)) = gt(2, :);
+  layers = [surf_bins; gt_layer];
+  
+  surf_costs = ones(1, size(surf_bins, 2)) * surf_weight;
+  gt_costs = ones(1, size(surf_bins, 2)) * -gt_weight;
+  layer_costs = [surf_costs; gt_costs];
+  
+  surf_cutoffs = ones(1, size(surf_bins, 2)) * -1;
+  gt_cutoffs = ones(1, size(surf_bins, 2)) * -gt_cutoff;
+  layer_cutoffs = [surf_cutoffs; gt_cutoffs];
+    
   viterbi_tic = tic;
 
-  labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
-    double(gt), double(ice_mask.mask), double(image_mag_weight), double(slope), double(max_slope), ...
-    int64(bounds), double(gt_weights), double(gt_cutoffs), double(ice_mask.mask_dist), double(DIM_costmatrix), ...
-    double(transition_weights), double(surf_weight), double(mult_weight), ...
+  labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(layers), ...
+    double(layer_costs), double(layer_cutoffs), double(ice_mask.mask), ...
+    double(image_mag_weight), double(slope), double(max_slope), ...
+    int64(bounds), double(ice_mask.mask_dist), double(DIM_costmatrix), ...
+    double(transition_weights), double(mult_weight), ...
     double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
 
   viterbi_toc = toc(viterbi_tic);
