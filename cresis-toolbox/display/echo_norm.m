@@ -6,18 +6,18 @@ function data = echo_norm(mdata, param)
 %
 % INPUTS:
 %
-% data = 2D input data matrix (linear power)
+% data = 2D input data matrix (log power)
 %
 % param: struct controlling how the normalization is done
 %
 % OUTPUTS:
 %
-% data: normalized input
+% data: normalized input (log power normalized)
 %
 % Examples:
 %
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
-% mdata = load(fn);
+% mdata = load(fn); mdata.Data = 10*log10(mdata.Data);
 %
 % imagesc(echo_norm(mdata)); colorbar; caxis([0 1]);
 %
@@ -46,12 +46,17 @@ end
 
 
 % Estimate the noise
-noise = db(mean(echo_noise(mdata, param)),'power');
+if isstruct(mdata)
+  mdata.Data = 10.^(mdata.Data/10);
+  noise = 10*log10(mean(echo_noise(mdata, param)));
+else
+  noise = 10*log10(mean(echo_noise(10.^(mdata/10), param)));
+end
 
 % Determine max of data
 max_scalar = min(noise+param.valid_max_range_dB(2), ...
   max(noise+param.valid_max_range_dB(1), ...
-  db(max(data(:)),'power')));
+  max(data(:))));
 
 % Scale and offset data
-data = param.scale(1) + (db(data,'power')-noise) / (max_scalar - noise) * param.scale(2);
+data = param.scale(1) + (data-noise) / (max_scalar - noise) * param.scale(2);

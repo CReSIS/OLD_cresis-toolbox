@@ -5,19 +5,19 @@ function data = echo_xcorr(data, param)
 %
 % INPUTS:
 %
-% data = 2D input data matrix (linear power)
+% data = 2D input data matrix (log power)
 %
 % param: struct controlling how the cross correlation is done
 %
 %
 % OUTPUTS:
 %
-% data: detrended input
+% data: detrended input (log power)
 %
 % Examples:
 %
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
-% mdata = load(fn);
+% mdata = load(fn); mdata.Data = 10*log10(mdata.Data);
 %
 % imagesc(echo_xcorr(mdata));
 %
@@ -57,8 +57,8 @@ if ~isfield(param,'h_filt_offset') || isempty(param.h_filt_offset)
 end
 
 %% Fast-time correlation in log domain
-data = filter(param.h_filt,1,db(data,'power'));
+data = filter(param.h_filt,1,data);
 data = circshift(data,[param.h_filt_offset 0]);
 data(1:length(param.h_filt),:) = NaN;
 data(end-length(param.h_filt)+1:end,:) = NaN;
-data = interp_finite(data);
+data = interp_finite(data,0);

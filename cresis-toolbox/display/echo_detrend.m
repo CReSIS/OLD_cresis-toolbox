@@ -6,7 +6,7 @@ function data = echo_detrend(mdata, param)
 %
 % INPUTS:
 %
-% data = 2D input data matrix (linear power)
+% data = 2D input data matrix (log power)
 %
 % param: struct controlling how the detrending is done
 %  .units: units of the data, string containing 'l' (linear power) or 'd' (dB
@@ -37,21 +37,21 @@ function data = echo_detrend(mdata, param)
 %
 % OUTPUTS:
 %
-% data: detrended input
+% data: detrended input (log power)
 %
 % Examples:
 %
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
-% mdata = load(fn);
+% mdata = load(fn); mdata.Data = 10*log10(mdata.Data);
 %
-% imagesc(lp(echo_detrend(mdata)));
+% imagesc(echo_detrend(mdata));
 %
 % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
-% imagesc(lp(echo_detrend(mdata, struct('method','polynomial','layer_top',surface,'layer_bottom',bottom))));
+% imagesc(echo_detrend(mdata, struct('method','polynomial','layer_top',surface,'layer_bottom',bottom)));
 % 
-% imagesc(lp(echo_detrend(mdata, struct('method','tonemap'))));
+% imagesc(echo_detrend(mdata, struct('method','tonemap')));
 % 
-% imagesc(lp(echo_detrend(mdata, struct('method','local','filt_len',[51 101]))));
+% imagesc(echo_detrend(mdata, struct('method','local','filt_len',[51 101])));
 %
 % Author: John Paden
 
@@ -76,6 +76,7 @@ switch param.method
     end
     Nt = size(data,1);
     Nx = size(data,2);
+    data = 10.^(data/10);
     if param.filt_len(1) < Nt
       trend = nan_fir_dec(data.',ones(1,param.filt_len(1))/param.filt_len(1),1).';
     else
@@ -86,10 +87,11 @@ switch param.method
     else
       trend = repmat(nan_mean(trend,2), [Nx 1]);
     end
-    data = data ./ trend;
+    data = 10*log10(data ./ trend);
     
   case 'mean'
-    data = bsxfun(@times,data,1./mean(data,2));
+    data = 10.^(data/10);
+    data = 10*log10(bsxfun(@times,data,1./mean(data,2)));
     
   case 'polynomial'
     Nt = size(data,1);
@@ -97,16 +99,20 @@ switch param.method
     if ~isfield(param,'order') || isempty(param.order)
       param.order = 2;
     end
-    if any(param.layer_bottom<1)
+    if all(isnan(param.layer_bottom))
+      param.layer_bottom(:) = Nt;
+    elseif any(param.layer_bottom<1)
       % layer is two way travel time
       if isstruct(mdata)
-        param.layer_bottom = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_bottom,'linear','extrap'),1));
+        param.layer_bottom = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_bottom,'linear','extrap'),Nt));
       end
     end
-    if any(param.layer_top<1)
+    if all(isnan(param.layer_top))
+      param.layer_top(:) = 1;
+    elseif any(param.layer_top<1)
       % layer is two way travel time
       if isstruct(mdata)
-        param.layer_top = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_top,'linear','extrap'),Nt));
+        param.layer_top = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_top,'linear','extrap'),1));
       end
     end
     
@@ -115,11 +121,19 @@ switch param.method
     for rline = 1:Nx
       bins = max(1,min(Nt,param.layer_top(rline))):max(1,min(Nt,param.layer_bottom(rline)));
       mask(bins,rline) = true;
-      x_axis(bins,rline) = (bins - param.layer_top(rline)) / (param.layer_bottom(rline) - param.layer_top(rline));
+      if param.layer_bottom(rline) - param.layer_top(rline) > 0
+        x_axis(bins,rline) = (bins - param.layer_top(rline)) / (param.layer_bottom(rline) - param.layer_top(rline));
+      else
+        x_axis(bins,rline) = 0;
+      end
     end
     
     % Find the polynomial coefficients
-    detrend_poly = polyfit(x_axis(mask),lp(data(mask)), param.order);
+    detrend_poly = polyfit(x_axis(mask),data(mask), param.order);
+    if sum(mask(:))-Nx < 3*param.order
+      % Insufficient data to estimate polynomial
+      return;
+    end
     
     trend = zeros(Nt,1);
     for rline = 1:Nx
@@ -136,11 +150,11 @@ switch param.method
       if 0
         %% Debug plots
         figure(1); clf;
-        plot(lp(data(:,rline)));
+        plot(data(:,rline));
         hold on;
         plot(trend);
       end
-      data(:,rline) = data(:,rline) ./ 10.^(trend/10);
+      data(:,rline) = data(:,rline) - trend;
     end
     
   case 'tonemap'

@@ -5,16 +5,17 @@ function data = echo_mult_suppress(mdata, layer, param)
 %
 % INPUTS:
 %
-% mdata = echogram struct from qlook.m or array.m. Must include .Data,
-% .Roll, and .Time fields. If layer not passed in, then it must include the
-% param field (param_qlook or param_array) and .GPS_time.
+% mdata = echogram struct from qlook.m or array.m. Echogram should be
+% linear power. Struct must include .Data, .Roll, and .Time fields. If layer not
+% passed in, then it must include the param field (param_qlook or
+% param_array) and .GPS_time.
 %
 % param: struct controlling how the surface multiple suppression is done
 %
 % OUTPUTS:
 %
 % data: surface multiple suppressed input (2D matrix the same size as
-% mdata.Data)
+% mdata.Data), linear power
 %
 % Examples:
 %
@@ -24,34 +25,6 @@ function data = echo_mult_suppress(mdata, layer, param)
 % imagesc(lp(echo_mult_suppress(mdata)));
 %
 % Author: John Paden
-
-if 0
-  %% Debug test code
-  fns = {};
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140325_07/Data_img_02_20140325_07_004.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140429_01/Data_20140429_01_045.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_015.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_016.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_017.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140505_01/Data_20140505_01_016.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140505_01/Data_20140505_01_017.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140505_01/Data_20140505_01_018.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140505_01/Data_20140505_01_019.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140502_01/Data_20140502_01_041.mat';
-  fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140502_01/Data_20140502_01_042.mat';
-
-  for fn_idx = 1:length(fns)
-    mdata = load(fns{fn_idx});
-    figure(1); clf;
-    imagesc(lp(mdata.Data));
-    figure(2); clf;
-    imagesc(lp(echo_mult_suppress(mdata)));
-    link_figures([1 2]);
-    fprintf('%s\n', fns{fn_idx});
-    pause;
-  end
-end
 
 %% Input checks
 
@@ -81,7 +54,7 @@ end
 if ~isfield(param,'est_value_filter') || isempty(param.est_value_filter)
   param.est_value_filter = [0 1 2 2 2 2 1];
   %param.est_value_filter = [linspace(0,2,3+5) 2 2 2 1 zeros(1,5)]; % Longer tail
-  param.est_value_filter = 10 * param.est_value_filter/sum(param.est_value_filter);
+  param.est_value_filter = 20 * param.est_value_filter/sum(param.est_value_filter);
 end
 est_value_filter = param.est_value_filter;
 
