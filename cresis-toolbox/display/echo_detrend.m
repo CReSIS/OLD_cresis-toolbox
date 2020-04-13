@@ -1,117 +1,157 @@
-function data = local_detrend(data, B_noise, B_sig, cmd, minVal)
-% data = local_detrend(data, B_noise, B_sig, cmd, minVal)
+function data = echo_detrend(mdata, param)
+% data = echo_detrend(mdata, param)
+%
+% The trend of the data is estimated using various methods and this trend
+% is removed from the data.
+%
+% INPUTS:
 %
 % data = 2D input data matrix (linear power)
-% B_noise = 2x1 vector giving size of noise window
-%   B_noise(1) = row/first-dim size
-%   B_noise(2) = col/second-dim size
-% B_sig = 2x1 vector giving size of signal window
-%   B_sig(1) = row/first-dim size
-%   B_sig(2) = col/second-dim size
-% cmd = scalar command to combine estimates
-%   0: does nothing at all (no filtering or power detection)
-%   1: combine with max
-%   2: combine with min
-%   3: use just method 1 [default]
-%   4: use just method 2
-%   5: use no detrend, but filters
-% minVal = scalar minimum value of detrend [-inf default]
-%   Units of dB (so 10*log10(data))
 %
-% This local detrend function combines to noise power
-% estimates:
-% 1. average power for each bin (mean on second dimension)
-% 2. average power from noise window (mean from filter2)
-% The signal power is then scaled relative to the noise power.
+% param: struct controlling how the detrending is done
+%  .units: units of the data, string containing 'l' (linear power) or 'd' (dB
+%  log power)
 %
-% imagesc(10*log10(local_detrend(data,[80 20], [4 2])));
+%  .method: string indicating the method. The methods each have their own
+%  parameters
 %
-% imagesc(10*log10(local_detrend(data,[80 20], [4 2], , 220)));
+%   'local': takes a local mean to determine the trend
+%     .filt_len: 2 element vector of positive integers indicating the size of
+%     the trend estimation filter where the first element is the boxcar
+%     filter length in fast-time (row) and the second element is the boxcar
+%     filter length in slow-time (columns). Elements must be odd since
+%     fir_dec used. Elements can be greater than the corresponding
+%     dimensions Nt or Nx in which case an ordinary mean is used in that
+%     dimension.
 %
-% Look into:
-% Data = tonemap(repmat(Data,[1 1 3]), 'AdjustLightness', [0.1 1], 'AdjustSaturation', 1.5);
-% Data = Data(:,:,2);
+%   'mean': takes the mean in the along-track and averages this in the
+%   cross-track. This is the default method.
+%
+%   'polynomial': polynomial fit to data between two layers, outside of the
+%   region between the two layers uses nearest neighborhood interpolation
+%     .layer_bottom: bottom layer
+%     .layer_top: top layer
+%     .order: nonnegative integer scalar indicating polynomial order
+%
+%   'tonemap': uses Matlab's tonemap command
+%
+% OUTPUTS:
+%
+% data: detrended input
+%
+% Examples:
+%
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
+% mdata = load(fn);
+%
+% imagesc(lp(echo_detrend(mdata)));
+%
+% [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
+% imagesc(lp(echo_detrend(mdata, struct('method','polynomial','layer_top',surface,'layer_bottom',bottom))));
+% 
+% imagesc(lp(echo_detrend(mdata, struct('method','tonemap'))));
+% 
+% imagesc(lp(echo_detrend(mdata, struct('method','local','filt_len',[51 101]))));
+%
+% Author: John Paden
 
-debug_level = 1;
-
-if ~exist('cmd','var') || isempty(cmd)
-  cmd = 3;
-end
-if ~exist('minVal','var') || isempty(minVal)
-  minVal = -inf;
-end
-if ~exist('B_noise','var') || isempty(B_noise)
-  B_noise = [1 1];
-end
-if ~exist('B_sig','var') || isempty(B_sig)
-  B_sig = [1 10];
-end
-
-if cmd == 0
-  return;
-end
-
-if cmd == 5
-  data = filter2(ones(B_sig(1),B_sig(2))/(B_sig(1)*B_sig(2)),data);
-  return;
-end
-
-% Prevent log function from returning -inf
-data(data==0) = min(data(data>0));
-
-% Detrend method 1
-detrend1 = mean(data,2);
-filter_length = ceil(size(data,1)/25);
-detrend1_tmp = 10*log10(filter(exp(-(linspace(-2,2,filter_length)).^2),1,detrend1));
-detrend1(1:ceil(filter_length/2)) = detrend1_tmp(filter_length);
-detrend1(floor(filter_length/2)+1:end-ceil(filter_length/2)) = detrend1_tmp(filter_length+1:end);
-detrend1(end-ceil(filter_length/2)+1:end) = detrend1_tmp(end);
-
-% [B,A] = butter(2,1/(0.05*size(data,1)));
-% detrend1 = filtfilt(B,A,10*log10(detrend1));
-if debug_level == 2
-  figure(1); clf;
-  plot(detrend1);
-end
-detrend1 = repmat(detrend1,[1 size(data,2)]);
-
-if cmd == 1 || cmd == 2 || cmd == 4
-  % Detrend method 2
-  detrend2 = filter2(ones(B_noise(1),B_noise(2))/(B_noise(1)*B_noise(2)),data);
-  %detrend2 = medfilt2(data,[B_noise(1),B_noise(2)]);
-  detrend2 = 10*log10(detrend2);
-  if debug_level == 2
-    figure(1); clf;
-    imagesc(detrend2);
-    colorbar;
-  end
+if isstruct(mdata)
+  data = mdata.Data;
+else
+  data = mdata;
 end
 
-% Detrend methods combined
-switch cmd
-  case 1
-    detrendc = max(detrend1,detrend2);
-  case 2
-    detrendc = min(detrend1,detrend2);
-  case 3
-    detrendc = detrend1;
-  case 4
-    detrendc = detrend2;
+if ~exist('param','var') || isempty(param)
+  param = [];
+end
+
+if ~isfield(param,'method') || isempty(param.method)
+  param.method = 'mean';
+end
+
+switch param.method
+  case 'local'
+    if ~isfield(param,'filt_len') || isempty(param.filt_len)
+      param.filt_len = [21 51];
+    end
+    Nt = size(data,1);
+    Nx = size(data,2);
+    if param.filt_len(1) < Nt
+      trend = nan_fir_dec(data.',ones(1,param.filt_len(1))/param.filt_len(1),1).';
+    else
+      trend = repmat(nan_mean(data,1), [Nt 1]);
+    end
+    if param.filt_len(2) < Nx
+      trend = nan_fir_dec(trend,ones(1,param.filt_len(2))/param.filt_len(2),1);
+    else
+      trend = repmat(nan_mean(trend,2), [Nx 1]);
+    end
+    data = data ./ trend;
+    
+  case 'mean'
+    data = bsxfun(@times,data,1./mean(data,2));
+    
+  case 'polynomial'
+    if ~isfield(param,'order') || isempty(param.order)
+      param.order = 2;
+    end
+    if any(param.layer_bottom<1)
+      % layer is two way travel time
+      if isstruct(mdata)
+        param.layer_bottom = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_bottom,'linear','extrap'),0));
+      end
+    end
+    if any(param.layer_top<1)
+      % layer is two way travel time
+      if isstruct(mdata)
+        param.layer_top = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_top,'linear','extrap'),0));
+      end
+    end
+    
+    Nt = size(data,1);
+    Nx = size(data,2);
+    mask = false(size(data));
+    x_axis = nan(size(data));
+    for rline = 1:Nx
+      bins = max(1,min(Nt,param.layer_top(rline))):max(1,min(Nt,param.layer_bottom(rline)));
+      mask(bins,rline) = true;
+      x_axis(bins,rline) = (bins - param.layer_top(rline)) / (param.layer_bottom(rline) - param.layer_top(rline));
+    end
+    
+    % Find the polynomial coefficients
+    detrend_poly = polyfit(x_axis(mask),lp(data(mask)), param.order);
+    
+    trend = zeros(Nt,1);
+    for rline = 1:Nx
+      % Section 2: Evaluate the polynomial
+      bins = max(1,min(Nt,param.layer_top(rline))):max(1,min(Nt,param.layer_bottom(rline)));
+      trend(bins) = polyval(detrend_poly,x_axis(bins,rline));
+      
+      % Section 1: Constant
+      trend(1:bins(1)-1) = trend(bins(1));
+      
+      % Section 3: Constant
+      trend(bins(end):end) = trend(bins(end));
+      
+      if 0
+        %% Debug plots
+        figure(1); clf;
+        plot(lp(data(:,rline)));
+        hold on;
+        plot(trend);
+      end
+      data(:,rline) = data(:,rline) ./ 10.^(trend/10);
+    end
+    
+  case 'tonemap'
+    tmp = [];
+    tmp(:,:,1) = abs(data);
+    tmp(:,:,2) = abs(data);
+    tmp(:,:,3) = abs(data);
+    % for generating synthetic HDR images
+    data = tonemap(tmp, 'AdjustLightness', [0.1 1], 'AdjustSaturation', 1.5);
+    data = single(data(:,:,2));
+   
   otherwise
-    warning('Invalid command (using default of 1)');
-    detrendc = max(detrend1,detrend2);
+    error('Invalid param.method %s.', param.method);
 end
-
-% The detrend normalizes the data, this limits the
-% normalization (noise powers below the threshold
-% won't be normalized more than the threshold)
-detrendc(detrendc<minVal) = minVal;
-
-% Convert back to linear power scale
-detrendc = 10.^(detrendc/10);
-
-% Filter to find signal power and apply detrend
-data = filter2(ones(B_sig(1),B_sig(2))/(B_sig(1)*B_sig(2)),data)./detrendc;
-%data = medfilt2(data,[B_sig(1),B_sig(2)])./detrendc;
-
-return;

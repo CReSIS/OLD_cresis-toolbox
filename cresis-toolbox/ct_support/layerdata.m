@@ -1166,4 +1166,22 @@ classdef layerdata < handle
     
   end
   
+  %% Static Methods
+  methods(Static)
+    %% load_layers: load list of layers
+    % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
+    % mdata = load(fn);
+    % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
+    function varargout = load_layers(mdata,layerdata_source,varargin)
+      layers = layerdata(echo_get_param(mdata),layerdata_source);
+      
+      try
+        for idx = 1:nargin-1
+          varargout{idx} = layers.get_layer_by_gps_time(mdata.GPS_time,varargin{idx});
+        end
+      end
+      delete(layers);
+    end
+  end
+  
 end
