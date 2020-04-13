@@ -92,24 +92,24 @@ switch param.method
     data = bsxfun(@times,data,1./mean(data,2));
     
   case 'polynomial'
+    Nt = size(data,1);
+    Nx = size(data,2);
     if ~isfield(param,'order') || isempty(param.order)
       param.order = 2;
     end
     if any(param.layer_bottom<1)
       % layer is two way travel time
       if isstruct(mdata)
-        param.layer_bottom = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_bottom,'linear','extrap'),0));
+        param.layer_bottom = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_bottom,'linear','extrap'),1));
       end
     end
     if any(param.layer_top<1)
       % layer is two way travel time
       if isstruct(mdata)
-        param.layer_top = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_top,'linear','extrap'),0));
+        param.layer_top = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_top,'linear','extrap'),Nt));
       end
     end
     
-    Nt = size(data,1);
-    Nx = size(data,2);
     mask = false(size(data));
     x_axis = nan(size(data));
     for rline = 1:Nx

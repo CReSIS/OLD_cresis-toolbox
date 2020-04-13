@@ -124,8 +124,7 @@ end
 
 if ~exist('layer','var') || isempty(layer)
   if isstruct(mdata)
-    param = echo_get_param(mdata);
-    layers = layerdata(mdata);
+    layers = layerdata(echo_get_param(mdata));
     layer = layers.get_layer_by_gps_time(mdata.GPS_time,'surface');
   else
     error('Layer must be defined if mdata is not an echogram struct since this echogram struct is used to load the default surface layer.');
@@ -170,13 +169,13 @@ end
 if param.window_units == 's'
   if isstruct(mdata)
     dt = mdata.Time(2) - mdata.Time(1);
-    bins = round(param.window / dt);
-    bins = bins(1):bins(end);
     % window: two elements vector of window relative to layer to obtain
     % statistics
     if ~isfield(param,'window') || isempty(param.window)
       param.window = [-dt; dt];
     end
+    bins = round(param.window / dt);
+    bins = bins(1):bins(end);
     % neighbor_window: scalar numeric indicating the size of the
     % neighborhood power estimate (this window is relative to the start and
     % end of the "window" that is used to get the layer power).
@@ -188,10 +187,10 @@ if param.window_units == 's'
     error('If param.window_units is "s", mdata must be an echogram struct since this echogram struct is used to determine the window.');
   end
 else
-  bins = param.window(1):param.window(end);
   if ~isfield(param,'window') || isempty(param.window)
     param.window = [-1; 1];
   end
+  bins = param.window(1):param.window(end);
   if ~isfield(param,'neighbor_window') || isempty(param.neighbor_window)
     param.neighbor_window = 1;
   end
