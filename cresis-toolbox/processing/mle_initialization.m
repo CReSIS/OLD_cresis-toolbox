@@ -39,7 +39,7 @@ function out = mle_initialization(DCM,param)
 %
 % See Also:  array_proc.m, mle_cost_function.m, mle_compute_cost.cpp
 % =========================================================================
-physical_constants
+c = 2.997924580003452e+08; % physical_constants too slow
 
 k = 4*pi*param.fc/c;
 M = param.Nsrc;
