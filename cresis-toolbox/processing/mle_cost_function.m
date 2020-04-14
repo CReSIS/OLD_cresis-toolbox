@@ -28,7 +28,7 @@ function val = mle_cost_function(theta, param)
 % See also:  array_proc.m, mle_compute_cost.m, mle_initialization.m
 % =========================================================================
 
-physical_constants
+c = 2.997924580003452e+08; % physical_constants too slow
 
 if ~isfield(param,'proj_mtx_update')
   param.proj_mtx_update = false;
