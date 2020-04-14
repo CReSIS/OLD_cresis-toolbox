@@ -14,7 +14,7 @@ fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
 param_override = []; % X
 param_override.cluster.type = 'torque'; % X
 
-param_override.cpu_time = 2*3600; % X
+param_override.cpu_time = 2*3601; % X
 
 %% Fig 2 Wax and Ziskind 1988
 % =======================================================================
