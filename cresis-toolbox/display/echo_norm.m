@@ -21,6 +21,8 @@ function data = echo_norm(mdata, param)
 %
 % imagesc(echo_norm(mdata)); colorbar; caxis([0 1]);
 %
+% imagesc(echo_norm(mdata,struct('scale',[25 255]))); colorbar; caxis([0 1]);
+%
 % Author: John Paden
 
 if isstruct(mdata)

@@ -110,7 +110,7 @@ if ~any(strcmpi(copy_param.copy_method,{'fillgaps','overwrite','merge'}))
 end
 
 if ~any(strcmpi(copy_param.gaps_fill.method,{'preserve_gaps','interp_finite'}))
-  error('Invalid gap_fill.method %s', copy_param.gap_fill.method);
+  error('Invalid gap_fill.method %s', copy_param.gaps_fill.method);
 end
 
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps') ...

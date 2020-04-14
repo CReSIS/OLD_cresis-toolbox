@@ -54,10 +54,10 @@ end
 
 % Filter along first dimension (fast-time)
 if filt_len(1) ~= 1 
-  data = fir_dec(data.',ones(1,filt_len(1))/filt_len(1),1).';
+  data = nan_fir_dec(data.',ones(1,filt_len(1))/filt_len(1),1,[],[],[],[],2.0).';
 
 end
 % Filter along second dimension (slow-time)
 if filt_len(2) ~= 1 
-  data = fir_dec(data,ones(1,filt_len(2))/filt_len(2),1);
+  data = nan_fir_dec(data,ones(1,filt_len(2))/filt_len(2),1,[],[],[],[],2.0);
 end

@@ -1,52 +1,40 @@
 function labels = tracker_lsm_track(data,param)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
-% Load one frame at a time
-frm = param.layer_tracker.tracker.frm;
-   lsm_tic = tic;
-
-%   if isfield(param.layer_tracker.track.lsm, 'surf_layer_params') && ~isempty(param.layer_tracker.track.lsm.surf_layer_params)
-%     surf_layer_params = param.layer_tracker.track.lsm.surf_layer_params;
-%   else
-%     surf_layer_params = [];
-%   end
+% labels = tracker_lsm_track(data,param)
 %
-%   if isfield(param.layer_tracker.track.lsm, 'bot_layer_params') && ~isempty(param.layer_tracker.track.lsm.bot_layer_params)
-%     bot_layer_params = param.layer_tracker.track.lsm.bot_layer_params;
-%   else
-%     bot_layer_params = [];
-%   end
+% data: echogram image
 %
-%   try
-%     Surface = opsLoadLayers(param,surf_layer_params);
-%     Bottom = opsLoadLayers(param,bot_layer_params);
-%   catch ME
-%     warning(ME.getReport);
-%     keyboard
-%   end
+% labels: 2*N_iter by Nx array of layers. First N_iter layers are the
+% surface and the second N_iter layers are the bottom.
 
-obj          = tomo.LSMObject_tuning({lp(data.Data)});
-obj.setLSMOptions('y', param.layer_tracker.track.lsm.y, 'dy', param.layer_tracker.track.lsm.dy, 'outerIter', param.layer_tracker.track.lsm.numOuterIter);
+% Create LSM object and pass in data
+obj = tomo.LSMObject_tuning({data});
 
+% Set parameters
+obj.setLSMOptions('y', param.layer_tracker.track.lsm.y, ...
+  'dy', param.layer_tracker.track.lsm.dy, ...
+  'storeIter', param.layer_tracker.track.lsm.storeIter, ...
+  'outerIter', max(param.layer_tracker.track.lsm.storeIter));
+
+% Run LSM
 [flag, Labels.top, Labels.bot, matrix_x, matrix_y] = obj.runLSM();
-temp = size(matrix_y,3);
-for i =1:2
-  for idx = 1:temp
+
+% Interpolate contour outputs to image columns
+% Nx: Number of image columns
+Nx = size(data,2);
+% N_iter: Number of iterations stored by LSM
+N_iter = length(param.layer_tracker.track.lsm.storeIter);
+% Preallocate output
+labels = nan(N_iter,Nx);
+
+labels_idx = 0;
+for layer_idx = 1:2 % [surface bottom]
+  for iter_idx = 1:N_iter % Stored iterations
     try
-      matrix_y(i,:,idx) = interp1(matrix_x(i,:,idx),matrix_y(i,:,idx),1:length(data.Bottom),'linear','extrap');
+      labels_idx = labels_idx + 1;
+      labels(labels_idx,:) = interp1(matrix_x(layer_idx,:,iter_idx),matrix_y(layer_idx,:,iter_idx),1:Nx,'linear','extrap');
     catch ME
-      flag(idx) = 0;
+      warning('LSM contour failed to produce a layer for layer %d iteration %d.', layer_idx, iter_idx);
       continue
     end
   end
 end
-
-
-%   lsm_toc = toc(lsm_tic);
-%   figure; imagesc(lp(data.Data)); colormap(1 - gray(256)); hold on;
-%   plot(matrix_y(1,:,temp), 'g'); plot(matrix_y(2,:,temp), 'r');
-%   legend('Ice-surface', 'Ice-bottom');
-%   keyboard
-  
-  labels = matrix_y;
-
