@@ -25,7 +25,11 @@ for chain_idx = 1:length(chain_fns)
   chain_id = str2double(chain_id);
   chain_ids(chain_idx) = chain_id;
   finfo = dir(chain_fns{chain_idx});
-  time_stamps(chain_idx) = finfo.datenum;
+  if isempty(finfo)
+    time_stamps(chain_idx) = NaN;
+  else
+    time_stamps(chain_idx) = finfo.datenum;
+  end
 end
 
 [~,chain_sorted_idxs] = sort(time_stamps);
