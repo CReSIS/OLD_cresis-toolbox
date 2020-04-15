@@ -28,12 +28,6 @@ set(obj.h_fig,'Position',[0 0 obj.w obj.h]);
 %set(obj.top_panel.handle,'visible','on');
 %set(obj.bottom_panel.handle,'visible','off');
 
-if ~obj.first_time
-  figure(obj.h_fig);
-  clf;
-  obj.table = [];
-end
-
 %==========================================================================
 % top panel
 obj.top_panel.handle = uipanel('Parent',obj.h_fig);
@@ -55,7 +49,7 @@ obj.table.height_margin(row,col) = 0;
 clear row col
 table_draw(obj.table);
 
-%============================================================================================
+%==========================================================================
 % top panel table contents
 
 % 
@@ -93,7 +87,7 @@ set(obj.top_panel.snake_range_TE,'Style','edit');
 set(obj.top_panel.snake_range_TE,'String',obj.sn_rng_sv);
 set(obj.top_panel.snake_range_TE,'TooltipString','During auto-snake (ALT left click and drag), snake will search +/- this many bins for the peak intensity.');
 
-%---------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 % set up top panel table
 obj.top_panel.table.ui=obj.top_panel.handle;
 obj.top_panel.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be

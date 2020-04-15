@@ -9,7 +9,6 @@ function data = echo_xcorr(data, param)
 %
 % param: struct controlling how the cross correlation is done
 %
-%
 % OUTPUTS:
 %
 % data: detrended input (log power)
@@ -28,6 +27,10 @@ function data = echo_xcorr(data, param)
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('long_unitstep')));
 %
 % Author: John Paden
+%
+% See also: echo_detrend, echo_filt, echo_mult_suppress, echo_noise,
+% echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
+% echo_xcorr_profile
 
 %% Input checks
 

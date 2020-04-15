@@ -1,5 +1,5 @@
-function ctrl_chain = layer_tracker_2D(param,param_override)
-% ctrl_chain = layer_tracker_2D(param,param_override)
+function [ctrl_chain,param] = layer_tracker_2D(param,param_override)
+% [ctrl_chain,param] = layer_tracker_2D(param,param_override)
 %
 % Check input parameters and create tasks for layer_tracker.
 % layer_tracker_task does the actual tracking.
@@ -103,164 +103,165 @@ end
 % ======================================================================
 
 if ~isfield(param.layer_tracker,'track') || isempty(param.layer_tracker.track)
-  param.layer_tracker.track = [];
+  param.layer_tracker.track = {};
 end
 
-method_idx = 1;
-
-track = merge_structs(param.qlook.surf,param.layer_tracker.track);
-
-% profile: default is no profile, otherwise loads preset configuration
-if ~isfield(param.layer_tracker.track,'profile') || isempty(param.layer_tracker.track.profile)
-  param.layer_tracker.track.profile = '';
-end
-
-track = merge_structs(layer_tracker_profile(param,track.profile), track);
-
-if ~isfield(track,'en') || isempty(track.en)
-  % If true, tracking will be done on this segment. If false, then no
-  % tracking is done. Default is true.
-  track.en = true;
-end
-if ~track.en
-  return;
-end
-
-if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
-  % If true, then a matrix data_noise will be created which will go through
-  % all the same operations as data except no "sidelobe" and no "feedthru"
-  % masking will be done. This is sometimes necessary to enable when
-  % sidelobe or feedthru remove too much data so that the noise estimatation
-  % process in the tracker does not function properly. Currently only
-  % tracker_threshold makes use of data_noise.
-  track.data_noise_en = false;
-end
-
-% debug_time_guard: Vertical band around layer in debug plot
-if ~isfield(track,'debug_time_guard') || isempty(track.debug_time_guard)
-  track.debug_time_guard = 50e-9;
-end
-param.layer_tracker.debug_time_guard = track.debug_time_guard;
-
-if ~isfield(track,'detrend') || isempty(track.detrend)
-  track.detrend = [];
-end
-
-if ~isfield(track,'feedthru') || isempty(track.feedthru)
-  track.feedthru = [];
-end
-
-if ~isfield(track,'filter') || isempty(track.filter)
-  track.filter = [1 1];
-end
-if length(track.filter) == 1
-  warning('Deprecated surf.filter format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
-  track.filter = [1 track.filter(1)];
-end
-if any(mod(track.filter,2) == 0)
-  error('Surface filter lengths must be odd. layer_tracker.track.filter = [%d %d].', layer_tracker.track.filter);
-end
-
-if ~isfield(track,'filter_trim') || isempty(track.filter_trim)
-  track.filter_trim = [0 0];
-end
-
-if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
-  track.fixed_value = 0;
-end
-
-if ~isfield(track,'init') || isempty(track.init)
-  track.init = [];
-end
-if ~isfield(track.init,'method') || isempty(track.init.method)
-  track.init.method = 'max';
-end
-if ~isfield(track.init,'snake_rng') || isempty(track.init.snake_rng)
-  track.init.snake_rng = [-2e-7 2e-7];
-end
-if ~isfield(track.init,'dem_layer') || isempty(track.init.dem_layer)
-  track.init.dem_layer = '';
-end
-if ~any(strcmpi(track.init.method,{'max','nan','snake','medfilt','dem'}))
-  error('Unsupported surface init method %s. Options are max, nan, snake, medfilt, or dem. max is default.', track.init.method);
-end
-if ~isfield(track.init,'max_diff') || isempty(track.init.max_diff)
-  track.init.max_diff = inf;
-end
-if ~isfield(track.init,'max_diff_method') || isempty(track.init.max_diff_method)
-  if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
-    % If the initial surface is from a dem or reference layer, the default
-    % method for outliers is to use merge_vectors to fill the outliers in.
-    track.init.max_diff_method = 'merge_vectors';
-  else
-    % Otherwise the default method is just to interpolate between the good
-    % points that exist to fill the outliers in.
-    track.init.max_diff_method = 'interp_finite';
+for track_idx = 1:length(param.layer_tracker.track)
+  
+  track = merge_structs(param.qlook.surf,param.layer_tracker.track{track_idx});
+  
+  % profile: default is no profile, otherwise loads preset configuration
+  if ~isfield(track,'profile') || isempty(track.profile)
+    track.profile = '';
   end
+  
+  track = merge_structs(layer_tracker_profile(param,track.profile), track);
+  
+  if ~isfield(track,'en') || isempty(track.en)
+    % If true, tracking will be done on this segment. If false, then no
+    % tracking is done. Default is true.
+    track.en = true;
+  end
+  if ~track.en
+    continue;
+  end
+  
+  if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
+    % If true, then a matrix data_noise will be created which will go through
+    % all the same operations as data except no "sidelobe" and no "feedthru"
+    % masking will be done. This is sometimes necessary to enable when
+    % sidelobe or feedthru remove too much data so that the noise estimatation
+    % process in the tracker does not function properly. Currently only
+    % tracker_threshold makes use of data_noise.
+    track.data_noise_en = false;
+  end
+  
+  % debug_time_guard: Vertical band around layer in debug plot
+  if ~isfield(track,'debug_time_guard') || isempty(track.debug_time_guard)
+    track.debug_time_guard = 50e-9;
+  end
+  param.layer_tracker.debug_time_guard = track.debug_time_guard;
+  
+  if ~isfield(track,'detrend') || isempty(track.detrend)
+    track.detrend = [];
+  end
+  
+  if ~isfield(track,'feedthru') || isempty(track.feedthru)
+    track.feedthru = [];
+  end
+  
+  if ~isfield(track,'filter') || isempty(track.filter)
+    track.filter = [1 1];
+  end
+  if length(track.filter) == 1
+    warning('Deprecated surf.filter format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
+    track.filter = [1 track.filter(1)];
+  end
+  if any(mod(track.filter,2) == 0)
+    error('Surface filter lengths must be odd. layer_tracker.track.filter = [%d %d].', layer_tracker.track.filter);
+  end
+  
+  if ~isfield(track,'filter_trim') || isempty(track.filter_trim)
+    track.filter_trim = [0 0];
+  end
+  
+  if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
+    track.fixed_value = 0;
+  end
+  
+  if ~isfield(track,'init') || isempty(track.init)
+    track.init = [];
+  end
+  if ~isfield(track.init,'method') || isempty(track.init.method)
+    track.init.method = 'max';
+  end
+  if ~isfield(track.init,'snake_rng') || isempty(track.init.snake_rng)
+    track.init.snake_rng = [-2e-7 2e-7];
+  end
+  if ~isfield(track.init,'dem_layer') || isempty(track.init.dem_layer)
+    track.init.dem_layer = '';
+  end
+  if ~any(strcmpi(track.init.method,{'max','nan','snake','medfilt','dem'}))
+    error('Unsupported surface init method %s. Options are max, nan, snake, medfilt, or dem. max is default.', track.init.method);
+  end
+  if ~isfield(track.init,'max_diff') || isempty(track.init.max_diff)
+    track.init.max_diff = inf;
+  end
+  if ~isfield(track.init,'max_diff_method') || isempty(track.init.max_diff_method)
+    if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
+      % If the initial surface is from a dem or reference layer, the default
+      % method for outliers is to use merge_vectors to fill the outliers in.
+      track.init.max_diff_method = 'merge_vectors';
+    else
+      % Otherwise the default method is just to interpolate between the good
+      % points that exist to fill the outliers in.
+      track.init.max_diff_method = 'interp_finite';
+    end
+  end
+  if ~any(strcmpi(track.init.max_diff_method,{'merge_vectors','interp_finite'}))
+    error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
+  end
+  
+  if ~isfield(track,'max_bin') || isempty(track.max_bin)
+    track.max_bin = inf;
+  end
+  
+  if ~isfield(track,'max_rng') || isempty(track.max_rng)
+    track.max_rng = [0 0];
+  end
+  
+  if ~isfield(track,'max_rng_units') || isempty(track.max_rng_units)
+    track.max_rng_units = 'time';
+  end
+  
+  if ~isfield(track,'medfilt') || isempty(track.medfilt)
+    % Like medfilt1 except it handles the edges of the frame better
+    track.medfilt = 0;
+  end
+  if ~isfield(track,'medfilt_threshold') || isempty(track.medfilt_threshold)
+    % medfilt_threshold: the point is compared to the medfilt1 result and if
+    % the point is > medfilt_threshold from medfilt1, then the point is
+    % replaced with the medfilt1 result. The two extremes are:
+    %   0 makes medfilt act like medfilt1
+    %   inf effectively disables the medfilt operation
+    track.medfilt_threshold = 0;
+  end
+  
+  if ~isfield(track,'method') || isempty(track.method)
+    track.method = '';
+  end
+  
+  if ~isfield(track,'min_bin') || isempty(track.min_bin)
+    track.min_bin = 0;
+  end
+  
+  if ~isfield(track,'name') || isempty(track.name)
+    track.name = sprintf('t%03d', track_idx);
+  end
+  
+  if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
+    track.prefilter_trim = [0 0];
+  end
+  
+  if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(track,'sidelobe_dB') || isempty(track.sidelobe_dB)
+    track.sidelobe_dB = [];
+    track.sidelobe_rows = [];
+  end
+  
+  if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
+    track.snake_rng = [-2e-7 2e-7];
+  end
+  
+  if ~isfield(track,'threshold') || isempty(track.threshold)
+    track.threshold = 15;
+  end
+  
+  if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
+    track.threshold_noise_rng = [0 -inf -1];
+  end
+  
+  param.layer_tracker.track{track_idx} = track;
 end
-if ~any(strcmpi(track.init.max_diff_method,{'merge_vectors','interp_finite'}))
-  error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
-end
-
-if ~isfield(track,'max_bin') || isempty(track.max_bin)
-  track.max_bin = inf;
-end
-
-if ~isfield(track,'max_rng') || isempty(track.max_rng)
-  track.max_rng = [0 0];
-end
-
-if ~isfield(track,'max_rng_units') || isempty(track.max_rng_units)
-  track.max_rng_units = 'time';
-end
-
-if ~isfield(track,'medfilt') || isempty(track.medfilt)
-  % Like medfilt1 except it handles the edges of the frame better
-  track.medfilt = 0;
-end
-if ~isfield(track,'medfilt_threshold') || isempty(track.medfilt_threshold)
-  % medfilt_threshold: the point is compared to the medfilt1 result and if
-  % the point is > medfilt_threshold from medfilt1, then the point is
-  % replaced with the medfilt1 result. The two extremes are:
-  %   0 makes medfilt act like medfilt1
-  %   inf effectively disables the medfilt operation
-  track.medfilt_threshold = 0;
-end
-
-if ~isfield(track,'method') || isempty(track.method)
-  track.method = '';
-end
-
-if ~isfield(track,'min_bin') || isempty(track.min_bin)
-  track.min_bin = 0;
-end
-
-if ~isfield(track,'name') || isempty(track.name)
-  track.name = sprintf('m%03d', method_idx);
-end
-
-if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
-  track.prefilter_trim = [0 0];
-end
-
-if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(track,'sidelobe_dB') || isempty(track.sidelobe_dB)
-  track.sidelobe_dB = [];
-  track.sidelobe_rows = [];
-end
-
-if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
-  track.snake_rng = [-2e-7 2e-7];
-end
-
-if ~isfield(track,'threshold') || isempty(track.threshold)
-  track.threshold = 15;
-end
-
-if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
-  track.threshold_noise_rng = [0 -inf -1];
-end
-
-param.layer_tracker.track = track;
 
 %% Set up Cluster
 % ===================================================================
@@ -287,8 +288,8 @@ sparam.notes = '';
 
 cpu_time_mult = 0;
 mem_mult = 0;
-for method_idx = 1:length(param.layer_tracker.track)
-  switch param.layer_tracker.track.method(method_idx)
+for track_idx = 1:length(param.layer_tracker.track)
+  switch param.layer_tracker.track{track_idx}.method
     case 'viterbi'
       cpu_time_mult = cpu_time_mult + 11e-6;
       mem_mult = max(mem_mult,64);
@@ -322,6 +323,7 @@ while frm_idx <= length(param.cmd.frms)
   Nx = 0;
   Nt = 0;
   
+  start_frm_idx = frm_idx;
   for subblock_idx = 1:param.layer_tracker.block_size_frms
     frm = param.cmd.frms(frm_idx);
     if ~any(frm == param.cmd.frms)
@@ -337,28 +339,28 @@ while frm_idx <= length(param.cmd.frms)
     % /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_test/20140313_08/
     %
     % Comparing four different methods:
-    %   layer_tracker_001/m001_lsm.mat, ..., layer_tracker_00N/m001_lsm.mat
-    %   layer_tracker_001/m002_mcmc.mat, ..., layer_tracker_00N/m002_mcmc.mat
-    %   layer_tracker_001/m003_stereo.mat, ..., layer_tracker_00N/m003_stereo.mat
-    %   layer_tracker_001/m004_viterbi.mat, ..., layer_tracker_00N/m004_viterbi.mat
+    %   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+    %   layer_tracker_001/t002_mcmc.mat, ..., layer_tracker_00N/t002_mcmc.mat
+    %   layer_tracker_001/t003_stereo.mat, ..., layer_tracker_00N/t003_stereo.mat
+    %   layer_tracker_001/t004_viterbi.mat, ..., layer_tracker_00N/t004_viterbi.mat
     % Layers in the files (all combined into one file during combine):
-    %   m001_lsm_surface_001, ..., m001_lsm_surface_016, m001_lsm_bottom_001, ..., m001_lsm_bottom_016
-    %   m002_mcmc_surface, m002_mcmc_bottom
-    %   m003_stereo_surface, m003_stereo_bottom
-    %   m004_viterbi_bottom
+    %   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
+    %   t002_mcmc_surface, t002_mcmc_bottom
+    %   t003_stereo_surface, t003_stereo_bottom
+    %   t004_viterbi_bottom
     %
     % Comparing the same method with four different sets of parameters:
-    %   layer_tracker_001/m001_lsm.mat, ..., layer_tracker_00N/m001_lsm.mat
-    %   layer_tracker_001/m002_lsm.mat, ..., layer_tracker_00N/m001_lsm.mat
-    %   layer_tracker_001/m003_lsm.mat, ..., layer_tracker_00N/m001_lsm.mat
-    %   layer_tracker_001/m004_lsm.mat, ..., layer_tracker_00N/m001_lsm.mat
+    %   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+    %   layer_tracker_001/t002_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+    %   layer_tracker_001/t003_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+    %   layer_tracker_001/t004_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
     % Layers in the files (all combined into one file during combine):
-    %   m001_lsm_surface_001, ..., m001_lsm_surface_016, m001_lsm_bottom_001, ..., m001_lsm_bottom_016
-    %   m002_lsm_surface_001, ..., m002_lsm_surface_016, m002_lsm_bottom_001, ..., m002_lsm_bottom_016
-    %   m003_lsm_surface_001, ..., m003_lsm_surface_016, m003_lsm_bottom_001, ..., m003_lsm_bottom_016
-    %   m004_lsm_surface_001, ..., m004_lsm_surface_016, m004_lsm_bottom_001, ..., m004_lsm_bottom_016
-    for method_idx = 1:length(param.layer_tracker.track)
-      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track(method_idx).name, param.layer_tracker.track.method);
+    %   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
+    %   t002_lsm_surface_001, ..., t002_lsm_surface_016, t002_lsm_bottom_001, ..., t002_lsm_bottom_016
+    %   t003_lsm_surface_001, ..., t003_lsm_surface_016, t003_lsm_bottom_001, ..., t003_lsm_bottom_016
+    %   t004_lsm_surface_001, ..., t004_lsm_surface_016, t004_lsm_bottom_001, ..., t004_lsm_bottom_016
+    for track_idx = 1:length(param.layer_tracker.track)
+      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method);
       tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
       dparam.file_success{end+1} = tmp_out_fn;
       if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
@@ -385,7 +387,7 @@ while frm_idx <= length(param.cmd.frms)
   end
   dt = mdata.Time(2) - mdata.Time(1);
   Nt = 1 + (max_time-min_time)/dt;
-    
+  
   % Rerun only check
   % ---------------------------------------------------------------------
   if ~ctrl.cluster.rerun_only
@@ -408,8 +410,8 @@ while frm_idx <= length(param.cmd.frms)
   dparam.notes = sprintf('%s %s:%s:%s %s %s %s %d-%d (%d of %d)', ...
     sparam.task_function, param.radar_name, param.season_name, ...
     param.layer_tracker.echogram_source, param.layer_tracker.layer_params.layerdata_source, ...
-    param.layer_tracker.track(1).method, param.day_seg, ...
-    dparam.argsin{1}.layer_tracker.frms([1 end]), frm_idx, length(param.cmd.frms));
+    param.layer_tracker.track{1}.method, param.day_seg, ...
+    dparam.argsin{1}.layer_tracker.frms([1 end]), start_frm_idx, length(param.cmd.frms));
   
   % Create task
   % ---------------------------------------------------------------------

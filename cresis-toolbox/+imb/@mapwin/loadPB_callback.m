@@ -195,6 +195,7 @@ else
   param.layers.lyr_age_source = cell(size(param.layers.lyr_id)); % layer.age_source (struct vector of age sources)
   param.layers.lyr_desc = cellfun(@char,cell(size(param.layers.lyr_id)),'UniformOutput',false); % layer.desc (layer description string)
   param.layers.lyr_order = [1:length(param.layers.lyr_id)]; % layer.order (positive integer, 1 to N where N is the number of layers)
+  layers.layer_organizer = param.layers;
   
 end
 
@@ -207,7 +208,7 @@ if isempty(undo_stack_match_idx)
 end
 
 % Attach echowin to the undo stack
-obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(undo_stack_match_idx));
+cmds_list = obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(undo_stack_match_idx));
 % user_data: This is only used for param.layer_source == 'layerdata' except
 % for the field param.layer_source.
 obj.undo_stack_list(undo_stack_match_idx).user_data.layer_source = param.layer_source; % string containing layer source ('OPS' or 'layerdata')
@@ -227,6 +228,10 @@ catch ME
   set(obj.h_fig,'Pointer','Arrow');
   rethrow(ME);
 end
+
+% Since there may be commands in the undo stack already, we will run these
+% commands so that the new echowin is synced up with the stack.
+obj.echowin_list(echo_idx).cmds_set_undo_stack_after_draw(cmds_list);
 
 %% Cleanup
 set(obj.h_fig,'Pointer','Arrow');

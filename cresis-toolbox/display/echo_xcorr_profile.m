@@ -7,7 +7,6 @@ function param = echo_xcorr_profile(profile_name)
 %
 % profile_name: string containing profile name
 %
-%
 % OUTPUTS:
 %
 % param: parameters for the selected profile
@@ -17,6 +16,10 @@ function param = echo_xcorr_profile(profile_name)
 % See echo_xcorr.m
 %
 % Author: John Paden
+%
+% See also: echo_detrend, echo_filt, echo_mult_suppress, echo_noise,
+% echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
+% echo_xcorr_profile
 
 switch (profile_name)
   case 'long_unitstep'

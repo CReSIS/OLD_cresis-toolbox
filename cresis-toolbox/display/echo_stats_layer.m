@@ -111,8 +111,9 @@ function [max_power,aggregate_power,aggregate_bins,neighbor_power,waveforms] = e
 %
 % Author: John Paden
 %
-% See also: echo_detrend, echo_filt, echo_get_param, echo_mult_suppress,
-% echo_noise, echo_stats, echo_stats_layer, echo_xcorr
+% See also: echo_detrend, echo_filt, echo_mult_suppress, echo_noise,
+% echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
+% echo_xcorr_profile
 
 %% Input Check
 
@@ -124,7 +125,7 @@ end
 
 if ~exist('layer','var') || isempty(layer)
   if isstruct(mdata)
-    layers = layerdata(echo_get_param(mdata));
+    layers = layerdata(echo_param(mdata));
     layer = layers.get_layer_by_gps_time(mdata.GPS_time,'surface');
   else
     error('Layer must be defined if mdata is not an echogram struct since this echogram struct is used to load the default surface layer.');
