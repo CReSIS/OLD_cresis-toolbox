@@ -22,7 +22,8 @@ param_override.layer_tracker.debug_plots = {'tracked_images'};
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
-param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
+% param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
+param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 
 % layer_params: layerparams structure of where to store the output using
 % opsCopyLayers.m
