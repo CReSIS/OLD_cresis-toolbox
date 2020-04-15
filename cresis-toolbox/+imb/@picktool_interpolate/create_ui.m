@@ -164,7 +164,3 @@ obj.panel.table.height_margin(row,col)=1.5;
 
 clear row col
 table_draw(obj.panel.table);
-
-
-return
-

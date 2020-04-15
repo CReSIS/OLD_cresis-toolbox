@@ -115,6 +115,9 @@ classdef selectionbox < handle
       if strcmpi(get(gcf,'SelectionType'),'Open')
         % Double click causes the currently selected item to switch lists
         match_idx = get(h_obj,'Value');
+        if isempty(match_idx)
+          return;
+        end
         available_list = get(obj.h_list_available,'string');
         selected_list = get(obj.h_list_selected,'string');
         if h_obj == obj.h_list_available

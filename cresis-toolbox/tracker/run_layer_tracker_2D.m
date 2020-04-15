@@ -6,17 +6,15 @@
 % ----------------------------------------------------------------------
 param_override = [];
 
+% params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
-params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
-<<<<<<< HEAD
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
 params = ct_set_params(params,'cmd.frms',[1 2]); % Specify specific frames (or leave empty/undefined to do all frames)
-=======
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
-params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
->>>>>>> 8ffcfaa7bc6b2b14214e9784c529011fd717a1f2
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
+% params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
 param_override.layer_tracker.debug_plots = {'tracked_images'};
 % param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
@@ -140,7 +138,7 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     %% Viterbi
-    if 0
+    if 1
       %% Viterbi User Settings
       track_override.method                 = 'viterbi';
       track_override.viterbi.crossoverload  = true;
@@ -161,12 +159,8 @@ switch ct_output_dir(params(1).radar_name)
       track_override.viterbi.transition_weight = 1;
       track_override.viterbi.image_mag_weight = 1;
       track_override.viterbi.gt_weight = 1;
-<<<<<<< HEAD
       track_override.init.max_diff    = inf;
-=======
       track_override.viterbi.gt_cutoff = -1;
-
->>>>>>> 8ffcfaa7bc6b2b14214e9784c529011fd717a1f2
     end
     
     %% MCMC
@@ -180,7 +174,7 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     %% LSM
-    if 1
+    if 0
       %% LSM User Settings
       track_override.method           = 'lsm';
       track_override.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
