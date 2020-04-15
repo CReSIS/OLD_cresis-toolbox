@@ -525,7 +525,8 @@ classdef (HandleCompatible = true) echowin < handle
     update_layer_plots(obj); % Update layer plots, called from cmds_execute
     
     %% Commands/Undo stack Methods
-    cmds_set_undo_stack(obj,undo_stack); % Attaches and detaches undo stack and listener
+    cmds_list = cmds_set_undo_stack(obj,undo_stack); % Attaches and detaches undo stack and listener, call before draw
+    cmds_set_undo_stack_after_draw(obj,cmds_list); % Run this with cmds_list from cmds_set_undo_stack after draw called
     cmds = cmds_convert_units(obj,cmds); % Converts tool commands from current units to gps-time and twtt
     cmds_execute(obj,cmds_list,cmds_direction); % Executes a set of commands on this echowin
     cmds_synchronize(obj,varargin); % for tools (callback for the undo_stack synchronize event)
