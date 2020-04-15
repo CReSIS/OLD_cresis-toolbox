@@ -135,7 +135,7 @@ if tool_idx == 1
       try
         gt_weight = -eval(obj.top_panel.ground_truth_weight_TE.String);
       catch ME
-        gt_weight = 1;
+        gt_weight = -1;
       end
       try
         gt_cutoff  = eval(obj.top_panel.ground_truth_cutoff_TE.String);

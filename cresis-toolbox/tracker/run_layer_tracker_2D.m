@@ -38,24 +38,6 @@ param_override.layer_tracker.block_size_frms = 2;
 %% param.layer_tracker.track options
 track = [];
 
-% if 1 % If using GeoTIFF file for ice mask
-%   track.binary_icemask = false;
-%   track.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
-%   track.icemask_fn = ct_filename_gis([], track.icemask_fn);
-%                        
-%   % Useful for Antarctica seasons:
-%   % track.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
-%   % track.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
-%   %   if isfield(track_override, 'icemask2_fn') && ~isempty(track.icemask2_fn)
-%   %     track.icemask2_fn = ct_filename_gis([],track.icemask2_fn);
-%   %   end
-% else
-%   track.binary_icemask = true;
-%   track.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
-%   [track.ice_mask_fn_dir,track.ice_mask_fn_name] = fileparts(track.icemask_fn);
-%   track.ice_mask_mat_fn = fullfile(track.ice_mask_fn_dir,[track.ice_mask_fn_name '.mat']);
-% end
-
 if 1 % If using GeoTIFF file for ice mask
   if strcmpi(params(1).post.ops.location,'arctic')
     if 1
@@ -144,25 +126,26 @@ switch ct_output_dir(params(1).radar_name)
       track.viterbi.crossoverload  = true;
       track.viterbi.layername      = 'viterbi_bot'; %surface or bottom
       track.viterbi.detrending     = true;
-      track.viterbi.top_sup        = true;
-      track.viterbi.mult_sup       = true;
       track.viterbi.use_surf_for_slope = true;
       track.viterbi.custom_combine = false;
       track.viterbi.DIM_matrix     = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
 
-      track.viterbi.surf_weight    = -1;
-      track.viterbi.mult_weight    = -1;
-      track.viterbi.mult_weight_decay       = -1;
-      track.viterbi.mult_weight_local_decay = -1;
+      track.viterbi.surf_weight    = 1000;  % Repels
+      track.viterbi.mult_weight    = 100;
+      track.viterbi.mult_weight_decay       = 0;
+      track.viterbi.mult_weight_local_decay = .8;
       track.viterbi.manual_slope   = 0;
       track.viterbi.max_slope      = -1;
       track.viterbi.transition_weight = 1;
       track.viterbi.image_mag_weight = 1;
-      track.viterbi.gt_weight = 1;
-      track.viterbi.gt_cutoff = -1;
+      track.viterbi.gt_weight = 1;  % Attracts
+      track.viterbi.gt_cutoff = 5;
       track.init.max_diff    = inf;
       track.detrend          = [];
       track.norm.scale       = [-40 90];
+      track.debug            = true;
+      track.save_img         = false;
+      track.save_add_f       = false;
     end
     
     %% MCMC
@@ -271,7 +254,6 @@ param_override.layer_tracker.track = track;
 
 % param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
-
 % dbstop if error;
 % param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
@@ -298,7 +280,6 @@ ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
-    
     ctrl_chain{end+1} = layer_tracker_2D(param,param_override);
   end
 end
