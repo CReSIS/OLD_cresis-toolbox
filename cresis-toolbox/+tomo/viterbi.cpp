@@ -64,7 +64,6 @@ double viterbi::unary_cost(int x, int y)
             cost += layer_cost * sqr(dist); 
           }
         }
-        break;
       }
     }
   }

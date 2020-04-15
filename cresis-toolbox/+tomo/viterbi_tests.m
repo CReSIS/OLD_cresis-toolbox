@@ -17,15 +17,15 @@ function viterbi_tests()
   
   surf_layer = ones(1, cols) * surf;
   gt_layer = ones(1, cols) * NaN;
-  gt_layer([1 end]) = [17 17];
+  gt_layer([1 5 end]) = [16 16 16];
   
   surf_costs = ones(1, cols) * 100;
   gt_costs = ones(1, cols) * NaN;
-  gt_costs([1 end]) = [-1 -1];
+  gt_costs([1 end]) = [0 0];
 
   surf_cutoffs = ones(1, cols) * NaN;
   gt_cutoffs = ones(1, cols) * NaN;
-  gt_cutoffs([1 end]) = [5 5];
+  gt_cutoffs([1 end]) = [NaN NaN];
 
   layers = [surf_layer; gt_layer];
   layer_costs = [surf_costs; gt_costs];

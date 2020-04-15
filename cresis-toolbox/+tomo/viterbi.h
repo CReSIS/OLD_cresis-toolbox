@@ -97,9 +97,9 @@ public:
   int encode(int x, int y) { return x * f_row + y; }
 
   int layer_encode(int layer_num, int x) {return x*f_num_layers + layer_num; }
-  int get_y(int layer_num, int x) { return f_layers[layer_encode(layer_num, x)]; }
-  int get_y_cost(int layer_num, int x) { return f_layer_costs[layer_encode(layer_num, x)]; }
-  int get_y_cutoff(int layer_num, int x) { return f_layer_cutoffs[layer_encode(layer_num, x)]; }
+  double get_y(int layer_num, int x) { return f_layers[layer_encode(layer_num, x)]; }
+  double get_y_cost(int layer_num, int x) { return f_layer_costs[layer_encode(layer_num, x)]; }
+  double get_y_cutoff(int layer_num, int x) { return f_layer_cutoffs[layer_encode(layer_num, x)]; }
   bool is_valid(double value) { return !mxIsNaN(value) && value >= 0; }
 
   int vic_encode(int row, int col) { return f_row * col + row; }
