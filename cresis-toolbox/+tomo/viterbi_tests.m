@@ -2,7 +2,7 @@
 % Author: Reece Mathews
 
 function viterbi_tests()
-  global matrix layer gt;
+  global matrix layer layers;
   
   % CONSTANTS
   rows = 20;
@@ -15,15 +15,26 @@ function viterbi_tests()
   matrix(mult, :) = ones(1, cols) * 20; % Mult 1
   matrix(grnd, :) = ones(1, cols) * 10; % Bottom
   
-  surf_bins = ones(1, cols) * surf;
-  gt = [1 cols; surf surf];
+  surf_layer = ones(1, cols) * surf;
+  gt_layer = ones(1, cols) * NaN;
+  gt_layer([1 end]) = [17 17];
   
+  surf_costs = ones(1, cols) * 100;
+  gt_costs = ones(1, cols) * NaN;
+  gt_costs([1 end]) = [-1 -1];
+
+  surf_cutoffs = ones(1, cols) * NaN;
+  gt_cutoffs = ones(1, cols) * NaN;
+  gt_cutoffs([1 end]) = [5 5];
+
+  layers = [surf_layer; gt_layer];
+  layer_costs = [surf_costs; gt_costs];
+  layer_cutoffs = [surf_cutoffs; gt_cutoffs];
+
   % Viterbi params
   transition_weights = ones(1, cols-1);
-  gt_weights = ones(1, cols);
   img_mag_weight = 1;
   
-  surf_weight = 1000;
   mult_weight = 100;
   mult_weight_decay = .3;
   mult_weight_local_decay = .7;
@@ -32,27 +43,29 @@ function viterbi_tests()
   
   % Other environment vars
   mask = inf*ones(1, cols);
-  slope = round(diff(surf_bins));
+  slope = round(diff(layers(1, :)));
   max_slope = -1;
   bounds = [];
   mask_dist = ones(1, cols) * Inf;
   cost_matrix = ones(rows,cols);
   
   % RUN
-  layer = tomo.viterbi(matrix, surf_bins, gt, mask, img_mag_weight, slope, max_slope, ...
-    bounds, gt_weights, mask_dist, cost_matrix, transition_weights, surf_weight, ...
-    mult_weight, mult_weight_decay, mult_weight_local_decay, int64(zero_bin));
+  layer = tomo.viterbi(matrix, layers, layer_costs, layer_cutoffs, mask, ...
+    img_mag_weight, slope, max_slope, bounds, mask_dist, cost_matrix, ...
+    transition_weights, mult_weight, mult_weight_decay, mult_weight_local_decay, ...
+    int64(zero_bin));
   hfig = setup();
   resize(hfig);
   
 end
 
 function plot_viterbi()
-  global layer gt;
+  global layer layers;
   
   hold on;
   
-  scatter(gt(1, :), gt(2, :), 'rx');
+  idxs = find(~isnan(layers(2, :)));
+  scatter(idxs, layers(2, idxs), 'rx');
   
   plot(layer, 'g');
       

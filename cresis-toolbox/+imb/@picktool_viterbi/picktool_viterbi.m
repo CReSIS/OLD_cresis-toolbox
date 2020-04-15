@@ -27,6 +27,8 @@ classdef picktool_viterbi < imb.picktool
     transition_weight;
     image_mag_weight;
     ground_truth_weight;
+    ground_truth_cutoff;
+    toolPM_callback;
     
   end
   
@@ -55,8 +57,8 @@ classdef picktool_viterbi < imb.picktool
       obj.bottom_panel = [];
       obj.top_panel = [];
       obj.table = [];
-      obj.w = 230;
-      obj.h = 460;  
+      obj.w = 300;
+      obj.h = 550;  
       obj.first_time = true;
 
       obj.in_rng_sv = 5;
@@ -68,7 +70,7 @@ classdef picktool_viterbi < imb.picktool
       obj.rep_sv = .5;
       obj.cur_mode = 1;
       
-      obj.surf_weight = 10000;
+      obj.surf_weight = 1000;
       obj.mult_weight = 100;
       obj.mult_weight_decay = .4;
       obj.mult_weight_local_decay = .8;
@@ -77,6 +79,7 @@ classdef picktool_viterbi < imb.picktool
       obj.transition_weight = 1;
       obj.image_mag_weight = 1;
       obj.ground_truth_weight = 1;
+      obj.ground_truth_cutoff = -1;
       
       obj.create_ui();
 
