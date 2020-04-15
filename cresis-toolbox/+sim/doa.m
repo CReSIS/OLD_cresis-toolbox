@@ -3,11 +3,10 @@ function [results, DCM_runs] = doa(param,param_override)
 %
 % Function for simulating direction of arrival algorithms
 %
-% Author: John Paden, Theresa Stumpf, Gordon Ariho
+% Author: John Paden, Theresa Stumpf, (cluster adaptation by Gordon Ariho)
 
 %% General Setup
-
-% =====================================================================
+% =========================================================================
 param = merge_structs(param, param_override);
 
 fprintf('=====================================================================\n');
@@ -23,9 +22,6 @@ end
 
 %% Setup
 % =========================================================================
-
-% Get the list of array processing methods
-%    array_proc_methods;
 
 % param.src.fc: center frequency
 param.src.fc = (param.src.f0 + param.src.f1)/2;
@@ -68,100 +64,45 @@ else
 end
 
 
-% Setup the non-linear constraint function handle (this keeps theta values
-% from getting too close and causing matrix singularity problems with the
-% steering vector matrix)
-% doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', param.method.theta_guard));
-
 %% Cluster set up
 % =========================================================================
 
-global gRadar;
-
-param = merge_structs(gRadar, param);
 ctrl = cluster_new_batch(param);
 
-argsin = param;
-num_args_out = 4;
 ctrl.cluster.max_mem_mode = 'auto';
 cluster_compile({'sim_doa_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
-dparam = [];
-dparam.task_function = 'sim_doa_task';
-dparam.argsin{1} = argsin;
-block = true;
 sparam.task_function = 'sim_doa_task';
-sparam.argsin{1} = argsin;
-sparam.num_args_out = num_args_out;
+sparam.argsin{1} = param;
+sparam.num_args_out = 4;
 sparam.cpu_time = param.cpu_time;
+sparam.mem = param.mem;
+dparam = [];
 
 for test_idx = 1:size(param.monte.SNR,1)
-  param.test_idx = test_idx;
-  dparam.argsin{1} = param;
+  dparam.argsin{1}.test_idx = test_idx;
   ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
- end
+end
 ctrl = cluster_save_dparam(ctrl);
-if block
-  % Blocking, submit and wait
-  fprintf('Submitting %s\n', ctrl.batch_dir);
-  ctrl_chain = {{ctrl}};
-  ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.cpu_time_mult',2);
-  cluster_save_chain(ctrl_chain); 
-  ctrl_chain = cluster_run(ctrl_chain,block);
-  [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,[1:size(param.monte.SNR,1)],0);
-  %cluster_cleanup(ctrl);
-else
-  % Non-blocking, do not submit
-  out = ctrl;
-end
+% Blocking, submit and wait
+fprintf('Submitting %s\n', ctrl.batch_dir);
+ctrl_chain = {{ctrl}};
+cluster_save_chain(ctrl_chain);
+ctrl_chain = cluster_run(ctrl_chain,1);
 
-% combining job outputs
-for idx = 1:size(param.monte.SNR,1) %
-  theta_est_1(:,idx,:) = out{idx}.argsout{1}{65539}(:,end,:);
-  theta_est_2(:,idx,:) = out{idx}.argsout{1}{end}(:,end,:);
-  
-  hessian_est_1(:,idx,:) = out{idx}.argsout{3}{65539}(:,end,:);
-  hessian_est_2(:,idx,:) = out{idx}.argsout{3}{end}(:,end,:);
-  
-  cost_func_1(:,idx) = out{idx}.argsout{4}{65539}(:,end);
-  cost_func_2(:,idx) = out{idx}.argsout{4}{end}(:,end);
-  
-end
-% populating the output with combined job outputs
-A = {[]};
-theta_est = repmat(A,1,65543);
-theta_est{65539} = theta_est_1;
-theta_est{end} = theta_est_2;
+[in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,[1:size(param.monte.SNR,1)],0);
 
-hessian_est = repmat(A,1,65543);
-hessian_est{65539} = hessian_est_1;
-hessian_est{end} = hessian_est_2;
-
-cost_func = repmat(A,1,65543);
-cost_func{65539} = cost_func_1;
-cost_func{end} = cost_func_2;
-
-rng_args = out{1}.argsout{2};
-%
 %% Test Loop: loop over each test
 % =========================================================================
 % Each test is a particular SNR, DOA, or snapshot configuration
 %
 % Copy outputs into output argument structure
-if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
-  % For model order estimation simulation.
-  results.theta_est = theta_est;
-  results.rng_args = rng_args;
-  
-  if param.doa_example == 1
-    results.hessian_est = hessian_est;
-    results.cost_func = cost_func;
+results = [];
+results.rng_args = out{1}.argsout{2};
+for idx = 1:size(param.monte.SNR,1)
+  for method_idx = 1:length(param.method.list)
+    results.theta_est{method_idx}(:,idx,:) = out{idx}.argsout{1}{method_idx}(:,1,:);
+    results.hessian_est{method_idx}(:,idx,:) = out{idx}.argsout{3}{method_idx}(:,1,:);
+    results.cost_func{method_idx}(:,idx,:) = out{idx}.argsout{4}{method_idx}(:,1,:);
   end
-  results.DCM = DCM_runs;
-else
-  results.theta_est = theta_est;
-  results.rng_args = rng_args;
-  results.hessian_est = hessian_est;
-  results.cost_func = cost_func;
-end
 end
 

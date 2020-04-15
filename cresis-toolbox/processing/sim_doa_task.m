@@ -53,7 +53,6 @@ doa_nb_nd_param.SV          = param.method.SV;
 doa_nb_nd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_nb_nd_param.search_type = param.method.nb_nd.init;
 
-
 % Setup wideband parameterization structure for wideband time domain
 % search methods (e.g. WB)
 doa_wb_td_param= [];
@@ -171,7 +170,8 @@ for run_idx = 1:param.monte.runs
   end
   
   %% Test/Run Loop: Apply DOA methods to the simulated data
-  for method = param.method.list
+  for method_idx = 1:length(param.method.list)
+    method = param.method.list(method_idx);
     %fprintf('test: %2d / run: %2d / method: %2d \n', test_idx, run_idx, method);
     switch method
       case MUSIC_DOA_METHOD
@@ -206,7 +206,7 @@ for run_idx = 1:param.monte.runs
     % Store outputs into variables
     if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
       % For model order estimation simulation.
-      [theta_est{method}(run_idx,test_idx,1:param.Nsig_tmp),sort_idxs] = sort(doa);
+      [theta_est{method_idx}(run_idx,1,1:param.Nsig_tmp),sort_idxs] = sort(doa);
       HESSIAN = diag(HESSIAN);
       
       % for only suboptimal methods (param.subopt_only). DOA estimation not required.
@@ -214,17 +214,16 @@ for run_idx = 1:param.monte.runs
       %section cannot be evaluated as we do not have doa.
       
       if param.doa_example == 1
-        hessian_est{method}(run_idx,test_idx,1:param.Nsig_tmp) = HESSIAN(sort_idxs);
-        cost_func{method}(run_idx,test_idx) = Jval;
+        hessian_est{method_idx}(run_idx,1,1:param.Nsig_tmp) = HESSIAN(sort_idxs);
+        cost_func{method_idx}(run_idx,1) = Jval;
       end
     else
-      [theta_est{method}(run_idx,test_idx,:),sort_idxs] = sort(doa);
+      [theta_est{method_idx}(run_idx,1,:),sort_idxs] = sort(doa);
       HESSIAN = diag(HESSIAN);
-      hessian_est{method}(run_idx,test_idx,:) = HESSIAN(sort_idxs);
-      cost_func{method}(run_idx,test_idx) = Jval;
+      hessian_est{method_idx}(run_idx,1,:) = HESSIAN(sort_idxs);
+      cost_func{method_idx}(run_idx,1) = Jval;
     end
     
   end
   
-end
 end
