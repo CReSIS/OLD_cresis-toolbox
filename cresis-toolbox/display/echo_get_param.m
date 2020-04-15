@@ -18,6 +18,10 @@ if isfield(mdata,'param_array')
   param = mdata.param_array;
 elseif isfield(mdata,'param_qlook')
   param = mdata.param_qlook;
+elseif isfield(mdata,'param_combine')
+  param = mdata.param_combine;
+elseif isfield(mdata,'param_get_heights')
+  param = mdata.param_get_heights;
 else
   error('There is no param_array or param_qlook field in mdata.');
 end

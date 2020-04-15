@@ -19,6 +19,9 @@ function data = echo_mult_suppress(mdata, layer, param)
 %
 % Examples:
 %
+% 
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_post/CSARP_standard/20140313_08/Data_20140313_08_001.mat';
+% mdata = load(fn);
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
 % mdata = load(fn);
 %
@@ -32,7 +35,8 @@ data = mdata.Data;
 
 if ~exist('layer','var') || isempty(layer)
   if isstruct(mdata)
-    layers = layerdata(echo_get_param(mdata));
+    global gRadar;
+    layers = layerdata(merge_structs(echo_get_param(mdata),gRadar));
     layer = layers.get_layer_by_gps_time(mdata.GPS_time,'surface');
   else
     error('Layer must be defined if mdata is not an echogram struct since this echogram struct is used to load the default surface layer.');
