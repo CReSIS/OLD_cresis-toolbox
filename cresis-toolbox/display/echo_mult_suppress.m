@@ -28,6 +28,10 @@ function data = echo_mult_suppress(mdata, layer, param)
 % imagesc(lp(echo_mult_suppress(mdata)));
 %
 % Author: John Paden
+%
+% See also: echo_detrend, echo_filt, echo_mult_suppress, echo_noise,
+% echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
+% echo_xcorr_profile
 
 %% Input checks
 
@@ -35,8 +39,7 @@ data = mdata.Data;
 
 if ~exist('layer','var') || isempty(layer)
   if isstruct(mdata)
-    global gRadar;
-    layers = layerdata(merge_structs(echo_get_param(mdata),gRadar));
+    layers = layerdata(echo_param(mdata));
     layer = layers.get_layer_by_gps_time(mdata.GPS_time,'surface');
   else
     error('Layer must be defined if mdata is not an echogram struct since this echogram struct is used to load the default surface layer.');

@@ -53,8 +53,9 @@ function noise = echo_noise(mdata, param)
 %
 % Author: John Paden
 %
-% See also: echo_detrend, echo_filt, echo_get_param, echo_mult_suppress,
-% echo_noise, echo_stats, echo_stats_layer, echo_xcorr
+% See also: echo_detrend, echo_filt, echo_mult_suppress, echo_noise,
+% echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
+% echo_xcorr_profile
 
 %% Input checks
 
