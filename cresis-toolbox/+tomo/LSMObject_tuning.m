@@ -99,7 +99,7 @@ classdef LSMObject_tuning <handle
     end
     
     function [flag, top, bot, matrix_x, matrix_y] = runLSM(this)
-
+      
       flag = ones(1,length(this.lsmArgs.storeIter));
       
       % Read the image
@@ -120,7 +120,7 @@ classdef LSMObject_tuning <handle
         if rem(m,10)==0
           this.contours{1,m/10+1}= getLSF(this.phi, 1/this.resizeRate);
         end
-
+        
         match_idx = find(n==this.lsmArgs.storeIter);
         if any(match_idx)
           %c = contour(this.phi, [0,0], 'r'); % This requires graphics
@@ -157,11 +157,11 @@ classdef LSMObject_tuning <handle
             matrix_y(1, :, match_idx)  = '';
             matrix_y(2, :, match_idx)  = '';
           end
-% Use below code to get echogram images with different number of iterations (n)
-%           if(n==25||n==100||n==200||n==300||n==350)
-%              figure;imagesc(img_orig);colormap(1-gray(256));hold on; plot(top.x,top.y);plot(bot.x,bot.y);
-%            end
-        end  
+          % Use below code to get echogram images with different number of iterations (n)
+          %           if(n==25||n==100||n==200||n==300||n==350)
+          %              figure;imagesc(img_orig);colormap(1-gray(256));hold on; plot(top.x,top.y);plot(bot.x,bot.y);
+          %            end
+        end
       end
     end
   end
@@ -369,7 +369,7 @@ function [img, fname , ftype]= readImage(filepath)
 [fname,ftype]=getFileName(filepath);
 if ftype=='.mat'
   in = load(filepath, 'Data');
-%   img=lp(in.Data);
+  %   img=lp(in.Data);
   img = 20*log10(in.Data);
 elseif ftype=='.png'
   img=imread(filepath);
