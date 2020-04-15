@@ -15,7 +15,7 @@ param_override = []; % X
 param_override.cluster.type = 'torque'; 
 % param_override.cluster.type = 'debug'; 
 
-param_override.cpu_time = 240;
+param_override.cpu_time = 100;
 param_override.mem = 1e9;
 param_override.cluster.ppn_fixed = 4;
 
