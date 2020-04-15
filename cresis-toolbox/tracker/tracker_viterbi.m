@@ -84,8 +84,8 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
     keyboard
   end
   
-  %for frm = param.frm_nums
-  frm = param.layer_tracker.tracker.frm;
+  for frm = good_frms
+%   frm = param.layer_tracker.track.frm;
     if param.layer_tracker.track.debug
       fprintf('\nRunning frame %s_%03d.\n',param.day_seg,frm);
     end
@@ -124,7 +124,7 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
         big_matrix.Data = horzcat(big_matrix.Data, cur_matrix.Data);%horzcat(big_matrix.Data, data_struct); % horzcat(big_matrix.Data, cur_matrix.Data);
       end
     end
-  %end%frm for loop
+  end%frm for loop
   
   if param.layer_tracker.track.debug && param.layer_tracker.track.viterbi.custom_combine
     fprintf('\nDone: image combine (%s)', datestr(now,'HH:MM:SS'));
@@ -152,63 +152,57 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   surf_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), big_matrix.Surface));
   
   Nx = size(big_matrix.Data, 2);
-  slope = round(diff(surf_bins));
-  surf_weight = 1000;
-  mult_weight = -1;
-  mult_weight_decay = -1;
-  mult_weight_local_decay = -1;
-  max_slope = -1;
-  manual_slope = 0;
-  image_mag_weight = 1;
-  gt_weight = 1;
-  gt_cutoff = -1;
-  transition_weight = 1;
-
+  slope = diff(surf_bins);
+    
   try
     surf_weight = param.layer_tracker.track.viterbi.surf_weight;
   catch ME
+    surf_weight = 1000;
   end
   try
     mult_weight = param.layer_tracker.track.viterbi.mult_weight;
   catch ME
+    mult_weight = 100;
   end
   try
     mult_weight_decay = param.layer_tracker.track.viterbi.mult_weight_decay;
   catch ME
+    mult_weight_decay = 0;
   end
   try
     mult_weight_local_decay = param.layer_tracker.track.viterbi.mult_weight_local_decay;
   catch ME
-  end
-  if ~param.layer_tracker.track.viterbi.top_sup
-    surf_weight = 0;
-  end
-  if ~param.layer_tracker.track.viterbi.mult_sup
-    mult_weight = 0;
+    mult_weight_local_decay = .8;
   end
   try
     manual_slope = param.layer_tracker.track.viterbi.manual_slope;
   catch ME
+    manual_slope = 0;
   end
   try
     max_slope = param.layer_tracker.track.viterbi.max_slope;
   catch ME
+    max_slope = -1;
   end
   try
     transition_weight = param.layer_tracker.track.viterbi.transition_weight;
   catch ME
+    transition_weight = 1;
   end
   try
     image_mag_weight = param.layer_tracker.track.viterbi.image_mag_weight;
   catch ME
+    image_mag_weight = 1;
   end
   try
-    gt_weight = param.layer_tracker.track.viterbi.gt_weight;
+    gt_weight = -param.layer_tracker.track.viterbi.gt_weight;
   catch ME
+    gt_weight = -1;
   end
   try
     gt_cutoff = param.layer_tracker.track.viterbi.gt_cutoff;
   catch ME
+    gt_cutoff = 5;
   end
   
   transition_weights = ones(1, Nx-1) * transition_weight;
@@ -315,20 +309,21 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   
   %% Detrending routine
    if 1
-        % Along track filtering
-        big_matrix.Data = fir_dec(big_matrix.Data,ones(1,5)/5,1);
-        % Estimate noise level
-        noise_value = mean(mean(big_matrix.Data(end-80:end-60,:)));
-        % Estimate trend
-        trend = mean(big_matrix.Data,2);
-        trend(trend<noise_value) = noise_value;
-        % Subtract trend
-        big_matrix.Data = bsxfun(@minus,big_matrix.Data,trend);
-        % Remove bad circular convolution wrap around at end of record
-        big_matrix.Data(end-70:end,:) = 0;
-     if param.layer_tracker.track.debug
-       fprintf('\nDone: detrending (%s)', datestr(now,'HH:MM:SS'));
-     end
+%       big_matrix.Data = echo_norm(big_matrix.Data,struct('scale',param.layer_tracker.track.norm.scale));
+         % Along track filtering
+         big_matrix.Data = fir_dec(big_matrix.Data,ones(1,5)/5,1);
+         % Estimate noise level
+         noise_value = mean(mean(big_matrix.Data(end-80:end-60,:)));
+         % Estimate trend
+         trend = mean(big_matrix.Data,2);
+         trend(trend<noise_value) = noise_value;
+         % Subtract trend
+         big_matrix.Data = bsxfun(@minus,big_matrix.Data,trend);
+         % Remove bad circular convolution wrap around at end of record
+         big_matrix.Data(end-70:end,:) = 0;
+      if param.layer_tracker.track.debug
+        fprintf('\nDone: detrending (%s)', datestr(now,'HH:MM:SS'));
+      end
    end
   
   ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
@@ -346,11 +341,11 @@ for layer_idx = 1:length(param.layer_tracker.cmds.layer_params)
   layers = [surf_bins; gt_layer];
   
   surf_costs = ones(1, size(surf_bins, 2)) * surf_weight;
-  gt_costs = ones(1, size(surf_bins, 2)) * -gt_weight;
+  gt_costs = ones(1, size(surf_bins, 2)) * gt_weight;
   layer_costs = [surf_costs; gt_costs];
   
   surf_cutoffs = ones(1, size(surf_bins, 2)) * -1;
-  gt_cutoffs = ones(1, size(surf_bins, 2)) * -gt_cutoff;
+  gt_cutoffs = ones(1, size(surf_bins, 2)) * gt_cutoff;
   layer_cutoffs = [surf_cutoffs; gt_cutoffs];
     
   viterbi_tic = tic;

@@ -26,9 +26,9 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
 
 % layer_params: layerparams structure of where to store the output using
 % opsCopyLayers.m
-param_override.layer_tracker.layer_params = [];
+param_override.layer_tracker.cmds.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_test';
+param_override.layer_tracker.cmds.layer_params.layerdata_source = 'layer_test';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
@@ -144,25 +144,26 @@ switch ct_output_dir(params(1).radar_name)
       track_override.viterbi.crossoverload  = true;
       track_override.viterbi.layername      = 'viterbi_bot'; %surface or bottom
       track_override.viterbi.detrending     = true;
-      track_override.viterbi.top_sup        = true;
-      track_override.viterbi.mult_sup       = true;
       track_override.viterbi.use_surf_for_slope = true;
       track_override.viterbi.custom_combine = false;
       track_override.viterbi.DIM_matrix     = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
 
-      track_override.viterbi.surf_weight    = -1;
-      track_override.viterbi.mult_weight    = -1;
-      track_override.viterbi.mult_weight_decay       = -1;
-      track_override.viterbi.mult_weight_local_decay = -1;
+      track_override.viterbi.surf_weight    = 1000;  % Repels
+      track_override.viterbi.mult_weight    = 100;
+      track_override.viterbi.mult_weight_decay       = 0;
+      track_override.viterbi.mult_weight_local_decay = .8;
       track_override.viterbi.manual_slope   = 0;
       track_override.viterbi.max_slope      = -1;
       track_override.viterbi.transition_weight = 1;
       track_override.viterbi.image_mag_weight = 1;
-      track_override.viterbi.gt_weight = 1;
-      track_override.viterbi.gt_cutoff = -1;
+      track_override.viterbi.gt_weight = 1;  % Attracts
+      track_override.viterbi.gt_cutoff = 5;
       track_override.init.max_diff    = inf;
       track_override.detrend          = [];
       track_override.norm.scale       = [-40 90];
+      track_override.debug            = true;
+      track_override.save_img         = false;
+      track_override.save_add_f       = false;
     end
     
     %% MCMC
