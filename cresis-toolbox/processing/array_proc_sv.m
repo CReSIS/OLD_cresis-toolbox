@@ -32,7 +32,7 @@ function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 % Decide ideal or measured steering vectors generation
 ni = nargin;
 % Creation of linear steering vector for 2D arbitrary array
-physical_constants;
+c = 2.997924580003452e+08; % physical_constants too slow
 % Wavenumber for two way propagation
 k = 4*pi*fc/c;
 

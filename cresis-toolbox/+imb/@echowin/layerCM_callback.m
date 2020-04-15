@@ -632,6 +632,8 @@ elseif source == obj.left_panel.layerCM_merge
     end
     
     % Copy points from all layers (except the first) to the first layer
+    % This operates on the source because all frames have to be merged and
+    % not just the frames that are loaded.
     y = nan(length(vals),length(obj.undo_stack.user_data.frame));
     quality = ones(length(vals),length(obj.undo_stack.user_data.frame));
     type = 2*ones(length(vals),length(obj.undo_stack.user_data.frame));

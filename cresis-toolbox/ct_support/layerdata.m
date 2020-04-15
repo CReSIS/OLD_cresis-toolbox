@@ -91,6 +91,8 @@ classdef layerdata < handle
       obj.layer{frm}.quality = zeros(0,size(1,Nx),'uint8');
       obj.layer{frm}.type = zeros(0,size(1,Nx),'uint8');
       obj.layer_modified(frm) = true;
+      % Ensure alphabetical ordering so that fields can be concatenated efficiently
+      obj.layer{frm} = orderfields(obj.layer{frm});
     end
     
     %% create_layer_organizer: create layer organizer if it does not exist
@@ -157,6 +159,13 @@ classdef layerdata < handle
     function check_layer_organizer(obj)
       if isempty(obj.layer_organizer)
         obj.load_layer_organizer();
+      end
+    end
+    
+    %% check_frames: check that frames are loaded
+    function check_frames(obj)
+      if isempty(obj.frames)
+        obj.load_frames();
       end
     end
     
@@ -547,6 +556,9 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
       
+      % Ensure alphabetical ordering so that fields can be concatenated efficiently
+      obj.layer{frm} = orderfields(obj.layer{frm});
+      
     end
 
     %% fix_layer_organizer: fix any problems with layer organizer
@@ -770,6 +782,9 @@ classdef layerdata < handle
     %% get_layer: get layer twtt, quality, type
     function [twtt,quality,type] = get_layer(obj,frms,id)
       obj.check_layer_organizer();
+      
+      % Get/check the layer id
+      % -------------------------------------------------------------------
       if ischar(id)
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
@@ -783,6 +798,9 @@ classdef layerdata < handle
           error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
       end
+      
+      % Load layer data
+      % -------------------------------------------------------------------
       twtt = [];
       quality = [];
       type = [];
@@ -802,6 +820,83 @@ classdef layerdata < handle
           type(end+(1:Nx)) = obj.layer{frm}.type(lay_idx,:);
         end
       end
+    end
+    
+    %% get_layer_by_gps_time: get layer twtt, quality, type
+    function [twtt,quality,type] = get_layer_by_gps_time(obj,query_gps_time,id)
+      obj.check_layer_organizer();
+      
+      % Get/check the layer id
+      % -------------------------------------------------------------------
+      if ischar(id)
+        % name passed in rather than id
+        match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
+        if isempty(id)
+          error('Layer does not exist in layer organizer. Run insert_layers() first.');
+        end
+        id = obj.layer_organizer.lyr_id(match_idx);
+      else
+        % id passed in
+        if all(obj.layer_organizer.lyr_id ~= id)
+          error('Layer does not exist in layer organizer. Run insert_layers() first.');
+        end
+      end
+      
+      % Determine which frames to load
+      % -------------------------------------------------------------------
+      obj.check_frames();
+      
+      if isstruct(query_gps_time)
+        % Assume a echo structure (qlook.m/array.m output) such as
+        % CSARP_qlook or CSARP_standard
+        if ~isfield(query_gps_time,'GPS_time')
+          error('If query_gps_time is a struct, it must contain a field "GPS_time".');
+        end
+        query_gps_time = query_gps_time.GPS_time;
+      end
+      
+      first_frm = find(min(query_gps_time) < obj.frames.gps_time(1:end-1),1);
+      first_frm = max(1,first_frm-2);
+      if isempty(first_frm)
+        first_frm = length(obj.frames.frame_idxs);
+      end
+      
+      last_frm = find(max(query_gps_time) < obj.frames.gps_time(1:end-1),1);
+      if isempty(last_frm)
+        last_frm = length(obj.frames.frame_idxs);
+      end
+      
+      frms = first_frm:last_frm;
+      
+      % Load layer data
+      % -------------------------------------------------------------------
+      gps_time = [];
+      twtt = [];
+      quality = [];
+      type = [];
+      for frm = frms(:).'
+        obj.check(frm);
+        lay_idx = find(obj.layer{frm}.id == id);
+        Nx = length(obj.layer{frm}.gps_time);
+        gps_time(end+(1:Nx)) = obj.layer{frm}.gps_time;
+        if isempty(lay_idx)
+          % Layer does not exist in file, set to defaults
+          twtt(end+(1:Nx)) = NaN;
+          quality(end+(1:Nx)) = 1;
+          type(end+(1:Nx)) = 2;
+        else
+          % Layer exists, get values
+          twtt(end+(1:Nx)) = obj.layer{frm}.twtt(lay_idx,:);
+          quality(end+(1:Nx)) = obj.layer{frm}.quality(lay_idx,:);
+          type(end+(1:Nx)) = obj.layer{frm}.type(lay_idx,:);
+        end
+      end
+      
+      % Interpolate onto the gps_time provided
+      % -------------------------------------------------------------------
+      twtt = interp1(gps_time,twtt,query_gps_time);
+      quality = interp1(gps_time,quality,query_gps_time,'nearest');
+      type = interp1(gps_time,type,query_gps_time,'nearest');
     end
     
     %% gps_time: get gps_time
@@ -891,6 +986,11 @@ classdef layerdata < handle
       end
     end
     
+    %% load_frames: load frames
+    function load_frames(obj)
+      obj.frames = frames_load(obj.param);
+    end
+
     %% load_layer_organizer: load layer organizer
     function load_layer_organizer(obj)
       layer_organizer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
@@ -912,8 +1012,8 @@ classdef layerdata < handle
         obj.records = load(records_fn);
       end
       
-      % Load frames file
-      obj.frames = frames_load(obj.param);
+      % Ensure frames are loaded
+      obj.check_frames();
       
       % Create reference trajectory (rx_path == 0, tx_weights = []). Update
       % the records field with this information.
@@ -1064,6 +1164,24 @@ classdef layerdata < handle
       end
     end
     
+  end
+  
+  %% Static Methods
+  methods(Static)
+    %% load_layers: load list of layers
+    % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
+    % mdata = load(fn);
+    % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
+    function varargout = load_layers(mdata,layerdata_source,varargin)
+      layers = layerdata(echo_get_param(mdata),layerdata_source);
+      
+      try
+        for idx = 1:nargin-1
+          varargout{idx} = layers.get_layer_by_gps_time(mdata.GPS_time,varargin{idx});
+        end
+      end
+      delete(layers);
+    end
   end
   
 end

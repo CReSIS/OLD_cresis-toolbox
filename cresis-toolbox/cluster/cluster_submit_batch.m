@@ -1,5 +1,5 @@
-function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time)
-% out = cluster_submit_batch(fun,block,argsin,num_args_out,notes,cpu_time)
+function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time,mem)
+% out = cluster_submit_batch(fun,block,argsin,num_args_out,notes,cpu_time,mem)
 %
 % Runs an arbitrary job called "fun" with inputs "argsin". Introduces
 % about 30 seconds of overhead as long as a compile is not necessary.
@@ -19,10 +19,10 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time)
 %
 % EXAMPLES:
 % % Blocking example:
-% out = cluster_submit_batch('hanning',true,{10},1,60)
+% out = cluster_submit_batch('hanning',true,{10},1,60,500e6)
 %
 % % Non-blocking example:
-% ctrl = cluster_submit_batch('hanning',false,{10},1,60);
+% ctrl = cluster_submit_batch('hanning',false,{10},1,60,500e6);
 % ctrl_chain = {{ctrl}};
 % [~,chain_id] = cluster_save_chain(ctrl_chain);
 %
@@ -58,6 +58,7 @@ param.task_function = fun;
 param.argsin = argsin;
 param.num_args_out = num_args_out;
 param.cpu_time = cpu_time;
+param.mem = mem;
 repeat_task = 1;
 for tmp = 1:repeat_task
   ctrl = cluster_new_task(ctrl,param,[]);

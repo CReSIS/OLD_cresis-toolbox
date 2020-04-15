@@ -1,12 +1,6 @@
 % script run_layer_tracker_2D
 %
 % Runs layer_tracker_2D.m
-%
-% Need to set track_override.track_data to true if LSM tuning results are
-% needed. Once the results are saved, it is possible to compare them, find
-% the lowest combination (y, dy and iterations) and then run the LSM 
-% tracker with the tuned results. Set track_override.track_data to false in
-% that case.
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -19,62 +13,28 @@ params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
-param_override.layer_tracker.debug_plots = {'debug'};
+param_override.layer_tracker.debug_plots = {'tracked_images'};
+% param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
 param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
 
-% layer_params: structure of layer references of where to store the output
-param_override.layer_tracker.layer_params = []; idx = 0;
-% idx = idx + 1;
-% param_override.layer_tracker.layer_params(idx).name = 'surface';
-% param_override.layer_tracker.layer_params(idx).source = 'echogram';
-% param_override.layer_tracker.layer_params(idx).echogram_source = 'deconv';
-idx = idx + 1;
+% layer_params: layerparams structure of where to store the output using
+% opsCopyLayers.m
+param_override.layer_tracker.layer_params = [];
+% Uncomment to enable layerdata storage
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_test';
+% Uncomment to enable OPS storage
+% param_override.layer_tracker.layer_params.source = 'ops';
 
-% Done in run_layer_tracker_2D param.layer_tracker.ice_mask_fn;
+% block_size_frms: Number of frames to be loaded at a time
+param_override.layer_tracker.block_size_frms = 2;
 
-
-% idx = idx + 1;
-% param_override.layer_tracker.layer_params(idx).name = 'surface';
-% param_override.layer_tracker.layer_params(idx).source = 'ops';
-
-param_override.layer_tracker.N = 2; % no of frames to be loaded at a time
-% Enter name for saving the data
-param_override.layer_tracker.name = 'testing';
-param_override.layer_tracker.save_ops_copy_layers = true;
-
+%% param.layer_tracker.track options
 track_override = [];
-track_override.name             = 'mvdr';
-track_override.debug            = true;
-track_override.ops_write        = false;
-track_override.save_layerData   = true;
-track_override.save_img         = false;
-track_override.save_add_f       = false;
-track_override.track_data       = false; % for LSM tuning
 
-
-%% Image saving options
-% Only effective if options.save_img == true
-track_override.save_img_format = '-djpeg';
-track_override.save_img_path   = '';
-
-%% OPS/layerData writing options
-% Only effective if options.ops_write == true
-
-% Usually 'layerdata' or 'ops'
-track_override.layer_dest_source = 'layerdata';
-
-% If using 'layerdata':
-track_override.layer_dest_layerdata_source = 'layerData_test'; % layerData file will be saved in this location
-track_override.layer_dest_echogram_source  = 'CSARP_post/standard';   % Only required if layerData files do not exist and need to be created
-%% Additional file writing options
-% Only effective if options.save_add_f == true
-track_override.save_add_f_path = '';
-
-%% Ice mask options
 % if 1 % If using GeoTIFF file for ice mask
 %   track_override.binary_icemask = false;
 %   track_override.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
@@ -112,7 +72,6 @@ if 1 % If using GeoTIFF file for ice mask
     track_override.binary_icemask = false;
     track_override.icemask_fn = ct_filename_gis([], 'greenland/IceMask/GimpIceMask_90m_v1.1.tif');
   end
-
 end
 
 %% Enable one set of parameters
@@ -170,13 +129,13 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     % Override default method
-    if 1
+    if 0
       track_override.method = 'snake';
       track_override.snake_rng	= [-0.15e-6 0.15e-6];
     end
     
     %% Viterbi
-    if 1
+    if 0
       %% Viterbi User Settings
       track_override.method                 = 'viterbi';
       track_override.viterbi.crossoverload  = true;
@@ -198,7 +157,6 @@ switch ct_output_dir(params(1).radar_name)
       track_override.viterbi.image_mag_weight = 1;
       track_override.viterbi.gt_weight = 1;
       track_override.viterbi.gt_cutoff = -1;
-
     end
     
     %% MCMC
@@ -208,18 +166,22 @@ switch ct_output_dir(params(1).radar_name)
       track_override.mcmc.lyrtop = 'mcmc_top'; %layername, layer_dest.name
       track_override.mcmc.lyrbot = 'mcmc_bot';
       track_override.mcmc.alg    = 'MCMC';
+      track_override.init.max_diff    = inf;
     end
     
     %% LSM
-    if 0
+    if 1
       %% LSM User Settings
       track_override.method           = 'lsm';
       track_override.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
       track_override.lsm.lyrbot       = 'lsm_bot';
       track_override.lsm.y            = 220; % = '' for y = mean(SURF)
       track_override.lsm.dy           = 10;
-      track_override.lsm.numOuterIter = 350;
-      track_override.lsm.maxOuterIter = 50;
+      track_override.lsm.storeIter    = [200 400];
+      track_override.init.max_diff    = inf;
+      track_override.detrend          = [];
+      track_override.norm.scale       = [-40 90];
+
     end
     
     %% Stereo
@@ -236,6 +198,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.stereo.bottom_peak   = 0.5;
       track_override.stereo.repulsion     = 10;
       track_override.stereo.alg           = 'HMM';
+      track_override.init.max_diff    = inf;
     end
     
     %% Threshold
@@ -295,23 +258,23 @@ switch ct_output_dir(params(1).radar_name)
     end
     
 end
+
 param_override.layer_tracker.track = track_override;
 
-param_override.layer_tracker.img = 0;
+% param_override.layer_tracker.surf_layer = struct('name','surface','source','layerdata','layerdata_source','layer');
 
-param_override.layer_tracker.cmds = [];
-if strcmpi(param_override.layer_tracker.track.method,'viterbi')
-  layer_params_list = {struct('name',{'bottom'},'source',{'layerdata'},'echogram_source',{'CSARP_post/standard'},'layerdata_source',{'layerData'})};
-  param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list{1};
+% param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
-elseif any(strcmp(param_override.layer_tracker.track.method,'lsm')) || any(strcmp(param_override.layer_tracker.track.method,'stereo')) || any(strcmp(param_override.layer_tracker.track.method,'mcmc'))
-  layer_params_list = {struct('name','surface','source','layerdata','echogram_source','CSARP_post/standard','layerdata_source','layerData'),struct('name','bottom','source','layerdata','echogram_source','CSARP_post/standard','layerdata_source','layerData')};
-  param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list;
 
-else
-  layer_params_list = {struct('name',{'surface'},'source',{'layerdata'},'echogram_source',{'CSARP_post/standard'},'layerdata_source',{'layerData'})};
-  param_override.layer_tracker.cmds(end+1).layer_params = layer_params_list;
-end
+% dbstop if error;
+param_override.cluster.type = 'torque';
+% param_override.cluster.type = 'matlab';
+% param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'slurm';
+% param_override.cluster.rerun_only = true;
+% param_override.cluster.desired_time_per_job  = 240*60;
+% param_override.cluster.cpu_time_mult  = 2;
+% param_override.cluster.mem_mult  = 2;
 
 %% Automated Section
 % ----------------------------------------------------------------------
