@@ -16,8 +16,8 @@ params = ct_set_params(params,'cmd.frms',[1 2]); % Specify specific frames (or l
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
-param_override.layer_tracker.debug_plots = {'tracked_images'};
-% param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
+% param_override.layer_tracker.debug_plots = {'tracked_images'};
+param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
@@ -36,29 +36,13 @@ param_override.layer_tracker.layer_params.layerdata_source = 'layer_test';
 % block_size_frms: Number of frames to be loaded at a time
 param_override.layer_tracker.block_size_frms = 2;
 
+% track_per_task: Number of tracks per task
+param_override.layer_tracker.track_per_task = inf;
+
+% param_override.layer_tracker.surf_layer = struct('name','surface','source','layerdata','layerdata_source','layer');
+
 %% param.layer_tracker.track options
 track = [];
-
-if 1 % If using GeoTIFF file for ice mask
-  if strcmpi(params(1).post.ops.location,'arctic')
-    if 1
-      % Greenland
-      track.binary_icemask = false;
-      track.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
-      track.icemask_fn = ct_filename_gis([], track.icemask_fn);
-    else
-      % Canada
-      track.binary_icemask = true;
-      track.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
-      [track.ice_mask_fn_dir,track.ice_mask_fn_name] = fileparts(track.icemask_fn);
-      track.ice_mask_mat_fn = fullfile(track.ice_mask_fn_dir,[track.ice_mask_fn_name '.mat']);
-    end
-  else
-    % Useful for Antarctica seasons:
-    track.binary_icemask = false;
-    track.icemask_fn = ct_filename_gis([], 'greenland/IceMask/GimpIceMask_90m_v1.1.tif');
-  end
-end
 
 %% Enable one set of parameters
 track.en = true;
@@ -123,54 +107,73 @@ switch ct_output_dir(params(1).radar_name)
     %% Viterbi
     if 1
       %% Viterbi User Settings
-      track.method                 = 'viterbi';
-      track.viterbi.crossoverload  = true;
-      track.viterbi.layername      = 'viterbi_bot'; %surface or bottom
-      track.viterbi.detrending     = true;
-      track.viterbi.use_surf_for_slope = true;
-      track.viterbi.custom_combine = false;
-      track.viterbi.DIM_matrix     = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
+      track.method                      = 'viterbi';
+      track.layer_names                 = {'surface','bottom'};
+      
+      track.crossover.en = false;
+      
+      if 1
+        track.ice_mask.en = false;
+      elseif 0
+        % Greenland
+        track.ice_mask.en = true;
+        track.ice_mask.type = 'geotiff';
+        track.ice_mask.fn = ct_filename_gis([], fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));
+      elseif 0
+        % Canada
+        track.ice_mask.en = true;
+        track.ice_mask.type = 'bin';
+        track.ice_mask.fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+        track.ice_mask.mat_fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
+      elseif 0
+        % Antarctica
+        track.ice_mask.en = true;
+        track.ice_mask.type = 'geotiff2';
+        track.ice_mask.fn = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif'));
+        track.ice_mask.fn2 = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif'));
+      end
+      
+      track.viterbi.use_surf_for_slope  = true;
+      track.viterbi.DIM_matrix          = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
 
-      track.viterbi.surf_weight    = 1000;  % Repels
-      track.viterbi.mult_weight    = 100;
+      track.viterbi.surf_weight         = 1000; % Repels
+      track.init.dem_layer = struct('name','surface');
+      
+      track.viterbi.mult_weight             = 100;
       track.viterbi.mult_weight_decay       = 0;
       track.viterbi.mult_weight_local_decay = .8;
-      track.viterbi.manual_slope   = 0;
-      track.viterbi.max_slope      = -1;
-      track.viterbi.transition_weight = 1;
-      track.viterbi.image_mag_weight = 1;
-      track.viterbi.gt_weight = 1;  % Attracts
-      track.viterbi.gt_cutoff = 5;
+      
+      track.viterbi.max_slope           = -1;
+      track.viterbi.transition_weight   = 1; % Larger --> smoother
+      track.viterbi.image_mag_weight    = 1;
+      track.viterbi.gt_weight           = 1; % Attracts
+      track.viterbi.gt_cutoff           = 5;
+      
       track.init.max_diff    = inf;
       track.detrend          = [];
       track.norm.scale       = [-40 90];
-      track.debug            = true;
-      track.save_img         = false;
-      track.save_add_f       = false;
     end
     
     %% MCMC
     if 0
       %% MCMC User Settings
-      track.method      = 'mcmc';
-      track.mcmc.lyrtop = 'mcmc_top'; %layername, layer_dest.name
-      track.mcmc.lyrbot = 'mcmc_bot';
-      track.mcmc.alg    = 'MCMC';
-      track.init.max_diff    = inf;
+      track.method            = 'mcmc';
+      track.layer_names       = {'surface','bottom'};
+      track.mcmc.alg          = 'MCMC';
+      track.init.max_diff     = inf;
     end
     
     %% LSM
     if 0
       %% LSM User Settings
-      track.method           = 'lsm';
-      track.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
-      track.lsm.lyrbot       = 'lsm_bot';
-      track.lsm.y            = 220; % = '' for y = mean(SURF)
-      track.lsm.dy           = 10;
-      track.lsm.storeIter    = [200 400];
-      track.init.max_diff    = inf;
-      track.detrend          = [];
-      track.norm.scale       = [-40 90];
+      track.method            = 'lsm';
+      track.layer_names       = {'surface','bottom'};
+      track.lsm.y             = 220;
+      track.lsm.dy            = 10;
+      track.lsm.storeIter     = 400;
+      track.init.max_diff     = inf;
+      track.detrend           = [];
+      track.norm.scale        = [-40 90];
 
     end
     
@@ -178,8 +181,7 @@ switch ct_output_dir(params(1).radar_name)
     if 0
       %% Stereo User Settings
       track.method               = 'stereo';
-      track.stereo.lyrtop        = 'stereo_top'; %layername, layer_dest.name
-      track.stereo.lyrbot        = 'stereo_bot';
+      track.layer_names       = {'surface','bottom'};
       track.stereo.surfaceload   = true;
       track.stereo.crossoverload = true;
       track.stereo.top_smooth    = 1000;
@@ -249,11 +251,7 @@ switch ct_output_dir(params(1).radar_name)
     
 end
 
-param_override.layer_tracker.track = track;
-
-% param_override.layer_tracker.surf_layer = struct('name','surface','source','layerdata','layerdata_source','layer');
-
-% param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
+param_override.layer_tracker.track = {track};
 
 % dbstop if error;
 % param_override.cluster.type = 'torque';

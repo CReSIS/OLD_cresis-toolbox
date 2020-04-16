@@ -3,6 +3,31 @@ function [ctrl_chain,param] = layer_tracker_2D(param,param_override)
 %
 % Check input parameters and create tasks for layer_tracker.
 % layer_tracker_task does the actual tracking.
+% 
+% Outputs stored in:
+% /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_test/20140313_08/
+%
+% Comparing four different methods:
+%   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+%   layer_tracker_001/t002_mcmc.mat, ..., layer_tracker_00N/t002_mcmc.mat
+%   layer_tracker_001/t003_stereo.mat, ..., layer_tracker_00N/t003_stereo.mat
+%   layer_tracker_001/t004_viterbi.mat, ..., layer_tracker_00N/t004_viterbi.mat
+% Layers in the files (all combined into one file during combine):
+%   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
+%   t002_mcmc_surface, t002_mcmc_bottom
+%   t003_stereo_surface, t003_stereo_bottom
+%   t004_viterbi_bottom
+%
+% Comparing the same method with four different sets of parameters:
+%   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+%   layer_tracker_001/t002_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+%   layer_tracker_001/t003_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+%   layer_tracker_001/t004_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
+% Layers in the files (all combined into one file during combine):
+%   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
+%   t002_lsm_surface_001, ..., t002_lsm_surface_016, t002_lsm_bottom_001, ..., t002_lsm_bottom_016
+%   t003_lsm_surface_001, ..., t003_lsm_surface_016, t003_lsm_bottom_001, ..., t003_lsm_bottom_016
+%   t004_lsm_surface_001, ..., t004_lsm_surface_016, t004_lsm_bottom_001, ..., t004_lsm_bottom_016
 
 %% General Setup
 % =====================================================================
@@ -85,20 +110,6 @@ if ~isfield(param.layer_tracker,'surf_layer') || isempty(param.layer_tracker.sur
   param.layer_tracker.surf_layer = [];
 end
 
-%  .crossover_layer: layer parameter structure for loading crossovers with
-%  opsGetCrossovers.m
-if ~isfield(param.layer_tracker,'crossover_layer') || isempty(param.layer_tracker.crossover_layer)
-  param.layer_tracker.crossover_layer = [];
-end
-if ~isempty(param.layer_tracker.crossover_layer)
-  if ~isfield(param.layer_tracker.crossover_layer,'name') || isempty(param.layer_tracker.crossover_layer.name)
-    param.layer_tracker.crossover_layer.name = 'bottom';
-  end
-  if ~isfield(param.layer_tracker.crossover_layer,'source') || isempty(param.layer_tracker.crossover_layer.source)
-    param.layer_tracker.crossover_layer.source = 'ops';
-  end
-end
-
 %% Input Checks: layer_tracker.track field
 % ======================================================================
 
@@ -124,6 +135,22 @@ for track_idx = 1:length(param.layer_tracker.track)
   end
   if ~track.en
     continue;
+  end
+  
+  %  .crossover: struct controlling crossover loading
+  if ~isfield(track,'crossover') || isempty(track.crossover)
+    track.crossover = [];
+  end
+  %  .crossover.en: enable loading of crossovers
+  if ~isfield(track.crossover,'en') || isempty(track.crossover.en)
+    track.crossover.en = false;
+  end
+  if ~isfield(track,'crossover') || isempty(track.crossover)
+    track.crossover = [];
+  end
+  %  .crossover.name: layer name to load crossovers for
+  if ~isfield(track.crossover,'name') || isempty(track.crossover.name)
+    track.crossover.name = 'bottom';
   end
   
   if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
@@ -167,6 +194,15 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
     track.fixed_value = 0;
+  end
+  
+  %  .ice_mask: struct controlling ice mask loading
+  if ~isfield(track,'ice_mask') || isempty(track.ice_mask)
+    track.ice_mask = [];
+  end
+  %  .ice_mask.en: enable loading of ice mask
+  if ~isfield(track.ice_mask,'en') || isempty(track.ice_mask.en)
+    track.ice_mask.en = false;
   end
   
   if ~isfield(track,'init') || isempty(track.init)
@@ -239,6 +275,10 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.name = sprintf('t%03d', track_idx);
   end
   
+  if ~isfield(track,'track_per_task') || isempty(track.track_per_task)
+    track.track_per_task = inf;
+  end
+  
   if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
     track.prefilter_trim = [0 0];
   end
@@ -286,21 +326,21 @@ sparam.cpu_time = 60;
 sparam.mem = 500e6;
 sparam.notes = '';
 
-cpu_time_mult = 0;
-mem_mult = 0;
+cpu_time_mult = zeros(size(param.layer_tracker.track));
+mem_mult = zeros(size(param.layer_tracker.track));
 for track_idx = 1:length(param.layer_tracker.track)
   switch param.layer_tracker.track{track_idx}.method
     case 'viterbi'
-      cpu_time_mult = cpu_time_mult + 11e-6;
-      mem_mult = max(mem_mult,64);
+      cpu_time_mult(track_idx) = 11e-6;
+      mem_mult(track_idx) = 64;
       
     case 'lsm'
-      cpu_time_mult = cpu_time_mult + 5.5e-5;
-      mem_mult = max(mem_mult,64);
+      cpu_time_mult(track_idx) = 5.5e-7*max(param.layer_tracker.track{track_idx}.lsm.storeIter);
+      mem_mult(track_idx) = 80;
       
     otherwise
-      cpu_time_mult = cpu_time_mult + 11e-6;
-      mem_mult = max(mem_mult,64);
+      cpu_time_mult(track_idx) = 11e-6;
+      mem_mult(track_idx) = 64;
   end
 end
 
@@ -317,13 +357,11 @@ mem_combine = 0;
 cputime_combine = 0;
 frm_idx = 1;
 while frm_idx <= length(param.cmd.frms)
-  dparam = [];
-  dparam.file_success = {};
-  dparam.argsin{1}.layer_tracker.frms = [];
   Nx = 0;
   Nt = 0;
   
   start_frm_idx = frm_idx;
+  frms = [];
   for subblock_idx = 1:param.layer_tracker.block_size_frms
     frm = param.cmd.frms(frm_idx);
     if ~any(frm == param.cmd.frms)
@@ -331,44 +369,9 @@ while frm_idx <= length(param.cmd.frms)
     end
     % Add frame to this block
     frm_idx = frm_idx + 1;
-    dparam.argsin{1}.layer_tracker.frms(end+1) = frm;
+    frms(end+1) = frm;
     
-    % File Success
-    % ---------------------------------------------------------------------
-    % Outputs stored in:
-    % /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_test/20140313_08/
-    %
-    % Comparing four different methods:
-    %   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-    %   layer_tracker_001/t002_mcmc.mat, ..., layer_tracker_00N/t002_mcmc.mat
-    %   layer_tracker_001/t003_stereo.mat, ..., layer_tracker_00N/t003_stereo.mat
-    %   layer_tracker_001/t004_viterbi.mat, ..., layer_tracker_00N/t004_viterbi.mat
-    % Layers in the files (all combined into one file during combine):
-    %   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
-    %   t002_mcmc_surface, t002_mcmc_bottom
-    %   t003_stereo_surface, t003_stereo_bottom
-    %   t004_viterbi_bottom
-    %
-    % Comparing the same method with four different sets of parameters:
-    %   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-    %   layer_tracker_001/t002_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-    %   layer_tracker_001/t003_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-    %   layer_tracker_001/t004_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-    % Layers in the files (all combined into one file during combine):
-    %   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
-    %   t002_lsm_surface_001, ..., t002_lsm_surface_016, t002_lsm_bottom_001, ..., t002_lsm_bottom_016
-    %   t003_lsm_surface_001, ..., t003_lsm_surface_016, t003_lsm_bottom_001, ..., t003_lsm_bottom_016
-    %   t004_lsm_surface_001, ..., t004_lsm_surface_016, t004_lsm_bottom_001, ..., t004_lsm_bottom_016
-    for track_idx = 1:length(param.layer_tracker.track)
-      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method);
-      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
-      dparam.file_success{end+1} = tmp_out_fn;
-      if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
-        delete(tmp_out_fn);
-      end
-    end
-    
-    % CPU time and memory
+    % Compute matrix size
     % ---------------------------------------------------------------------
     data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
     mdata = load(data_fn, 'GPS_time','Time');
@@ -388,34 +391,55 @@ while frm_idx <= length(param.cmd.frms)
   dt = mdata.Time(2) - mdata.Time(1);
   Nt = 1 + (max_time-min_time)/dt;
   
-  % Rerun only check
-  % ---------------------------------------------------------------------
-  if ~ctrl.cluster.rerun_only
-    if ~cluster_file_success(dparam.file_success)
-      fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
-        dparam.notes, datestr(now));
-      continue;
+  for track_idx = 1:param.layer_tracker.track_per_task:length(param.layer_tracker.track)
+    dparam = [];
+    dparam.file_success = {};
+    dparam.argsin{1}.layer_tracker.frms = frms;
+    
+    tracks_in_task = track_idx:min(track_idx-1+param.layer_tracker.track_per_task,length(param.layer_tracker.track)); 
+    
+    dparam.argsin{1}.layer_tracker.tracks_in_task = tracks_in_task;
+
+    % File Success
+    % ---------------------------------------------------------------------
+    for track_idx = tracks_in_task
+      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method);
+      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
+      dparam.file_success{end+1} = tmp_out_fn;
+      if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
+        delete(tmp_out_fn);
+      end
     end
+    
+    % Rerun only check
+    % ---------------------------------------------------------------------
+    if ~ctrl.cluster.rerun_only
+      if ~cluster_file_success(dparam.file_success)
+        fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+          dparam.notes, datestr(now));
+        continue;
+      end
+    end
+    
+    % CPU time and memory
+    % ---------------------------------------------------------------------
+    dparam.cpu_time = sum(cpu_time_mult(tracks_in_task)) * Nx * Nt;
+    dparam.mem = 800e6 + max(mem_mult(tracks_in_task)) * Nx * Nt;
+    mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
+    cputime_combine = cputime_combine + 1e-1*Nx*length(tracks_in_task);
+    
+    % Notes
+    % ---------------------------------------------------------------------
+    dparam.notes = sprintf('%s %s:%s:%s %s %s:%d-%d %s %d-%d (%d of %d)', ...
+      sparam.task_function, param.radar_name, param.season_name, ...
+      param.layer_tracker.echogram_source, param.layer_tracker.layer_params.layerdata_source, ...
+      param.layer_tracker.track{tracks_in_task(1)}.method, tracks_in_task([1 end]), param.day_seg, ...
+      dparam.argsin{1}.layer_tracker.frms([1 end]), start_frm_idx, length(param.cmd.frms));
+    
+    % Create task
+    % ---------------------------------------------------------------------
+    ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   end
-  
-  % CPU time and memory
-  % ---------------------------------------------------------------------
-  dparam.cpu_time = cpu_time_mult * Nx * Nt;
-  dparam.mem = 800e6 + mem_mult * Nx * Nt;
-  mem_combine = mem_combine + 256*Nx;
-  cputime_combine = cputime_combine + 1e-1*Nx;
-  
-  % Notes
-  % ---------------------------------------------------------------------
-  dparam.notes = sprintf('%s %s:%s:%s %s %s %s %d-%d (%d of %d)', ...
-    sparam.task_function, param.radar_name, param.season_name, ...
-    param.layer_tracker.echogram_source, param.layer_tracker.layer_params.layerdata_source, ...
-    param.layer_tracker.track{1}.method, param.day_seg, ...
-    dparam.argsin{1}.layer_tracker.frms([1 end]), start_frm_idx, length(param.cmd.frms));
-  
-  % Create task
-  % ---------------------------------------------------------------------
-  ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
 end
 
 ctrl = cluster_save_dparam(ctrl);
