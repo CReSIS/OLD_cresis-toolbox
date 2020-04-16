@@ -12,17 +12,17 @@ function records_check(param,param_override)
 %
 % Example:
 % param = [];
-% param.radar_name = 'mcrds';
-% param.season_name = '2009_Antarctica_TO';
+% param.radar_name = 'rds';
+% param.season_name = '2009_Antarctica_DC8';
 % records_check(param)
 %
 % param = [];
-% param.radar_name = 'mcords2';
+% param.radar_name = 'rds';
 % param.season_name = '2011_Greenland_P3';
 % records_check(param)
 %
 % param = [];
-% param.radar_name = 'snow3';
+% param.radar_name = 'snow';
 % param.season_name = '2013_Antarctica_Basler';
 % records_check(param)
 
@@ -99,7 +99,7 @@ end
 % along_track_skip_limit: positive numeric scalar, default 2000, units meters, threshold for
 %   maximum allowed along-track skip
 if ~isfield(param.records_check,'along_track_skip_limit') || isempty(param.records_check.along_track_skip_limit)
-  param.records_check.along_track_skip_limit = 20;
+  param.records_check.along_track_skip_limit = 2000;
 end
 
 % gps_source_check: logical scalar, default true, if true prints non-final GPS source error
@@ -138,7 +138,7 @@ end
 %   threshold is how far the platform can move once it enters a stationary
 %   state and still be considered stationary
 if ~isfield(param.records_check,'stationary_threshold_alongtrack') || isempty(param.records_check.stationary_threshold_alongtrack)
-  param.records_check.stationary_threshold_alongtrack = 0.1;
+  param.records_check.stationary_threshold_alongtrack = [0.1 10];
 end
 
 % vel_threshold: postive numeric scalar, default 10, units m/s, threshold
@@ -262,8 +262,12 @@ if any(nonmonotonic_records)
     find(nonmonotonic_records,1), sum(nonmonotonic_records), length(records.gps_time));
 end
 
+if any(isnan(records.gps_time))
+  warning('NaN in records.gps_time');
+end
+
 if any(isnan(records.lat) | isnan(records.lon) | isnan(records.elev)  | isnan(records.roll)  | isnan(records.pitch)  | isnan(records.heading))
-  warning('NaN in record');
+  warning('NaN in record trajectory/attitude fields');
 end
 
 diff_time = diff(records.gps_time);
@@ -281,9 +285,9 @@ end
 diff_along_track = diff(along_track);
 if any(diff_along_track > param.records_check.along_track_skip_limit)
   jump_idxs = find(diff_along_track > param.records_check.along_track_skip_limit);
-  warning('Along-track gap greater than limit %.1f km, max skip found is is %.1f km', ...
+  warning('Along-track gap greater than limit %.1f m, max skip found is %.1f m', ...
     param.records_check.along_track_skip_limit, max(diff_along_track));
-  fprintf('Along-track gaps in seconds: '); fprintf('%f\t', diff_along_track(jump_idxs)); fprintf('\n');
+  fprintf('Along-track gaps: '); fprintf('%f\t', diff_along_track(jump_idxs)); fprintf('\n');
   for jump_idx = jump_idxs
     fprintf('  Gap is at file index %d to %d of %d to %d files\n', find(records.relative_rec_num{1} > jump_idx,1), ...
       find(records.relative_rec_num{1} > jump_idx+1,1), 1, length(records.relative_rec_num{1}));

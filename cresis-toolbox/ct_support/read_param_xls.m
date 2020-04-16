@@ -28,6 +28,11 @@ function [params] = read_param_xls(param_fn, day_seg_filter, generic_ws)
 %
 % See also: ct_set_params, master, read_param_xls
 
+if isstruct(param_fn)
+  day_seg_filter = param_fn.day_seg;
+  param_fn = ct_filename_param(sprintf('%s_param_%s.xls', ct_output_dir(param_fn.radar_name), param_fn.season_name));
+end
+  
 %% Load standard worksheets
 warning('off','MATLAB:xlsread:Mode');
 [params] = read_param_xls_radar(param_fn);

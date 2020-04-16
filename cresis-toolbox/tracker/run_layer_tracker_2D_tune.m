@@ -46,27 +46,6 @@ for y = 160:20:300
   for dy = [5 10 20 40]
     track = [];
     
-    if 1 % If using GeoTIFF file for ice mask
-      if strcmpi(params(1).post.ops.location,'arctic')
-        if 1
-          % Greenland
-          track.binary_icemask = false;
-          track.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
-          track.icemask_fn = ct_filename_gis([], track.icemask_fn);
-        else
-          % Canada
-          track.binary_icemask = true;
-          track.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
-          [track.ice_mask_fn_dir,track.ice_mask_fn_name] = fileparts(track.icemask_fn);
-          track.ice_mask_mat_fn = fullfile(track.ice_mask_fn_dir,[track.ice_mask_fn_name '.mat']);
-        end
-      else
-        % Useful for Antarctica seasons:
-        track.binary_icemask = false;
-        track.icemask_fn = ct_filename_gis([], 'greenland/IceMask/GimpIceMask_90m_v1.1.tif');
-      end
-    end
-    
     %% Enable one set of parameters
     track.en = true;
     % RDS

@@ -62,7 +62,7 @@ if any(strcmp('vectors',{mat_vars.name}))
 end
 
 if any(strcmp('surface',{mat_vars.name}))
-  update_records_flag = true;
+%   update_records_flag = true;
 end
 
 if ~update_records_flag

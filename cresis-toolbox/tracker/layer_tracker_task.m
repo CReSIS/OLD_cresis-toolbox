@@ -140,6 +140,32 @@ for track_idx = param.layer_tracker.tracks_in_task
 
   %% Crossover loading
   if track.crossover.en
+    
+      % [status,data] = opsGetFrameSearch(sys,param)
+%
+% Retrieves the closest frame based on a search string from the database.
+%
+% Input:
+%   sys: (string) sys name ('rds','accum','snow',...)
+%   param: structure with fields
+%     properties.search_str = string (e.g., '2010','201005','20100510_04_010',...)
+%     properties.location = string ('arctic' or 'antarctic')
+%
+%     optional:
+%       properties.season = string (eg. '2011_Greenland_P3')
+%
+% Output:
+%   status: integer (0:Error,1:Success,2:Warning)
+%   data: structure with fields (or error message)
+%       properties.season = string
+%       properties.segment_id = int
+%       properties.frame = string
+%       properties.X = double (x coordinate in map projection)
+%       properties.Y = double (y coordinate in map projection)
+%       properties.gps_time = double (z coordinate)
+    
+    
+    
     opsAuthenticate(param,false);
     layer_name                   = track.crossover.name;
     sys                          = ct_output_dir(param.radar_name);
