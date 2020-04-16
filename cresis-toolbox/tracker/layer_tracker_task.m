@@ -26,9 +26,45 @@ else
   tmp_out_fn_dir_dir = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp');
 end
 
+%% Load echogram data
+mdata = [];
+mdata.GPS_time = [];
+mdata.Data = [];
+mdata.Time = [];
+mdata.Elevation=[];
+mdata.Latitude = [];
+mdata.Longitude = [];
+mdata.Roll = [];
+% Keep track of start/stop index for each frame
+frm_start = zeros(size(param.layer_tracker.frms));
+frm_stop = zeros(size(param.layer_tracker.frms));
+for frm_idx = 1:length(param.layer_tracker.frms)
+  frm = param.layer_tracker.frms(frm_idx);
+  
+  % Load the current frame
+  data_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+  tmp_data=load(data_fn);
+  
+  Nx = length(tmp_data.GPS_time);
+  frm_start(frm_idx) = length(mdata.GPS_time)+1;
+  frm_stop(frm_idx) = length(mdata.GPS_time)+Nx;
+  
+  mdata.GPS_time(1,end+(1:Nx)) = tmp_data.GPS_time;
+  mdata.Elevation(1,end+(1:Nx)) = tmp_data.Elevation;
+  mdata.Latitude(1,end+(1:Nx)) = tmp_data.Latitude;
+  mdata.Longitude(1,end+(1:Nx)) = tmp_data.Longitude;
+  mdata.Roll(1,end+(1:Nx)) = tmp_data.Roll;
+  
+  % Handle time axis that changes from one frame to the next
+  mdata.Time = tmp_data.Time;
+  mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
+end
+Nx = size(mdata.Data,2);
+data = lp(mdata.Data);
+
 %% Track
 % =========================================================================
-for track_idx = 1:length(param.layer_tracker.track)
+for track_idx = param.layer_tracker.tracks_in_task
   track = param.layer_tracker.track{track_idx};
   orig_track = track;
   
@@ -57,50 +93,11 @@ for track_idx = 1:length(param.layer_tracker.track)
     gdem.set_res(500);
     gdem.ocean_mask_mode = 'l';
     
-    gdem_str = sprintf('%s:%s:%s',param.radar_name,param.season_name,param.day_seg);
+    gdem_str = sprintf('%s:%s:%s_%03d_%03d',param.radar_name,param.season_name,param.day_seg,param.layer_tracker.frms([1 end]));
     if ~strcmpi(gdem_str,gdem.name)
-      % Load records file
-      records_fn = ct_filename_support(param,'','records');
-      records = load(records_fn);
-      gdem.set_vector(records.lat,records.lon,gdem_str);
+      gdem.set_vector(mdata.Latitude,mdata.Longitude,gdem_str);
     end
   end
-  
-  %% Load echogram data
-  mdata = [];
-  mdata.GPS_time = [];
-  mdata.Data = [];
-  mdata.Time = [];
-  mdata.Elevation=[];
-  mdata.Latitude = [];
-  mdata.Longitude = [];
-  mdata.Roll = [];
-  % Keep track of start/stop index for each frame
-  frm_start = zeros(size(param.layer_tracker.frms));
-  frm_stop = zeros(size(param.layer_tracker.frms));
-  for frm_idx = 1:length(param.layer_tracker.frms)
-    frm = param.layer_tracker.frms(frm_idx);
-    
-    % Load the current frame
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-    tmp_data=load(data_fn);
-    
-    Nx = length(tmp_data.GPS_time);
-    frm_start(frm_idx) = length(mdata.GPS_time)+1;
-    frm_stop(frm_idx) = length(mdata.GPS_time)+Nx;
-    
-    mdata.GPS_time(1,end+(1:Nx)) = tmp_data.GPS_time;
-    mdata.Elevation(1,end+(1:Nx)) = tmp_data.Elevation;
-    mdata.Latitude(1,end+(1:Nx)) = tmp_data.Latitude;
-    mdata.Longitude(1,end+(1:Nx)) = tmp_data.Longitude;
-    mdata.Roll(1,end+(1:Nx)) = tmp_data.Roll;
-    
-    % Handle time axis that changes from one frame to the next
-    mdata.Time = tmp_data.Time;
-    mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
-  end
-  Nx = size(mdata.Data,2);
-  data = lp(mdata.Data);
   
   %% Track: Interpolate GIMP and Geoid
   if strcmpi(track.init.method,'dem')
@@ -115,6 +112,93 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.dem = interp_finite(track.dem,1);
   end
   
+  %% Ice mask calculation
+  if track.ice_mask.en
+    if strcmp(track.ice_mask.type,'bin')
+      mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
+      [fid,msg] = fopen(track.ice_mask.fn,'r');
+      if fid < 1
+        fprintf('Could not open file %s\n', track.ice_mask.fn);
+        error(msg);
+      end
+      mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
+      fclose(fid);
+    else
+      [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
+      mask.proj = geotiffinfo(track.icemask_fn);
+    end
+    [mask.x, mask.y] = projfwd(mask.proj, mdata.Lat, mdata.Lon);
+    mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
+    mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
+    [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
+    ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
+    ice_mask.mask(isnan(ice_mask.mask)) = 1;
+    track.ice_mask = ice_mask.mask;
+  else
+    track.ice_mask = ones(1,Nx);
+  end
+
+  %% Crossover loading
+  if track.crossover.en
+    opsAuthenticate(param,false);
+    layer_name                   = track.crossover.name;
+    sys                          = ct_output_dir(param.radar_name);
+    ops_param                    = struct('properties',[]);
+    ops_param.properties.season  = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
+    
+    ops_param = struct('properties',[]);
+    ops_param.properties.location = param.post.ops.location;
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
+    ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
+    ops_param.properties.nativeGeom = true;
+    [~,ops_data] = opsGetPath(sys,ops_param);
+    
+    query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
+    query
+    [~,tables] = opsQuery(query);
+    segment_id = tables{1};
+    
+    ops_param                       = struct('properties',[]);
+    ops_param.properties.location   = param.post.ops.location;
+    ops_param.properties.lyr_name   = layer_name;
+    ops_param.properties.frame      = ops_frames.properties.frame;
+    ops_param.properties.segment_id = ones(size(ops_param.properties.frame)) ...
+      *double(segment_id);
+    
+    [~,data] = opsGetCrossovers(sys,ops_param);
+    
+    %% Load and align crossovers
+    rline = [];
+    rows  = [];
+    cols  = [];
+    gps_time = [];
+    season_name = {};
+    for i = 1 : length(data.properties.source_point_path_id)
+      if ~isnan(data.properties.twtt(i))
+        new_rline = find(ops_data.properties.id == data.properties.source_point_path_id(i));
+        new_gps_time = ops_data.properties.gps_time(new_rline);
+        new_season_name = data.properties.season_name{i};
+        if big_matrix.GPS_time(1) <= new_gps_time ...
+            && big_matrix.GPS_time(end) >= new_gps_time %...
+          %&& str2double(new_season_name(1:4)) >= 2006
+          rline(end+1) = new_rline;
+          gps_time(end+1) = new_gps_time;
+          season_name{end+1} = new_season_name;
+          [~, cols(end+1)] = min(abs(big_matrix.GPS_time - ops_data.properties.gps_time(rline(end))));
+          twtt = data.properties.twtt(i);
+          twtt = twtt + (data.properties.source_elev(i)-data.properties.cross_elev(i))/(c/2);
+          rows(end+1) = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), twtt));
+        end
+      end
+    end
+    track.crossovers = [cols(:).'; rows(:).'];
+  else
+    track.crossovers = zeros(2,0);
+  end
+ 
   %% Track: Prefilter trim
   % Also set leading/following zeros or ~isfinite to NaN
   for rline = 1:Nx
@@ -219,6 +303,7 @@ for track_idx = 1:length(param.layer_tracker.track)
   if track.data_noise_en
     data_noise = data_noise(track.min_bin:track.max_bin,:);
   end
+  track.zero_bin = floor(-mdata.Time(1)/dt + 1);
   
   %% Track: Create Initial Surface
   if strcmpi(track.init.method,'dem')
@@ -273,16 +358,16 @@ for track_idx = 1:length(param.layer_tracker.track)
     new_layers = tracker_max(data,track);
     new_quality = ones(1,Nx);
   elseif strcmpi(track.method,'viterbi')
-    new_layers = tracker_viterbi(mdata,track);
+    new_layers = tracker_viterbi(data,track);
     new_quality = ones(1,Nx);
   elseif strcmpi(track.method,'lsm')
     new_layers = tracker_lsm(data,track);
     new_quality = ones(1,Nx);
   elseif strcmpi(track.method,'stereo')
-    [new_layers,big_matrix] = tracker_stereo(mdata,track);
+    [new_layers,big_matrix] = tracker_stereo(data,track);
     new_quality = ones(1,Nx);
   elseif strcmpi(track.method,'mcmc')
-    new_layers = tracker_mcmc(mdata,track);
+    new_layers = tracker_mcmc(data,track);
     new_quality = ones(1,Nx);
   elseif strcmpi(track.method,'snake')
     track.search_rng = round(orig_track.snake_rng(1)/dt) : round(orig_track.snake_rng(2)/dt);

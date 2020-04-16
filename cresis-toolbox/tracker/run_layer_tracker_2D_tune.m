@@ -29,17 +29,20 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_test';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_paden';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
 % block_size_frms: Number of frames to be loaded at a time
-param_override.layer_tracker.block_size_frms = 2;
+param_override.layer_tracker.block_size_frms = 1;
+
+% track_per_task: Number of tracks per task
+param_override.layer_tracker.track_per_task = 1;
 
 %% param.layer_tracker.track options
 track_idx = 0;
-for y = 160:20:180
-  for dy = 10:10:10
+for y = 160:20:300
+  for dy = [5 10 20 40]
     track = [];
     
     if 1 % If using GeoTIFF file for ice mask
@@ -72,9 +75,9 @@ for y = 160:20:180
     track.method           = 'lsm';
     track.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
     track.lsm.lyrbot       = 'lsm_bot';
-    track.lsm.y            = 220; % = '' for y = mean(SURF)
-    track.lsm.dy           = 10;
-    track.lsm.storeIter    = [200 400];
+    track.lsm.y            = y; % = '' for y = mean(SURF)
+    track.lsm.dy           = dy;
+    track.lsm.storeIter    = [25:25:400];
     track.init.max_diff    = inf;
     track.detrend          = [];
     track.norm.scale       = [-40 90];

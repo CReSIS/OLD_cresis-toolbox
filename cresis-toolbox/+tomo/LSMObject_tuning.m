@@ -123,14 +123,18 @@ classdef LSMObject_tuning <handle
         
         match_idx = find(n==this.lsmArgs.storeIter);
         if any(match_idx)
-          %c = contour(this.phi, [0,0], 'r'); % This requires graphics
           c = contourc(this.phi, [0,0]);
           s = tomo.contourdata(c);
           % Ensure proper order of layers
-          if sum(s(1).ydata) > sum(s(2).ydata)
-            s = s([2 1]);
+          if 0
+            % Debug plot to show contours
+            figure;
+            c = contour(this.phi, [0,0], 'r');
           end
           try
+            if sum(s(1).ydata) > sum(s(2).ydata)
+              s = s([2 1]);
+            end
             top.x = (1 / this.resizeRate) * imresize(s(1).xdata, [size(img_orig, 2) 1]);
             top.y = (1 / this.resizeRate) * imresize(s(1).ydata, [size(img_orig, 2) 1]);
             bot.x = (1 / this.resizeRate) * imresize(s(2).xdata, [size(img_orig, 2) 1]);
