@@ -11,12 +11,13 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
-params = ct_set_params(params,'cmd.frms',[1 2]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140516_01');
+params = ct_set_params(params,'cmd.frms',[40:48]); % Specify specific frames (or leave empty/undefined to do all frames)
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
-param_override.layer_tracker.debug_plots = {'tracked_images'};
+param_override.layer_tracker.debug_plots = {};
+% param_override.layer_tracker.debug_plots = {'tracked_images'};
 % param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
@@ -29,7 +30,7 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_paden';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
@@ -92,14 +93,14 @@ end
 % param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
 % dbstop if error;
-% param_override.cluster.type = 'torque';
+ param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
-% param_override.cluster.cpu_time_mult  = 2;
-% param_override.cluster.mem_mult  = 2;
+param_override.cluster.cpu_time_mult  = 2;
+param_override.cluster.mem_mult  = 2;
 
 %% Automated Section
 % ----------------------------------------------------------------------
