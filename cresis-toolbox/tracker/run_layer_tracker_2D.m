@@ -12,7 +12,7 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
-params = ct_set_params(params,'cmd.frms',[1 2]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
@@ -34,7 +34,7 @@ param_override.layer_tracker.layer_params.layerdata_source = 'layer_test';
 % param_override.layer_tracker.layer_params.source = 'ops';
 
 % block_size_frms: Number of frames to be loaded at a time
-param_override.layer_tracker.block_size_frms = 2;
+param_override.layer_tracker.block_size_frms = inf;
 
 % track_per_task: Number of tracks per task
 param_override.layer_tracker.track_per_task = inf;
@@ -110,7 +110,10 @@ switch ct_output_dir(params(1).radar_name)
       track.method                      = 'viterbi';
       track.layer_names                 = {'surface','bottom'};
       
-      track.crossover.en = false;
+      track.crossover.en = true;
+      track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
+      % track.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
+      track.crossover.gps_time_good_eval = @(x) x < datenum_to_epoch(datenum('2014/03/01')); % Cross overs before this date are good
       
       if 1
         track.ice_mask.en = false;
@@ -149,9 +152,12 @@ switch ct_output_dir(params(1).radar_name)
       track.viterbi.gt_weight           = 1; % Attracts
       track.viterbi.gt_cutoff           = 5;
       
+      track.mult_suppress.en = true;
       track.init.max_diff    = inf;
       track.detrend          = [];
+      track.filter_trim      = [0 120];
       track.norm.scale       = [-40 90];
+      track.xcorr            = echo_xcorr_profile('short_unitstep');
     end
     
     %% MCMC

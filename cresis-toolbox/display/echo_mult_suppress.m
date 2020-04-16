@@ -8,7 +8,7 @@ function data = echo_mult_suppress(mdata, layer, param)
 % mdata = echogram struct from qlook.m or array.m. Echogram should be
 % linear power. Struct must include .Data, .Roll, and .Time fields. If layer not
 % passed in, then it must include the param field (param_qlook or
-% param_array) and .GPS_time.
+% param_array) and .GPS_time. mdata.Data should be linear power.
 %
 % param: struct controlling how the surface multiple suppression is done
 %

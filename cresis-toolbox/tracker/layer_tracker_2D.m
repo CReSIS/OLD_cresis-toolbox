@@ -145,12 +145,19 @@ for track_idx = 1:length(param.layer_tracker.track)
   if ~isfield(track.crossover,'en') || isempty(track.crossover.en)
     track.crossover.en = false;
   end
-  if ~isfield(track,'crossover') || isempty(track.crossover)
-    track.crossover = [];
-  end
   %  .crossover.name: layer name to load crossovers for
   if ~isfield(track.crossover,'name') || isempty(track.crossover.name)
     track.crossover.name = 'bottom';
+  end
+  %  .crossover.season_names_bad: cell array of strings with bad seasons to
+  %  not include in crossovers
+  if ~isfield(track.crossover,'season_names_bad') || isempty(track.crossover.season_names_bad)
+    track.crossover.season_names_bad = {};
+  end
+  %  .crossover.gps_time_good_eval: function which returns good/bad based
+  %  on crossover gps time.
+  if ~isfield(track.crossover,'gps_time_good_eval') || isempty(track.crossover.gps_time_good_eval)
+    track.crossover.gps_time_good_eval = @(x) true;
   end
   
   if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
@@ -271,6 +278,19 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.min_bin = 0;
   end
   
+    %  .mult_suppress: struct controlling surface multiple suppression
+  if ~isfield(track,'mult_suppress') || isempty(track.mult_suppress)
+    track.mult_suppress = [];
+  end
+  %  .mult_suppress.en: enable surface multiple suppression
+  if ~isfield(track.mult_suppress,'en') || isempty(track.mult_suppress.en)
+    track.mult_suppress.en = false;
+  end
+  %  .mult_suppress.param: param field to pass to mult_suppress.m
+  if ~isfield(track.mult_suppress,'param') || isempty(track.mult_suppress.param)
+    track.mult_suppress.param = [];
+  end
+  
   if ~isfield(track,'name') || isempty(track.name)
     track.name = sprintf('t%03d', track_idx);
   end
@@ -363,6 +383,9 @@ while frm_idx <= length(param.cmd.frms)
   start_frm_idx = frm_idx;
   frms = [];
   for subblock_idx = 1:param.layer_tracker.block_size_frms
+    if frm_idx > param.cmd.frms
+      break;
+    end
     frm = param.cmd.frms(frm_idx);
     if ~any(frm == param.cmd.frms)
       break;

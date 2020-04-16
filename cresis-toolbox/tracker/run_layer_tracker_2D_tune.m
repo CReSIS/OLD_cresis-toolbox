@@ -42,8 +42,13 @@ param_override.layer_tracker.track_per_task = 1;
 
 %% param.layer_tracker.track options
 track_idx = 0;
-for y = 160:20:300
-  for dy = [5 10 20 40]
+y_values = 160:20:300;
+dy_values = [5 10 20 40];
+for y_idx = 1:length(y_values)
+  y = y_values(y_idx);
+  
+  for dy_idx = 1:length(dy_values)
+    dy = dy_values(dy_idx);
     track = [];
     
     %% Enable one set of parameters
@@ -53,11 +58,13 @@ for y = 160:20:300
     
     %% LSM User Settings
     track.method           = 'lsm';
-    track.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
-    track.lsm.lyrbot       = 'lsm_bot';
     track.lsm.y            = y; % = '' for y = mean(SURF)
     track.lsm.dy           = dy;
     track.lsm.storeIter    = [25:25:400];
+    track.idx_dim_name     = {'storeIter' 'dy' 'y'};
+    track.idx_reshape      = [length(track.lsm.storeIter) length(dy_values) length(y_values)];
+    track.idx              = length(dy_values)*length(track.lsm.storeIter)*(y_idx-1) ...
+      + length(track.lsm.storeIter)*(dy_idx-1) + (1:length(track.lsm.storeIter));
     track.init.max_diff    = inf;
     track.detrend          = [];
     track.norm.scale       = [-40 90];
