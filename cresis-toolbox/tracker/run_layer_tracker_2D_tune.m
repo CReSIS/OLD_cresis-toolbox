@@ -29,7 +29,7 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_paden';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
@@ -52,8 +52,6 @@ for y = 160:20:300
     
     %% LSM User Settings
     track.method           = 'lsm';
-    track.lsm.lyrtop       = 'lsm_top'; %layername, layer_dest.name
-    track.lsm.lyrbot       = 'lsm_bot';
     track.lsm.y            = y; % = '' for y = mean(SURF)
     track.lsm.dy           = dy;
     track.lsm.storeIter    = [25:25:400];
