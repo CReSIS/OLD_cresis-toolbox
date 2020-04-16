@@ -11,6 +11,8 @@ function success = layer_tracker_task(param)
 %% Input Checks: track field
 % =====================================================================
 
+physical_constants('c');
+
 tracked_images_en = any(strcmp('tracked_images',param.layer_tracker.debug_plots));
 visible_en = any(strcmp('visible',param.layer_tracker.debug_plots));
 if tracked_images_en
@@ -38,26 +40,37 @@ mdata.Roll = [];
 % Keep track of start/stop index for each frame
 frm_start = zeros(size(param.layer_tracker.frms));
 frm_stop = zeros(size(param.layer_tracker.frms));
+frm_str = cell(size(param.layer_tracker.frms));
 for frm_idx = 1:length(param.layer_tracker.frms)
   frm = param.layer_tracker.frms(frm_idx);
   
   % Load the current frame
-  data_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-  tmp_data=load(data_fn);
-  
-  Nx = length(tmp_data.GPS_time);
-  frm_start(frm_idx) = length(mdata.GPS_time)+1;
-  frm_stop(frm_idx) = length(mdata.GPS_time)+Nx;
-  
-  mdata.GPS_time(1,end+(1:Nx)) = tmp_data.GPS_time;
-  mdata.Elevation(1,end+(1:Nx)) = tmp_data.Elevation;
-  mdata.Latitude(1,end+(1:Nx)) = tmp_data.Latitude;
-  mdata.Longitude(1,end+(1:Nx)) = tmp_data.Longitude;
-  mdata.Roll(1,end+(1:Nx)) = tmp_data.Roll;
-  
-  % Handle time axis that changes from one frame to the next
-  mdata.Time = tmp_data.Time;
-  mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
+  frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
+  data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+  if frm_idx == 1
+    mdata = load(data_fn);
+    frm_start(frm_idx) = 1;
+    frm_stop(frm_idx) = length(mdata.GPS_time);
+    
+  else
+    tmp_data=load(data_fn);
+    
+    Nx = length(tmp_data.GPS_time);
+    frm_start(frm_idx) = length(mdata.GPS_time)+1;
+    frm_stop(frm_idx) = length(mdata.GPS_time)+Nx;
+    
+    mdata.GPS_time(1,end+(1:Nx)) = tmp_data.GPS_time;
+    mdata.Elevation(1,end+(1:Nx)) = tmp_data.Elevation;
+    mdata.Latitude(1,end+(1:Nx)) = tmp_data.Latitude;
+    mdata.Longitude(1,end+(1:Nx)) = tmp_data.Longitude;
+    mdata.Roll(1,end+(1:Nx)) = tmp_data.Roll;
+    mdata.Surface(1,end+(1:Nx)) = tmp_data.Surface;
+
+    
+    % Handle time axis that changes from one frame to the next
+    mdata.Time = tmp_data.Time;
+    mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
+  end
 end
 Nx = size(mdata.Data,2);
 data = lp(mdata.Data);
@@ -82,6 +95,7 @@ for track_idx = param.layer_tracker.tracks_in_task
         layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
       end
     end
+    mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time));
   end
   
   %% Load in ocean mask, land DEM, and sea surface DEM
@@ -140,89 +154,76 @@ for track_idx = param.layer_tracker.tracks_in_task
 
   %% Crossover loading
   if track.crossover.en
-    
-      % [status,data] = opsGetFrameSearch(sys,param)
-%
-% Retrieves the closest frame based on a search string from the database.
-%
-% Input:
-%   sys: (string) sys name ('rds','accum','snow',...)
-%   param: structure with fields
-%     properties.search_str = string (e.g., '2010','201005','20100510_04_010',...)
-%     properties.location = string ('arctic' or 'antarctic')
-%
-%     optional:
-%       properties.season = string (eg. '2011_Greenland_P3')
-%
-% Output:
-%   status: integer (0:Error,1:Success,2:Warning)
-%   data: structure with fields (or error message)
-%       properties.season = string
-%       properties.segment_id = int
-%       properties.frame = string
-%       properties.X = double (x coordinate in map projection)
-%       properties.Y = double (y coordinate in map projection)
-%       properties.gps_time = double (z coordinate)
-    
-    
-    
-    opsAuthenticate(param,false);
-    layer_name                   = track.crossover.name;
-    sys                          = ct_output_dir(param.radar_name);
-    ops_param                    = struct('properties',[]);
-    ops_param.properties.season  = param.season_name;
-    ops_param.properties.segment = param.day_seg;
-    [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
-    
-    ops_param = struct('properties',[]);
+    sys = ct_output_dir(param.radar_name);
+    ops_param = [];
+    ops_param.properties.search_str = frm_str{frm_idx};
     ops_param.properties.location = param.post.ops.location;
     ops_param.properties.season = param.season_name;
-    ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
-    ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
-    ops_param.properties.nativeGeom = true;
-    [~,ops_data] = opsGetPath(sys,ops_param);
-    
-    query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
-    query
-    [~,tables] = opsQuery(query);
-    segment_id = tables{1};
-    
-    ops_param                       = struct('properties',[]);
-    ops_param.properties.location   = param.post.ops.location;
-    ops_param.properties.lyr_name   = layer_name;
-    ops_param.properties.frame      = ops_frames.properties.frame;
-    ops_param.properties.segment_id = ones(size(ops_param.properties.frame)) ...
-      *double(segment_id);
-    
-    [~,data] = opsGetCrossovers(sys,ops_param);
-    
-    %% Load and align crossovers
-    rline = [];
-    rows  = [];
-    cols  = [];
-    gps_time = [];
-    season_name = {};
-    for i = 1 : length(data.properties.source_point_path_id)
-      if ~isnan(data.properties.twtt(i))
-        new_rline = find(ops_data.properties.id == data.properties.source_point_path_id(i));
-        new_gps_time = ops_data.properties.gps_time(new_rline);
-        new_season_name = data.properties.season_name{i};
-        if big_matrix.GPS_time(1) <= new_gps_time ...
-            && big_matrix.GPS_time(end) >= new_gps_time %...
-          %&& str2double(new_season_name(1:4)) >= 2006
-          rline(end+1) = new_rline;
-          gps_time(end+1) = new_gps_time;
-          season_name{end+1} = new_season_name;
-          [~, cols(end+1)] = min(abs(big_matrix.GPS_time - ops_data.properties.gps_time(rline(end))));
-          twtt = data.properties.twtt(i);
-          twtt = twtt + (data.properties.source_elev(i)-data.properties.cross_elev(i))/(c/2);
-          rows(end+1) = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), twtt));
+    [status,ops_data_segment] = opsGetFrameSearch(sys,ops_param);
+    if status == 1
+      ops_param = [];
+      ops_param.properties.location = param.post.ops.location;
+      ops_param.properties.lyr_name = track.crossover.name;
+      ops_param.properties.frame = frm_str;
+      ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
+      [status,ops_data] = opsGetCrossovers(sys,ops_param);
+      if status == 1
+        ops_data.properties.twtt = ops_data.properties.twtt(:).';
+        ops_data.properties.source_point_path_id = double(ops_data.properties.source_point_path_id(:).');
+        ops_data.properties.cross_point_path_id = double(ops_data.properties.cross_point_path_id(:).');
+        ops_data.properties.source_elev = ops_data.properties.source_elev.';
+        ops_data.properties.cross_elev = ops_data.properties.cross_elev.';
+        
+        ops_param = [];
+        ops_param.properties.location = param.post.ops.location;
+        ops_param.properties.season = param.season_name;
+        ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
+        ops_param.properties.point_path_id = ops_data.properties.source_point_path_id;
+        ops_param.properties.return_geom = 'geog';
+        ops_param.properties.lyr_name = track.crossover.name;
+        [status,ops_data_gps_time] = opsGetLayerPoints(sys,ops_param);
+        
+        ops_param = [];
+        ops_param.properties.location = param.post.ops.location;
+        ops_param.properties.season = param.season_name; % This field is actually ignored
+        ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
+        ops_param.properties.point_path_id = ops_data.properties.cross_point_path_id;
+        ops_param.properties.return_geom = 'geog';
+        ops_param.properties.lyr_name = track.crossover.name;
+        [status,ops_data_cross_gps_time] = opsGetLayerPoints(sys,ops_param);
+        
+        [~,crossover_idx,gps_time_idx] = intersect(ops_data.properties.source_point_path_id.',ops_data_gps_time.properties.point_path_id);
+        
+        source_gps_time = zeros(size(ops_data.properties.source_point_path_id));
+        crossover_gps_time = zeros(size(ops_data.properties.source_point_path_id));
+        good_mask = true(size(ops_data.properties.source_point_path_id));
+        for idx = 1:length(ops_data.properties.source_point_path_id)
+          match_idx = find(ops_data.properties.source_point_path_id(idx) == ops_data_gps_time.properties.point_path_id);
+          source_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
+          match_idx = find(ops_data.properties.cross_point_path_id(idx) == ops_data_cross_gps_time.properties.point_path_id);
+          crossover_gps_time(idx) = ops_data_cross_gps_time.properties.gps_time(match_idx);
+          if any(strcmp(ops_data.properties.season_name{idx}, track.crossover.season_names_bad))
+            good_mask(idx) = false;
+          end
         end
+        % Ensure 
+        good_mask = good_mask & track.crossover.gps_time_good_eval(crossover_gps_time);
+        
+        % Convert crossover twtt to source twtt and then convert from twtt
+        % to rows/bins
+        cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
+        rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
+          + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
+        track.crossovers = [cols; rows];
       end
     end
-    track.crossovers = [cols(:).'; rows(:).'];
   else
     track.crossovers = zeros(2,0);
+  end
+  
+  %% Track: Multiple Suppression
+  if track.mult_suppress.en
+    data = 10*log10(echo_mult_suppress(mdata));
   end
  
   %% Track: Prefilter trim
@@ -255,11 +256,6 @@ for track_idx = param.layer_tracker.tracks_in_task
     for rline=1:Nx
       data(data(:,rline) <= feedthru_threshold,rline) = NaN;
     end
-  end
-  
-  %% Track: Multiple Suppression
-  if isfield(track,'mult_suppress') && ~isempty(track.mult_suppress)
-    data = echo_mult_suppress(data,track.mult_suppress);
   end
   
   %% Track: Detrend
@@ -479,6 +475,7 @@ for track_idx = param.layer_tracker.tracks_in_task
       end
       title(h_axes(1),regexprep(figure_name,'_','\\_'));
       if visible_en
+        fprintf('Debug plots: review "%s" and then run "dbcont" to continue.\n', figure_name);
         keyboard
       end
       
