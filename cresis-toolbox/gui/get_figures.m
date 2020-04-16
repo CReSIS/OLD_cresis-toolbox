@@ -34,7 +34,6 @@ else
 end
 try
   h_figs = get(0,'Children');
-  asdf
 catch ME
   warning(ME.getReport);
   h_figs = [];
