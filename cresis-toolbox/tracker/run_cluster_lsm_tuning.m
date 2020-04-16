@@ -37,7 +37,7 @@ fprintf('=====================================================================\n
 %   end
 % end
 frm=1;
-temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20200415_153500_t002_lsm.mat');
+temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20200415_192738_t002_lsm.mat');
 param= temp.param;
 layer_params = [];
 idx = 0;
@@ -52,71 +52,74 @@ layer_params(idx).layerdata_source = 'layer';
 layers = opsLoadLayers(param,layer_params);
 
 for track_idx = 1:length(param.layer_tracker.track)
-  data_fn_dir = ct_filename_out(param, param.layer_tracker.echogram_source, '');
-  data_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,1);
-  data_fn      = fullfile(data_fn_dir, data_fn_name);
-  data = load(data_fn);
-  
-  switch param.layer_tracker.track{track_idx}.method
-    case 'lsm'
-      for idx = 1:length(param.layer_tracker.track{track_idx}.lsm.storeIter)
-        layer_params_surf(idx).name = sprintf('%s_%s_surface_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
-        layer_params_surf(idx).source = param.layer_tracker.layer_params.source;
-        layer_params_surf(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
-      end
-      
-      for idx = 1:length(param.layer_tracker.track{track_idx}.lsm.storeIter)
-        layer_params_bot(idx).name = sprintf('%s_%s_bottom_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
+  for frm = param.cmd.frms
+    data_fn_dir = ct_filename_out(param, param.layer_tracker.echogram_source, '');
+    data_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
+    data_fn      = fullfile(data_fn_dir, data_fn_name);
+    data = load(data_fn);
+    
+    switch param.layer_tracker.track{track_idx}.method
+      case 'lsm'
+        for idx = 1:length(param.layer_tracker.track{track_idx}.lsm.storeIter)
+          layer_params_surf(idx).name = sprintf('%s_%s_surface_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
+          layer_params_surf(idx).source = param.layer_tracker.layer_params.source;
+          layer_params_surf(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
+        end
+        
+        for idx = 1:length(param.layer_tracker.track{track_idx}.lsm.storeIter)
+          layer_params_bot(idx).name = sprintf('%s_%s_bottom_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
+          layer_params_bot(idx).source = param.layer_tracker.layer_params.source;
+          layer_params_bot(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
+        end
+        
+      case 'viterbi'
+        idx = 1;
+        layer_params_bot(idx).name = sprintf('%s_%s_bottom',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method);
         layer_params_bot(idx).source = param.layer_tracker.layer_params.source;
         layer_params_bot(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
-      end
-      
-    case 'viterbi'
-      idx = 1;
-      layer_params_bot(idx).name = sprintf('%s_%s_bottom_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
-      layer_params_bot(idx).source = param.layer_tracker.layer_params.source;
-      layer_params_bot(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
-      
-    case {'mcmc','stereo'}
-      idx = 1;
-      layer_params_surf(idx).name = sprintf('%s_%s_surface_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
-      layer_params_surf(idx).source = param.layer_tracker.layer_params.source;
-      layer_params_surf(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
-      idx = idx + 1;
-      layer_params_bot(idx).name = sprintf('%s_%s_bottom_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
-      layer_params_bot(idx).source = param.layer_tracker.layer_params.source;
-      layer_params_bot(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
-      
-    otherwise
-      idx = 1;
-      layer_params_surf(idx).name = sprintf('%s_%s_surface_%03d',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method,idx);
-      layer_params_surf(idx).source = param.layer_tracker.layer_params.source;
-      layer_params_surf(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
+        
+      case {'mcmc','stereo'}
+        idx = 1;
+        layer_params_surf(idx).name = sprintf('%s_%s_surface',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method);
+        layer_params_surf(idx).source = param.layer_tracker.layer_params.source;
+        layer_params_surf(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
+        idx = idx + 1;
+        layer_params_bot(idx).name = sprintf('%s_%s_bottom',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method);
+        layer_params_bot(idx).source = param.layer_tracker.layer_params.source;
+        layer_params_bot(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
+        
+      otherwise
+        idx = 1;
+        layer_params_surf(idx).name = sprintf('%s_%s_surface',param.layer_tracker.track{track_idx}.name,param.layer_tracker.track{track_idx}.method);
+        layer_params_surf(idx).source = param.layer_tracker.layer_params.source;
+        layer_params_surf(idx).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
+    end
+    
+    layers_surf = opsLoadLayers(param,layer_params_surf);
+    layers_bot = opsLoadLayers(param,layer_params_bot);
+    
+    
+    surf = interp_finite(interp1(layers(1).gps_time,layers(1).twtt,data.GPS_time));
+    surf_bins = round(interp1(data.Time,1:length(data.Time),surf));
+    bot = interp_finite(interp1(layers(2).gps_time,layers(2).twtt,data.GPS_time));
+    bot_bins = round(interp1(data.Time,1:length(data.Time),bot));
+    
+    for i = 1:length(layers_surf)
+      surf = interp_finite(interp1(layers_surf(i).gps_time,layers_surf(i).twtt,data.GPS_time));
+      surf_bins_itr = round(interp1(data.Time,1:length(data.Time),surf));
+      res_s.(sprintf('%s_%s',param.layer_tracker.track{track_idx}.method,param.layer_tracker.track{track_idx}.name))(frm,i) = nan(mean(abs(surf_bins - surf_bins_itr)));
+    end
+    
+    for i = 1:length(layers_bot)
+      bot = interp_finite(interp1(layers_bot(i).gps_time,layers_bot(i).twtt,data.GPS_time));
+      bot_bins_itr = round(interp1(data.Time,1:length(data.Time),bot));
+      res_b.(sprintf('%s_%s',param.layer_tracker.track{track_idx}.method,param.layer_tracker.track{track_idx}.name))(frm,i) = mean(abs(bot_bins - bot_bins_itr));
+    end
   end
-  
-  layers_surf = opsLoadLayers(param,layer_params_surf);
-  layers_bot = opsLoadLayers(param,layer_params_bot);
-  
-  
-  surf = interp_finite(interp1(layers(1).gps_time,layers(1).twtt,data.GPS_time));
-  surf_bins = round(interp1(data.Time,1:length(data.Time),surf));
-  bot = interp_finite(interp1(layers(2).gps_time,layers(2).twtt,data.GPS_time));
-  bot_bins = round(interp1(data.Time,1:length(data.Time),bot));
-  
-  for i = 1:length(layers_surf)
-    surf = interp_finite(interp1(layers_surf(i).gps_time,layers_surf(i).twtt,data.GPS_time));
-    surf_bins_itr = round(interp1(data.Time,1:length(data.Time),surf));
-    res_s.(sprintf('%s_%s',param.layer_tracker.track{track_idx}.method,param.layer_tracker.track{track_idx}.name))(frm,i) = mean(abs(surf_bins - surf_bins_itr));
-  end
-  
-  for i = 1:length(layers_bot)
-    bot = interp_finite(interp1(layers_bot(i).gps_time,layers_bot(i).twtt,data.GPS_time));
-    bot_bins_itr = round(interp1(data.Time,1:length(data.Time),bot));
-    res_b.(sprintf('%s_%s',param.layer_tracker.track{track_idx}.method,param.layer_tracker.track{track_idx}.name))(frm,i) = mean(abs(bot_bins - bot_bins_itr));
-  end
-  
 end
 
 
 
 fprintf('hi');
+
+
