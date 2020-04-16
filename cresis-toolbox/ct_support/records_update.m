@@ -145,6 +145,22 @@ if any(strcmpi(param.radar_name,{'accum2','mcrds'}))
   records.gps_source = gps.gps_source;
 else
   % Determine time offset delta and apply to radar time
+  if ~isfinite(param.records.gps.time_offset)
+    warning('param.records.gps.time_offset must be finite. Trying to load value from spreadsheet.');
+    try
+      new_param = read_param_xls(param);
+      param.records.gps.time_offset = new_param.records.gps.time_offset;
+    catch ME
+      error('param.records.gps.time_offset must be finite. Call records_update with a finite value.');
+    end
+    if ~isfinite(param.records.gps.time_offset)
+      error('param.records.gps.time_offset must be finite. Call records_update with a finite value.');
+    end
+  end
+  if ~isfinite(records.param_records.records.gps.time_offset)
+    warning('records.param_records.records.gps.time_offset must be finite. Assuming that it is equal to param.records.gps.time_offset.');
+    records.param_records.records.gps.time_offset = param.records.gps.time_offset;
+  end
   delta_offset = max(param.records.gps.time_offset) - max(records.param_records.records.gps.time_offset);
   records.param_records.records.gps.time_offset = param.records.gps.time_offset;
   records.gps_time = records.gps_time + delta_offset;
