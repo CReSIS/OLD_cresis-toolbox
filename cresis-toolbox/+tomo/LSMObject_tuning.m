@@ -113,7 +113,13 @@ classdef LSMObject_tuning <handle
       this.phi=initializeLSM(img, this.initiArgs);
       this.contours{1,1}= getLSF(this.phi, 1/this.resizeRate);
       % LSM
+      last_fprintf_time = -inf;
       for n=1:this.lsmArgs.outerIter
+        if now > last_fprintf_time+30/86400
+          fprintf('  Iteration %.0f of %.0f (%s)\n', n, this.lsmArgs.outerIter, datestr(now));
+          last_fprintf_time = now;
+        end
+        
         this.phi=lsmReg(this.phi, g, this.lsmArgs);
         
         m=this.lsmArgs.innerIter*n;

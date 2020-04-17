@@ -1054,6 +1054,14 @@ classdef layerdata < handle
       end
     end
     
+    %% print_layer_names: print available layer names
+    function print_layer_names(obj)
+      fprintf('Available layers:\n');
+      for idx=1:length(obj.layer_organizer.lyr_name);
+        fprintf('  %s\n', obj.layer_organizer.lyr_name{idx}.');
+      end;
+    end
+    
     %% save: save changes to layers
     function save(obj, layerdata_source)
       if exist('layerdata_source','var') && ~isempty(layerdata_source)
