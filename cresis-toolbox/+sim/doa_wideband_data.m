@@ -32,7 +32,6 @@ function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 %   lever_arm.m
 % =========================================================================
 c = 2.997924580003452e+08; % physical_constants too slow
-% rng default % For reproducibility, if needed
 
 if ~exist('param.src.noise.en','var')
   param.src.noise.en = 1;

@@ -1,14 +1,31 @@
-% script sim.doa_example_wax
-%
+% script sim.doa_example_wax % Cluster version
+% 
 % Example setup scripts for the sim.doa function. This includes examples
 % that reproduce the Wax and Ziskind 1988 paper results (Fig 2, 3, 4, and
 % 6).
 %
-% Author: John Paden, Theresa Stumpf
+% Author: John Paden, Theresa Stumpf, (cluster adaptation by Gordon Ariho)
 %
 % See also: sim.doa.m
 
 fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
+
+%% Cluster Parameters
+param_override = []; % X
+param_override.cluster.type = 'torque'; 
+% param_override.cluster.type = 'debug'; 
+
+param_override.cpu_time = 100;
+param_override.mem = 1e9;
+param_override.cluster.ppn_fixed = 4;
+
+global gRadar;
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
+param_override.sw_version = current_software_version;
 
 %% Fig 2 Wax and Ziskind 1988
 % =======================================================================
@@ -46,12 +63,12 @@ if fig_to_plot == 2
   num_tests = size(param.monte.SNR,1);
   param.monte.DOA   = repmat([0 20],[num_tests 1]);
   param.monte.Nsnap = repmat(11,[num_tests 1]);
-  param.monte.runs  = 1000;
+  param.monte.runs  = 1000; 
   param.monte.random_seed_offset = 0;
-  
+ 
   %% Fig 2: Run the simulation
-  results = sim.doa(param);
-  
+  results = sim.doa(param,param_override);
+   
   %% Fig 2: Process and save the outputs
   RMSE = sim.doa_rmse(param,results);
   
@@ -123,7 +140,7 @@ if fig_to_plot == 3
   param.monte.random_seed_offset = 0;
   
   %% Fig 3: Run the simulation
-  results = sim.doa(param);
+  results = sim.doa(param,param_override);
   
   %% Fig 3: Process and save the outputs
   RMSE = sim.doa_rmse(param,results);
@@ -196,7 +213,7 @@ if fig_to_plot == 4
   param.monte.random_seed_offset = 0;
   
   %% Fig 4: Run the simulation
-  results = sim.doa(param);
+  results = sim.doa(param,param_override);
   
   %% Fig 4: Process and save the outputs
   RMSE = sim.doa_rmse(param,results);
@@ -269,7 +286,7 @@ if fig_to_plot == 6
   param.monte.random_seed_offset = 0;
   
   %% Fig 6: Run the simulation
-  results = sim.doa(param);
+  results = sim.doa(param,param_override);
   
   %% Fig 6: Process and save the outputs
   RMSE = sim.doa_rmse(param,results);
@@ -324,3 +341,4 @@ if fig_to_plot == 6
   ct_save(out_fn,'param','results');
   
 end
+

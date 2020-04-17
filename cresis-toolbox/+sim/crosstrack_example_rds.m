@@ -12,6 +12,7 @@
 sim_number = 2; % Sim 1 or Sim 2
 num_layers = 2; % 1 or 2
 scene_size = 'small'; % 'large' or 'small'
+physical_constants;
 
 %% Sim 1: Radar Depth Sounder (Multichannel)
 % =========================================================================
@@ -19,9 +20,7 @@ scene_size = 'small'; % 'large' or 'small'
 % Uniform linear array
 if sim_number == 1
   
-  physical_constants;
-  
-  %% Sim 1: Setup simulation parameters
+%% Sim 1: Setup simulation parameters
   param = [];
   
   % Debug level of 3 causes this function to stop early and output
