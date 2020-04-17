@@ -18,7 +18,7 @@ physical_constants
 % -----------------------------------------------------------------------
 Nc                = 7;
 Nruns             = 1;
-param.src.fc      = 195e9;%195e6;%320e6;
+param.src.fc      = 195e6;%195e6;%320e6;
 param.src.BW      = 10e6;%1e6;%32e6;
 param.src.fs      = param.src.BW;
 param.src.f0      = param.src.fc-param.src.BW/2;

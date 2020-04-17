@@ -34,33 +34,58 @@ function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 physical_constants
 % rng default % For reproducibility, if needed
 
-if ~exist('param.src.noise.en','var')
+if ~exist('param.src.noise.en','var') || isempty(param.src.noise.en)
   param.src.noise.en = 1;
 end
 
+if ~isfield(param.src,'fs') || isempty(param.src.fs)
+  param.src.fs = param.src.BW;
+end
+
+if ~isfield(param.method,'wb_td') || isempty(param.method.wb_td)
+  param.method.wb_td.widening_factor = 1;
+  param.method.wb_td.filter_banks = 1;
+elseif ~isfield(param.method.wb_td,'widening_factor') || isempty(param.method.wb_td.widening_factor)
+  param.method.wb_td.widening_factor = 1;
+elseif ~isfield(param.method.wb_td,'filter_banks') || isempty(param.method.wb_td.filter_banks)
+    param.method.wb_td.filter_banks = 1;
+end
+
+if ~isfield(param.src,'ft_wind') || isempty(param.src.ft_wind)
+  param.src.ft_wind = @(N)boxcar(N);
+end
+
+if ~isfield(param,'error_params');
+  param.error_params = struct('error_ypc',[],'error_zpc',[],'error_phase',[],'error_g_s',[],'error_g_p',[],'error_g_offset',[]);
+end
+
+
+  
+  
+%% Setup processing fields
 % -------------------------------------------------------------------------
-% Setup processing fields
-% -------------------------------------------------------------------------
-Psig_dB     = param.src.SNR;
-Ps          = 10.^(Psig_dB./10);
-sigma_n     = sqrt(1/2);                    % assumes unity noise power
-Q           = numel(param.src.DOAs);     % number of sources
+Psig_dB     = param.src.SNR;                % Source powers in dB
+Ps          = 10.^(Psig_dB./10);            % Convert to linear
+sigma_n     = sqrt(1/2);                    % Assumes unity noise power
+Q           = numel(param.src.DOAs);        % Number of sources
+Num_sens    = length(param.src.y_pc);       % number of sensors
+fs          = param.src.fs;                 % sampling frequency
+BW          = param.src.f1 - param.src.f0;  % chirp BW
+dt          = 1/fs;                         % sampling interval
+fc          = param.src.fc;                 % carrier frequncy 
+W           = param.method.wb_td.widening_factor;  % widening factor
+NB          = param.method.wb_fd.filter_banks;  % Number of narrowband filter banks
+Nc          = length(param.src.y_pc);
+
+% Multipath?
 if isfield(param.src,'DOAs_MP')
   Q_MP = numel(param.src.DOAs_MP);
 else
   param.src.DOAs_MP = [];
   Q_MP = 0;
 end
-Num_sens    = length(param.src.y_pc); % number of sensors
-fs          = param.src.fs;               % sampling frequency
-BW          = param.src.f1 - param.src.f0; % chirp BW
-dt          = 1/fs;                         % sampling interval
-fc          = param.src.fc;               % carrier frequncy 
-W           = param.method.wb_td.widening_factor;  % widening factor
-NB          = param.method.wb_fd.filter_banks;  % Number of narrowband filter banks
-Nc          = length(param.src.y_pc);
 
-% Transmit beamforming
+% Transmit beamforming ??
 src_params = param.src;
 if isfield(src_params,'tx_weights') && ~isempty(src_params.tx_weights)
   comp_tx_weight = src_params.tx_weights;
