@@ -310,8 +310,8 @@ for wf = 1:length(param.wfs)
       Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
     end
     
-    param.wfs(wf).Tstart{wf_set} = Tstart-Tguard;
-    param.wfs(wf).Tend{wf_set} = Tend+Tguard;
+    param.wfs(wf).Tstart{wf_set} = -Trg_start_offset+Tstart-Tguard;
+    param.wfs(wf).Tend{wf_set} = Tend+Tguard+Trg_stop_offset;
     
   end
 end
