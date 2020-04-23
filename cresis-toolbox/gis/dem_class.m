@@ -15,7 +15,10 @@ classdef dem_class < handle
     dem_info
     % res: Resolution (m)
     res
-    % ocean_mask_mode: 'shapefile' (default) or 'landdem'
+    % ocean_mask_mode: string containing 'shapefile' (default) or
+    % 'landdem'. shapefile uses NOAA coastline. landdem marks everything
+    % above 5 m as land; the latter may be necessary if the NOAA coastline
+    % filtering misses a land feature.
     ocean_mask_mode
     % ocean_mask_dec: default is 100, positive integer decimation rate
     ocean_mask_dec
@@ -135,6 +138,9 @@ classdef dem_class < handle
         warning(ME.getReport);
       end
       
+      % NOAA Shoreline:
+      % Wessel, P., and W. H. F. Smith (1996), A global, self-consistent, hierarchical, high-resolution shoreline database, J. Geophys. Res., 101(B4), 8741-8743, doi:10.1029/96JB00104.
+      
       % Prepare DEM fields
       % -------------------------------------------------------------------
       obj.clear();
@@ -199,7 +205,9 @@ classdef dem_class < handle
       obj.load_ocean();
       
       % If the whole region fits into a single tile, then this tile is
-      % loaded and truncated to the region of interest
+      % loaded and truncated to the region of interest. If the region does
+      % not fit into a single tile, then the tiles will be loaded later on
+      % an as needed basis.
       obj.load_dem();
     end
     
@@ -268,8 +276,13 @@ classdef dem_class < handle
       % -------------------------------------------------------------------
       if ~isfield(obj.ocean,'shp_all')
         ocean_mask_fn = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
+        ocean_mask_fn_antarctica = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L5.shp'));
         warning off;
         obj.ocean.shp_all = shaperead(ocean_mask_fn);
+        if strcmp(obj.param.post.ops.location,'antarctic')
+          shp_antarctica = shaperead(ocean_mask_fn_antarctica);
+          obj.ocean.shp_all = cat(1,obj.ocean.shp_all,shp_antarctica);
+        end
         warning on;
         obj.ocean.bb_all = [obj.ocean.shp_all(:).BoundingBox];
       end

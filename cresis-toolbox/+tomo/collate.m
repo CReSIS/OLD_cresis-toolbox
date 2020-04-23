@@ -27,17 +27,7 @@ fprintf('=====================================================================\n
 
 % Remove frames that do not exist from param.cmd.frms list
 frames = frames_load(param);
-if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
-end
+param.cmd.frms = frames_param_cmd_frms(param,frames);
 
 % sar.* fields
 % -------------------------------------------------------------------------
@@ -66,6 +56,10 @@ end
 % -------------------------------------------------------------------------
 if ~isfield(param.tomo_collate,'frm_types') || isempty(param.tomo_collate.frm_types)
   param.tomo_collate.frm_types = {-1,-1,-1,-1,-1};
+end
+
+if ~isfield(param.tomo_collate,'ground_based_flag') || isempty(param.tomo_collate.ground_based_flag)
+  param.tomo_collate.ground_based_flag = false;
 end
 
 if ~isfield(param.tomo_collate,'in_path') || isempty(param.tomo_collate.in_path)
