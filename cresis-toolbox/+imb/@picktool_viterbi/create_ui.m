@@ -214,10 +214,68 @@ set(obj.top_panel.ground_truth_cutoff_TE,'String', '5');
 set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %%
 %---------------------------------------------------------------------------------------------
-rows = 14;  % Update with number of rows and columns
 cols = 2;
+row = 0;
+
+%% Mode
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.mode_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.tool_PM;
+%% Insert Range
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.insert_range_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.insert_range_TE;
+%% Column restriction
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.column_restriction_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.column_restriction_cbox;
+%% Layers
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.layers_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.layers_TE;
+%% Layers Weight
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.layers_weight_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.layers_weight_TE;
+%% Multiple Weight
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_TE;
+%% Multiple Weight Decay
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_decay_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_decay_TE;
+%% Multiple Weight Local Decay 
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_local_decay_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_local_decay_TE;
+%% Transition Slope from Surface
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.surf_slope_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.surf_slope_cbox;
+%% Max Slope 
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.max_slope_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.max_slope_TE;
+%% Transition Weight
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.transition_weight_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.transition_weight_TE;
+%% Image magnitude weight
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.image_mag_weight_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.image_mag_weight_TE;
+%% gt weight
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.ground_truth_weight_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.ground_truth_weight_TE;
+%% gt cutoff
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.ground_truth_cutoff_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.ground_truth_cutoff_TE;
+
 % set up top panel table
-default_dimensions = NaN*zeros(rows,cols);
+default_dimensions = NaN*zeros(row,cols);
 obj.top_panel.table.ui=obj.top_panel.handle;
 obj.top_panel.table.width_margin = default_dimensions;
 obj.top_panel.table.height_margin = default_dimensions;
@@ -225,54 +283,12 @@ obj.top_panel.table.false_width = default_dimensions;
 obj.top_panel.table.false_height = default_dimensions;
 obj.top_panel.table.offset = [0 0];
 
-obj.top_panel.table.width = ones(rows, cols) * inf;
-obj.top_panel.table.height = ones(rows, cols) * inf;
-obj.top_panel.table.width_margin = ones(rows, cols) * 1.5;
-obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
+obj.top_panel.table.width = ones(row, cols) * inf;
+obj.top_panel.table.height = ones(row, cols) * inf;
+obj.top_panel.table.width_margin = ones(row, cols) * 1.5;
+obj.top_panel.table.height_margin = ones(row, cols) * 1.5;
 
-%% Mode
-obj.top_panel.table.handles{1,1}   = obj.top_panel.mode_label;
-obj.top_panel.table.handles{1,2}   = obj.top_panel.tool_PM;
-%% Insert Range
-obj.top_panel.table.handles{2,1}   = obj.top_panel.insert_range_label;
-obj.top_panel.table.handles{2,2}   = obj.top_panel.insert_range_TE;
-%% Column restriction
-obj.top_panel.table.handles{3,1}   = obj.top_panel.column_restriction_label;
-obj.top_panel.table.handles{3,2}   = obj.top_panel.column_restriction_cbox;
-%% Layers
-obj.top_panel.table.handles{4,1}   = obj.top_panel.layers_label;
-obj.top_panel.table.handles{4,2}   = obj.top_panel.layers_TE;
-%% Layers Weight
-obj.top_panel.table.handles{5,1}   = obj.top_panel.layers_weight_label;
-obj.top_panel.table.handles{5,2}   = obj.top_panel.layers_weight_TE;
-%% Multiple Weight
-obj.top_panel.table.handles{6,1}   = obj.top_panel.mult_weight_label;
-obj.top_panel.table.handles{6,2}   = obj.top_panel.mult_weight_TE;
-%% Multiple Weight Decay
-obj.top_panel.table.handles{7,1}   = obj.top_panel.mult_weight_decay_label;
-obj.top_panel.table.handles{7,2}   = obj.top_panel.mult_weight_decay_TE;
-%% Multiple Weight Local Decay 
-obj.top_panel.table.handles{8,1}   = obj.top_panel.mult_weight_local_decay_label;
-obj.top_panel.table.handles{8,2}   = obj.top_panel.mult_weight_local_decay_TE;
-%% Transition Slope from Surface
-obj.top_panel.table.handles{9,1}   = obj.top_panel.surf_slope_label;
-obj.top_panel.table.handles{9,2}   = obj.top_panel.surf_slope_cbox;
-%% Max Slope 
-obj.top_panel.table.handles{10,1}  = obj.top_panel.max_slope_label;
-obj.top_panel.table.handles{10,2}  = obj.top_panel.max_slope_TE;
-%% Transition Weight
-obj.top_panel.table.handles{11,1}  = obj.top_panel.transition_weight_label;
-obj.top_panel.table.handles{11,2}  = obj.top_panel.transition_weight_TE;
-%% Image magnitude weight
-obj.top_panel.table.handles{12,1}  = obj.top_panel.image_mag_weight_label;
-obj.top_panel.table.handles{12,2}  = obj.top_panel.image_mag_weight_TE;
-%% gt weight
-obj.top_panel.table.handles{13,1}  = obj.top_panel.ground_truth_weight_label;
-obj.top_panel.table.handles{13,2}  = obj.top_panel.ground_truth_weight_TE;
-%% gt cutoff
-obj.top_panel.table.handles{14,1}  = obj.top_panel.ground_truth_cutoff_label;
-obj.top_panel.table.handles{14,2}  = obj.top_panel.ground_truth_cutoff_TE;
-clear rows cols
+clear row cols
 
 % Draw table
 table_draw(obj.top_panel.table);
