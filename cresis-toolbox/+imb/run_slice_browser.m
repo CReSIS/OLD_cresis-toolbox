@@ -9,7 +9,7 @@
 %% User Settings
 % =========================================================================
 
-if 1
+if 0
   % DOA methods
   param.doa_method_flag = true;
   day_seg = '20110317_03';
@@ -65,16 +65,16 @@ elseif 0
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
   
-elseif 0
+elseif 1
   param.radar_name = 'rds';
-  param.season_name = '2016_Antarctica_DC8';
-  out_type = 'music3D';
-  surfdata_source = 'surfData';
-  param.day_seg = '20161117_06';
+  param.season_name = '2019_Antarctica_Ground';
+  out_type = 'music3D_paden';
+  surfdata_source = 'surfData_paden2';
+  param.day_seg = '20200107_01';
   frm = 1;
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
-  bounds_relative = [8 8 0 0];
+  bounds_relative = [0 0 0 0];
   
 else
   param.radar_name = 'rds';
@@ -129,7 +129,7 @@ if sb_param.doa_method_flag
   obj = imb.slice_browser(mdata.Tomo.theta * 180/pi,[],sb_param);
 else
   % Beamforming method
-  obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
+  obj = imb.slice_browser(10*log10(mdata.Tomo.img),[],sb_param);
   try; delete(viterbi_tool); end;
   viterbi_tool = imb.slicetool_viterbi();
   obj.insert_tool(viterbi_tool);

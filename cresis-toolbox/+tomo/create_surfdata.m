@@ -1063,11 +1063,11 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       ct_weight_max = single(0.01);
     end
     % Ground truth spacing
-    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'gt_max_error') ...
-        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).gt_max_error)
-      gt_max_error = param.tomo_collate.surfdata_cmds(cmd_idx).gt_max_error;
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'gt_range') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).gt_range)
+      gt_range = param.tomo_collate.surfdata_cmds(cmd_idx).gt_range;
     else
-      gt_max_error = 35;
+      gt_range = 35;
     end
     % Check for max number of loops or iterations to run TRW-S
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'max_loops') ...
@@ -1090,9 +1090,9 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     for rline = 1:Nx
       if Bottom_bin(rline) >= 1
         % Set the bins above the ground truth in the nadir column to -inf
-        data(1:Bottom_bin(rline)-gt_max_error,nadir_col,rline) = -inf;
+        data(1:Bottom_bin(rline)-gt_range,nadir_col,rline) = -inf;
         % Set the bins below the ground truth in the nadir column to -inf
-        data(Bottom_bin(rline)+gt_max_error:end,nadir_col,rline) = -inf;
+        data(Bottom_bin(rline)+gt_range:end,nadir_col,rline) = -inf;
       end
     end
     
@@ -1166,8 +1166,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     trws_surface = tomo.trws2(data,at_slope,at_weight,ct_slope,ct_weight,max_loops,bounds);
     
-    trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
-      size(mdata.Tomo.img,3));
+    trws_surface = double(reshape(trws_surface,size(mdata.Tomo.img,2), ...
+      size(mdata.Tomo.img,3)));
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
