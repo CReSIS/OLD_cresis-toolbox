@@ -56,12 +56,11 @@ double viterbi::unary_cost(int x, int y)
         if (!mxIsNaN(layer_cost)) {
           if (layer_cost > 0) {
             // Positive cost decreases cost further away -- Repel from point
-            cost += layer_cost / (sqr(dist) + 1); 
+            cost += layer_cost * exp(-sqr(dist)*.001); 
           }
           else {
-            layer_cost *= -1;
             // Negative cost increases cost further away -- Attract to point
-            cost += layer_cost * sqr(dist); 
+            cost += layer_cost * exp(-sqr(dist)*.001) - layer_cost; 
           }
         }
       }

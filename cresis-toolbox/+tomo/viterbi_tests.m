@@ -6,7 +6,7 @@ function viterbi_tests()
   
   % CONSTANTS
   rows = 20;
-  cols = 9;
+  cols = 3;
   surf = 5;
   mult = 10;
   grnd = 17;
@@ -17,7 +17,7 @@ function viterbi_tests()
   
   surf_layer = ones(1, cols) * surf;
   gt_layer = ones(1, cols) * NaN;
-  gt_layer([1 5 end]) = [16 16 16];
+  gt_layer([1 end]) = [16 16];
   
   surf_costs = ones(1, cols) * 100;
   gt_costs = ones(1, cols) * NaN;
@@ -35,7 +35,7 @@ function viterbi_tests()
   transition_weights = ones(1, cols-1);
   img_mag_weight = 1;
   
-  mult_weight = 100;
+  mult_weight = 10;
   mult_weight_decay = .3;
   mult_weight_local_decay = .7;
 
@@ -48,6 +48,8 @@ function viterbi_tests()
   bounds = [];
   mask_dist = ones(1, cols) * Inf;
   cost_matrix = ones(rows,cols);
+  
+  matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
   % RUN
   layer = tomo.viterbi(matrix, layers, layer_costs, layer_cutoffs, mask, ...
