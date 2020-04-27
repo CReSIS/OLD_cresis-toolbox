@@ -107,6 +107,23 @@ function gps = read_gps_general_ascii(fn,param)
 % param.time_reference = 'utc';
 % gps = read_gps_general_ascii(fn,param);
 %
+% % Example 7: Technical University of Denmark, National Space Institute,Sine Munk Hvidegaard (2019_Greenland_TO)
+%
+%   TimeOfDay(UTC) PosLat(deg) PosLon(deg) PosHeight(m) AnglePitch(deg) AngleRoll(deg) Heading(deg), Non relevant interger
+%   10.9500533  65.6525285  -18.0744854    64.79   1.302  -0.879   -6.153  0
+%
+% fn = '/cresis/snfs1/dataproducts/metadata/2019_Greenland_TO/222_gpsegi.pos';
+% param = [];
+% param.format_str = '%f%f%f%f%f%f%f%f';
+% param.types = {'hour','lat_deg','lon_deg','elev_m','pitch_deg','roll_deg','heading_deg','non_relevant_int'};
+% param.textscan = {};
+% param.headerlines = 0;
+% param.time_reference = 'utc';
+% param.year = 2019;
+% param.month = 8;
+% param.day = 10;
+% gps = read_gps_general_ascii(fn,param);
+%
 % Author: John Paden
 
 [fid,msg] = fopen(fn,'r');
