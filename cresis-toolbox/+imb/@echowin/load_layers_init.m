@@ -25,6 +25,8 @@ end
 %% Plot layers
 delete(obj.h_layer);
 delete(obj.h_quality);
+obj.h_layer = [];
+obj.h_quality = [];
 
 % -------------------------------------------------------------------------
 % WARNING: DO NOT IMPLEMENT WITH SCATTER... TOO SLOW RENDERING

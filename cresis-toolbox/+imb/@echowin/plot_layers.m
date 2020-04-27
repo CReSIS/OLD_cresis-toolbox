@@ -77,9 +77,11 @@ obj.eg.layers.y_curUnit = {};
 try
   delete(obj.h_layer(2*length(layer_data_x) + 1:end));
 end
+obj.h_layer = obj.h_layer(1:2*length(layer_data_x));
 try
   delete(obj.h_quality(6*length(layer_data_x)+1:end));
 end
+obj.h_quality = obj.h_quality(1:6*length(layer_data_x));
 for idx = 1:length(layer_data_x)
   % Convert x-axis units
   layer_x_curUnit = interp1(obj.eg.image_gps_time,...
