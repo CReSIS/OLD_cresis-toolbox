@@ -29,10 +29,7 @@ if tool_idx == 1
     
     [manual_idxs,auto_idxs_initial,~] = find_matching_pnts(obj,param,cur_layer);
     
-    if length(manual_idxs) < 1
-      warning('Insufficient points to track');
-      continue;
-    elseif ~isempty(auto_idxs_initial)
+    if ~isempty(auto_idxs_initial)
       
       % Nx: number of along track records/range lines
       Nx = length(image_x);
@@ -40,33 +37,34 @@ if tool_idx == 1
       % Match GT points with axis coordinates
       gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest', 'extrap');
         interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest', 'extrap')];
-      auto_idxs = gt(1, 1):gt(1, end);
-      x_points = gt(1, :) - gt(1,1) + 1;
-      y_points = gt(2, :);
-      gt = ones(1, size(auto_idxs, 2)) * NaN;
-      gt(x_points) = y_points;
+      gt_bound_idxs  = gt(1, 1):gt(1, end);
+      x_points       = gt(1, :);
+      y_points       = gt(2, :);
+      gt             = nan(1, Nx);
+      gt(x_points)   = y_points;
       
       % Echogram Parameters
       viterbi_data   = image_c;
       mask           = inf * ones([1 Nx]);
-      bounds         = [];
+      hori_bounds    = gt_bound_idxs([1 end]);
+      vert_bounds    = [];
       mask_dist      = round(bwdist(mask == 0));
       
       %% Detrending
       if 1
-%         viterbi_data(end-140:end,:) = 0;
+        % viterbi_data(end-140:end,:) = 0;
         viterbi_data = echo_norm(viterbi_data,struct('scale',[-40 90]));
-%         % Along track filtering
-%         viterbi_data = fir_dec(viterbi_data,ones(1,5)/5,1);
-%         % Estimate noise level
-%         noise_value = mean(mean(viterbi_data(end-80:end-60,:)));
-%         % Estimate trend
-%         trend = mean(viterbi_data,2);
-%         trend(trend<noise_value) = noise_value;
-%         % Subtract trend
-%         viterbi_data = bsxfun(@minus,viterbi_data,trend);
-%         % Remove bad circular convolution wrap around at end of record
-%         viterbi_data(end-70:end,:) = 0;
+        % % Along track filtering
+        % viterbi_data = fir_dec(viterbi_data,ones(1,5)/5,1);
+        % % Estimate noise level
+        % noise_value = mean(mean(viterbi_data(end-80:end-60,:)));
+        % % Estimate trend
+        % trend = mean(viterbi_data,2);
+        % trend(trend<noise_value) = noise_value;
+        % % Subtract trend
+        % viterbi_data = bsxfun(@minus,viterbi_data,trend);
+        % % Remove bad circular convolution wrap around at end of record
+        % viterbi_data(end-70:end,:) = 0;
       end
       
       dt = param.echo_time(2) - param.echo_time(1);
@@ -80,16 +78,6 @@ if tool_idx == 1
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
       % Surface and multiple suppression weights
-%       surf_weight = obj.surf_weight;
-%       mult_weight = obj.mult_weight;
-%       mult_weight_decay = obj.mult_weight_decay;
-%       mult_weight_local_decay = obj.mult_weight_local_decay;
-%       manual_slope = obj.transition_slope;
-%       max_slope = obj.max_slope;
-%       transition_weight = obj.transition_weight;
-%       image_mag_weight = obj.image_mag_weight;
-%       gt_weight = obj.ground_truth_weight;
-%       gt_cutoff = obj.ground_truth_cutoff;
       try
         layers = eval(obj.top_panel.layers_TE.String);
       catch
@@ -138,7 +126,7 @@ if tool_idx == 1
         gt_weight = -1;
       end
       try
-        gt_cutoff  = eval(obj.top_panel.ground_truth_cutoff_TE.String);
+        gt_cutoff = eval(obj.top_panel.ground_truth_cutoff_TE.String);
       catch ME
         gt_cutoff = 5;
       end
@@ -156,18 +144,8 @@ if tool_idx == 1
         layer_costs(layers_idx,:) = layers_weight(layers_idx);
       end
       
-      slope          = diff(layers_bins(1,:));
+      slope = diff(layers_bins(1,:));
       
-      %% Column restriction between first and last selected GT points
-      if obj.top_panel.column_restriction_cbox.Value
-        viterbi_data   = viterbi_data(:, auto_idxs);
-        layers_bins      = layers_bins(:, auto_idxs);
-        layer_costs      = layer_costs(:, auto_idxs);
-        mask           = mask(:, auto_idxs);
-        mask_dist      = round(bwdist(mask == 0));
-        slope          = diff(layers_bins(1,:));
-      end
-
       % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
       transition_weights = ones(1, size(viterbi_data, 2) - 1) * transition_weight;
 
@@ -177,15 +155,15 @@ if tool_idx == 1
 
       layers_bins = [layers_bins; gt];
       
-      gt_costs = ones(1, size(viterbi_data, 2))*NaN;
-      gt_costs(x_points) = gt_weight;
+      gt_costs = nan(1, size(viterbi_data, 2));
+      gt_costs(~isnan(gt)) = gt_weight;
       layer_costs = [
         layer_costs;
         gt_costs
       ];
       
-      gt_cutoffs = ones(1, size(viterbi_data, 2))*NaN;
-      gt_cutoffs(x_points) = gt_cutoff;
+      gt_cutoffs = nan(1, size(viterbi_data, 2));
+      gt_cutoffs(~isnan(gt)) = gt_cutoff;
       layer_cutoffs = [
         nan(length(layers), size(viterbi_data, 2));
         gt_cutoffs
@@ -194,20 +172,17 @@ if tool_idx == 1
       viterbi_timer = tic;
       y_new = tomo.viterbi(double(viterbi_data), double(layers_bins), double(layer_costs), ...
         double(layer_cutoffs), double(mask), double(image_mag_weight), double(slope), ...
-        double(max_slope), int64(bounds), double(mask_dist), double(DIM_costmatrix), ...
+        double(max_slope), int64(hori_bounds), int64(vert_bounds), double(mask_dist), double(DIM_costmatrix), ...
         double(transition_weights), double(mult_weight), double(mult_weight_decay), ...
         double(mult_weight_local_decay), int64(zero_bin));
       
       fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
       
-      if ~obj.top_panel.column_restriction_cbox.Value
-        y_new = y_new(auto_idxs);
-      end
-      
+      bounding_idxs = hori_bounds(1):hori_bounds(2);
+      y_new = y_new(bounding_idxs);
       % Resample and interpolate y_new to match layer axes
       y_new = interp1(1:length(image_y), image_y,y_new,'linear','extrap');
-      all_idxs = manual_idxs(1):manual_idxs(end);
-      y_new = interp1(image_x(auto_idxs),y_new,param.layer.x(all_idxs),'linear', 'extrap');
+      y_new = interp1(image_x(bounding_idxs),y_new,param.layer.x(bounding_idxs),'linear', 'extrap');
       
       cmds(end+1).undo_cmd = 'insert';
       % Quality measurement from Viterbi algorithm result
@@ -220,25 +195,25 @@ if tool_idx == 1
         end
         quality = ones(size(cost));
         quality(cost < thrs) = 3;
-        cmds(end).undo_args = {cur_layer, all_idxs, ...
-          param.layer.y{cur_layer}(all_idxs), ...
-          param.layer.type{cur_layer}(all_idxs), quality};
+        cmds(end).undo_args = {cur_layer, bounding_idxs, ...
+          param.layer.y{cur_layer}(bounding_idxs), ...
+          param.layer.type{cur_layer}(bounding_idxs), quality};
       else
-        cmds(end).undo_args = {cur_layer, all_idxs, ...
-          param.layer.y{cur_layer}(all_idxs), ...
-          param.layer.type{cur_layer}(all_idxs), ...
-          param.layer.qual{cur_layer}(all_idxs)};
+        cmds(end).undo_args = {cur_layer, bounding_idxs, ...
+          param.layer.y{cur_layer}(bounding_idxs), ...
+          param.layer.type{cur_layer}(bounding_idxs), ...
+          param.layer.qual{cur_layer}(bounding_idxs)};
       end
       
       cmds(end).redo_cmd = 'insert';
       if false % obj.top_panel.quality_output_cbox.Value
-        cmds(end).redo_args = {cur_layer, all_idxs, y_new, ...
-          2*ones(size(all_idxs)), quality};
+        cmds(end).redo_args = {cur_layer, bounding_idxs, y_new, ...
+          2*ones(size(bounding_idxs)), quality};
       else
-        type = 2*ones(size(all_idxs));
+        type = 2*ones(size(bounding_idxs));
         type(manual_idxs - manual_idxs(1) + 1) = 1;
-        cmds(end).redo_args = {cur_layer, all_idxs, y_new, ...
-          type, param.cur_quality*ones(size(all_idxs))};
+        cmds(end).redo_args = {cur_layer, bounding_idxs, y_new, ...
+          type, param.cur_quality*ones(size(bounding_idxs))};
       end
     end
   end

@@ -130,15 +130,15 @@ double viterbi::unary_cost(int x, int y)
 // Returns Viterbi solution of optimal path
 double *viterbi::find_path(void)
 {
-  start_col = f_bounds[0];
-  end_col = f_bounds[1];
+  start_col = f_hori_bounds[0];
+  end_col = f_hori_bounds[1];
   num_col_vis = end_col - start_col + 1;
 
   int *path = new int[f_row * num_col_vis];
   double path_prob[f_row], path_prob_next[f_row], index[f_row];
 
   for (int k = 0; k < f_col; ++k)
-    f_result[k] = 0;
+    f_result[k] = NAN;
 
   for (int k = 0; k < f_row * num_col_vis; ++k)
   {
@@ -255,13 +255,13 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int max_args = 16;           // All args including optional
+  int max_args = 17;           // All args including optional
   int min_args = max_args - 1; // Number of required arguments
   int arg = 0;
 
   if (nrhs < min_args || nrhs > max_args || nlhs != 1)
   {
-    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, layers, layer_costs, layer_cutoffs, ice_mask, img_mag_weight, smooth_slope, max_slope, bounds, mask_dist, costmatrix, transition_weights, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
+    mexErrMsgTxt("Usage: [labels] = viterbi(input_img, layers, layer_costs, layer_cutoffs, ice_mask, img_mag_weight, smooth_slope, max_slope, horizontal bounds, vertical bounds, mask_dist, costmatrix, transition_weights, mult_weight, mult_weight_decay, mult_weight_local_decay, [zero_bin])\n");
   }
 
   // Input checking
@@ -368,48 +368,92 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   const double _max_slope = *(double *)mxGetPr(prhs[arg]);
 
-  // bounds =============================================================
+  // Horizontal bounds =============================================================
   arg++;
-  ptrdiff_t _bounds[2];
+  ptrdiff_t _hori_bounds[2];
   if (mxGetNumberOfElements(prhs[arg]) != 0)
   {
     if (!mxIsInt64(prhs[arg]))
     {
-      mexErrMsgTxt("Usage: bounds must be type int64");
+      mexErrMsgTxt("Usage: horizontal bounds must be type int64");
     }
     if (mxGetNumberOfElements(prhs[arg]) != 2)
     {
-      mexErrMsgTxt("Usage: bounds must be a 2 element vector");
+      mexErrMsgTxt("Usage: horizontal bounds must be a 2 element vector");
     }
     ptrdiff_t *tmp = (ptrdiff_t *)mxGetPr(prhs[arg]);
-    _bounds[0] = tmp[0] - 1;  // Account for matlab 1-indexing
-    _bounds[1] = tmp[1] - 1;
-    if (_bounds[0] < 0)
+    _hori_bounds[0] = tmp[0] - 1;  // Account for matlab 1-indexing
+    _hori_bounds[1] = tmp[1] - 1;
+    if (_hori_bounds[0] < 0)
     {
-      _bounds[0] = 0;
+      _hori_bounds[0] = 0;
     }
-    if (_bounds[1] < 0)
+    if (_hori_bounds[1] < 0)
     {
-      _bounds[1] = _col - 1;
+      _hori_bounds[1] = _col - 1;
     }
-    if (_bounds[0] > _col)
+    if (_hori_bounds[0] > _col)
     {
-      mexErrMsgTxt("Usage: bounds[0] <= size(input,2)");
+      mexErrMsgTxt("Usage: horizontal bounds[0] <= size(input,2)");
     }
-    if (_bounds[1] > _col)
+    if (_hori_bounds[1] > _col)
     {
-      mexErrMsgTxt("Usage: bounds[1] <= size(input,2)");
+      mexErrMsgTxt("Usage: horizontal bounds[1] <= size(input,2)");
     }
-    if (_bounds[1] < _bounds[0])
+    if (_hori_bounds[1] < _hori_bounds[0])
     {
-      mexErrMsgTxt("Usage: bounds[1] must be greater than bounds[0]");
+      mexErrMsgTxt("Usage: horizontal bounds[1] must be greater than horizontal bounds[0]");
     }
   }
   else
   {
     // Default setting is to process all columns
-    _bounds[0] = 0;
-    _bounds[1] = _col - 1;
+    _hori_bounds[0] = 0;
+    _hori_bounds[1] = _col - 1;
+  }
+  
+  // Veritcal bounds =============================================================
+  arg++;
+  ptrdiff_t _vert_bounds[2];
+  if (mxGetNumberOfElements(prhs[arg]) != 0)
+  {
+    if (!mxIsInt64(prhs[arg]))
+    {
+      mexErrMsgTxt("Usage: veritcal bounds must be type int64");
+    }
+    if (mxGetNumberOfElements(prhs[arg]) != 2)
+    {
+      mexErrMsgTxt("Usage: veritcal bounds must be a 2 element vector");
+    }
+    ptrdiff_t *tmp = (ptrdiff_t *)mxGetPr(prhs[arg]);
+    _vert_bounds[0] = tmp[0] - 1;  // Account for matlab 1-indexing
+    _vert_bounds[1] = tmp[1] - 1;
+    if (_vert_bounds[0] < 0)
+    {
+      _vert_bounds[0] = 0;
+    }
+    if (_vert_bounds[1] < 0)
+    {
+      _vert_bounds[1] = _row - 1;
+    }
+    if (_vert_bounds[0] > _row)
+    {
+      mexErrMsgTxt("Usage: veritcal bounds[0] <= size(input,2)");
+    }
+    if (_vert_bounds[1] > _row)
+    {
+      mexErrMsgTxt("Usage: veritcal bounds[1] <= size(input,2)");
+    }
+    if (_vert_bounds[1] < _vert_bounds[0])
+    {
+      mexErrMsgTxt("Usage: veritcal bounds[1] must be greater than veritcal bounds[0]");
+    }
+  }
+  else
+  {
+    // Default setting is to process all rows
+    _vert_bounds[0] = 0;
+    _vert_bounds[1] = _row - 1;
   }
 
   // mask_dist ==========================================================
@@ -513,7 +557,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
   double *_result = mxGetPr(plhs[0]);
   viterbi obj(_row, _col, _image, _num_layers, _layers_indexed, _layer_costs, 
-    _layer_cutoffs, _mask, _img_mag_weight, _smooth_slope, _max_slope, _bounds, 
-    _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, _transition_weights, 
-    _mult_weight, _mult_weight_decay, _mult_weight_local_decay, _zero_bin, _result);
+    _layer_cutoffs, _mask, _img_mag_weight, _smooth_slope, _max_slope, _hori_bounds, 
+    _vert_bounds, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y, 
+    _transition_weights, _mult_weight, _mult_weight_decay, _mult_weight_local_decay, 
+    _zero_bin, _result);
 }
