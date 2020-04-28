@@ -27,17 +27,18 @@ if tool_idx == 1
   for layer_idx = 1:length(cur_layers)
     cur_layer = cur_layers(layer_idx);
     
-    [manual_idxs,auto_idxs_initial,~] = find_matching_pnts(obj,param,cur_layer);
+    [selected_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
+    param.x_bounds = 1;
+    [all_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
     
-    if ~isempty(auto_idxs_initial)
+    if true
       
       % Nx: number of along track records/range lines
       Nx = length(image_x);
       
       % Match GT points with axis coordinates
-      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest', 'extrap');
-        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest', 'extrap')];
-      gt_bound_idxs  = gt(1, 1):gt(1, end);
+      gt = [interp1(image_x, 1:length(image_x),param.layer.x(selected_manual_idxs), 'nearest', 'extrap');
+        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(selected_manual_idxs), 'nearest', 'extrap')];
       x_points       = gt(1, :);
       y_points       = gt(2, :);
       gt             = nan(1, Nx);
@@ -46,7 +47,6 @@ if tool_idx == 1
       % Echogram Parameters
       viterbi_data   = image_c;
       mask           = inf * ones([1 Nx]);
-      hori_bounds    = gt_bound_idxs([1 end]);
       vert_bounds    = [];
       mask_dist      = round(bwdist(mask == 0));
       
@@ -131,6 +131,22 @@ if tool_idx == 1
         gt_cutoff = 5;
       end
       
+      if obj.top_panel.r_echo.Value
+        hori_bounds = [1 Nx];
+      end
+      if obj.top_panel.r_sel.Value
+        hori_bounds = round(param.x([1 2]));
+      end
+      if obj.top_panel.r_extr.Value
+        gt_bound_idxs = find(~isnan(gt));
+        if length(gt_bound_idxs) < 2
+          error('Less than 2 gt points are selected but horizontal bounding option is set to extreme gt points.');
+        end
+        gt_bound_idxs = gt_bound_idxs([1 end]);
+        hori_bounds = gt_bound_idxs([1 end]);
+      end
+
+
       layers_bins = zeros(length(layers),length(image_x));
       layer_costs = zeros(length(layers),length(image_x));
       for layers_idx = 1:length(layers)
@@ -211,9 +227,13 @@ if tool_idx == 1
           2*ones(size(bounding_idxs)), quality};
       else
         type = 2*ones(size(bounding_idxs));
-        type(manual_idxs - manual_idxs(1) + 1) = 1;
+        if obj.top_panel.r_echo.Value && ~isempty(all_manual_idxs)
+            type(all_manual_idxs - bounding_idxs(1) + 1) = 1;
+        elseif ~isempty(selected_manual_idxs) % Only affects manual points within selection for other options
+            type(selected_manual_idxs - bounding_idxs(1) + 1) = 1;
+        end
         cmds(end).redo_args = {cur_layer, bounding_idxs, y_new, ...
-          type, param.cur_quality*ones(size(bounding_idxs))};
+        type, param.cur_quality*ones(size(bounding_idxs))};
       end
     end
   end

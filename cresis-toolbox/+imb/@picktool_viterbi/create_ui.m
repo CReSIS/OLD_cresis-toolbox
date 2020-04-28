@@ -69,17 +69,32 @@ set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String','5');
 set(obj.top_panel.insert_range_TE,'TooltipString', tooltip);
 
-%----column restriction label
-tooltip = 'Crop echogram input horizontally to values between extreme ground truth points';
-obj.top_panel.column_restriction_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.column_restriction_label,'Style','text');
-set(obj.top_panel.column_restriction_label,'String','Column restriction:');
-set(obj.top_panel.column_restriction_label,'TooltipString', tooltip);
-%----column restriction cbox
-obj.top_panel.column_restriction_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.column_restriction_cbox,'Style','checkbox');
-set(obj.top_panel.column_restriction_cbox,'Value', 1);
-set(obj.top_panel.column_restriction_cbox,'TooltipString', tooltip);
+%----Horizontal Bounding
+tooltip = 'How to bound the input and output of Viterbi horizontally.';
+obj.top_panel.hori_bound_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.hori_bound_label,'Style','text');
+set(obj.top_panel.hori_bound_label,'String',sprintf('Horizontal Bounding:'));
+set(obj.top_panel.hori_bound_label,'TooltipString', tooltip);
+%----Horizontal Bounding radio buttons
+obj.top_panel.hori_bound_bg = uibuttongroup('Parent',obj.top_panel.handle);  % bg = button_group
+obj.top_panel.r_echo = uicontrol('Parent', obj.top_panel.hori_bound_bg);
+set(obj.top_panel.r_echo,'Style','radiobutton');
+set(obj.top_panel.r_echo,'String','Entire Echogram');
+set(obj.top_panel.r_echo,'Position',[0 30 200 15]);
+set(obj.top_panel.r_echo,'Value', 0);
+set(obj.top_panel.r_echo,'TooltipString', 'Pass in the entire echogram (no bounding).');
+obj.top_panel.r_sel = uicontrol('Parent', obj.top_panel.hori_bound_bg);
+set(obj.top_panel.r_sel,'Style','radiobutton');
+set(obj.top_panel.r_sel,'String','Selection Box');
+set(obj.top_panel.r_sel,'Position',[0 15 200 15]);
+set(obj.top_panel.r_sel,'Value', 0);
+set(obj.top_panel.r_sel,'TooltipString', 'Use echogram within horizontal bounds of selection box.');
+obj.top_panel.r_extr = uicontrol('Parent', obj.top_panel.hori_bound_bg);
+set(obj.top_panel.r_extr,'Style','radiobutton');
+set(obj.top_panel.r_extr,'String','Extreme Groundtruth');
+set(obj.top_panel.r_extr,'Position',[0 0 200 15]);
+set(obj.top_panel.r_extr,'Value', 1);
+set(obj.top_panel.r_extr,'TooltipString', 'Use echogram within outer-most (horizontally) ground truth points within selection box.');
 
 %----layers label
 tooltip = 'List of layers to repulse or attract the viterbi layer. Enter as a vector. The first entry is the top and the viterbi layer may not exceed.';
@@ -214,7 +229,24 @@ set(obj.top_panel.ground_truth_cutoff_TE,'String', '5');
 set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %%
 %---------------------------------------------------------------------------------------------
+% set up top panel table
 cols = 2;
+rows = 14;  % Just keep this larger or equal to actual number of rows.
+
+% set up top panel table
+default_dimensions = NaN*zeros(rows,cols);
+obj.top_panel.table.ui=obj.top_panel.handle;
+obj.top_panel.table.width_margin = default_dimensions;
+obj.top_panel.table.height_margin = default_dimensions;
+obj.top_panel.table.false_width = default_dimensions;
+obj.top_panel.table.false_height = default_dimensions;
+obj.top_panel.table.offset = [0 0];
+
+obj.top_panel.table.width = ones(rows, cols) * inf;
+obj.top_panel.table.height = ones(rows, cols) * inf;
+obj.top_panel.table.width_margin = ones(rows, cols) * 1.5;
+obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
+
 row = 0;
 
 %% Mode
@@ -225,10 +257,11 @@ obj.top_panel.table.handles{row,2}   = obj.top_panel.tool_PM;
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.insert_range_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.insert_range_TE;
-%% Column restriction
+%% Horizontal Bound
 row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.column_restriction_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.column_restriction_cbox;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.hori_bound_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_bg;
+obj.top_panel.table.height(row, :)   = 40;
 %% Layers
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.layers_label;
@@ -274,19 +307,9 @@ row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.ground_truth_cutoff_label;
 obj.top_panel.table.handles{row,2}  = obj.top_panel.ground_truth_cutoff_TE;
 
-% set up top panel table
-default_dimensions = NaN*zeros(row,cols);
-obj.top_panel.table.ui=obj.top_panel.handle;
-obj.top_panel.table.width_margin = default_dimensions;
-obj.top_panel.table.height_margin = default_dimensions;
-obj.top_panel.table.false_width = default_dimensions;
-obj.top_panel.table.false_height = default_dimensions;
-obj.top_panel.table.offset = [0 0];
-
-obj.top_panel.table.width = ones(row, cols) * inf;
-obj.top_panel.table.height = ones(row, cols) * inf;
-obj.top_panel.table.width_margin = ones(row, cols) * 1.5;
-obj.top_panel.table.height_margin = ones(row, cols) * 1.5;
+if row > rows
+  warning('Viterbi create_ui does not have default values for new rows. Update rows variable to match number of rows present.');
+end
 
 clear row cols
 
