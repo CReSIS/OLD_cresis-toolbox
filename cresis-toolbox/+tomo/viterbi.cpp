@@ -68,18 +68,20 @@ double viterbi::unary_cost(int x, int y)
   }
 
   // Increase cost if near surface or surface multiple bin
+  double multiple_cost = 0;
   if (!mxIsNaN(sgt)) {
     const int travel_time = sgt - f_zero_bin; // Between multiples
     int dist_to_surf = abs((int)y - (int)sgt);
-    int multiple_bin = travel_time == 0 ? -1 : (y - sgt) / travel_time - 1;
+    int multiple_bin = travel_time == 0 ? -1 : floor((y - sgt) / travel_time) - 1;
     int dist_to_bin = travel_time == 0 ? dist_to_surf : dist_to_surf % travel_time;
     // If closer to next multiple, use that distance instead
-    if (dist_to_bin > travel_time / 2 && multiple_bin >= 0)
+    double current_mult_weight = f_mult_weight;
+    if (dist_to_bin > travel_time / 2)
     {
       dist_to_bin = travel_time - dist_to_bin;
       multiple_bin++;
+      current_mult_weight *= .75; // Return is not as strong above multiple
     }
-    double current_mult_weight = f_mult_weight;
     if (multiple_bin < 0)
     {
       // multiple bin -1 is surface, others are multiples
@@ -87,7 +89,7 @@ double viterbi::unary_cost(int x, int y)
       current_mult_weight = 0;  // Surface repulsion handled above as cost
     }
 
-    double multiple_cost = current_mult_weight;
+    multiple_cost = current_mult_weight;
     multiple_cost *= pow(f_mult_weight_decay, multiple_bin);
     multiple_cost *= pow(f_mult_weight_local_decay, dist_to_bin);
 
