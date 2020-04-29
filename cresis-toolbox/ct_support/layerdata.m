@@ -1181,7 +1181,7 @@ classdef layerdata < handle
     % mdata = load(fn);
     % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
     function varargout = load_layers(mdata,layerdata_source,varargin)
-      layers = layerdata(echo_get_param(mdata),layerdata_source);
+      layers = layerdata(echo_param(mdata),layerdata_source);
       
       try
         for idx = 1:nargin-1

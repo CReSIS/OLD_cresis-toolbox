@@ -38,6 +38,8 @@ if mode == 0
     param = mdata.param_qlook;
   elseif isfield(mdata,'param_combine')
     param = mdata.param_combine;
+  elseif isfield(mdata,'param_combine_wf_chan')
+    param = mdata.param_csarp;
   elseif isfield(mdata,'param_get_heights')
     param = mdata.param_get_heights;
   else
