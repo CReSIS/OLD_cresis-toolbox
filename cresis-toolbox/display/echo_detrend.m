@@ -196,9 +196,14 @@ switch param.method
     
   case 'tonemap'
     tmp = [];
-    tmp(:,:,1) = abs(data);
-    tmp(:,:,2) = abs(data);
-    tmp(:,:,3) = abs(data);
+    min_data = min(data(isfinite(data)));
+    if isempty(min_data)
+      % No finite data, so set min_data to 0
+      min_data = 0;
+    end
+    tmp(:,:,1) = data - min_data;
+    tmp(:,:,2) = data - min_data;
+    tmp(:,:,3) = data - min_data;
     % for generating synthetic HDR images
     data = tonemap(tmp, 'AdjustLightness', [0.1 1], 'AdjustSaturation', 1.5);
     data = single(data(:,:,2));
