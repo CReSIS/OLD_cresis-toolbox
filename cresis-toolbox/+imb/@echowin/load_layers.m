@@ -102,7 +102,7 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
   end
   
   %% LayerData: Update echogram surface if there are enough good points
-  if ~isempty(obj.eg.layers.y)
+  if ~isempty(obj.eg.layers.lyr_id)
     if isempty(obj.eg.layers.surf_id) || all(obj.eg.layers.surf_id ~= obj.eg.layers.lyr_id)
       % Surface ID not set yet, assume it is the minimum
       obj.eg.layers.surf_id = min(obj.eg.layers.lyr_id);

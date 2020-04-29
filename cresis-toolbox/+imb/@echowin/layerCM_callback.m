@@ -161,7 +161,7 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
         else
           
           % Get id for new layer
-          new_lyr_id = max(max(obj.undo_stack.user_data.layer_organizer.lyr_id),max(obj.eg.layers.lyr_id)) + 1;
+          new_lyr_id = max([obj.undo_stack.user_data.layer_organizer.lyr_id obj.eg.layers.lyr_id]) + 1;
           if isempty(new_lyr_id)
             new_lyr_id = 1;
           end
