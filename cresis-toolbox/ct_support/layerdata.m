@@ -1054,6 +1054,19 @@ classdef layerdata < handle
       end
     end
     
+    %% get_layer_names: get available layer names
+    function layer_names = get_layer_names(obj,regexp_str)
+      load_layer_organizer(obj);
+      layer_names = {};
+      idx = 0;
+      for  lyr_idx = 1:length(obj.layer_organizer.lyr_name)
+        if regexp(obj.layer_organizer.lyr_name{lyr_idx},regexp_str)
+          idx = idx + 1;
+          layer_names{idx} = obj.layer_organizer.lyr_name{lyr_idx};
+        end
+      end
+    end
+    
     %% print_layer_names: print available layer names
     function print_layer_names(obj)
       fprintf('Available layers:\n');
