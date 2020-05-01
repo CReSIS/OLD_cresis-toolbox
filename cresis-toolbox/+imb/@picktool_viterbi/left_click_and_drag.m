@@ -39,6 +39,8 @@ if tool_idx == 1
       % Match GT points with axis coordinates
       gt = [interp1(image_x, 1:length(image_x),param.layer.x(selected_manual_idxs), 'nearest', 'extrap');
         interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(selected_manual_idxs), 'nearest', 'extrap')];
+      upper_bound = interp1(image_y, 1:length(image_y),param.y(1), 'nearest', 'extrap');
+      lower_bound = interp1(image_y, 1:length(image_y),param.y(2), 'nearest', 'extrap');
       x_points       = gt(1, :);
       y_points       = gt(2, :);
       gt             = nan(1, Nx);
@@ -47,7 +49,6 @@ if tool_idx == 1
       % Echogram Parameters
       viterbi_data   = image_c;
       mask           = inf * ones([1 Nx]);
-      vert_bounds    = [];
       mask_dist      = round(bwdist(mask == 0));
       
       %% Detrending
@@ -111,9 +112,9 @@ if tool_idx == 1
         max_slope = -1;
       end
       try
-        transition_weight = eval(obj.top_panel.transition_weight_TE.String);
+        along_track_weight = eval(obj.top_panel.transition_weight_TE.String);
       catch ME
-        transition_weight = 1;
+        along_track_weight = 1;
       end
       try
         image_mag_weight = eval(obj.top_panel.image_mag_weight_TE.String);
@@ -138,13 +139,14 @@ if tool_idx == 1
         hori_bounds = round(param.x([1 2]));
       end
       if obj.top_panel.r_extr.Value
-        gt_bound_idxs = find(~isnan(gt));
-        if length(gt_bound_idxs) < 2
+        selected_manual_idxs = find(~isnan(gt)&gt>=upper_bound&gt<=lower_bound);
+        if length(selected_manual_idxs) < 2
           error('Less than 2 gt points are selected but horizontal bounding option is set to extreme gt points.');
         end
-        gt_bound_idxs = gt_bound_idxs([1 end]);
-        hori_bounds = gt_bound_idxs([1 end]);
+        hori_bounds = selected_manual_idxs([1 end]);
       end
+      bound_gt_idxs = find(~isnan(gt));
+      bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
 
 
       layers_bins = zeros(length(layers),length(image_x));
@@ -160,13 +162,13 @@ if tool_idx == 1
         layer_costs(layers_idx,:) = layers_weight(layers_idx);
       end
       
-      slope = diff(layers_bins(1,:));
+      along_track_slope = diff(layers_bins(1,:));
       
       % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
-      transition_weights = ones(1, size(viterbi_data, 2) - 1) * transition_weight;
+      transition_weights = ones(1, size(viterbi_data, 2) - 1) * along_track_weight;
 
       if ~obj.top_panel.surf_slope_cbox.Value
-        slope(:) = 0;
+        along_track_slope(:) = 0;
       end
 
       layers_bins = [layers_bins; gt];
@@ -184,13 +186,12 @@ if tool_idx == 1
         nan(length(layers), size(viterbi_data, 2));
         gt_cutoffs
       ];
-      
+
+      upper_bounds = ones(1, Nx)*upper_bound;
+      lower_bounds = ones(1, Nx)*lower_bound;
+  
       viterbi_timer = tic;
-      y_new = tomo.viterbi(double(viterbi_data), double(layers_bins), double(layer_costs), ...
-        double(layer_cutoffs), double(mask), double(image_mag_weight), double(slope), ...
-        double(max_slope), int64(hori_bounds), int64(vert_bounds), double(mask_dist), double(DIM_costmatrix), ...
-        double(transition_weights), double(mult_weight), double(mult_weight_decay), ...
-        double(mult_weight_local_decay), int64(zero_bin));
+      y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
       
       fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
       
@@ -229,8 +230,8 @@ if tool_idx == 1
         type = 2*ones(size(bounding_idxs));
         if obj.top_panel.r_echo.Value && ~isempty(all_manual_idxs)
             type(all_manual_idxs - bounding_idxs(1) + 1) = 1;
-        elseif ~isempty(selected_manual_idxs) % Only affects manual points within selection for other options
-            type(selected_manual_idxs - bounding_idxs(1) + 1) = 1;
+        elseif ~isempty(bound_gt_idxs) % Only affects manual points within selection for other options
+            type(bound_gt_idxs - bounding_idxs(1) + 1) = 1;
         end
         cmds(end).redo_args = {cur_layer, bounding_idxs, y_new, ...
         type, param.cur_quality*ones(size(bounding_idxs))};
