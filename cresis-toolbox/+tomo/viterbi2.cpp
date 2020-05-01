@@ -63,8 +63,9 @@ double *viterbi2::find_path(void)
 int viterbi2::calculate_best(double *path_prob)
 {
   double min = INF;
-  int viterbi_index = 0;
-  for (int k = 0; k < f_row; k++)
+  int viterbi_index = f_upper_bounds[f_col-1];
+  // Only search within bounds of last column
+  for (int k = viterbi_index; k <= f_lower_bounds[f_col-1]; k++)
   {
     if (path_prob[k] < min)
     {
@@ -109,11 +110,11 @@ void viterbi2::viterbi_right(int *path, double *path_prob, double *path_prob_nex
     // Add binary cost from current to next
     if (next)
     {
-      dt_1d(path_prob_next, f_along_track_weight, path_prob, index, 0, f_row - 1, f_along_track_slope[col]);
+      dt_1d(path_prob_next, f_along_track_weight, path_prob, index, f_upper_bounds[col], f_lower_bounds[col], f_along_track_slope[col]);
     }
     else
     {
-      dt_1d(path_prob, f_along_track_weight, path_prob_next, index, 0, f_row - 1, f_along_track_slope[col]);
+      dt_1d(path_prob, f_along_track_weight, path_prob_next, index, f_upper_bounds[col], f_lower_bounds[col], f_along_track_slope[col]);
     }
     next = !next;
   }

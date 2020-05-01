@@ -58,7 +58,7 @@ public:
   int vic_encode(int row, int col) { return f_row * col + row; }
 
   // THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
-  // With minor adjustments by Reece Mathews (max slope and transition_weight)
+  // With minor adjustments by Reece Mathews (transition_weight)
   // Distance transform
   // -- Every index from d1 to d2 will be set in dst and dst_ind
   // -- dst will contain the minimum value for that destination
