@@ -1,23 +1,24 @@
-// viterbi2.cpp
-//
-// Layer-tracking program based on the Viterbi algorithm
-//  for MUSIC-processed 2D and 3D data
-//
-// Authors: Victor Berger and John Paden
-//           Center for Remote Sensing of Ice Sheets
-//           2017-2018
-//          Adapted from original code by Mingze Xu and David Crandall
-//
-// Changes to cost function (shifted exponential decay): Victor Berger and John Paden 2018
-// Changes to cost function (geostatistical analysis): Victor Berger and John Paden 2019
-// Various changes throughout (purge dead code, fix bugs, reduce inputs, remove unary cost): Reece Mathews 2020
-//
-// See also: viterbi2.h
-//
-// mex -v -largeArrayDims viterbi2.cpp
+/* 
+viterbi2.cpp
+
+Layer-tracking program based on the Viterbi algorithm
+ for MUSIC-processed 2D and 3D data
+
+Authors: Victor Berger and John Paden
+          Center for Remote Sensing of Ice Sheets
+          2017-2018
+         Adapted from original code by Mingze Xu and David Crandall
+
+Changes to cost function (shifted exponential decay): Victor Berger and John Paden 2018
+Changes to cost function (geostatistical analysis): Victor Berger and John Paden 2019
+Various changes throughout (purge dead code, fix bugs, reduce inputs, remove unary cost): Reece Mathews 2020
+
+See also: viterbi2.h
+
+mex -v -largeArrayDims viterbi2.cpp 
+*/
 
 #include "viterbi2.h"
-
 
 // Returns Viterbi solution of optimal path
 double *viterbi2::find_path(void)
@@ -51,7 +52,7 @@ double *viterbi2::find_path(void)
   for (int k = f_col - 2; k >= 0; k--)
   {
     encode = vic_encode(viterbi_index, k);
-    viterbi_index = path[encode];  // Follow path backwards
+    viterbi_index = path[encode];    // Follow path backwards
     f_result[k] = viterbi_index + 1; // Account for matlab 1-indexing
   }
 
@@ -79,14 +80,14 @@ void viterbi2::viterbi_right(int *path, double *path_prob, double *path_prob_nex
 {
   bool next = 0;
 
-  for (int col = 0; col <= f_col; ++col)
+  for (int col = 0; col < f_col; col++)
   {
-    for (int row = 0; row < f_row; ++row)
+    for (int row = 0; row < f_row; row++)
     {
       // Path points to best index in previous column -- not defined for first column
       if (col > 0)
       {
-        path[vic_encode(row, col-1)] = index[row];
+        path[vic_encode(row, col - 1)] = index[row];
       }
 
       // Add unary cost
@@ -100,7 +101,7 @@ void viterbi2::viterbi_right(int *path, double *path_prob, double *path_prob_nex
       }
     }
     // No binary cost for last col -- added between columns
-    if (col == f_col)
+    if (col == f_col - 1)
     {
       break;
     }
@@ -128,11 +129,57 @@ void viterbi2::viterbi_right(int *path, double *path_prob, double *path_prob_nex
   }
 }
 
+/* Check bounds for invalid indices. */
+void verify_bounds(double *bounds_dest, const mxArray *mx_bounds, char *bounds_name, int default_bound, int total_rows, int total_cols)
+{
+  char err_str[100];
+  if (mxGetNumberOfElements(mx_bounds) != 0)
+  {
+    // Must be double for NaNs
+    if (!mxIsDouble(mx_bounds))
+    {
+      sprintf(err_str, "Usage: %s must be type double", bounds_name);
+      mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
+    }
+    if (mxGetNumberOfElements(mx_bounds) != total_cols)
+    {
+      sprintf(err_str, "Usage: numel(%s)=size(image,2)", bounds_name);
+      mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
+    }
+
+    for (int i = 0; i < total_cols; i++)
+    {
+      bounds_dest[i] = ((double *)mxGetPr(mx_bounds))[i] - 1; // Account for matlab 1-indexing
+      if (bounds_dest[i] < 0)
+      {
+        sprintf(err_str, "Usage: %s must be >= 1 (displaying with matlab 1-indexing: index %d is %.0f)", bounds_name, i + 1, bounds_dest[i] + 1);
+        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
+      }
+      if (bounds_dest[i] >= total_rows)
+      {
+        sprintf(err_str, "Usage: %s must be within image (displaying with matlab 1-indexing: index %d is %.0f and size(image, 1) is %d)", bounds_name, i + 1, bounds_dest[i] + 1, total_rows);
+        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
+      }
+      if (mxIsNaN(bounds_dest[i]))
+      {
+        bounds_dest[i] = default_bound;
+      }
+    }
+  }
+  else
+  {
+    // Default setting if empty array passed is to process all rows
+    for (int i = 0; i < total_rows; i++)
+    {
+      bounds_dest[i] = default_bound;
+    }
+  }
+}
+
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int arg = 0;
-  char err_str[100];
 
   if (nrhs != 5 || nlhs != 1)
   {
@@ -176,91 +223,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Upper bounds =============================================================
   arg++;
   double _upper_bounds[_col];
-  if (mxGetNumberOfElements(prhs[arg]) != 0)
-  {
-    // Must be double for NaNs
-    if (!mxIsDouble(prhs[arg]))
-    {
-      mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: upper_bounds must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[arg]) != _col)
-    {
-      mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: numel(upper_bounds)=size(image,2)");
-    }
-
-    for (int i = 0; i < _col; i++)
-    {
-      _upper_bounds[i] = ((double *)mxGetPr(prhs[arg]))[i] - 1; // Account for matlab 1-indexing
-      if (_upper_bounds[i] < 0)
-      {
-        sprintf(err_str, "Usage: upper_bounds must be >= 1 (displaying with matlab 1-indexing: index %d is %f)", i + 1, _upper_bounds[i] + 1);
-        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
-      }
-      if (_upper_bounds[i] >= _row)
-      {
-        sprintf(err_str, "Usage: upper_bounds must be within image (displaying with matlab 1-indexing: index %d is %f and size(image, 1) is %d)", i + 1, _upper_bounds[i] + 1, _row);
-        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
-      }
-      if (mxIsNaN(_upper_bounds[i]))
-      {
-        _upper_bounds[i] = 0;
-      }
-    }
-  }
-  else
-  {
-    // Default setting if empty array passed is to process all rows
-    for (int i = 0; i < _row; i++)
-    {
-      _upper_bounds[i] = 0;
-    }
-  }
+  verify_bounds(_upper_bounds, prhs[arg], "upper_bounds", 0,        _row, _col);
 
   // Lower bounds =============================================================
   arg++;
   double _lower_bounds[_col];
-  if (mxGetNumberOfElements(prhs[arg]) != 0)
+  verify_bounds(_lower_bounds, prhs[arg], "lower_bounds", _row - 1, _row, _col);
+  
+  // Verify lower_bounds below upper_bounds
+  char err_str[100];
+  for (int i = 0; i < _col; i++)
   {
-    // Must be double for NaNs
-    if (!mxIsDouble(prhs[arg]))
+    if (_lower_bounds[i] < _upper_bounds[i])
     {
-      mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: lower_bounds must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[arg]) != _col)
-    {
-      mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: numel(lower_bounds)=size(image,2)");
-    }
-
-    for (int i = 0; i < _col; i++)
-    {
-      _lower_bounds[i] = ((double *)mxGetPr(prhs[arg]))[i] - 1; // Account for matlab 1-indexing
-      if (_lower_bounds[i] < 0)
-      {
-        sprintf(err_str, "Usage: lower_bounds must be >= 1 (displaying with matlab 1-indexing: index %d is %f)", i + 1, _lower_bounds[i] + 1);
-        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
-      }
-      if (_lower_bounds[i] >= _row)
-      {
-        sprintf(err_str, "Usage: lower_bounds must be within image (displaying with matlab 1-indexing: index %d is %f and size(image, 1) is %d)", i + 1, _lower_bounds[i] + 1, _row);
-        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
-      }
-      if (mxIsNaN(_lower_bounds[i]))
-      {
-        _lower_bounds[i] = _row - 1;
-      }
-      if (_lower_bounds[i] < _upper_bounds[i])
-      {
-        sprintf(err_str, "Usage: lower_bounds must be lower (i.e. >=) than upper_bounds (displaying with matlab 1-indexing: index %d of lower_bounds is %f and corresponding upper_bound is %f)", i + 1, _lower_bounds[i] + 1, _upper_bounds[i] + 1);
-        mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
-      }
-    }
-  }
-  else
-  {
-    // Default setting if empty array passed is to process all rows
-    for (int i = 0; i < _row; i++)
-    {
-      _lower_bounds[i] = _row - 1;
+      sprintf(err_str, "Usage: lower_bounds must be lower (i.e. >=) than upper_bounds (displaying with matlab 1-indexing: index %d of lower_bounds is %.0f and corresponding upper_bound is %.0f)", i + 1, _lower_bounds[i] + 1, _upper_bounds[i] + 1);
+      mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
     }
   }
 

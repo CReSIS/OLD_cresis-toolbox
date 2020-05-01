@@ -11,7 +11,9 @@ function viterbi_tests2()
   mult = 10;
   grnd = 17;
   matrix = zeros(rows, cols);
-  matrix(surf, :) = ones(1, cols) * 30; % Surface
+  for i = 1:cols
+      matrix(floor(abs(sin(i)/6)*rows+1) + 8, i) = 30; % Surface
+  end
   matrix(mult, :) = ones(1, cols) * 20; % Mult 1
   matrix(grnd, :) = ones(1, cols) * 10; % Bottom
   
@@ -20,8 +22,8 @@ function viterbi_tests2()
   % Viterbi params
   along_track_weight = 1;
   along_track_slope = round(diff(surf_bins(1, :)));
-  upper_bounds = [];
-  lower_bounds = [];
+  upper_bounds = ones(1, cols)*2;
+  lower_bounds = ones(1, cols)*2;
   
   matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
