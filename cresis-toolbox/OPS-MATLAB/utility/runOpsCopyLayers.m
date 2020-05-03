@@ -115,6 +115,9 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
     copy_param.layer_dest.source = 'layerdata';
     copy_param.layer_dest.layerdata_source = 'layer';
   end
+
+  % Usually the group name is standard
+  copy_param.layer_dest.group_name = 'standard';
   
 end
 %% Copy surface from mcords records to snow layerdata  

@@ -35,10 +35,10 @@ in_base_path = fullfile(data_support_path,'2018_Antarctica_Ground');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
-gps_source_to_use = 'arena';
+% gps_source_to_use = 'arena';
 % gps_source_to_use = 'arena_cpu_time';
 % gps_source_to_use = 'trimble_cpu_time_shun';
-% gps_source_to_use = 'trimble_cpu_time_paden';
+gps_source_to_use = 'trimble_cpu_time_paden';
 
 if strcmpi(gps_source_to_use,'arena')
   %% ARENA
@@ -169,7 +169,9 @@ elseif strcmpi(gps_source_to_use,'trimble_cpu_time_shun')
 elseif strcmpi(gps_source_to_use,'trimble_cpu_time_paden')
   correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
   
-  % Paden processed with the following service:
+  % Paden processed with the Canadian online service. The results seem to
+  % be smoother than Shun's processed results and the reported errors are
+  % much smaller.
   %
   % HDR GRP CANADIAN GEODETIC SURVEY, SURVEYOR GENERAL BRANCH, NATURAL RESOURCES CANADA
   % HDR ADR GOVERNMENT OF CANADA, 588 BOOTH STREET ROOM 334, OTTAWA ONTARIO K1A 0Y7
@@ -272,7 +274,7 @@ for idx = 1:length(file_type)
     end
   end
   
-  if regexpi(gps.gps_source,'trimble_cpu_time_paden')
+  if 0 && regexpi(gps.gps_source,'trimble_cpu_time_paden')
     % Smoothing is necessary due to vibration
     warning('Smoothing GPS and IMU data: %s', out_fn);
     gps = load(out_fn);
