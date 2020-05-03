@@ -138,30 +138,44 @@ switch param.method
     end
     if all(isnan(param.layer_bottom))
       param.layer_bottom(:) = Nt;
-    elseif any(param.layer_bottom<1)
+    elseif any(param.layer_bottom < 1)
       % layer is two way travel time
       if isstruct(mdata)
         param.layer_bottom = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_bottom,'linear','extrap'),Nt));
+      else
+        error('mdata should be an echogram struct with a "Time" field since layer_bottom is specific in two way travel time and needs to be converted to range bins.');
       end
     end
     if all(isnan(param.layer_top))
       param.layer_top(:) = 1;
-    elseif any(param.layer_top<1)
+    elseif any(param.layer_top < 1)
       % layer is two way travel time
       if isstruct(mdata)
         param.layer_top = round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),param.layer_top,'linear','extrap'),1));
+      else
+        error('mdata should be an echogram struct with a "Time" field since layer_top is specific in two way travel time and needs to be converted to range bins.');
       end
     end
     
     mask = false(size(data));
     x_axis = nan(size(data));
     for rline = 1:Nx
-      bins = max(1,min(Nt,param.layer_top(rline))):max(1,min(Nt,param.layer_bottom(rline)));
-      mask(bins,rline) = true;
-      if param.layer_bottom(rline) - param.layer_top(rline) > 0
+      top_bin = param.layer_top(rline);
+      bottom_bin = param.layer_bottom(rline);
+      if top_bin < 1 && bottom_bin >= 1
+        top_bin = 1;
+      end
+      if top_bin <= Nt && bottom_bin > Nt
+        bottom_bin = Nt;
+      end
+      if top_bin > Nt || bottom_bin < 1
+        continue;
+      end
+      bins = top_bin:bottom_bin;
+      
+      if length(bins) >= 2
+        mask(bins,rline) = true;
         x_axis(bins,rline) = (bins - param.layer_top(rline)) / (param.layer_bottom(rline) - param.layer_top(rline));
-      else
-        x_axis(bins,rline) = 0;
       end
     end
     
@@ -175,14 +189,34 @@ switch param.method
     trend = zeros(Nt,1);
     for rline = 1:Nx
       % Section 2: Evaluate the polynomial
-      bins = max(1,min(Nt,param.layer_top(rline))):max(1,min(Nt,param.layer_bottom(rline)));
-      trend(bins) = polyval(detrend_poly,x_axis(bins,rline));
+      top_bin = param.layer_top(rline);
+      bottom_bin = param.layer_bottom(rline);
+      if top_bin < 1 && bottom_bin >= 1
+        top_bin = 1;
+      end
+      if top_bin <= Nt && bottom_bin > Nt
+        bottom_bin = Nt;
+      end
       
-      % Section 1: Constant
-      trend(1:bins(1)-1) = trend(bins(1));
-      
-      % Section 3: Constant
-      trend(bins(end):end) = trend(bins(end));
+      if top_bin > Nt
+        trend(:) = polyval(detrend_poly,0);
+      elseif bottom_bin < 1
+        trend(:) = polyval(detrend_poly,1);
+      elseif top_bin >= bottom_bin
+        trend(1:top_bin) = polyval(detrend_poly,0);
+        trend(top_bin+1:end) = polyval(detrend_poly,1);
+      else
+        bins = top_bin:bottom_bin;
+        
+        % Section 1: Constant above surface
+        trend(1:bins(1)-1) = trend(bins(1));
+        
+        % Section 2: Polynomial fit
+        trend(bins) = polyval(detrend_poly,x_axis(bins,rline));
+        
+        % Section 3: Constant below bottom
+        trend(bins(end):end) = trend(bins(end));
+      end
       
       if 0
         %% Debug plots

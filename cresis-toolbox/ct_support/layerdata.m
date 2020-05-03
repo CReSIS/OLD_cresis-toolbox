@@ -1207,9 +1207,11 @@ classdef layerdata < handle
       layers = layerdata(echo_param(mdata),layerdata_source);
       
       try
-        for idx = 1:nargin-1
+        for idx = 1:nargin-2
           varargout{idx} = layers.get_layer_by_gps_time(mdata.GPS_time,varargin{idx});
         end
+      catch ME
+        warning('load_layers failed during get_layer_by_gps_time: %s', ME.getReport);
       end
       delete(layers);
     end
