@@ -189,7 +189,14 @@ if tool_idx == 1
 
       upper_bounds = ones(1, Nx)*upper_bound;
       lower_bounds = ones(1, Nx)*lower_bound;
-  
+
+      gt_idxs = find(~isnan(gt(1, :)));
+
+      upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
+      lower_bounds(gt_idxs) = min([gt(gt_idxs) + gt_cutoff; lower_bounds(gt_idxs)]);
+
+      upper_bounds = max([upper_bounds; layers_bins(1, :)]);
+
       viterbi_timer = tic;
       y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
       
