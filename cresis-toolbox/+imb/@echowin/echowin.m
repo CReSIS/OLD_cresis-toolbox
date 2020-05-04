@@ -217,11 +217,11 @@ classdef (HandleCompatible = true) echowin < handle
     %     selected (tools and operations will act on the layer)
     %   visible_layers: Nlayer length logical vector, true means layer visible
     %   x: 1 by Nx vector of x-values in GPS time
-    %   y: 1 by Nx vector of y-values in twtt
-    %   qual: 1 by Nx vector of quality values (1=good,2=medium,3=bad,NaN=unassigned)
-    %   type: 1 by Nx vector of type values (1=
+    %   y: Cell array of 1 by Nx vectors of y-values in twtt
+    %   qual: Cell array of 1 by Nx vectors of quality values (1=good,2=medium,3=bad,NaN=unassigned)
+    %   type: Cell array of 1 by Nx vectors of type values (1=
     %   x_curUnit: 1 by Nx vector of x-values in current x-axis units
-    %   y_curUnit: 1 by Nx vector of y-values in current y-axis units
+    %   y_curUnit: Cell array of 1 by Nx vectors of y-values in current y-axis units
     %   saved.lyr_name = {}; % Last saved version
     %   saved.lyr_group_name = {}; % Last saved version
     %   saved.lyr_id = {}; % Last saved version
@@ -373,12 +373,12 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.layers.surf_id = []; % surface ID (set in draw)
       obj.eg.layers.selected_layers = []; % Nlayer length logical vector, true means layer is selected (tools and operations will act on the layer) (set in draw)
       obj.eg.layers.visible_layers = []; % Nlayer length logical vector, true means layer visible (set in draw)
-      obj.eg.layers.x = {}; % 1 by Nx vector of x-values in GPS time (set in load_layers)
-      obj.eg.layers.y = {}; % 1 by Nx vector of y-values in twtt (set in load_layers)
-      obj.eg.layers.qual = {}; % 1 by Nx vector of quality values (1=good,2=medium,3=bad,NaN=unassigned) (set in load_layers)
-      obj.eg.layers.type = {}; % 1 by Nx vector of type values 1 (manual) or 2 (auto) (set in load_layers)
-      obj.eg.layers.x_curUnit = {}; % 1 by Nx vector of x-values in current x-axis units (set in plot_layers)
-      obj.eg.layers.y_curUnit = {}; % 1 by Nx vector of y-values in current y-axis units (set in plot_layers)
+      obj.eg.layers.x = []; % 1 by Nx vector of x-values in GPS time (set in load_layers)
+      obj.eg.layers.y = {}; % Cell array of 1 by Nx vectors of y-values in twtt (set in load_layers)
+      obj.eg.layers.qual = {}; % Cell array of 1 by Nx vectors of quality values (1=good,2=medium,3=bad,NaN=unassigned) (set in load_layers)
+      obj.eg.layers.type = {}; % Cell array of 1 by Nx vectors of type values 1 (manual) or 2 (auto) (set in load_layers)
+      obj.eg.layers.x_curUnit = []; % 1 by Nx vector of x-values in current x-axis units (set in plot_layers)
+      obj.eg.layers.y_curUnit = {}; % Cell array of 1 by Nx vectors of y-values in current y-axis units (set in plot_layers)
       obj.eg.layers.saved.lyr_age = {}; % Last saved version
       obj.eg.layers.saved.lyr_age_source = {}; % Last saved version
       obj.eg.layers.saved.lyr_desc = {}; % Last saved version

@@ -13,8 +13,8 @@ cmds = [];
 fprintf('Interpolate points %f to %f, %f to %f\n', x, y);
 
 %% Get tool interpolate method
-interp_idx = get(obj.panel.interp_mode_pdmenu,'Value');
-interp_type = get(obj.panel.interp_mode_pdmenu,'String');
+interp_idx = get(obj.panel.interp_modePM,'Value');
+interp_type = get(obj.panel.interp_modePM,'String');
 interp_type = interp_type{interp_idx};
 
 param.x_bounds = 3;

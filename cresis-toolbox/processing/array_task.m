@@ -691,17 +691,18 @@ for img = 1:length(param.array.imgs)
   else
     file_version = '1';
   end
+  file_type = 'array_tmp';
   if ~param.array.tomo_en
     % Do not save tomographic 3D-image
     ct_save('-v7.3',array_fn,'Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
-      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');
   else
     % Save tomographic 3D-image
     Tomo = dout.tomo;
     ct_save('-v7.3',array_fn,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
-      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');
   end
   
 end

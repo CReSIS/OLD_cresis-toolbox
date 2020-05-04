@@ -45,7 +45,7 @@ classdef layerdata < handle
 
   end
   
-  %% Private Methods
+  %% Private Methods  ==========
   methods (Access = private)
     
     %% create: create layer file
@@ -113,9 +113,85 @@ classdef layerdata < handle
       obj.layer_organizer_modified = true;
     end
 
+    
+    %% load: load layer
+    % DO NOT CALL THIS LOAD FUNCTION DIRECTLY: call check.m
+    function load(obj,frm)
+      layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+      if ~exist(layer_fn,'file')
+        obj.create(frm);
+      else
+        obj.layer{frm} = load(layer_fn);
+        obj.layer_modified(frm) = false;
+        obj.fix(frm);
+      end
+    end
+    
+    %% load_frames: load frames
+    % DO NOT CALL THIS LOAD FUNCTION DIRECTLY: call check_frames.m
+    function load_frames(obj)
+      obj.frames = frames_load(obj.param);
+    end
+
+    %% load_layer_organizer: load layer organizer
+    % DO NOT CALL THIS LOAD FUNCTION DIRECTLY: call check_layer_organizer.m
+    function load_layer_organizer(obj)
+      layer_organizer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
+      if ~exist(layer_organizer_fn,'file')
+        obj.create_layer_organizer();
+      else
+        obj.layer_organizer = load(layer_organizer_fn);
+        obj.layer_organizer_modified = false;
+        obj.fix_layer_organizer();
+      end
+    end
+    
+    %% load_records: load records and frames
+    % DO NOT CALL THIS LOAD FUNCTION DIRECTLY: call check_records.m
+    function load_records(obj,records)
+      
+      if ~exist('records','var') || isempty(records)
+        % Load records file
+        records_fn = ct_filename_support(obj.param,'','records');
+        obj.records = load(records_fn);
+      end
+      
+      % Ensure frames are loaded
+      obj.check_frames();
+      
+      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
+      % the records field with this information.
+      trajectory_param = struct('gps_source',obj.records.gps_source, ...
+        'season_name',obj.param.season_name,'radar_name',obj.param.radar_name,'rx_path', 0, ...
+        'tx_weights', [], 'lever_arm_fh', obj.param.radar.lever_arm_fh);
+      obj.records = trajectory_with_leverarm(obj.records,trajectory_param);
+      
+      obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
+      
+      if isempty(obj.along_track_spacing)
+        sys = ct_output_dir(obj.param.radar_name);
+        switch (sys)
+          case {'rds','accum'}
+            obj.along_track_spacing = 15;
+          otherwise
+            obj.along_track_spacing = 5;
+        end
+      end
+      obj.along_track = [0:obj.along_track_spacing:obj.records.along_track(end)];
+
+      if isempty(obj.sample_spacing_method)
+        if length(obj.along_track) < 2 && length(obj.records.gps_time) > obj.record_spacing
+          obj.sample_spacing_method = 'records';
+        else
+          obj.sample_spacing_method = 'along_track';
+        end
+      end
+
+    end
+    
   end
   
-  %% Public Methods
+  %% Public Methods  ==========
   methods
     %% constructor
     function obj = layerdata(param,layerdata_source)
@@ -899,6 +975,24 @@ classdef layerdata < handle
       type = interp1(gps_time,type,query_gps_time,'nearest');
     end
     
+    %% get_layer_names: get available layer names
+    function layer_names = get_layer_names(obj,regexp_str)
+      check_layer_organizer(obj);
+      if nargin < 2
+        % If no regular expression string is given, then return all layers
+        layer_names = obj.layer_organizer.lyr_name;
+      else
+        layer_names = {};
+        idx = 0;
+        for  lyr_idx = 1:length(obj.layer_organizer.lyr_name)
+          if regexp(obj.layer_organizer.lyr_name{lyr_idx},regexp_str)
+            idx = idx + 1;
+            layer_names{idx} = obj.layer_organizer.lyr_name{lyr_idx};
+          end
+        end
+      end
+    end
+    
     %% gps_time: get gps_time
     function gps_time = gps_time(obj,frms)
       gps_time = [];
@@ -974,77 +1068,6 @@ classdef layerdata < handle
       fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
     end
     
-    %% load: load layer
-    function load(obj,frm)
-      layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
-      if ~exist(layer_fn,'file')
-        obj.create(frm);
-      else
-        obj.layer{frm} = load(layer_fn);
-        obj.layer_modified(frm) = false;
-        obj.fix(frm);
-      end
-    end
-    
-    %% load_frames: load frames
-    function load_frames(obj)
-      obj.frames = frames_load(obj.param);
-    end
-
-    %% load_layer_organizer: load layer organizer
-    function load_layer_organizer(obj)
-      layer_organizer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('layer_%s.mat',obj.param.day_seg));
-      if ~exist(layer_organizer_fn,'file')
-        obj.create_layer_organizer();
-      else
-        obj.layer_organizer = load(layer_organizer_fn);
-        obj.layer_organizer_modified = false;
-        obj.fix_layer_organizer();
-      end
-    end
-    
-    %% load_records: load records and frames
-    function load_records(obj,records)
-      
-      if ~exist('records','var') || isempty(records)
-        % Load records file
-        records_fn = ct_filename_support(obj.param,'','records');
-        obj.records = load(records_fn);
-      end
-      
-      % Ensure frames are loaded
-      obj.check_frames();
-      
-      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
-      % the records field with this information.
-      trajectory_param = struct('gps_source',obj.records.gps_source, ...
-        'season_name',obj.param.season_name,'radar_name',obj.param.radar_name,'rx_path', 0, ...
-        'tx_weights', [], 'lever_arm_fh', obj.param.radar.lever_arm_fh);
-      obj.records = trajectory_with_leverarm(obj.records,trajectory_param);
-      
-      obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
-      
-      if isempty(obj.along_track_spacing)
-        sys = ct_output_dir(obj.param.radar_name);
-        switch (sys)
-          case {'rds','accum'}
-            obj.along_track_spacing = 15;
-          otherwise
-            obj.along_track_spacing = 5;
-        end
-      end
-      obj.along_track = [0:obj.along_track_spacing:obj.records.along_track(end)];
-
-      if isempty(obj.sample_spacing_method)
-        if length(obj.along_track) < 2 && length(obj.records.gps_time) > obj.record_spacing
-          obj.sample_spacing_method = 'records';
-        else
-          obj.sample_spacing_method = 'along_track';
-        end
-      end
-
-    end
-    
     %% lon: get lon
     function lon = lon(obj,frms)
       lon = [];
@@ -1052,6 +1075,14 @@ classdef layerdata < handle
         obj.check(frm);
         lon(end+(1:length(obj.layer{frm}.lon))) = obj.layer{frm}.lon;
       end
+    end
+    
+    %% print_layer_names: print available layer names
+    function print_layer_names(obj)
+      fprintf('Available layers:\n');
+      for idx=1:length(obj.layer_organizer.lyr_name);
+        fprintf('  %s\n', obj.layer_organizer.lyr_name{idx}.');
+      end;
     end
     
     %% save: save changes to layers
@@ -1173,12 +1204,14 @@ classdef layerdata < handle
     % mdata = load(fn);
     % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
     function varargout = load_layers(mdata,layerdata_source,varargin)
-      layers = layerdata(echo_get_param(mdata),layerdata_source);
+      layers = layerdata(echo_param(mdata),layerdata_source);
       
       try
-        for idx = 1:nargin-1
+        for idx = 1:nargin-2
           varargout{idx} = layers.get_layer_by_gps_time(mdata.GPS_time,varargin{idx});
         end
+      catch ME
+        warning('load_layers failed during get_layer_by_gps_time: %s', ME.getReport);
       end
       delete(layers);
     end

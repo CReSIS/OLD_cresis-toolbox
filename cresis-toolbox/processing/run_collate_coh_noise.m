@@ -17,12 +17,12 @@ params = ct_set_params(params,'cmd.generic',0);
 
 if 1
   % Near-DC removal
-  param_override.collate_coh_noise.method = 'firdec';
-  param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30; % Update coherent noise estimate every 30 seconds
+  param_override.collate_coh_noise.method = {'firdec'};
+  param_override.collate_coh_noise.firdec_fcutoff = {@(t) 1/30}; % Update coherent noise estimate every 30 seconds
   param_override.collate_coh_noise.firdec_fs = 1/7.5; % Should update about 4 times as often as the estimate: 30/4 = 7.5
 else
   % DC removal when dft_corr_time set to inf
-  param_override.collate_coh_noise.method = 'dft';
+  param_override.collate_coh_noise.method = {'dft'};
   param_override.collate_coh_noise.dft_corr_time = inf;
 end
 

@@ -81,21 +81,28 @@ end
 % Check layers defined by regular expression regexp
 layer_idx = 1;
 while layer_idx <= length(layer_params)
-  if ~isfield(layer_params,'name') || isempty(layer_params(layer_idx).name)
+  layer_names = {};
+  if isfield(layer_params(layer_idx),'name') && iscell(layer_params(layer_idx).name)
+    layer_names = layer_params(layer_idx).name;
+  elseif ~isfield(layer_params,'name') || isempty(layer_params(layer_idx).name)
     % Name is not specified, so check regular expression field
     if ~isfield(layer_params,'regexp') || isempty(layer_params(layer_idx).regexp)
       % Default is surface
       warning('No name specified for layer %d, defaulting to use layer "surface.', layer_idx);
       layer_params(layer_idx).name = 'surface';
     else
-      error('regexp not supported yet. Just need to get list of layer names that match.');
-      layer_params = layer_params([1:layer_idx-1 layer_idx*ones(1,length(layer_names)) layer_idx+1:end]);
-      for layer_regexp_idx = 1:length(layer_names)
-        layer_params(layer_idx+layer_regexp_idx-1) = layer_params(layer_idx);
-        layer_params(layer_idx+layer_regexp_idx-1).name = layer_names{layer_regexp_idx};
-        layer_params(layer_idx+layer_regexp_idx-1).regexp = '';
-      end
+      tmp_layers = layerdata(param, layer_params(layer_idx).layerdata_source);
+      layer_names = tmp_layers.get_layer_names(layer_params(layer_idx).regexp);
     end
+  end
+  if ~isempty(layer_names)
+    layer_params = layer_params([1:layer_idx-1 layer_idx*ones(1,length(layer_names)) layer_idx+1:end]);
+    for new_idx = 1:length(layer_names)
+      layer_params(layer_idx+new_idx-1).name = layer_names{new_idx};
+      layer_params(layer_idx+new_idx-1).regexp = '';
+    end
+    layer_idx = layer_idx+new_idx-1;
+    
   end
   layer_idx = layer_idx + 1;
 end
@@ -440,7 +447,7 @@ for layerdata_source_idx = 1:length(layerdata_sources)
   
   for layer_idx = 1:length(layer_params)
     layer_param = layer_params(layer_idx);
-    if ~strcmpi(layer_param.source,'layerdata')
+    if ~strcmpi(layer_param.source,'layerdata') || ~strcmpi(layer_param.layerdata_source,layerdata_source)
       continue;
     end
     

@@ -40,35 +40,35 @@ table_draw(obj.table);
 obj.panel.source_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.source_label,'Style','text');
 set(obj.panel.source_label,'String','Source layer:');
-set(obj.panel.source_label,'FontSize',8)
+set(obj.panel.source_label,'FontSize',10)
 set(obj.panel.source_label,'TooltipString','This is the source layer to convert all active layers to. Select parts of this layer in the echogram to convert layers to the selected section.');
 
 %----source layer edit
 obj.panel.sourceTB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.sourceTB,'Style','edit');
 set(obj.panel.sourceTB,'String','1');
-set(obj.panel.sourceTB,'FontSize',8);
+set(obj.panel.sourceTB,'FontSize',10);
 set(obj.panel.sourceTB,'TooltipString','This is the source layer to convert all active layers to. Select parts of this layer in the echogram to convert layers to the selected section.');
 
 %----correct layer label
 obj.panel.correct_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.correct_label,'Style','text');
 set(obj.panel.correct_label,'String','Correct layer:');
-set(obj.panel.correct_label,'FontSize',8)
+set(obj.panel.correct_label,'FontSize',10)
 set(obj.panel.correct_label,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
 
 %----correct layer edit
 obj.panel.correctTB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.correctTB,'Style','edit');
 set(obj.panel.correctTB,'String','1');
-set(obj.panel.correctTB,'FontSize',8);
+set(obj.panel.correctTB,'FontSize',10);
 set(obj.panel.correctTB,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
 
 %----diff mode label
 obj.panel.diff_mode_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.diff_mode_label,'Style','text');
 set(obj.panel.diff_mode_label,'String','Enable Diff:');
-set(obj.panel.diff_mode_label,'FontSize',8);
+set(obj.panel.diff_mode_label,'FontSize',10);
 set(obj.panel.diff_mode_label,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
 
 %----diff mode checkbox
@@ -81,20 +81,21 @@ set(obj.panel.diff_modeCB,'TooltipString','If Enable Diff selected, then selecti
 obj.panel.shift_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.shift_label,'Style','text');
 set(obj.panel.shift_label,'String','Shift Size:');
-set(obj.panel.shift_label,'FontSize',8)
+set(obj.panel.shift_label,'FontSize',10)
 set(obj.panel.shift_label,'TooltipString','This controls the number of range bins that the up/down functions shift a layer.');
 
 %----shift layer edit
 obj.panel.shiftTB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.shiftTB,'Style','edit');
 set(obj.panel.shiftTB,'String','1');
-set(obj.panel.shiftTB,'FontSize',8);
+set(obj.panel.shiftTB,'FontSize',10);
 set(obj.panel.shiftTB,'TooltipString','This controls the number of range bins that the up/down functions shift a layer.');
 
 %----up pushbutton
 obj.panel.upPB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.upPB,'Style','PushButton');
 set(obj.panel.upPB,'String','Up'); 
+set(obj.panel.upPB,'FontSize',10);
 set(obj.panel.upPB,'Callback',@obj.upPB_callback);
 set(obj.panel.upPB,'TooltipString','Shift selected layers up by number of range bins listed in Shift Size'); 
 
@@ -102,16 +103,17 @@ set(obj.panel.upPB,'TooltipString','Shift selected layers up by number of range 
 obj.panel.downPB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.downPB,'Style','PushButton');
 set(obj.panel.downPB,'String','Down'); 
+set(obj.panel.downPB,'FontSize',10);
 set(obj.panel.downPB,'Callback',@obj.downPB_callback);
 set(obj.panel.downPB,'TooltipString','Shift selected layers down by number of range bins listed in Shift Size'); 
 
 %---------------------------------------------------------------------------------------------
 % set up top panel table
 obj.panel.table.ui=obj.panel.handle;
-obj.panel.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
-obj.panel.table.height_margin = NaN*zeros(30,30);
-obj.panel.table.false_width = NaN*zeros(30,30);
-obj.panel.table.false_height = NaN*zeros(30,30);
+obj.panel.table.width_margin = nan(30,30); % Just make these bigger than they have to be
+obj.panel.table.height_margin = nan(30,30);
+obj.panel.table.false_width = nan(30,30);
+obj.panel.table.false_height = nan(30,30);
 obj.panel.table.offset = [0 0];
 
 row = 0;
@@ -119,28 +121,28 @@ row = 0;
 row = row+1; col = 1;
 obj.panel.table.handles{row,col}   = obj.panel.source_label;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
-obj.panel.table.height_margin(row,col) = 0;
+obj.panel.table.height_margin(row,col) = 3;
 
 col = 2;
 obj.panel.table.handles{row,col}   = obj.panel.sourceTB;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 0;
 
 row = row+1; col = 1;
 obj.panel.table.handles{row,col}   = obj.panel.correct_label;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
-obj.panel.table.height_margin(row,col) = 0;
+obj.panel.table.height_margin(row,col) = 3;
 
 col = 2;
 obj.panel.table.handles{row,col}   = obj.panel.correctTB;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 0;
 
@@ -149,7 +151,7 @@ obj.panel.table.handles{row,col}   = obj.panel.diff_mode_label;
 obj.panel.table.width(row,col)     = inf;
 obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
-obj.panel.table.height_margin(row,col) = 0;
+obj.panel.table.height_margin(row,col) = 3;
 
 col = 2;
 obj.panel.table.handles{row,col}   = obj.panel.diff_modeCB;
@@ -161,28 +163,28 @@ obj.panel.table.height_margin(row,col) = 0;
 row = row+1; col = 1;
 obj.panel.table.handles{row,col}   = obj.panel.shift_label;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
-obj.panel.table.height_margin(row,col) = 0;
+obj.panel.table.height_margin(row,col) = 3;
 
 col = 2;
 obj.panel.table.handles{row,col}   = obj.panel.shiftTB;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 0;
 
 row = row+1; col = 1;
 obj.panel.table.handles{row,col}   = obj.panel.upPB;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 0;
 
 col = 2;
 obj.panel.table.handles{row,col}   = obj.panel.downPB;
 obj.panel.table.width(row,col)     = inf;
-obj.panel.table.height(row,col)    = 25;
+obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 0;
 

@@ -23,7 +23,7 @@ classdef surfdata < handle
 % See also: run_surfdata.m, surfdata.m
   
   properties (Constant)
-    current_version = 2.0;
+    current_version = 3.0;
   end
   
   properties
@@ -48,14 +48,12 @@ classdef surfdata < handle
     %    which will be passed in when ever this surface is plotted.
     surf
     
-    % radar_name: string containing the radar name
-    radar_name
-    % season_name: string containing the season name
-    season_name
-    % day_seg: string containing the segment
-    day_seg
-    % frm: integer scalar containing the frame number
-    frm
+    % param: parameter structure
+    % param.radar_name: string containing the radar name
+    % param.season_name: string containing the season name
+    % param.day_seg: string containing the segment
+    % param.load.frm: integer scalar containing the frame number
+    param
 
     % gps_time: GPS time of each column in surf.[xy]
     gps_time
@@ -82,10 +80,7 @@ classdef surfdata < handle
       % no arguments => create an empty surf struct array
       if nargin == 0
         obj.surf = [];
-        obj.radar_name = [];
-        obj.season_name = [];
-        obj.day_seg = [];
-        obj.frm = [];
+        obj.param = [];
         obj.gps_time = [];
         obj.theta = [];
         obj.time = [];
@@ -130,7 +125,7 @@ classdef surfdata < handle
       
       if ischar(fn)
         if obj.version(fn) < obj.current_version
-          error('File "%s" is old. Run tomo.surfdata.update on the file.', fn);
+          error('File "%s" is old. Run tomo.surfdata.update_file on the file.', fn);
         end
       end
       
@@ -165,16 +160,13 @@ classdef surfdata < handle
       % Function for validating all the metadata fields
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
-      %   season_name, day_seg, and frm.
+      %   param.
       % doa_method_flag: logical that specifies is this file stores DOA
       %  data or beam forming data. Default is false.
       
       obj.valid_metadata(md,doa_method_flag);
       
-      obj.radar_name = md.radar_name;
-      obj.season_name = md.season_name;
-      obj.day_seg = md.day_seg;
-      obj.frm = md.frm;
+      obj.param = md.param;
       obj.gps_time = md.gps_time;
       obj.theta = md.theta;
       obj.time = md.time;
@@ -186,24 +178,24 @@ classdef surfdata < handle
       % 
       % Function for validating all the metadata fields
       %
-      % md: struct containing gps_time, theta, FCS, radar_name,
-      %   season_name, day_seg, and frm.
+      % md: struct containing gps_time, theta, FCS, param.radar_name,
+      %   param.season_name, param.day_seg, and param.load.frm.
       % doa_method_flag: logical that specifies is this file stores DOA
       %  data or beam forming data. Default is false.
       
-      if ~ischar(md.radar_name)
+      if ~ischar(md.param.radar_name)
         error('radar_name must be a string');
       end
       
-      if ~ischar(md.season_name)
+      if ~ischar(md.param.season_name)
         error('season_name must be a string');
       end
       
-      if ~ischar(md.day_seg)
+      if ~ischar(md.param.day_seg)
         error('day_seg must be a string');
       end
       
-      if ~isnumeric(md.frm)
+      if ~isnumeric(md.param.load.frm)
         error('frm must be a positive integer');
       end
       
@@ -522,15 +514,11 @@ classdef surfdata < handle
         obj.valid_surf(obj.surf(surf_idx),doa_method_flag);
       end
       surf = obj.surf;
-      version = obj.current_version;
       try
         surf = rmfield(surf,'h_plot');
       end
       valid_metadata(obj,obj,doa_method_flag);
-      radar_name = obj.radar_name;
-      season_name = obj.season_name;
-      day_seg = obj.day_seg;
-      frm = obj.frm;
+      param = obj.param;
       gps_time = obj.gps_time;
       theta = obj.theta;
       time = obj.time;
@@ -540,9 +528,10 @@ classdef surfdata < handle
       if ~exist(fn_dir,'dir')
         mkdir(fn_dir);
       end
-      file_version = '1L';
-      save(fn, 'surf', 'version', 'gps_time', 'theta', 'time', 'FCS', ...
-        'radar_name', 'season_name', 'day_seg', 'frm', 'file_version', '-v7.3');
+      file_version = sprintf('%dL', obj.current_version);
+      file_type = 'surfdata';
+      ct_save(fn, 'surf', 'gps_time', 'theta', 'time', 'FCS', ...
+        'param', 'file_type','file_version', '-v7.3');
     end
 
     %% get_names
@@ -820,6 +809,13 @@ classdef surfdata < handle
         else
           error('Invalid file version: %d.\n', tmp.version);
         end
+      elseif isfield(tmp,'file_version')
+        if any(tmp.file_version == '3')
+          surfdata_ver = 3.0;
+          return;
+        else
+          error('Invalid file version: %d.\n', tmp.file_version);
+        end
       else
         surfdata_ver = 1.0;
         return;
@@ -833,9 +829,9 @@ classdef surfdata < handle
       % Updates filename fn to latest version of surfdata and stores the
       % result in fn_new. The updated surf structure is returned.
       %
-      % echogram_fn: the echoram filename is only required when converting
-      %   from version 1.0 files. The echogram filename fields must match
-      %   the surfData file or the updating will not work properly.
+      % echogram_fn: the echogram filename is only required when converting
+      %   from version 1.0 and 2.0 files. The echogram filename fields must
+      %   match the surfData file or the updating will not work properly.
       
       fn_version = tomo.surfdata.version(fn);
       if fn_version == 1.0
@@ -862,22 +858,40 @@ classdef surfdata < handle
           end
         end
         updated.surf = rmfield(updated.surf,{'surf_layer','active_layer','mask_layer','control_layer','quality_layer'});
-        updated.version = 2.0;
+        updated.version = 3.0;
         
-        tmp = load(echogram_fn,'GPS_time','theta','Time','param_combine');
-        updated.radar_name = tmp.param_combine.radar_name;
-        updated.season_name = tmp.param_combine.season_name;
-        updated.day_seg = tmp.param_combine.day_seg;
-        updated.frm = tmp.param_combine.combine.frm;
+        if ~isempty(whos('-file',echogram_fn,'param_array'));
+          tmp = load(echogram_fn,'GPS_time','theta','Time','param_array');
+          updated.param = tmp.param_array;
+          updated.FCS.origin = tmp.param_array.array_param.fcs.origin;
+          updated.FCS.x = tmp.param_array.array_param.fcs.x;
+          updated.FCS.y = tmp.param_array.array_param.fcs.y;
+          updated.FCS.z = tmp.param_array.array_param.fcs.z;
+        else
+          tmp = load(echogram_fn,'GPS_time','theta','Time','param_combine');
+          updated.param = tmp.param_combine;
+          updated.param.load.frm = tmp.param_combine.combine.frm;
+          updated.FCS.origin = tmp.param_combine.array_param.fcs{1}{1}.origin;
+          updated.FCS.x = tmp.param_combine.array_param.fcs{1}{1}.x;
+          updated.FCS.y = tmp.param_combine.array_param.fcs{1}{1}.y;
+          updated.FCS.z = tmp.param_combine.array_param.fcs{1}{1}.z;
+        end
         updated.gps_time = tmp.GPS_time;
         updated.theta = tmp.theta(:); % Make a column vector
         updated.time = tmp.Time(:); % Make a column vector
-        updated.FCS.origin = tmp.param_combine.array_param.fcs{1}{1}.origin;
-        updated.FCS.x = tmp.param_combine.array_param.fcs{1}{1}.x;
-        updated.FCS.y = tmp.param_combine.array_param.fcs{1}{1}.y;
-        updated.FCS.z = tmp.param_combine.array_param.fcs{1}{1}.z;
         
       elseif fn_version == 2.0
+        updated = load(fn);
+        if ~isempty(whos('-file',echogram_fn,'param_array'));
+          tmp = load(echogram_fn,'param_array');
+          updated.param = tmp.param_array;
+        else
+          tmp = load(echogram_fn,'param_combine');
+          updated.param = tmp.param_combine;
+          updated.param.load.frm = tmp.param_combine.combine.frm;
+        end
+        
+      elseif fn_version == 3.0
         updated = load(fn);
         
       else
@@ -1089,10 +1103,8 @@ classdef surfdata < handle
         
         % Create surfdata
         sd = tomo.surfdata();
-        sd.radar_name = param.radar_name;
-        sd.season_name = param.season_name;
-        sd.day_seg = param.day_seg;
-        sd.frm = frm;
+        sd.param = param;
+        sd.param.load.frm = frm;
         sd.gps_time = frm_gps_time(1:delta_at:end);       
         sd.FCS.origin = frm_origin(:,1:delta_at:end);
         sd.FCS.x = frm_x(:,1:delta_at:end);

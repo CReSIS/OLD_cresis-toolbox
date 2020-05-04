@@ -6,6 +6,8 @@ function layerCM_callback(obj,source,event)
 % uicontrol(obj.right_panel.status_panel.statusText);
 
 if source == obj.left_panel.layerCM_visible || source == obj.left_panel.layerCM_hide
+  %% visible
+  %% hide
   val = get(obj.left_panel.layerLB,'Value');
   
   obj.eg.layers.visible_layers(val) = source == obj.left_panel.layerCM_visible;
@@ -14,13 +16,32 @@ if source == obj.left_panel.layerCM_visible || source == obj.left_panel.layerCM_
   
   % Update plot based on selection
   obj.set_visibility();
+  
+elseif source == obj.left_panel.layerCM_set_surf
+  %% set_surf
+  val = get(obj.left_panel.layerLB,'Value');
+  if ~isempty(val)
+    obj.eg.layers.surf_id = obj.eg.layers.lyr_id(val(1));
+    % good_mask: logical vector with 1 where the twtt of the surface is a number and 0
+    % when NaN.
+    surf_idx = find(obj.eg.layers.lyr_id==obj.eg.layers.surf_id);
+    good_mask = ~isnan(obj.eg.layers.y{surf_idx});
+    if sum(good_mask) > 2
+      obj.eg.surf_twtt = interp1(obj.eg.layers.x(good_mask),obj.eg.layers.y{surf_idx}(good_mask),obj.eg.gps_time);
+      obj.eg.surf_twtt = interp_finite(obj.eg.surf_twtt,0);
+    end
+    obj.yaxisPM_callback();
+  end
+    
 elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_copy || source == obj.left_panel.layerCM_insert
+  %% new
+  %% copy
+  %% insert
   if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers. The new layer will be inserted
     % before the first of the currently selected layers or at the bottom
     % of the listbox.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>1);
     % Ensure that there is at least one layer selected if copying
     if source == obj.left_panel.layerCM_new || ~isempty(val)
       if isempty(val)
@@ -140,11 +161,16 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
         else
           
           % Get id for new layer
-          new_lyr_id = max(max(obj.undo_stack.user_data.layer_organizer.lyr_id),max(obj.eg.layers.lyr_id)) + 1;
+          new_lyr_id = max([obj.undo_stack.user_data.layer_organizer.lyr_id obj.eg.layers.lyr_id]) + 1;
+          if isempty(new_lyr_id)
+            new_lyr_id = 1;
+          end
           id = new_lyr_id;
           
           fprintf('Add layer %s:%s age %g desc "%s"\n', group_name, name, age, desc);
-          if val > length(obj.eg.layers.lyr_id)
+          if isempty(obj.eg.layers.lyr_order)
+            order = 1;
+          elseif val > length(obj.eg.layers.lyr_id)
             order = obj.eg.layers.lyr_order(end) + 1;
           else
             order = obj.eg.layers.lyr_order(val);
@@ -229,6 +255,7 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
   end
   
 elseif source == obj.left_panel.layerCM_edit
+  %% edit
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
@@ -318,6 +345,7 @@ elseif source == obj.left_panel.layerCM_edit
   end
   
 elseif source == obj.left_panel.layerCM_sequence
+  %% sequence
   if strcmpi(obj.eg.layers.source,'layerData')
     vals = get(obj.left_panel.layerLB,'Value');
     vals = vals(vals>1);
@@ -373,6 +401,7 @@ elseif source == obj.left_panel.layerCM_sequence
   end
   
 elseif source == obj.left_panel.layerCM_order
+  %% order
   if strcmpi(obj.eg.layers.source,'layerData')
     vals = get(obj.left_panel.layerLB,'Value');
     vals = vals(vals>1);
@@ -450,10 +479,11 @@ elseif source == obj.left_panel.layerCM_order
   end
   
 elseif source == obj.left_panel.layerCM_up
+  %% up
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>2);
+    val = val(val>1);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -489,10 +519,11 @@ elseif source == obj.left_panel.layerCM_up
   end
   
 elseif source == obj.left_panel.layerCM_down
+  %% down
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>1 & val<length(obj.eg.layers.lyr_name));
+    val = val(val<length(obj.eg.layers.lyr_name));
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -528,6 +559,7 @@ elseif source == obj.left_panel.layerCM_down
   end
   
 elseif source == obj.left_panel.layerCM_top
+  %% top
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
@@ -572,10 +604,10 @@ elseif source == obj.left_panel.layerCM_top
   end
   
 elseif source == obj.left_panel.layerCM_bottom
+  %% bottom
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
-    val = val(val>1);
     if ~isempty(val)
       val = val(1);
       age = obj.eg.layers.lyr_age(val);
@@ -616,6 +648,7 @@ elseif source == obj.left_panel.layerCM_bottom
   end
   
 elseif source == obj.left_panel.layerCM_merge
+  %% merge
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
@@ -738,10 +771,10 @@ elseif source == obj.left_panel.layerCM_merge
   end
   
 elseif source == obj.left_panel.layerCM_delete
+  %% delete
   if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
-    vals = vals(vals>1);
     if length(vals) > 1
       
       prompt = questdlg(sprintf('Are you sure you want to delete the %d selected layers?', ...

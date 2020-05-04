@@ -353,6 +353,7 @@ obj.left_panel.layerCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
 obj.left_panel.layerCM_visible = uimenu(obj.left_panel.layerCM, 'Label', '&Visible', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_hide = uimenu(obj.left_panel.layerCM, 'Label', '&Hide', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_set_surf = uimenu(obj.left_panel.layerCM, 'Label', 'Set surface layer', 'Callback', @obj.layerCM_callback);
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_new = uimenu(obj.left_panel.layerCM, 'Label', '&New layer', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_copy = uimenu(obj.left_panel.layerCM, 'Label', '&Copy layer', 'Callback', @obj.layerCM_callback);

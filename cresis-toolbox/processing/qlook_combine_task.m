@@ -243,11 +243,11 @@ for frm_idx = 1:length(param.cmd.frms);
     file_type = 'qlook';
     Data = single(Data);
     if isempty(custom)
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type');
     else
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type','custom');
     end
@@ -292,7 +292,7 @@ for frm_idx = 1:length(param.cmd.frms);
       % No images were combined, no img_comb_trim needs to be done,
       % therefore the data will remain unchanged and we can just update the
       % Surface variable and mark the file_version complete.
-      save(out_fn,'-append','Surface','file_version');
+      ct_save(out_fn,'-append','Surface','file_version');
     end
     
   else
@@ -303,15 +303,16 @@ for frm_idx = 1:length(param.cmd.frms);
     surf_layer.gps_time = GPS_time;
     surf_layer.twtt = Surface;
     [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
+    file_type = 'qlook';
     
     if isempty(custom)
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version');
+        'param_qlook','param_records','file_version','file_type');
     else
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version','custom');
+        'param_qlook','param_records','file_version','file_type','custom');
     end
   end
   
