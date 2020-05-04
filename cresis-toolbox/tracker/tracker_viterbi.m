@@ -44,7 +44,7 @@ else
 end
 
 Nx = size(data, 2);
-slope = diff(surf_bins);
+along_track_slope = diff(surf_bins);
 
 try
   surf_weight = track.viterbi.surf_weight;
@@ -100,13 +100,13 @@ end
 transition_weights = ones(1, Nx-1) * transition_weight;
 
 if ~track.viterbi.use_surf_for_slope
-  slope(:) = 0;
+  along_track_slope(:) = 0;
 end
 
 zero_bin = track.zero_bin;
 
 %% Set variable echogram tracking parameters
-bounds = [0 Nx];
+bounds = [1 Nx];
 ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
 
 ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
@@ -128,9 +128,9 @@ surf_cutoffs = ones(1, size(surf_bins, 2)) * -1;
 gt_cutoffs = ones(1, size(surf_bins, 2)) * gt_cutoff;
 layer_cutoffs = [surf_cutoffs; gt_cutoffs];
 
-labels = tomo.viterbi(double(data), double(layers), ...
-  double(layer_costs), double(layer_cutoffs), double(ice_mask.mask), ...
-  double(image_mag_weight), double(slope), double(max_slope), ...
-  int64(bounds), [], double(ice_mask.mask_dist), double(DIM_costmatrix), ...
-  double(transition_weights), double(mult_weight), ...
-  double(mult_weight_decay), double(mult_weight_local_decay), int64(zero_bin));
+upper_bounds = nan(1, size(surf_bins, 2));
+lower_bounds = nan(1, size(surf_bins, 2));
+upper_bounds(gt(1, :)) = gt(2, :) - gt_cutoff;
+lower_bounds(gt(1, :)) = gt(2, :) + gt_cutoff;
+
+labels = tomo.viterbi(double(data), along_track_slope, transition_weight, upper_bounds, lower_bounds);

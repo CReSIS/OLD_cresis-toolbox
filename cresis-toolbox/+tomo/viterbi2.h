@@ -94,3 +94,5 @@ public:
   // END CODE FROM DAVID CRANDALL
 };
 #endif
+
+// TODO[reece]: dt must update bounds of next column to refer to rows within bounds of previous column
