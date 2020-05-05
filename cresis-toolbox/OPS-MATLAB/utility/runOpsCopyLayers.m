@@ -32,10 +32,10 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   copy_param.layer_dest.existence_check = false;
 
   % Set the layer name for the source (e.g. 'surface', 'bottom')
-  copy_param.layer_source.name = 'surface';
+  copy_param.layer_source.name = {'surface','bottom'};
   
   % Set the layer name for the destination (e.g. 'surface', 'bottom')
-  copy_param.layer_dest.name = 'surface';
+  copy_param.layer_dest.name = {'surface','bottom'};
 
   % Set the source (choose one)
   if 0
