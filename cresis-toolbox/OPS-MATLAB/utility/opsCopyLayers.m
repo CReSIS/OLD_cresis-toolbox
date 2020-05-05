@@ -32,16 +32,34 @@ function layers = opsCopyLayers(param,copy_param)
 %         (e.g. 'layerData', 'CSARP_post/layerData')
 %       .existence_check: used only with ops source, set to false to allow
 %         layers that do not exist (default is true)
-%       .gps_time: used only with custom source, Nx by 1 vector,
-%         GPS time (ANSI-C standard: seconds since Jan 1, 1970)
-%       .twtt: used only with custom source, Nx by 1 vector corresponding
-%         to gps_time field containing two way travel time to layer
-%       .type: used only with custom source, Nx by 1 vector corresponding
-%         to gps_time field containing type (1=manual, 2=auto), 2 is
-%         default when not specified or NaN
-%       .quality: used only with custom source, Nx by 1 vector corresponding
-%         to gps_time field containing quality (1=good, 2=moderate,
-%         3=derived/poor), 1 is default when not specified or NaN
+%       -------------------------------------------------------------------
+%       CUSTOM SOURCE FIELDS (used only with layer_source.source = 'custom')
+%         * Each field is a cell array
+%         * Each cell array should be the same length as the cell array
+%           layer_source.name
+%         * Entries in these cell arrays align with the corresponding entry
+%           in layer_source.name.
+%         * The length of each vector, Nx, in the cell array only needs to
+%           be the same for a particular layer. Different layers can have
+%           different values of Nx.
+%         * Legacy Support: if only one layer specified in
+%           layer_source.name, then each of these fields only needs one
+%           cell entry and no cell array was used (just an Nx by 1 vector
+%           was passed in).
+%       .gps_time: used only with custom source, cell array of Nx by 1
+%         vectors corresponding to GPS time (ANSI-C standard: seconds since
+%         Jan 1, 1970)
+%       .twtt: used only with custom source, cell array of Nx by 1 vectors
+%         corresponding to gps_time field containing two way travel time to
+%         layer
+%       .type: used only with custom source, cell array of Nx by 1 vectors
+%         corresponding to gps_time field containing type (1=manual, 2=auto),
+%         2 is default when not specified or NaN
+%       .quality: used only with custom source, cell array of Nx by 1
+%         vectors corresponding to gps_time field containing quality (1=good,
+%         2=moderate, 3=derived/poor), 1 is default when not specified or NaN
+%       -------------------------------------------------------------------
+%
 %     .layer_dest = structure specifying the destination layer
 %       .name: cell array of layer names or a string with a single layer
 %         name in it. This is the destination of the layers specified in
@@ -171,19 +189,38 @@ param.cmd.frms = frames_param_cmd_frms(param,frames);
 load_param = param;
 load_param.cmd.frms = max(1,min(param.cmd.frms)-1) : min(length(frames.frame_idxs),max(param.cmd.frms)+1);
 if strcmpi(copy_param.layer_source.source,'custom')
-  layer_source.gps_time = copy_param.layer_source.gps_time;
-  layer_source.twtt = copy_param.layer_source.twtt;
-  if isfield(copy_param.layer_source,'type') ...
-      && ~isempty(copy_param.layer_source.type)
-    layer_source.type = copy_param.layer_source.type;
-  else
-    layer_source.type = 2*ones(size(layer_source.gps_time));
-  end
-  if isfield(copy_param.layer_source,'quality') ...
-      && ~isempty(copy_param.layer_source.quality)
-    layer_source.quality = copy_param.layer_source.quality;
-  else
-    layer_source.quality = ones(size(layer_source.gps_time));
+  layer_source = [];
+  for layer_idx = 1:length(copy_param.layer_dest)
+    % gps_time copy
+    if ~iscell(copy_param.layer_source.gps_time)
+      copy_param.layer_source.gps_time = {copy_param.layer_source.gps_time};
+    end
+    layer_source(layer_idx).gps_time = copy_param.layer_source.gps_time{layer_idx};
+    % twtt copy
+    if ~iscell(copy_param.layer_source.twtt)
+      copy_param.layer_source.twtt = {copy_param.layer_source.twtt};
+    end
+    layer_source(layer_idx).twtt = copy_param.layer_source.twtt{layer_idx};
+    % type
+    if isfield(copy_param.layer_source,'type') ...
+        && ~isempty(copy_param.layer_source.type)
+      if ~iscell(copy_param.layer_source.type)
+        copy_param.layer_source.type = {copy_param.layer_source.type};
+      end
+      layer_source(layer_idx).type = copy_param.layer_source.type{layer_idx};
+    else
+      layer_source(layer_idx).type = 2*ones(size(layer_source.gps_time{layer_idx}));
+    end
+    % quality
+    if isfield(copy_param.layer_source,'quality') ...
+        && ~isempty(copy_param.layer_source.quality)
+      if ~iscell(copy_param.layer_source.quality)
+        copy_param.layer_source.quality = {copy_param.layer_source.quality};
+      end
+      layer_source(layer_idx).quality = copy_param.layer_source.quality{layer_idx};
+    else
+      layer_source(layer_idx).quality = ones(size(layer_source.gps_time{layer_idx}));
+    end
   end
 else
   layer_source = opsLoadLayers(load_param,copy_param.layer_source);
