@@ -77,6 +77,7 @@ classdef dem_class < handle
       % Setup DEM List
       % ===================================================================
       obj.dem_info = {};
+      proj_load_standard; % Load standard projections
       
       % Arctic DEM
       % -------------------------------------------------------------------
@@ -104,7 +105,7 @@ classdef dem_class < handle
         new_dem_info.y_subtile_size = 50e3;
         new_dem_info.x_subtile_size = 50e3;
         new_dem_info.no_data = -9999;
-        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('greenland','DEM','GIMP','gimpdem_90m.tif')));
+        new_dem_info.proj = arctic_proj; % Loaded from proj_load_standard.m
         new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('arctic','ArcticDEM'));
         obj.dem_info{end+1} = new_dem_info;
       catch ME
@@ -131,7 +132,7 @@ classdef dem_class < handle
         new_dem_info.y_tile_size = 100e3;
         new_dem_info.x_tile_size = 100e3;
         new_dem_info.no_data = -9999;
-        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif')));
+        new_dem_info.proj = antarctic_proj; % Loaded from proj_load_standard.m
         new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('antarctica','DEM','REMA'));
         obj.dem_info{end+1} = new_dem_info;
       catch ME
