@@ -198,10 +198,15 @@ if tool_idx == 1
       upper_bounds = max([upper_bounds; layers_bins(1, :)]);
 
       viterbi_timer = tic;
-      y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
-      
+      [y_new, debug] = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
       fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
       
+      figure('NumberTitle', 'off', 'Name', 'Suppression On');
+      image(debug);
+      hold on;
+      plot(y_new, 'r');
+      hold off;
+
       bounding_idxs = hori_bounds(1):hori_bounds(2);
       y_new = y_new(bounding_idxs);
       % Resample and interpolate y_new to match layer axes
