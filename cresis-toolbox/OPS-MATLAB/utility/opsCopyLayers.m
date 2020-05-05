@@ -141,6 +141,12 @@ if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.laye
   copy_param.layer_dest.layerdata_source = 'layer';
 end
 
+% Force copy_param.layer_dest.name to be a cell array even if there is just
+% one name. The source code below loops over the list of names.
+if ischar(copy_param.layer_dest.name)
+  copy_param.layer_dest.name = {copy_param.layer_dest.name};
+end
+
 if ~isfield(copy_param.layer_source,'layerdata_source') || isempty(copy_param.layer_source.layerdata_source)
   % Default is the CSARP_layer directory
   copy_param.layer_source.layerdata_source = 'layer';
