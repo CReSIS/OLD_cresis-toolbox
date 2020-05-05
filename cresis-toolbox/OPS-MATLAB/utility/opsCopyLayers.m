@@ -15,7 +15,9 @@ function layers = opsCopyLayers(param,copy_param)
 %   param: Parameter structure from read_param_xls parameter spreadsheet
 %   copy_param: Structure which controls copying process
 %     .layer_source: structure specifying the source layer
-%       .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
+%       .name: cell array of layer names or a string with a single layer
+%         name in it; layer names are unique (e.g. 'surface', 'Surface',
+%         'bottom', 'atm', etc)
 %       .source: string (e.g. 'records', 'echogram', 'layerdata', 'lidar',
 %         'custom', or 'ops')
 %       .echogram_source: used only with "echogram" source, string
@@ -41,7 +43,10 @@ function layers = opsCopyLayers(param,copy_param)
 %         to gps_time field containing quality (1=good, 2=moderate,
 %         3=derived/poor), 1 is default when not specified or NaN
 %     .layer_dest = structure specifying the destination layer
-%       .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
+%       .name: cell array of layer names or a string with a single layer
+%         name in it. This is the destination of the layers specified in
+%         source so layer_dest.name should list the same number of names as
+%         layer_source.name
 %       .source: string (e.g. 'records', 'echogram', 'layerdata', or 'ops')
 %       .echogram_source: used only with echogram source, string
 %         containing file path argument to ct_filename_out.m
