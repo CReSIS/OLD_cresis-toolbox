@@ -1006,46 +1006,52 @@ classdef layerdata < handle
     function ids = insert_layers(obj,layer_organizer)
       obj.check_layer_organizer();
       
-      Nlayers = length(layer_organizer.lyr_name);
-      if isempty(obj.layer_organizer.lyr_id)
-        ids = 1:Nlayers;
-      else
-        ids = max(obj.layer_organizer.lyr_id) + (1:Nlayers);
-      end
-      obj.layer_organizer.lyr_id(end+(1:Nlayers)) = ids;
-      obj.layer_organizer.lyr_name(end+(1:Nlayers)) = layer_organizer.lyr_name;
-      
-      if isfield(layer_organizer,'lyr_age') && length(layer_organizer.lyr_age) == Nlayers
-        obj.layer_organizer.lyr_age(end+(1:Nlayers)) = layer_organizer.lyr_age;
-      else
-        obj.layer_organizer.lyr_age(end+(1:Nlayers)) = NaN;
-      end
-      if isfield(layer_organizer,'lyr_age_source') && length(layer_organizer.lyr_age_source) == Nlayers
-        obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = layer_organizer.lyr_age_source;
-      else
-        obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = cellfun(@struct,cell(1,Nlayers),'UniformOutput',false);
-      end
-      if isfield(layer_organizer,'lyr_desc') && length(layer_organizer.lyr_desc) == Nlayers
-        obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = layer_organizer.lyr_desc;
-      else
-        obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
-      end
-      if isfield(layer_organizer,'lyr_group_name') && length(layer_organizer.lyr_group_name) == Nlayers
-        obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = layer_organizer.lyr_group_name;
-      else
-        obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
-      end
-      if isfield(layer_organizer,'lyr_order') && length(layer_organizer.lyr_order) == Nlayers
-        obj.layer_organizer.lyr_order(end+(1:Nlayers)) = layer_organizer.lyr_order;
-      else
-        if isempty(obj.layer_organizer.lyr_order)
-          new_orders = 1:Nlayers;
+      old_layer_organizer = obj.layer_organizer;
+      try
+        Nlayers = length(layer_organizer.lyr_name);
+        if isempty(obj.layer_organizer.lyr_id)
+          ids = 1:Nlayers;
         else
-          new_orders = max(obj.layer_organizer.lyr_order) + (1:Nlayers);
+          ids = max(obj.layer_organizer.lyr_id) + (1:Nlayers);
         end
-        obj.layer_organizer.lyr_order(end+(1:Nlayers)) = new_orders;
+        obj.layer_organizer.lyr_id(end+(1:Nlayers)) = ids;
+        obj.layer_organizer.lyr_name(end+(1:Nlayers)) = layer_organizer.lyr_name;
+        
+        if isfield(layer_organizer,'lyr_age') && length(layer_organizer.lyr_age) == Nlayers
+          obj.layer_organizer.lyr_age(end+(1:Nlayers)) = layer_organizer.lyr_age;
+        else
+          obj.layer_organizer.lyr_age(end+(1:Nlayers)) = NaN;
+        end
+        if isfield(layer_organizer,'lyr_age_source') && length(layer_organizer.lyr_age_source) == Nlayers
+          obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = layer_organizer.lyr_age_source;
+        else
+          obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = cellfun(@struct,cell(1,Nlayers),'UniformOutput',false);
+        end
+        if isfield(layer_organizer,'lyr_desc') && length(layer_organizer.lyr_desc) == Nlayers
+          obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = layer_organizer.lyr_desc;
+        else
+          obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
+        end
+        if isfield(layer_organizer,'lyr_group_name') && length(layer_organizer.lyr_group_name) == Nlayers
+          obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = layer_organizer.lyr_group_name;
+        else
+          obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
+        end
+        if isfield(layer_organizer,'lyr_order') && length(layer_organizer.lyr_order) == Nlayers
+          obj.layer_organizer.lyr_order(end+(1:Nlayers)) = layer_organizer.lyr_order;
+        else
+          if isempty(obj.layer_organizer.lyr_order)
+            new_orders = 1:Nlayers;
+          else
+            new_orders = max(obj.layer_organizer.lyr_order) + (1:Nlayers);
+          end
+          obj.layer_organizer.lyr_order(end+(1:Nlayers)) = new_orders;
+        end
+        obj.fix_layer_organizer();
+      catch ME
+        warning('insert_layers failed, reverting to the original layer_organizer. Error: %s: ', ME.getReport);
+        obj.layer_oranizer = old_layer_organizer;
       end
-      obj.fix_layer_organizer();
       obj.layer_organizer_modified = true;
     end
     

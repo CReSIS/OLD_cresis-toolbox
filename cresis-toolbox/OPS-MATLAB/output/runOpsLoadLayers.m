@@ -30,11 +30,11 @@ if 0
   layer_params(idx).source = 'echogram';
   layer_params(idx).echogram_source = 'qlook';
 
-elseif 0
-  %% Load a single layer from the layerData file
+elseif 1
+  %% Load two layers from the layerData file
   ref_idx = 1;
   idx = idx + 1;
-  layer_params(idx).name = 'surface';
+  layer_params(idx).name = {'surface','bottom'};
   layer_params(idx).source = 'layerdata';
   layer_params(idx).layerdata_source = 'layer';
 

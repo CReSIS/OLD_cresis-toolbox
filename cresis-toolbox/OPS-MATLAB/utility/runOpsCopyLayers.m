@@ -12,7 +12,7 @@
 % Load the parameter spreadsheet 
 params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20191230_01');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
 params = ct_set_params(params,'cmd.frms',[1]);
 
 % Set the operation to run (just choose one operation)
@@ -31,10 +31,10 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   copy_param.layer_source.existence_check = false;
   copy_param.layer_dest.existence_check = false;
 
-  % Set the layer name for the source (e.g. 'surface', 'bottom')
+  % Set the layer name(s) for the source (e.g. 'surface', 'bottom', {'surface','bottom'})
   copy_param.layer_source.name = 'surface';
   
-  % Set the layer name for the destination (e.g. 'surface', 'bottom')
+  % Set the layer name(s) for the destination (e.g. 'surface', 'bottom', {'surface','bottom'})
   copy_param.layer_dest.name = 'surface';
 
   % Set the source (choose one)
@@ -55,6 +55,12 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   elseif 1
     copy_param.layer_source.source = 'layerdata';
     copy_param.layer_source.layerdata_source = 'layer';
+  elseif 0
+    copy_param.layer_source.source = 'custom';
+    copy_param.layer_source.gps_time = {[0 1e20]};
+    copy_param.layer_source.twtt = {[1e-6 1e-6]};
+    copy_param.layer_source.type = {[2 2]};
+    copy_param.layer_source.quality = {[1 1]};
   else
     copy_param.layer_source.source = 'lidar';
     copy_param.layer_source.lidar_source = 'awi';
