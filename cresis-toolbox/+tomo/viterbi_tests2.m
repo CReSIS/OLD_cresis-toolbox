@@ -2,7 +2,7 @@
 % Author: Reece Mathews
 
 function viterbi_tests2()
-  global matrix layer debug;
+  global matrix layer;
   
   % CONSTANTS
   rows = 20;
@@ -32,10 +32,9 @@ function viterbi_tests2()
   matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
   % RUN
-  [layer, debug] = tomo.viterbi2(matrix, along_track_slope, along_track_weight, upper_bounds, lower_bounds);
-  [hfig, hfig2] = setup();
+  layer = tomo.viterbi2(matrix, along_track_slope, along_track_weight, upper_bounds, lower_bounds);
+  hfig = setup();
   resize(hfig);
-  resize(hfig2);
 end
 
 function plot_viterbi()
@@ -49,19 +48,17 @@ function plot_viterbi()
 end
 
 
-function [hfig, hfig2] = setup() 
+function hfig = setup() 
   if ishandle(1)
     hfig = figure(1);
-    hfig2 = figure(2);
   else
     hfig = figure('SizeChangedFcn', @resize);
-    hfig2 = figure('SizeChangedFcn', @resize);
   end
 end
 
 
 function resize(src,~)
-  global matrix debug;
+  global matrix;
   
   r = size(matrix, 1);
   c = size(matrix, 2);
@@ -69,11 +66,7 @@ function resize(src,~)
   % Plot matrix
   clf;
   colormap(1-gray);
-  if src.Number == 1
-      imagesc(matrix);
-  else
-      imagesc(debug);
-  end
+  imagesc(matrix);
       
   % X-axis
   xticks(.5:(c + .5));

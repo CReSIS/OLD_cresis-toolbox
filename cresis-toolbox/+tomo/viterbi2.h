@@ -28,16 +28,14 @@ public:
           const double d_along_track_weight,
           const double *d_upper_bounds,
           const double *d_lower_bounds,
-          double *d_result,
-          double *d_debug) : f_row(d_row),
+          double *d_result) : f_row(d_row),
                               f_col(d_col),
                               f_image(d_image),
                               f_along_track_slope(d_along_track_slope),
                               f_along_track_weight(d_along_track_weight),
                               f_upper_bounds(d_upper_bounds),
                               f_lower_bounds(d_lower_bounds),
-                              f_result(d_result),
-                              f_debug(d_debug)
+                              f_result(d_result)
   {
     find_path();
   }
@@ -45,7 +43,7 @@ public:
   // VARIABLES
   const int f_row, f_col;
   const double *f_image, *f_along_track_slope, f_along_track_weight, *f_upper_bounds, *f_lower_bounds;
-  double *f_result, *f_debug;
+  double *f_result;
 
   // METHODS
   int calculate_best(double *path_prob);

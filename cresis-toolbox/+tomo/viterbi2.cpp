@@ -33,7 +33,6 @@ double *viterbi2::find_path(void)
   for (int k = 0; k < f_row * (f_col - 1); ++k)
   {
     path[k] = 0;
-    f_debug[k] = 0;
   }
 
   for (int k = 0; k < f_row; ++k)
@@ -125,7 +124,6 @@ void viterbi2::viterbi_right(int *path, double *path_prob, double *path_prob_nex
     for (int row = f_upper_bounds[col + 1]; row <= f_lower_bounds[col + 1]; row++)
     {
       path[vic_encode(row, col)] = index[row];
-      f_debug[vic_encode(row, col)] = index[row] + 1;
     }
   }
 
@@ -193,7 +191,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int arg = 0;
 
-  if (nrhs != 5 || nlhs != 2)
+  if (nrhs != 5 || nlhs != 1)
   {
     mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: [labels] = viterbi2(image, along_track_slope, along_track_weight, upper_bounds, lower_bounds)\n");
   }
@@ -255,8 +253,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // Allocate output
   plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
-  plhs[1] = mxCreateDoubleMatrix(_row, _col-1, mxREAL);
   double *_result = mxGetPr(plhs[0]);
-  double *_debug = mxGetPr(plhs[1]);
-  viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result, _debug);
+  viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result);
 }
