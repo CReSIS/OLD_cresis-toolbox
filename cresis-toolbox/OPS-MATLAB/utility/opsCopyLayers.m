@@ -209,7 +209,7 @@ if strcmpi(copy_param.layer_source.source,'custom')
       end
       layer_source(layer_idx).type = copy_param.layer_source.type{layer_idx};
     else
-      layer_source(layer_idx).type = 2*ones(size(layer_source.gps_time{layer_idx}));
+      layer_source(layer_idx).type = 2*ones(size(layer_source(layer_idx).gps_time));
     end
     % quality
     if isfield(copy_param.layer_source,'quality') ...
@@ -219,7 +219,7 @@ if strcmpi(copy_param.layer_source.source,'custom')
       end
       layer_source(layer_idx).quality = copy_param.layer_source.quality{layer_idx};
     else
-      layer_source(layer_idx).quality = ones(size(layer_source.gps_time{layer_idx}));
+      layer_source(layer_idx).quality = ones(size(layer_source(layer_idx).gps_time));
     end
   end
 else
