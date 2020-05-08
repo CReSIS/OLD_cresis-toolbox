@@ -202,7 +202,7 @@ if tool_idx == 1
       fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
       
       figure('NumberTitle', 'off', 'Name', 'Suppression On');
-      image(debug);
+      imagesc(debug);
       hold on;
       plot(y_new, 'r');
       hold off;

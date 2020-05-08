@@ -29,8 +29,6 @@ double *viterbi2::find_path(void)
 
   for (int k = 0; k < f_col; ++k)
     f_result[k] = NAN;
-  for (int k = 0; k < f_col * f_row; ++k)
-    f_debug[k] = 0;
 
   for (int k = 0; k < f_row * (f_col - 1); ++k)
   {
@@ -62,7 +60,7 @@ double *viterbi2::find_path(void)
   return f_result;
 }
 
-// Select path with lowest overall cost
+// Select path-terminal with lowest overall cost
 int viterbi2::calculate_best(double *path_prob)
 {
   double min = INF;
@@ -75,7 +73,6 @@ int viterbi2::calculate_best(double *path_prob)
       min = path_prob[k];
       viterbi_index = k;
     }
-    f_debug[vic_encode(k, f_col-1)] = path_prob[k];
   }
   return viterbi_index;
 }
@@ -110,25 +107,31 @@ void viterbi2::viterbi_right(int *path, double *path_prob, double *path_prob_nex
     // Add binary cost from current to next
     if (next)
     {
-      dt(path_prob_next, path_prob, index, f_upper_bounds[col], f_lower_bounds[col], f_upper_bounds[col+1], f_lower_bounds[col+1], f_along_track_weight, f_along_track_slope[col]);
+      // Upper bounds are smaller than lower bounds (smallest -> largest, top -> bottom)
+      dt(path_prob_next, path_prob, index, f_upper_bounds[col], f_lower_bounds[col],
+         f_upper_bounds[col + 1], f_lower_bounds[col + 1], f_along_track_weight,
+         f_along_track_slope[col]);
     }
     else
     {
-      dt(path_prob, path_prob_next, index, f_upper_bounds[col], f_lower_bounds[col], f_upper_bounds[col+1], f_lower_bounds[col+1], f_along_track_weight, f_along_track_slope[col]);
+      dt(path_prob, path_prob_next, index, f_upper_bounds[col], f_lower_bounds[col],
+         f_upper_bounds[col + 1], f_lower_bounds[col + 1], f_along_track_weight,
+         f_along_track_slope[col]);
     }
     next = !next;
 
     // Update path with updated index post-binary calculation.
     // Must use bounds from this column, cannot condense path update into next outer loop iteration
-    for (int row = f_upper_bounds[col]; row <= f_lower_bounds[col]; row++)
+    for (int row = f_upper_bounds[col + 1]; row <= f_lower_bounds[col + 1]; row++)
     {
       path[vic_encode(row, col)] = index[row];
-      f_debug[vic_encode(row, col)] = index[row];
+      f_debug[vic_encode(row, col)] = index[row] + 1;
     }
   }
 
   // path_prob is checked for best index but path_prob_next is more recent,
   // update path_prob to reflect path_prob_next
+  // TODO[reece]: Change pointer path instead of copying
   if (next)
   {
     for (int i = 0; i < f_row; i++)
@@ -252,7 +255,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // Allocate output
   plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
-  plhs[1] = mxCreateDoubleMatrix(_row, _col, mxREAL);
+  plhs[1] = mxCreateDoubleMatrix(_row, _col-1, mxREAL);
   double *_result = mxGetPr(plhs[0]);
   double *_debug = mxGetPr(plhs[1]);
   viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result, _debug);

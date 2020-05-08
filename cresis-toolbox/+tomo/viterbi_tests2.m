@@ -2,11 +2,11 @@
 % Author: Reece Mathews
 
 function viterbi_tests2()
-  global matrix layer;
+  global matrix layer debug;
   
   % CONSTANTS
   rows = 20;
-  cols = 50;
+  cols = 20;
   surf = 5;
   mult = 10;
   grnd = 17;
@@ -25,13 +25,17 @@ function viterbi_tests2()
   upper_bounds = ones(1, cols)*NaN;
   lower_bounds = ones(1, cols)*NaN;
   
+  upper_bounds(6) = 1;
+  lower_bounds(6) = 5;
+  
+  
   matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
   % RUN
-  layer = tomo.viterbi2(matrix, along_track_slope, along_track_weight, upper_bounds, lower_bounds);
-  hfig = setup();
+  [layer, debug] = tomo.viterbi2(matrix, along_track_slope, along_track_weight, upper_bounds, lower_bounds);
+  [hfig, hfig2] = setup();
   resize(hfig);
-  
+  resize(hfig2);
 end
 
 function plot_viterbi()
@@ -45,17 +49,19 @@ function plot_viterbi()
 end
 
 
-function hfig = setup() 
+function [hfig, hfig2] = setup() 
   if ishandle(1)
     hfig = figure(1);
+    hfig2 = figure(2);
   else
     hfig = figure('SizeChangedFcn', @resize);
+    hfig2 = figure('SizeChangedFcn', @resize);
   end
 end
 
 
 function resize(src,~)
-  global matrix;
+  global matrix debug;
   
   r = size(matrix, 1);
   c = size(matrix, 2);
@@ -63,8 +69,12 @@ function resize(src,~)
   % Plot matrix
   clf;
   colormap(1-gray);
-  imagesc(matrix);
-  
+  if src.Number == 1
+      imagesc(matrix);
+  else
+      imagesc(debug);
+  end
+      
   % X-axis
   xticks(.5:(c + .5));
   xlim([.5 (c + .5)]);

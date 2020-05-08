@@ -69,7 +69,7 @@ public:
           int d1, int d2, double transition_weight, int off = 0)
   {
 
-    int d = (d1 + d2) >> 1, s = d - off; // Find the midpoint of the destination
+    int d = (d1 + d2) >> 1, s = ((s1 + s2) >> 1) - off; // Find the midpoint of the destination
     for (int p = s1; p <= s2; p++)
     { // Search through all the sources and find the minimum
       if (src[p] + sqr(p - d - off) * transition_weight < src[s] + sqr(s - d - off) * transition_weight)
