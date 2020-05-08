@@ -1,32 +1,36 @@
-% script run_make_layer_files
+% script run_layer_file_make
 %
-% Calls the make_layer_files function
+% Calls the layer_file_make function
 %
 % Author: John Paden
 %
-% See also: make_layer_files
+% See also: layer_file_make
 
 %% User Settings
 % =========================================================================
 param_override = [];
 
 % Parameters spreadsheet to use for updating
-params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
+% params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20191231');
+% params = ct_set_params(params,'cmd.frms',[]);
+params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'));
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20191231');
-params = ct_set_params(params,'cmd.frms',[]);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20091230_01');
+params = ct_set_params(params,'cmd.frms',[1]);
 
 % .out_path: string containing file path where layer files will be stored
 % to; string is passed to ct_filename_out to form the file path.
 %  Default is 'layer'.
-param_override.make_layer_files.out_path = 'layer';
-% param_override.make_layer_files.out_path = 'CSARP_post/layer';
+param_override.layer_file_make.out_path = 'layer2';
+% param_override.layer_file_make.out_path = 'CSARP_post/layer';
 
 % Uncomment to delete all layer files and start over:
-param_override.make_layer_files.update_mode = 1;
+% param_override.layer_file_make.update_mode = 1;
 
 % Uncomment to even update files that already exist:
-% param_override.make_layer_files.update_mode = 2;
+% param_override.layer_file_make.update_mode = 2;
 
 %% Automated section
 % =========================================================================
@@ -46,6 +50,6 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  make_layer_files(param,param_override);
-  %make_layer_files
+  layer_file_make(param,param_override);
+  %layer_file_make
 end

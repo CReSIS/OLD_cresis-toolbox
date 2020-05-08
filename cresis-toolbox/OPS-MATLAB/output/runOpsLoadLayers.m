@@ -10,10 +10,12 @@
 %% User Settings
 % =====================================================================
 
-params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
+% params = read_param_xls(ct_filename_param('rds_param_2012_Greenland_P3.xls'));
+params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
 
 layer_params = [];
 idx = 0;
@@ -29,10 +31,10 @@ if 0
   layer_params(idx).echogram_source = 'qlook';
 
 elseif 1
-  %% Load a single layer from the layerData file
+  %% Load two layers from the layerData file
   ref_idx = 1;
   idx = idx + 1;
-  layer_params(idx).name = 'surface';
+  layer_params(idx).name = {'surface','bottom'};
   layer_params(idx).source = 'layerdata';
   layer_params(idx).layerdata_source = 'layer';
 
@@ -51,7 +53,7 @@ elseif 0
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'records';
  
-elseif 1
+elseif 0
   %% Compare echogram and custom layers in layerData
   ref_idx = 1;
   idx = idx + 1;
@@ -92,6 +94,36 @@ elseif 0
   idx = idx + 1;
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'lidar';
+elseif 0
+  %% load surface, bottom and MacGregor layers
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).name = 'bottom';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).regexp = 'L';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer_MacGregor';
+else
+  %% load surface, bottom and snow layers
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).name = 'bottom';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).regexp = 'snow';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
 end
 
 % =====================================================================

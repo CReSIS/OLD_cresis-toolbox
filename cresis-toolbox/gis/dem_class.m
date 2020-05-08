@@ -15,7 +15,10 @@ classdef dem_class < handle
     dem_info
     % res: Resolution (m)
     res
-    % ocean_mask_mode: 'shapefile' (default) or 'landdem'
+    % ocean_mask_mode: string containing 'shapefile' (default) or
+    % 'landdem'. shapefile uses NOAA coastline. landdem marks everything
+    % above 5 m as land; the latter may be necessary if the NOAA coastline
+    % filtering misses a land feature.
     ocean_mask_mode
     % ocean_mask_dec: default is 100, positive integer decimation rate
     ocean_mask_dec
@@ -74,6 +77,7 @@ classdef dem_class < handle
       % Setup DEM List
       % ===================================================================
       obj.dem_info = {};
+      proj_load_standard; % Load standard projections
       
       % Arctic DEM
       % -------------------------------------------------------------------
@@ -101,7 +105,7 @@ classdef dem_class < handle
         new_dem_info.y_subtile_size = 50e3;
         new_dem_info.x_subtile_size = 50e3;
         new_dem_info.no_data = -9999;
-        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('greenland','DEM','GIMP','gimpdem_90m.tif')));
+        new_dem_info.proj = arctic_proj; % Loaded from proj_load_standard.m
         new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('arctic','ArcticDEM'));
         obj.dem_info{end+1} = new_dem_info;
       catch ME
@@ -128,12 +132,15 @@ classdef dem_class < handle
         new_dem_info.y_tile_size = 100e3;
         new_dem_info.x_tile_size = 100e3;
         new_dem_info.no_data = -9999;
-        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif')));
+        new_dem_info.proj = antarctic_proj; % Loaded from proj_load_standard.m
         new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('antarctica','DEM','REMA'));
         obj.dem_info{end+1} = new_dem_info;
       catch ME
         warning(ME.getReport);
       end
+      
+      % NOAA Shoreline:
+      % Wessel, P., and W. H. F. Smith (1996), A global, self-consistent, hierarchical, high-resolution shoreline database, J. Geophys. Res., 101(B4), 8741-8743, doi:10.1029/96JB00104.
       
       % Prepare DEM fields
       % -------------------------------------------------------------------
@@ -199,7 +206,9 @@ classdef dem_class < handle
       obj.load_ocean();
       
       % If the whole region fits into a single tile, then this tile is
-      % loaded and truncated to the region of interest
+      % loaded and truncated to the region of interest. If the region does
+      % not fit into a single tile, then the tiles will be loaded later on
+      % an as needed basis.
       obj.load_dem();
     end
     
@@ -268,8 +277,13 @@ classdef dem_class < handle
       % -------------------------------------------------------------------
       if ~isfield(obj.ocean,'shp_all')
         ocean_mask_fn = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
+        ocean_mask_fn_antarctica = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L5.shp'));
         warning off;
         obj.ocean.shp_all = shaperead(ocean_mask_fn);
+        if strcmp(obj.param.post.ops.location,'antarctic')
+          shp_antarctica = shaperead(ocean_mask_fn_antarctica);
+          obj.ocean.shp_all = cat(1,obj.ocean.shp_all,shp_antarctica);
+        end
         warning on;
         obj.ocean.bb_all = [obj.ocean.shp_all(:).BoundingBox];
       end

@@ -28,7 +28,7 @@ fprintf('%s [Mode %d]: %s  (%s)\n', mfilename, param.multipass.comp_mode, ...
 fprintf('=====================================================================\n');
 
 physical_constants;
-standard_projections;
+proj_load_standard;
 
 %% Load multipass.combine_passes file
 fn = param.multipass.fn;

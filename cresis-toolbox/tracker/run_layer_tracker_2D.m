@@ -108,7 +108,7 @@ switch ct_output_dir(params(1).radar_name)
     if 1
       %% Viterbi User Settings
       track.method                      = 'viterbi';
-      track.layer_names                 = {'surface','bottom'};
+      track.layer_names                 = {'bottom'};
       
       track.crossover.en = true;
       track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include

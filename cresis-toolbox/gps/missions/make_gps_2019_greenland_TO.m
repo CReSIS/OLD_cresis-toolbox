@@ -36,11 +36,30 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 gps_source_to_use = 'NMEA';
+gps_source_to_use = 'DTU-precision';
 
 if strcmpi(gps_source_to_use,'NMEA')
 %% NMEA
   
-year = 2019; month = 3; day = 21;
+% year = 2019; month = 3; day = 21;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+%   
+% year = 2019; month = 3; day = 22;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+
+year = 2019; month = 8; day = 10;
 file_idx = file_idx + 1;
 in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
 out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -48,14 +67,78 @@ file_type{file_idx} = 'NMEA';
 params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
 gps_source{file_idx} = 'nmea-field';
 sync_flag{file_idx} = 0;
+
+% year = 2019; month = 8; day = 11;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% 
+% year = 2019; month = 8; day = 12;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% 
+% year = 2019; month = 8; day = 14;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+
+elseif strcmpi(gps_source_to_use,'DTU-precision')
   
-year = 2019; month = 3; day = 22;
+year = 2019; month = 8; day = 9;
 file_idx = file_idx + 1;
-in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+in_fns{file_idx} = get_filenames(in_base_path,'221','','.pos');
 out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-file_type{file_idx} = 'NMEA';
-params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
-gps_source{file_idx} = 'nmea-field';
+file_type{file_idx} = 'General_ASCII';
+params{file_idx} = struct('year',year,'month',month,'day',day,'format_str','%f%f%f%f%f%f%f%f','headerlines',0,'time_reference','utc');
+params{file_idx}.types = {'hour','lat_deg','lon_deg','elev_m','pitch_deg','roll_deg','heading_deg','non_relevant_int'};
+params{file_idx}.textscan = {};
+gps_source{file_idx} = 'dtu_final_20191108';
+sync_flag{file_idx} = 0;
+    
+year = 2019; month = 8; day = 10;
+file_idx = file_idx + 1;
+in_fns{file_idx} = get_filenames(in_base_path,'222','','.pos');
+out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+file_type{file_idx} = 'General_ASCII';
+params{file_idx} = struct('year',year,'month',month,'day',day,'format_str','%f%f%f%f%f%f%f%f','headerlines',0,'time_reference','utc');
+params{file_idx}.types = {'hour','lat_deg','lon_deg','elev_m','pitch_deg','roll_deg','heading_deg','non_relevant_int'};
+params{file_idx}.textscan = {};
+gps_source{file_idx} = 'dtu_final_20191108';
+sync_flag{file_idx} = 0;
+
+year = 2019; month = 8; day = 11;
+file_idx = file_idx + 1;
+in_fns{file_idx} = get_filenames(in_base_path,'223','','.pos');
+out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+file_type{file_idx} = 'General_ASCII';
+params{file_idx} = struct('year',year,'month',month,'day',day,'format_str','%f%f%f%f%f%f%f%f','headerlines',0,'time_reference','utc');
+params{file_idx}.types = {'hour','lat_deg','lon_deg','elev_m','pitch_deg','roll_deg','heading_deg','non_relevant_int'};
+params{file_idx}.textscan = {};
+gps_source{file_idx} = 'dtu_final_20191108';
+sync_flag{file_idx} = 0;
+
+year = 2019; month = 8; day = 12;
+file_idx = file_idx + 1;
+in_fns{file_idx} = get_filenames(in_base_path,'224','','.pos');
+out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+file_type{file_idx} = 'General_ASCII';
+params{file_idx} = struct('year',year,'month',month,'day',day,'format_str','%f%f%f%f%f%f%f%f','headerlines',0,'time_reference','utc');
+params{file_idx}.types = {'hour','lat_deg','lon_deg','elev_m','pitch_deg','roll_deg','heading_deg','non_relevant_int'};
+params{file_idx}.textscan = {};
+gps_source{file_idx} = 'dtu_final_20191108';
 sync_flag{file_idx} = 0;
 
 end

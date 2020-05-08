@@ -96,7 +96,6 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_sourc
 end
 
 if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
-%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %
   gps.x = 0;
@@ -104,9 +103,11 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_sourc
   gps.z = 0;
 end
 
-if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
-    && any(strcmpi(gps_source,{'nmea'}))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) %...
+%     && any(strcmpi(gps_source,{'nmea'}))
+%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+% The positions of the rx and tx antennas of ku-band and ka-band
+% alitimeters were measured relative to the rear GPS antenna
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -904,14 +905,14 @@ end
 
 if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
     && strcmpi(radar_name,'kaband')
-  % X,Y,Z are in aircraft coordinates relative to GPS antenna
-  LArx(1,1:2) = [NaN 0];
-  LArx(2,1:2) = [NaN 0];
-  LArx(3,1:2) = [NaN 0];
+  % X,Y,Z are in aircraft coordinates relative to rear GPS antenna
+  LArx(1,1:2) = [NaN 2.86/100];
+  LArx(2,1:2) = [NaN -36.5/100];
+  LArx(3,1:2) = [NaN 160/100];
   
-  LAtx(1,1) = 0;
-  LAtx(2,1) = 0;
-  LAtx(3,1) = 0;
+  LAtx(1,1) = 2.86/100;
+  LAtx(2,1) = -43.5/100;
+  LAtx(3,1) = 160/100;
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 2;
@@ -951,14 +952,14 @@ end
 
 if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
     && strcmpi(radar_name,'kuband')
-  % X,Y,Z are in aircraft coordinates relative to GPS antenna
-  LArx(1,1) = 0;
-  LArx(2,1) = 0;
-  LArx(3,1) = 0;
+  % X,Y,Z are in aircraft coordinates relative to rear GPS antenna
+  LArx(1,1) = -2.86/100;
+  LArx(2,1) = -37/100;
+  LArx(3,1) = 162.54/100;
   
-  LAtx(1,1) = 0;
-  LAtx(2,1) = 0;
-  LAtx(3,1) = 0;
+  LAtx(1,1) = -2.86/100;
+  LAtx(2,1) = -43/100;
+  LAtx(3,1) = 162.54/100;
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;
@@ -1313,14 +1314,16 @@ end
 if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(radar_name,'rds'))
   % Sled antennas
   % Center elements left to right
-  LArx = [0	-64.4623	10.5
-    0	-46.0371	10.5
-    0 -27.6119	10.5
-    0 -9.1867	10.5
-    0 9.2337	10.5
-    0 27.6637	10.5
-    0 46.0889	10.5
-    0 64.5141	10.5].' * 2.54/100;
+  
+  % GPS Antenna to Antenna ports (top side of antenna glass to bottom center of GPS antenna)
+  LArx = [-18.475	-119.94 14.596
+    -18.475	-101.57   14.596
+    -18.475 -83.24	 14.596
+    -18.475 -64.87  14.596
+    -18.475 -46.54  14.596
+    -18.475 -28.17  14.596
+    -18.475 -9.84 14.596
+    -18.475 8.53 14.596].' * 2.54/100;
   
   LAtx = LArx(:,[1 7 2 8]);
   

@@ -888,17 +888,13 @@ classdef slice_browser < handle
             end
             
           case 'period'
-            if ~obj.shift_pressed
-              obj.change_slice(obj.slice + 5,false);
-            else
-              obj.change_slice(obj.slice + 1,false);
-            end
+            obj.change_slice(obj.slice + 1,false);
           case 'comma'
-            if ~obj.shift_pressed
-              obj.change_slice(obj.slice - 5,false);
-            else
-              obj.change_slice(obj.slice - 1,false);
-            end
+            obj.change_slice(obj.slice - 1,false);
+          case 'l'
+            obj.change_slice(obj.slice - 5,false);
+          case 'semicolon'
+            obj.change_slice(obj.slice + 5,false);
             
           case 'delete'
             surf_idx = get(obj.gui.surfaceLB,'Value');
