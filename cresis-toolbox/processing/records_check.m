@@ -217,12 +217,15 @@ if param.records_check.ground
     warning('Large velocity (%g). All below %g m/s.', min(vel), max(vel), param.records_check.vel_threshold);
   end
 else
-  if any(vel < param.records_check.vel_threshold | vel > 300)
+  if any(vel < param.records_check.vel_threshold)
     if all(vel < param.records_check.vel_threshold)
-      warning('Small (%g) or large velocity (%g). All below %g m/s.', min(vel), max(vel), param.records_check.vel_threshold);
+      warning('Small velocity detected (min %g max %g). All below %g m/s.', min(vel), max(vel), param.records_check.vel_threshold);
     else
-      warning('Small (%g) or large velocity (%g). Some above %g m/s.', min(vel), max(vel), param.records_check.vel_threshold);
+      warning('Small velocity detected (min %g max %g). Some above %g m/s.', min(vel), max(vel), param.records_check.vel_threshold);
     end
+  end
+  if any(vel > 300)
+    warning('Large velocity detected (min %g max %g).', min(vel), max(vel));
   end
 end
 
@@ -239,15 +242,15 @@ if any(records.elev >= 40000 | records.elev <= -10000)
 end
 
 if any(records.roll >= param.records_check.roll_limit/180*pi | records.roll <= -param.records_check.roll_limit/180*pi)
-  warning('roll > %g deg: max %.1f min %.1f', param.records_check.roll_limit, max(records.roll)*180/pi, min(records.roll)*180/pi);
+  warning('abs(roll) > %g deg: max %.1f min %.1f', param.records_check.roll_limit, max(records.roll)*180/pi, min(records.roll)*180/pi);
 end
 
 if any(records.pitch >= 25/180*pi | records.pitch <= -25/180*pi)
-  warning('pitch > 25 deg: max %.1f min %.1f', max(records.pitch)*180/pi, min(records.pitch)*180/pi);
+  warning('abs(pitch) > 25 deg: max %.1f min %.1f', max(records.pitch)*180/pi, min(records.pitch)*180/pi);
 end
 
 if any(records.heading >= 2*pi | records.heading <= -2*pi)
-  warning('heading out of bounds');
+  warning('abs(heading) > 2*pi');
 end
 
 if old_time(2) > records.gps_time(1)

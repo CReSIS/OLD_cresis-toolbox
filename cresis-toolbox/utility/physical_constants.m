@@ -3,7 +3,7 @@ function [varargout] = physical_constants(varargin)
 % Adds desired or all physical constants to caller's workspace
 % Outputs desired constants to assigned arguments
 %
-%   Usage:  
+% Usage:  
 %   physical_constants;
 %       Adds all constants to workspace. General use.
 %   physical_constants('c');
@@ -17,7 +17,9 @@ function [varargout] = physical_constants(varargin)
 %   [light_vel, grav_const] = physical_constants('c','G');
 %       Assigns according to the input and ouput arguments
 % 
-%   Authors: John Paden, Hara Madhav Talasila
+% Authors: John Paden, Hara Madhav Talasila
+%
+% See Also: proj_load_standard.m
 
 %% Physical Constants
 % =========================================================================

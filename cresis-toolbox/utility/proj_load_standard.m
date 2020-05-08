@@ -1,3 +1,13 @@
+% script proj_load_standard
+%
+% Script for loading the standard projections:
+%  arctic_proj
+%  antarctic_proj
+%
+% Author: John Paden
+%
+% See Also: physical_constants.m
+
 % Arctic North Polar Stereographic NSIDC
 arctic_proj.Filename='P:\GIS_data\greenland\Landsat-7\Greenland_natural_90m.tif';
 arctic_proj.FileModDate='22-Sep-2011 13:51:54';
