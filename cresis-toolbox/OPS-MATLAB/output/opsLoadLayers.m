@@ -78,6 +78,10 @@ if ~isfield(param,'records')
   param.records = [];
 end
 
+if ~exist('layer_params','var')
+  layer_params = [];
+end
+
 % Check layers defined by regular expression regexp
 layer_idx = 1;
 while layer_idx <= length(layer_params)
@@ -166,7 +170,7 @@ if ~isempty(layerdata_sources) || records_en || echogram_en || ~isempty(lidar_la
   % Load frames file
   frames = frames_load(param);
 
-  if records_en || ~isempty(lidar_layer_idx) || ~isfield(frames,'frame_idxs')
+  if records_en || ~isempty(lidar_layer_idx)
     records = records_load(param);
   end
   
