@@ -487,7 +487,6 @@ classdef (HandleCompatible = true) echowin < handle
     xaxisPM_callback(obj,hObj,event);
     yaxisPM_callback(obj,hObj,event);
     
-    idx = crossovers_closest(obj,gps_time,twtt);
     open_crossover(obj,source,event);
     cursor_crossover(obj,source,event);
     cur_frame = get_crossover(pbj);
