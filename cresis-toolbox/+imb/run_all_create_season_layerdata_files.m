@@ -190,6 +190,7 @@ for param_idx = 1:length(param_fns)
     
     tmp = [];
     try
+      param.cmd.frms = [];
       [tmp.lat,tmp.lon,tmp.frm_id,tmp.elev,tmp.surf,tmp.bottom,tmp.quality,tmp.frm_info,gps_source] = imb.create_season_layerdata_files(param,param_override);
     catch ME
       fprintf('%s\terror!!!\t%s\n', param.day_seg, ME.getReport);
