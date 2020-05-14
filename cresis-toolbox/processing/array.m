@@ -255,7 +255,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
-  cpu_time_mult = 6e-9;
+  cpu_time_mult = 1e-9;
   mem_mult = 32;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
@@ -278,24 +278,33 @@ else
 end
 
 cpu_time_method_mult = 0;
+Nsv_mult = 0;
 for method_idx = 1:length(param.array.method)
   switch (param.array.method(method_idx))
     case STANDARD_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 1;
+      Nsv_mult = Nsv_mult + 0.2;
     case MVDR_METHOD
-      cpu_time_method_mult = cpu_time_method_mult + 4;
+      cpu_time_method_mult = cpu_time_method_mult + 1.5;
+      Nsv_mult = Nsv_mult + 0.2;
     case MUSIC_METHOD
-      cpu_time_method_mult = cpu_time_method_mult + 6;
+      cpu_time_method_mult = cpu_time_method_mult + 1.5;
+      Nsv_mult = Nsv_mult + 0.2;
     case GEONULL_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 8;
+      Nsv_mult = Nsv_mult + 0.2;
     case GSLC_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 8;
+      Nsv_mult = Nsv_mult + 0.2;
     case SNAPSHOT_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 32;
+      Nsv_mult = Nsv_mult + 0.2;
     case MLE_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 480;
+      Nsv_mult = Nsv_mult + 1;
     otherwise
       cpu_time_method_mult = cpu_time_method_mult + 1;
+      Nsv_mult = Nsv_mult + 0.2;
   end
 end
 cpu_time_mult = cpu_time_mult * cpu_time_method_mult;
@@ -406,7 +415,7 @@ for frm_idx = 1:length(param.cmd.frms);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.array.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*total_num_sam_output(img)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*total_num_sam_output(img)*cpu_time_mult/Nsv*(1 + (Nsv-1)*Nsv_mult);
       % Take the max of the input data size and the output data size
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
         + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );

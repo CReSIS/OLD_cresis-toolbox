@@ -130,7 +130,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
       img = param.tomo_collate.imgs{v_img}(h_img);
       wf = param.tomo_collate.imgs{v_img}(1,1);
       if h_img == 1
-        total_num_sam = total_num_sam + wfs(wf).Nt_pc;
+        total_num_sam = total_num_sam + wfs(wf).Nt;
       end
       total_img = total_img + 1;
     end
