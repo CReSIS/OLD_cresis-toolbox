@@ -13,7 +13,7 @@ function frms = frames_param_cmd_frms(param,frames)
 % frames = frames_load(param);
 % param.cmd.frms = frames_param_cmd_frms(param,frames);
 
-if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
+if ~isfield(param,'cmd') || ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
 [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
