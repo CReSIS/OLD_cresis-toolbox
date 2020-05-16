@@ -217,11 +217,11 @@ for img = 1:length(param.load.imgs)
       noise.Nx = length(noise.gps_time);
       
       if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
-        coh_noise = noise.dft;
-        noise = rmfield(noise,'dft');
+        coh_noise = noise.dft_noise;
+        noise = rmfield(noise,'dft_noise');
       elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
-        coh_noise = noise.coh_noise;
-        noise = rmfield(noise,'coh_noise');
+        coh_noise = noise.firdec_noise;
+        noise = rmfield(noise,'firdec_noise');
       end
       
       % Nt by Nx_dft matrix
@@ -340,17 +340,17 @@ for img = 1:length(param.load.imgs)
           end
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           % Interpolate coherent noise onto current data's gps time
-          if all(hdr.gps_time>noise.coh_noise_gps_time(end))
+          if all(hdr.gps_time>noise.firdec_gps_time(end))
             % All current data's gps time is after the coherent noise
             % estimates gps time
             cn.data = -repmat(coh_noise(:,end),[1 length(hdr.gps_time)]);
-          elseif all(hdr.gps_time<noise.coh_noise_gps_time(1))
+          elseif all(hdr.gps_time<noise.firdec_gps_time(1))
             % All current data's gps time is before the coherent noise
             % estimates gps time
             cn.data = -repmat(coh_noise(:,1),[1 length(hdr.gps_time)]);
           else
             % Current data gps time overlaps with coherent noise estimates
-            cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+            cn.data = -interp_finite(interp1(noise.firdec_gps_time, coh_noise.', hdr.gps_time)).';
           end
         end
         clear coh_noise;
@@ -385,7 +385,7 @@ for img = 1:length(param.load.imgs)
             % Pulse compression
             %   Apply matched filter and transform back to time domain
             tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
-            tmp_data(~isfinite(tmp_data)) = 0;
+            tmp_data(bsxfun(@and,~isfinite(tmp_data),~hdr.bad_rec{img}(1,rlines,wf_adc))) = 0;
             tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
             
             % Decimation
@@ -1339,8 +1339,8 @@ for img = 1:length(param.load.imgs)
           
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
-          rel_gps_time = single(noise.coh_noise_gps_time - noise.coh_noise_gps_time(1));
-          rel_gps_time_interp = single(hdr.gps_time - noise.coh_noise_gps_time(1));
+          rel_gps_time = single(noise.firdec_gps_time - noise.firdec_gps_time(1));
+          rel_gps_time_interp = single(hdr.gps_time - noise.firdec_gps_time(1));
           for block = 1:length(blocks)-1
             rlines = blocks(block) : blocks(block+1)-1;
             

@@ -7,7 +7,6 @@ function [success] = qlook_task(param)
 % param = struct controlling the loading, processing, surface tracking,
 %   and quick look generation
 %  .load = structure for which records to load
-%   .records_fn = filename of records file
 %   .recs = current records
 %   .imgs = cell vector of images to load, each image is Nx2 array of
 %     wf/adc pairs
@@ -87,7 +86,6 @@ physical_constants;
 
 %% Load records file
 % =========================================================================
-records_fn = ct_filename_support(param,'','records');
 
 % Adjust the load records to account for filtering and decimation. Care is
 % taken to ensure that when blocks and frames are concatenated together,
@@ -130,7 +128,7 @@ param.load.recs(1) = param.qlook.presums * (input_recs_ps(1) - 1) + 1;
 param.load.recs(2) = param.qlook.presums * input_recs_ps(2);
 
 % Load the records
-records = read_records_aux_files(records_fn,param.load.recs);
+records = records_load(param,param.load.recs);
 
 % Adjust stop_buffer_ps and loaded records in case at the end of the segment
 stop_buffer_ps = stop_buffer_ps + floor(length(records.gps_time)/param.qlook.presums) - (diff(input_recs_ps)+1);
@@ -152,8 +150,7 @@ param_records.gps_source = records.gps_source;
 
 %% Load surface layer
 % =========================================================================
-frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(param);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 surf_layer = opsLoadLayers(tmp_param,param.qlook.surf_layer);
@@ -174,7 +171,7 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.qlook.presums;
-param.load.bit_mask = 1; % Skip bad records marked in records.bit_mask
+param.load.bit_mask = param.qlook.bit_mask; % Skip bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
@@ -388,8 +385,9 @@ for img = 1:length(param.load.imgs)
   else
     file_version = '1';
   end
+  file_type = 'qlook_tmp';
   ct_save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
-    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version');
+    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version', 'file_type');
 end
 
 %% Done

@@ -81,7 +81,7 @@ param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
 
 gaps_dist = [100 30];
 
-surface_source = struct('name','surface','source','layerData', 'layerdata_source','layerData_koenig'); % <== CHANGE HERE
+surface_source = struct('name','surface','source','layerdata', 'layerdata_source','layer'); % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_', , 'img_02_'
@@ -130,10 +130,10 @@ param.use_master_surf = 0;
 
 % param.layer_params: set to plot layers on echograms
 layer_params = []; idx = 0;
-if 1 % Enable to plot layers on echograms
-  layer_params = struct('name','surface','source','layerData','layerdata_source','layerData_koenig');
+if 0 % Enable to plot layers on echograms
+  layer_params = struct('name','surface','source','layerdata','layerdata_source','layerData_koenig');
   for idx = 2:30
-    layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerData','layerdata_source','layerData_koenig');
+    layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerdata','layerdata_source','layerData_koenig');
   end
 end
 param.layer_params = layer_params;
@@ -256,10 +256,10 @@ if 1
 
   % param.layer_params: set to plot layers on echograms
   layer_params = []; idx = 0;
-  if 1 % Enable to plot layers on echograms
-    layer_params = struct('name','surface','source','layerData','layerdata_source','layerData_koenig');
+  if 0 % Enable to plot layers on echograms
+    layer_params = struct('name','surface','source','layerdata','layerdata_source','layerData_koenig');
     for idx = 2:30
-      layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerData','layerdata_source','layerData_koenig');
+      layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerdata','layerdata_source','layerData_koenig');
     end
   end
   param.layer_params = layer_params;
@@ -514,10 +514,8 @@ for param_idx = 1:length(params)
   end
   
   global gRadar;
+  param = merge_structs(param,ds.param_records);
   param = merge_structs(param,gRadar);
-  param.day_seg = ds.frm_id(1:11);
-  param.cmd.frms = ds.start_frame:ds.stop_frame;
-  param.post.ops.location = ds.param_records.post.location;
 
   surface_layer = {opsLoadLayers(param, surface_source)};
   

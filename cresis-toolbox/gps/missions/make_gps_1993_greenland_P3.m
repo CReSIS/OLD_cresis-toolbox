@@ -105,7 +105,7 @@ file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
 gps_source{file_idx} = 'nmea-field'; 
 
-make_gps;
+gps_make;
 
 latlon_min_jump=0.005;%latitude and longitude minimum jump threshold
 latlon_spike_jump=20;%latitude and longitude spike jump threshold

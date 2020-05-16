@@ -39,7 +39,7 @@ function out = mle_initialization(DCM,param)
 %
 % See Also:  array_proc.m, mle_cost_function.m, mle_compute_cost.cpp
 % =========================================================================
-physical_constants
+c = 2.997924580003452e+08; % physical_constants too slow
 
 k = 4*pi*param.fc/c;
 M = param.Nsrc;
@@ -88,7 +88,7 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
       % Evaluate cost function
       Nsv2{1} = 'theta';
       Nsv2{2} = theta.';
-      [~,A] = array_proc_sv(Nsv2,param.fc,param.y_pc,param.z_pc);
+      [~,A] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
 %       A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta).' + param.y_pc*sin(theta).'));
       Pa  = A * inv(A'*A) * A';
       if  param.doa_seq && param.apriori.en

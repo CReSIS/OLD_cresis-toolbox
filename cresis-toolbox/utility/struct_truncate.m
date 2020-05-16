@@ -9,7 +9,7 @@ function records = struct_truncate(records,rec_len,start_idx,stop_idx,depth)
 %
 % Author: Hara Madhav Talasila
 %
-% See also: read_records_aux_files.m
+% See also: 
 
 rec_fields = fieldnames(records);
 

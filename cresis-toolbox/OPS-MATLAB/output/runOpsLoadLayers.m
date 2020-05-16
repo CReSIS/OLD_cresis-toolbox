@@ -10,37 +10,19 @@
 %% User Settings
 % =====================================================================
 
+% params = read_param_xls(ct_filename_param('rds_param_2012_Greenland_P3.xls'));
 params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
-% params = ct_set_params(params,'cmd.frms',[2]);
 
-layers = {};
+params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+
 layer_params = [];
 idx = 0;
 
 %% Example Inputs (just choose one)
-if 0
-  %% Load layers from layerData file version 1  
-  ref_idx = 1;
-  idx = idx + 1;
-  layer_params(idx).layers2load = []; % leave empty for all;
-  layer_params(idx).name = 'layers'; % surface, bottom or layers for all.
-  layer_params(idx).source = 'layerData_ver1';
-  layer_params(idx).layerdata_source = 'layerData_ver1';
-  
-elseif 0
-  %% Compare echogram surface and a MacGregor's layer in ops  
-  ref_idx = 1;
-  idx = idx + 1;
-  layer_params(idx).name = 'surface';
-  layer_params(idx).source = 'echogram';
-  layer_params(idx).echogram_source = 'CSARP_post/qlook';
-  idx = idx + 1;
-  layer_params(idx).name = 'layer_1950-001988';
-  layer_params(idx).source = 'ops';
 
-elseif 0
+if 0
   %% Load a single layer from the echogram
   ref_idx = 1;
   idx = idx + 1;
@@ -48,21 +30,14 @@ elseif 0
   layer_params(idx).source = 'echogram';
   layer_params(idx).echogram_source = 'qlook';
 
-elseif 0
-  %% Load a single layer from the layerData file
-  ref_idx = 1;
-  idx = idx + 1;
-  layer_params(idx).name = 'surface';
-  layer_params(idx).source = 'layerData';
-  layer_params(idx).layerdata_source = 'layerData';
 elseif 1
-  %% Load multiple snow layers from the layerData file (koenig's snow layers)
+  %% Load two layers from the layerData file
   ref_idx = 1;
   idx = idx + 1;
-  layer_params(idx).layers2load = []; % leave empty for all;
-  layer_params(idx).name = 'layers';  % surface, bottom or layers for all.
-  layer_params(idx).source = 'layerData_koenig';
-  layer_params(idx).layerdata_source = 'layerData_koenig';
+  layer_params(idx).name = {'surface','bottom'};
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+
 elseif 0
   %% Compare echogram, layerData, and records
   ref_idx = 1;
@@ -119,6 +94,36 @@ elseif 0
   idx = idx + 1;
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'lidar';
+elseif 0
+  %% load surface, bottom and MacGregor layers
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).name = 'bottom';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).regexp = 'L';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer_MacGregor';
+else
+  %% load surface, bottom and snow layers
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).name = 'bottom';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+  idx = idx + 1;
+  layer_params(idx).regexp = 'snow';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
 end
 
 % =====================================================================
@@ -140,31 +145,22 @@ for param_idx = 1:length(params)
   param = merge_structs(param,gRadar);
   
   fprintf('opsLoadLayers %s\n', param.day_seg);
-  layers{end+1} = opsLoadLayers(param,layer_params);
+  [layers{end+1},new_layer_params] = opsLoadLayers(param,layer_params);
   day_seg{end+1} = param.day_seg;
 end
+layer_params = new_layer_params;
 
 % =====================================================================
 %% Example Section
 % =====================================================================
 
 if 1
-  %% Plot all layers versus relative time using layerData of version 1
-  lay_idxs = 1:length(layers{ref_idx}.twtt);
-  figure(1);clf
-  for lyr_idx = lay_idxs
-    figure(1);hold on;plot(layers{ref_idx}.gps_time-layers{ref_idx}.gps_time(1),layers{ref_idx}.twtt{lyr_idx}*1e6);
-  end
-  xlabel('relative time (s)');
-  ylabel('twtt(\mus)')
-  title(day_seg{ref_idx},'Interpreter','none');
-end
-
-if 0
   %% Interpolate all layers onto a common reference (ref_idx)
   for seg_idx = 1:length(layers)
     lay_idxs = [1:ref_idx-1 ref_idx+1:length(layers{seg_idx})];
-    layers{seg_idx}(ref_idx).twtt_ref = layers{seg_idx}(ref_idx).twtt;   
+    
+    layers{seg_idx}(ref_idx).twtt_ref = layers{seg_idx}(ref_idx).twtt;
+    
     master = [];
     master.GPS_time = layers{seg_idx}(ref_idx).gps_time;
     master.Latitude = layers{seg_idx}(ref_idx).lat;
@@ -184,7 +180,7 @@ if 0
   end
 end
 
-if 0
+if 1
   %% Simple plot of all layers versus time
   % ref_color: Reference plot color
   ref_color = 'k.';
@@ -332,5 +328,3 @@ if 0
   end
   save(layers_fn,'-v7.3','day_seg','layers')
 end
-
-

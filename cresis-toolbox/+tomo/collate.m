@@ -25,22 +25,9 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
-% Load frames file
-load(ct_filename_support(param,'','frames'));
-
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
-if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
-end
+frames = frames_load(param);
+param.cmd.frms = frames_param_cmd_frms(param,frames);
 
 % sar.* fields
 % -------------------------------------------------------------------------
@@ -71,6 +58,10 @@ if ~isfield(param.tomo_collate,'frm_types') || isempty(param.tomo_collate.frm_ty
   param.tomo_collate.frm_types = {-1,-1,-1,-1,-1};
 end
 
+if ~isfield(param.tomo_collate,'ground_based_flag') || isempty(param.tomo_collate.ground_based_flag)
+  param.tomo_collate.ground_based_flag = false;
+end
+
 if ~isfield(param.tomo_collate,'in_path') || isempty(param.tomo_collate.in_path)
   param.tomo_collate.in_path = 'music3D';
 end
@@ -90,11 +81,7 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-if ~exist(records_fn)
-  error('You must run create the records file before running anything else:\n  %s', records_fn);
-end
-records = load(records_fn);
+records = records_load(param);
 
 % Along-track
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
@@ -143,7 +130,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
       img = param.tomo_collate.imgs{v_img}(h_img);
       wf = param.tomo_collate.imgs{v_img}(1,1);
       if h_img == 1
-        total_num_sam = total_num_sam + wfs(wf).Nt_pc;
+        total_num_sam = total_num_sam + wfs(wf).Nt;
       end
       total_img = total_img + 1;
     end

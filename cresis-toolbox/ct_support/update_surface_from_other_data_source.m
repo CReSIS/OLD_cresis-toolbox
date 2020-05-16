@@ -139,7 +139,7 @@ for param_idx = 1:length(params)
     
   end
 
-  load(ct_filename_support(param,'','frames'));
+  frames = frames_load(param);
   
   if isempty(param.cmd.frms)
     param.cmd.frms = 1:length(frames.frame_idxs);

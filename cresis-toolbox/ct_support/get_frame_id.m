@@ -72,12 +72,12 @@ recs = zeros(size(gps_time));
 if ~isfield(param,'day_seg')
   % If the day-segment is not provided, then load all segments
   records_dir = ct_filename_support(param, '', 'records');
-  fns = get_filenames(records_dir,'records','','.nc');
+  fns = get_filenames(records_dir,'records','','.mat');
 else
   % If the day-segment is provided, then just load that file
   records_fn = ct_filename_support(param, '', 'records');
   [records_fn_dir,records_fn_name] = fileparts(records_fn);
-  fns = {fullfile(records_fn_dir,sprintf('%s.nc',records_fn_name))};
+  fns = {fullfile(records_fn_dir,sprintf('%s.mat',records_fn_name))};
 end
 
 if isempty(fns)
@@ -111,24 +111,10 @@ end
 first_gps_time = [];
 for file_idx = 1:length(fns)
   records_fn = fns{file_idx};
-  [records_fn_dir records_fn_name] = fileparts(records_fn);
-  cdf_fn = fullfile(records_fn_dir, sprintf('%s.nc', records_fn_name));
-  
-  try
-    ncid = netcdf.open(cdf_fn,'NOWRITE');
-  catch ME
-    warning('Exception during file opening');
-    ME
-    keyboard
-  end
-  var_idx = netcdf.inqVarID(ncid,'gps_time');
-  first_gps_time(file_idx) = netcdf.getVar(ncid,var_idx,[0 0]);
-  
-  finfo = ncinfo(cdf_fn);
-  num_recs = finfo.Variables(find(strcmp('gps_time',{finfo.Variables.Name}))).Size(2);
-
-  last_gps_time(file_idx) = netcdf.getVar(ncid,var_idx,[0 num_recs-1]);
-  netcdf.close(ncid);
+  records = records_load(records_fn,'gps_time');
+  first_gps_time(file_idx) = records.gps_time(1);
+  last_gps_time(file_idx) = records.gps_time(end);
+  num_recs = length(records.gps_time);
 end
 keep_mask = isfinite(first_gps_time) & isfinite(last_gps_time);
 fns = fns(keep_mask);
@@ -196,10 +182,9 @@ for gps_idx = 1:numel(sort_gps_time)
     records_fn = fns{cur_fn_idx};
     [records_fn_dir records_fn_name] = fileparts(records_fn);
     
-    records.gps_time = ncread(records_fn,'gps_time');
+    records = records_load(records_fn,'gps_time');
     param.day_seg = records_fn_name(9:19);
-    frames_fn = ct_filename_support(param,'','frames');
-    load(frames_fn);
+    frames = frames_load(param);
   end
 end
 if ~isnan(cur_fn_idx)

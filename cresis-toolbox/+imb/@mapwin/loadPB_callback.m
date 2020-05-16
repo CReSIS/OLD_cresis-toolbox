@@ -143,304 +143,40 @@ if strcmpi(param.layer_source,'layerdata')
   %   param.layers.lyr_id % Immutable lyr_id
   %   param.layers.lyr_name % layer_organizer.lyr_name
   %   param.layers.lyr_order % layer_organizer.lyr_order (positive integer contained in 1 to N)
-  layer_fn = fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('layer_%s.mat',param.cur_sel.day_seg));
-  fprintf('Loading layer organizer: %s\n', layer_fn);
-  save_layer_organizer_file = false;
-  if exist(layer_fn,'file')
-    try
-      layer_organizer = load(layer_fn);
-    catch
-      save_layer_organizer_file = true;
-      layer_organizer = [];
-    end
-  else
-    save_layer_organizer_file = true;
-    layer_organizer = [];
-  end
-  layer_organizer.layer_fn = layer_fn;
-
-  if ~isfield(layer_organizer,'lyr_name')
-    layer_organizer.lyr_name = {};
-    save_layer_organizer_file = true;
-  end
   
-  if ~isfield(layer_organizer,'lyr_age')
-    layer_organizer.lyr_age = nan(size(layer_organizer.lyr_name));
-    save_layer_organizer_file = true;
-  else
-    len_diff = length(layer_organizer.lyr_name) - length(layer_organizer.lyr_age);
-    if len_diff < 0
-      layer_organizer.lyr_age = layer_organizer.lyr_age(1:length(layer_organizer.lyr_name));
-      save_layer_organizer_file = true;
-    elseif len_diff > 0
-      layer_organizer.lyr_age(end+1:length(layer_organizer.lyr_name)) = NaN;
-      save_layer_organizer_file = true;
-    end
-  end
-  
-  if ~isfield(layer_organizer,'lyr_age_source')
-    layer_organizer.lyr_age_source = cell(size(layer_organizer.lyr_name));
-    save_layer_organizer_file = true;
-  else
-    len_diff = length(layer_organizer.lyr_name) - length(layer_organizer.lyr_age_source);
-    if len_diff < 0
-      layer_organizer.lyr_age_source = layer_organizer.lyr_age_source(1:length(layer_organizer.lyr_name));
-      save_layer_organizer_file = true;
-    elseif len_diff > 0
-      layer_organizer.lyr_age_source(end+1:length(layer_organizer.lyr_name)) = cell([1 len_diff]);
-      save_layer_organizer_file = true;
-    end
-  end
-  
-  if ~isfield(layer_organizer,'lyr_desc')
-    layer_organizer.lyr_desc = cellfun(@char,cell(size(layer_organizer.lyr_name)),'UniformOutput',false);
-    save_layer_organizer_file = true;
-  else
-    len_diff = length(layer_organizer.lyr_name) - length(layer_organizer.lyr_desc);
-    if len_diff < 0
-      layer_organizer.lyr_desc = layer_organizer.lyr_desc(1:length(layer_organizer.lyr_name));
-      save_layer_organizer_file = true;
-    elseif len_diff > 0
-      layer_organizer.lyr_desc(end+1:length(layer_organizer.lyr_name)) = cellfun(@char,cell([1 len_diff]),'UniformOutput',false);
-      save_layer_organizer_file = true;
-    end
-  end
-  
-  if ~isfield(layer_organizer,'lyr_group_name')
-    layer_organizer.lyr_group_name = cellfun(@char,cell(size(layer_organizer.lyr_name)),'UniformOutput',false);
-    save_layer_organizer_file = true;
-  else
-    len_diff = length(layer_organizer.lyr_name) - length(layer_organizer.lyr_group_name);
-    if len_diff < 0
-      layer_organizer.lyr_group_name = layer_organizer.lyr_group_name(1:length(layer_organizer.lyr_name));
-      save_layer_organizer_file = true;
-    elseif len_diff > 0
-      layer_organizer.lyr_group_name(end+1:length(layer_organizer.lyr_name)) = cellfun(@char,cell([1 len_diff]),'UniformOutput',false);
-      save_layer_organizer_file = true;
-    end
-  end
-  
-  if ~isfield(layer_organizer,'lyr_id')
-    layer_organizer.lyr_id = 1:length(layer_organizer.lyr_name);
-    save_layer_organizer_file = true;
-  else
-    len_diff = length(layer_organizer.lyr_name) - length(layer_organizer.lyr_id);
-    if len_diff < 0
-      layer_organizer.lyr_id = layer_organizer.lyr_id(1:length(layer_organizer.lyr_name));
-      save_layer_organizer_file = true;
-    elseif len_diff > 0
-      layer_organizer.lyr_id(end+1:length(layer_organizer.lyr_name)) = max(layer_organizer.lyr_id)+(1:len_diff);
-      save_layer_organizer_file = true;
-    end
-  end
-  
-  if ~isfield(layer_organizer,'lyr_order')
-    layer_organizer.lyr_order = 1:length(layer_organizer.lyr_name);
-    save_layer_organizer_file = true;
-  else
-    len_diff = length(layer_organizer.lyr_name) - length(layer_organizer.lyr_order);
-    if len_diff < 0
-      layer_organizer.lyr_order = layer_organizer.lyr_order(1:length(layer_organizer.lyr_name));
-      save_layer_organizer_file = true;
-    elseif len_diff > 0
-      layer_organizer.lyr_order(end+1:length(layer_organizer.lyr_name)) = max(layer_organizer.lyr_order)+(1:len_diff);
-      save_layer_organizer_file = true;
-    end
-  end
-
-  % layer_organizer did not exist or had bad contents, update the file with
-  % corrected contents
-  if save_layer_organizer_file == true
-    warning('Updating layer organizer file.');
-    ct_save(layer_fn,'-struct','layer_organizer','lyr_name','lyr_age','lyr_age_source','lyr_desc','lyr_group_name','lyr_id','lyr_order');
-  end
-  
+  layer_organizer_fn = fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('layer_%s.mat',param.cur_sel.day_seg));
+  fprintf('Loading layer organizer: %s\n', layer_organizer_fn);
   layer_fn_dir = ct_filename_out(param.cur_sel,param.layer_data_source,'');
   fprintf('Loading layer files: %s\n', layer_fn_dir);
+  param_layerdata = param.cur_sel;
+  param_layerdata.sw_version = current_software_version();
+  param_layerdata.records.gps.time_offset = NaN;
+  param_layerdata.radar.lever_arm_fh = [];
+  layers = layerdata(param_layerdata,param.layer_data_source);
+  layers.check_all();
+  
   for frm = 1:num_frm
-    layer_fn=fullfile(layer_fn_dir,sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
-    lay = load(layer_fn);
-    new_layer_ids = [];
-    Nx = length(lay.GPS_time);
-    save_layer_data_file = 0;
-    for lay_idx = 1:length(lay.layerData)
-      if ~isfield(lay.layerData{lay_idx},'value')
-        lay.layerData{lay_idx}.value{1}.data = nan(1,Nx);
-        lay.layerData{lay_idx}.value{2}.data = nan(1,Nx);
-        save_layer_data_file = bitor(save_layer_data_file,1);
-      end
-      if ~isfield(lay.layerData{lay_idx},'quality')
-        lay.layerData{lay_idx}.quality = ones(1,Nx);
-        save_layer_data_file = bitor(save_layer_data_file,1);
-      end
-      if isfield(lay.layerData{lay_idx},'name') && ~isfield(lay.layerData{lay_idx},'id')
-        % Old file format, switch name to id
-        match_idx = strmatch(lay.layerData{lay_idx}.name,layer_organizer.lyr_name,'exact');
-        save_layer_data_file = bitor(save_layer_data_file,1);
-        
-        if isempty(match_idx)
-          warning('layerData file with name field that is not present in layer organizer file. Adding layer %d as .name=%s.', lay_idx, lay.layerData{lay_idx}.name);
-          % Add the layer to the layer_organizer
-          base_name = lay.layerData{lay_idx}.name;
-          % Ensure a unique name
-          % -------------------------------------------------------------------
-          duplicate_idx = 1;
-          name = base_name;
-          while any(strcmp(name,layer_organizer.lyr_name))
-            % This is a duplicate layer name, this loop searches for a unique
-            % name
-            duplicate_idx = duplicate_idx + 1;
-            name = sprintf('%s_%03d',base_name,duplicate_idx);
-          end
-
-          layer_organizer.lyr_age(end+1) = NaN;
-          layer_organizer.lyr_age_source{end+1} = struct('age',{},'source',{},'type',{});
-          layer_organizer.lyr_desc{end+1} = '';
-          layer_organizer.lyr_group_name{end+1} = '';
-          if isempty(layer_organizer.lyr_id)
-            layer_organizer.lyr_id(end+1) = 1;
-          else
-            layer_organizer.lyr_id(end+1) = max(layer_organizer.lyr_id) + 1;
-          end
-          layer_organizer.lyr_name{end+1} = name;
-          if isempty(layer_organizer.lyr_order)
-            layer_organizer.lyr_order(end+1) = 1;
-          else
-            layer_organizer.lyr_order(end+1) = max(layer_organizer.lyr_order) + 1;
-          end
-          
-          match_idx = length(layer_organizer.lyr_id);
-        end
-        lay.layerData{lay_idx}.id = layer_organizer.lyr_id(match_idx);
-        
-      else
-        if ~isfield(lay.layerData{lay_idx},'id')
-          lay.layerData{lay_idx}.id = lay_idx;
-        end
-        match_idx = find(lay.layerData{lay_idx}.id == layer_organizer.lyr_id);
-        if isempty(match_idx)
-          warning('layerData file with id field that is not present in layer organizer file. Layer %d had an invalid .id field or did not have an id field.', lay_idx);
-          save_layer_data_file = bitor(save_layer_data_file,1);
-          % Add the layer to the layer_organizer
-          % Ensure a unique name
-          % -------------------------------------------------------------------
-          duplicate_idx = 1;
-          if lay_idx == 1
-            % Enforce standard name/group for old file format
-            base_name = 'surface';
-            name = base_name;
-            group_name = 'standard';
-          elseif lay_idx == 2
-            % Enforce standard name/group for old file format
-            base_name = 'bottom';
-            name = base_name;
-            group_name = 'standard';
-          else
-            base_name = 'auto';
-            name = sprintf('%s_%03d',base_name,duplicate_idx);
-            group_name = '';
-          end
-          while any(strcmp(name,layer_organizer.lyr_name))
-            % This is a duplicate layer name, this loop searches for a unique
-            % name
-            duplicate_idx = duplicate_idx + 1;
-            name = sprintf('%s_%03d',base_name,duplicate_idx);
-          end
-          layer_organizer.lyr_age(end+1) = NaN;
-          layer_organizer.lyr_age_source{end+1} = struct('age',{},'source',{},'type',{});
-          layer_organizer.lyr_desc{end+1} = '';
-          layer_organizer.lyr_group_name{end+1} = group_name;
-          layer_organizer.lyr_id(end+1) = lay.layerData{lay_idx}.id;
-          layer_organizer.lyr_name{end+1} = name;
-          new_order = max(layer_organizer.lyr_order) + 1;
-          if isempty(new_order)
-            new_order = 1;
-          end
-          layer_organizer.lyr_order(end+1) = new_order;
-          match_idx = length(layer_organizer.lyr_id);
-        end
-      end
-      
-      % Ensure a unique id
-      % -------------------------------------------------------------------
-      while any(strcmp(lay.layerData{lay_idx}.id,new_layer_ids))
-        warning('layerData file with duplicate id. Layer %d has a duplicate .id field.', lay_idx);
-        save_layer_data_file = 1;
-        % Add the layer to the layer_organizer
-        base_name = 'auto';
-        % Ensure a unique name
-        % -------------------------------------------------------------------
-        duplicate_idx = 1;
-        name = sprintf('%s_%03d',base_name,duplicate_idx);
-        while any(strcmp(name,layer_organizer.lyr_name))
-          % This is a duplicate layer name, this loop searches for a unique
-          % name
-          duplicate_idx = duplicate_idx + 1;
-          name = sprintf('%s_%03d',base_name,duplicate_idx);
-        end
-        layer_organizer.lyr_age(end+1) = NaN;
-        layer_organizer.lyr_age_source(end+1) = struct('age',{},'source',{},'type',{});
-        layer_organizer.lyr_desc{end+1} = '';
-        layer_organizer.lyr_group_name{end+1} = '';
-        layer_organizer.lyr_id(end+1) = max(layer_organizer.lyr_id) + 1;
-        layer_organizer.lyr_name{end+1} = name;
-        layer_organizer.lyr_order(end+1) = max(layer_organizer.lyr_order) + 1;
-        match_idx = length(layer_organizer.lyr_id);
-      end
-      new_layer_ids(end+1) = layer_organizer.lyr_id(match_idx);
-      
-      
-      % Ensure all fields are consistent in length
-      % -------------------------------------------------------------------
-      % Too short:
-      if length(lay.layerData{lay_idx}.quality) < Nx
-        save_layer_data_file = bitor(save_layer_data_file,2);
-        lay.layerData{lay_idx}.quality(end+1:Nx) = NaN;
-      end
-      if length(lay.layerData{lay_idx}.value{1}.data) < Nx
-        save_layer_data_file = bitor(save_layer_data_file,2);
-        lay.layerData{lay_idx}.value{1}.data(end+1:Nx) = NaN;
-      end
-      if length(lay.layerData{lay_idx}.value{2}.data) < Nx
-        save_layer_data_file = bitor(save_layer_data_file,2);
-        lay.layerData{lay_idx}.value{2}.data(end+1:Nx) = NaN;
-      end
-      % Too long:
-      if length(lay.layerData{lay_idx}.quality) > Nx
-        save_layer_data_file = bitor(save_layer_data_file,2);
-        lay.layerData{lay_idx}.quality = lay.layerData{lay_idx}.quality(1:Nx);
-      end
-      if length(lay.layerData{lay_idx}.value{1}.data) > Nx
-        save_layer_data_file = bitor(save_layer_data_file,2);
-        lay.layerData{lay_idx}.value{1}.data = lay.layerData{lay_idx}.value{1}.data(1:Nx);
-      end
-      if length(lay.layerData{lay_idx}.value{2}.data) > Nx
-        save_layer_data_file = bitor(save_layer_data_file,2);
-        lay.layerData{lay_idx}.value{2}.data = lay.layerData{lay_idx}.value{2}.data(1:Nx);
-      end
+    % Stores the filename for all frames in the segment
+    param.filename{frm} = layers.layer_fn(frm);
+    gps_time = layers.gps_time(frm); % Get the gps_time to take its length
+    Nx = length(gps_time);
+    param.frame(end+(1:Nx)) = frm; % stores the frame number for each point path id in each frame
+    param.frame_idxs(end+(1:Nx)) = 1:length(gps_time);  % contains the point number for each individual point in each frame
+    % Stores the layer information for all frames in the segment
+    if frm == 1
+      layer_info = layers.layer{frm};
+    else
+      layer_info(end+1) = layers.layer{frm};
     end
-    if save_layer_data_file
-      if save_layer_data_file == 1
-        warning('Corrected layer data file being saved: %s', layer_fn);
-      end
-      if save_layer_data_file == 2
-        warning('Some layers did not match GPS_time field in length. Saving corrected fields: %s', layer_fn);
-      end
-      layerData = lay.layerData;
-      save(layer_fn,'-append','layerData') % saving to layerData file
-    end
-    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
-    layer_info = cat(2, layer_info,lay); % stores the layer information for all frames in the segment
-    param.frame = cat(2, param.frame, frm*ones(size(lay.GPS_time))); % stores the frame number for each point path id in each frame
-    param.frame_idxs = cat(2,param.frame_idxs,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
-  param.layers.lyr_age = layer_organizer.lyr_age;
-  param.layers.lyr_age_source = layer_organizer.lyr_age_source;
-  param.layers.lyr_desc = layer_organizer.lyr_desc;
-  param.layers.lyr_group_name = layer_organizer.lyr_group_name;
-  param.layers.lyr_id = layer_organizer.lyr_id;
-  param.layers.lyr_name = layer_organizer.lyr_name;
-  param.layers.lyr_order = layer_organizer.lyr_order;
+  
+  param.layers.lyr_age = layers.layer_organizer.lyr_age;
+  param.layers.lyr_age_source = layers.layer_organizer.lyr_age_source;
+  param.layers.lyr_desc = layers.layer_organizer.lyr_desc;
+  param.layers.lyr_group_name = layers.layer_organizer.lyr_group_name;
+  param.layers.lyr_id = layers.layer_organizer.lyr_id;
+  param.layers.lyr_name = layers.layer_organizer.lyr_name;
+  param.layers.lyr_order = layers.layer_organizer.lyr_order;
   
   [~,new_order] = sort(param.layers.lyr_order);
   param.layers.lyr_age = param.layers.lyr_age(new_order);
@@ -459,6 +195,7 @@ else
   param.layers.lyr_age_source = cell(size(param.layers.lyr_id)); % layer.age_source (struct vector of age sources)
   param.layers.lyr_desc = cellfun(@char,cell(size(param.layers.lyr_id)),'UniformOutput',false); % layer.desc (layer description string)
   param.layers.lyr_order = [1:length(param.layers.lyr_id)]; % layer.order (positive integer, 1 to N where N is the number of layers)
+  layers.layer_organizer = param.layers;
   
 end
 
@@ -471,12 +208,13 @@ if isempty(undo_stack_match_idx)
 end
 
 % Attach echowin to the undo stack
-obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(undo_stack_match_idx));
+cmds_list = obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(undo_stack_match_idx));
 % user_data: This is only used for param.layer_source == 'layerdata' except
 % for the field param.layer_source.
 obj.undo_stack_list(undo_stack_match_idx).user_data.layer_source = param.layer_source; % string containing layer source ('OPS' or 'layerdata')
+obj.undo_stack_list(undo_stack_match_idx).user_data.layer_data_source = param.layer_data_source; % string containing layer source ('OPS' or 'layerdata')
 obj.undo_stack_list(undo_stack_match_idx).user_data.layer_info = layer_info; % contains the layer twtt/name/quality/type/etc information
-obj.undo_stack_list(undo_stack_match_idx).user_data.layer_organizer = layer_organizer; % contains the layer parameters (age, desc, group_name, id, name, order)
+obj.undo_stack_list(undo_stack_match_idx).user_data.layer_organizer = layers.layer_organizer; % contains the layer parameters (age, desc, group_name, id, name, order)
 obj.undo_stack_list(undo_stack_match_idx).user_data.frame = param.frame; % contains the frame number for each point path id
 obj.undo_stack_list(undo_stack_match_idx).user_data.frame_idxs = param.frame_idxs; % contains the point number for each individual point in each frame
 obj.undo_stack_list(undo_stack_match_idx).user_data.filename = param.filename; % contains the frame filenames
@@ -490,6 +228,10 @@ catch ME
   set(obj.h_fig,'Pointer','Arrow');
   rethrow(ME);
 end
+
+% Since there may be commands in the undo stack already, we will run these
+% commands so that the new echowin is synced up with the stack.
+obj.echowin_list(echo_idx).cmds_set_undo_stack_after_draw(cmds_list);
 
 %% Cleanup
 set(obj.h_fig,'Pointer','Arrow');

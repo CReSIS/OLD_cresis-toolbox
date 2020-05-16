@@ -29,8 +29,8 @@ function S = music_cost_function(theta, param)
 %
 % NOTE: Currently only ideal steering vectors are supported. This could be 
 % improved by passing in LUT through the param structure.
-physical_constants
-k = 4*pi*param.fc/c;
+c = 2.997924580003452e+08; % physical_constants too slow
+k = 4*pi*param.fc*param.sv_dielectric/c;
 ky = k*sin(theta);
 kz = k*cos(theta);
 ky = ky(:).';

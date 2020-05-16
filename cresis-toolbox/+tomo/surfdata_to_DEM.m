@@ -75,7 +75,7 @@ if ~isdir(out_dir)
 end
 
 % Load frames file
-load(ct_filename_support(param,'','frames'));
+frames = frames_load(param);
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -146,7 +146,7 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Convert top from range bins to twtt (the top is needed with each
   % surface to handle refraction)
-  ice_top = interp1(1:length(mdata.Time), mdata.Time, sd.surf(ice_top_idx).y);
+  ice_top = sd.surf(ice_top_idx).y;
   % If no top defined, then assume top is a zero time (i.e.
   %   ground based radar operation with antenna at surface)
   if all(all(isnan(ice_top)))
@@ -169,7 +169,7 @@ for frm_idx = 1:length(param.cmd.frms)
     sd.surf(surface_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y) = sd.surf(ice_top_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y);
     
     % Convert surface from range bins to twtt
-    surface_twtt = interp1(1:length(mdata.Time), mdata.Time, sd.surf(surface_idx).y);
+    surface_twtt = sd.surf(surface_idx).y;
     % Apply spatial filtering
     if isfield(param.dem,'med_filt') && ~isempty(param.dem.med_filt)
       surface_twtt = medfilt2(surface_twtt,param.dem.med_filt);
@@ -192,15 +192,15 @@ for frm_idx = 1:length(param.cmd.frms)
     y_plane = zeros(size(y_active));
     z_plane = zeros(size(y_active));
     for rline = 1:size(y_active,2)
-      x_plane(:,rline) = mdata.param_array.array_proc.fcs{1}{1}.origin(1,rline) ...
-        + mdata.param_array.array_proc.fcs{1}{1}.y(1,rline) * y_active(:,rline) ...
-        + mdata.param_array.array_proc.fcs{1}{1}.z(1,rline) * z_active(:,rline);
-      y_plane(:,rline) = mdata.param_array.array_proc.fcs{1}{1}.origin(2,rline) ...
-        + mdata.param_array.array_proc.fcs{1}{1}.y(2,rline) * y_active(:,rline) ...
-        + mdata.param_array.array_proc.fcs{1}{1}.z(2,rline) * z_active(:,rline);
-      z_plane(:,rline) = mdata.param_array.array_proc.fcs{1}{1}.origin(3,rline) ...
-        + mdata.param_array.array_proc.fcs{1}{1}.y(3,rline) * y_active(:,rline) ...
-        + mdata.param_array.array_proc.fcs{1}{1}.z(3,rline) * z_active(:,rline);
+      x_plane(:,rline) = mdata.param_array.array_proc.fcs.origin(1,rline) ...
+        + mdata.param_array.array_proc.fcs.y(1,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_proc.fcs.z(1,rline) * z_active(:,rline);
+      y_plane(:,rline) = mdata.param_array.array_proc.fcs.origin(2,rline) ...
+        + mdata.param_array.array_proc.fcs.y(2,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_proc.fcs.z(2,rline) * z_active(:,rline);
+      z_plane(:,rline) = mdata.param_array.array_proc.fcs.origin(3,rline) ...
+        + mdata.param_array.array_proc.fcs.y(3,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_proc.fcs.z(3,rline) * z_active(:,rline);
     end
     
     % Convert from ECEF to geodetic
@@ -367,7 +367,7 @@ for frm_idx = 1:length(param.cmd.frms)
         DEM = F(xmesh,ymesh);
         
         % Interpolate to find gridded 3D image
-        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
+        img_3D_idxs = round(interp1(mdata.Time, 1:length(mdata.Time), sd.surf(surface_idx).y(:))) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
         img_3D = NaN*zeros(size(img_3D_idxs));
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
@@ -506,7 +506,7 @@ for frm_idx = 1:length(param.cmd.frms)
       % Interpolate to find gridded 3D image
       if ~doa_method_flag
         % Beamforming method
-        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
+        img_3D_idxs = round(interp1(mdata.Time, 1:length(mdata.Time), sd.surf(surface_idx).y(:))) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
         img_3D = NaN(size(img_3D_idxs));
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
@@ -564,9 +564,9 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Plot flightline
     [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
-      mdata.param_array.array_proc.fcs{1}{1}.origin(1,:), ...
-      mdata.param_array.array_proc.fcs{1}{1}.origin(2,:), ...
-      mdata.param_array.array_proc.fcs{1}{1}.origin(3,:),WGS84.ellipsoid);
+      mdata.param_array.array_proc.fcs.origin(1,:), ...
+      mdata.param_array.array_proc.fcs.origin(2,:), ...
+      mdata.param_array.array_proc.fcs.origin(3,:),WGS84.ellipsoid);
     fline.lat = fline.lat*180/pi;
     fline.lon = fline.lon*180/pi;
     [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);
@@ -625,7 +625,7 @@ for frm_idx = 1:length(param.cmd.frms)
       
       hA2 = axes;
       %hC = contourf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),12);
-      hC = sd.surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM)*0+25,double(DEM));
+      hC = surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM)*0+25,double(DEM));
       set(hC(1),'EdgeAlpha',0); grid off;
       %axis([2 38 0 10 zlims]);
       set(hA2,'Box','off');
@@ -641,7 +641,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(get(hc,'YLabel'),'String','Bed height (m)');
       
       hA = axes;
-      hS = sd.surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),double(1*DEM));
+      hS = surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),double(1*DEM));
       hA = gca; grid off;
       %axis([2 38 0 10 zlims]);
       set(hA,'Box','off');
@@ -677,7 +677,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(3,'Position',[50 50 500 500]);
       set(3,'Color',[1 1 1]);
       
-      hS = sd.surf((xaxis-xaxis(1))/1e3-2,(yaxis-yaxis(1))/1e3-1,double(DEM),double(DEM));
+      hS = surf((xaxis-xaxis(1))/1e3-2,(yaxis-yaxis(1))/1e3-1,double(DEM),double(DEM));
       hA = gca; grid off;
       %axis([0 36 0 10 zlims]);
       set(hA,'Box','off');

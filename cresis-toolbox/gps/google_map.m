@@ -5,6 +5,7 @@ classdef google_map
   %  x ranges from 0 to 256 and corresponds linearly to -180 to +180
   %   longitude
   %  y ranges from 0 to 256 and corresponds to -85.051128779806632 to +85.051128779806632
+  %  https://developers.google.com/maps/documentation/javascript/coordinates#world-coordinates
   %
   % Authors: Rohan Choudhari, John Paden
   

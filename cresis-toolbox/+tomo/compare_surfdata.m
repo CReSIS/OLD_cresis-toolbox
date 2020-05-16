@@ -64,7 +64,7 @@ fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM
 fprintf('=====================================================================\n');
 
 % Load frames file
-load(ct_filename_support(param,'','frames'));
+frames = frames_load(param);
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);

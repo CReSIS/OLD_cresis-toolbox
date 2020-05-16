@@ -168,29 +168,29 @@ for config_idx = 1:length(configs)
         out_config_fn = ct_filename_ct_tmp(param,'','headers', ...
           fullfile(config_folder_name, [out_config_fn_name '.xml']));
         fprintf('Copy %s\n  %s\n', configs(config_idx).config_fn,out_config_fn);
-        copyfile(configs(config_idx).config_fn,out_config_fn);
-        if ispc
-          try
+        try
+          copyfile(configs(config_idx).config_fn,out_config_fn);
+          if ispc
             fileattrib(out_config_fn,'+w');
-          end
-        else
-          try
+          else
             fileattrib(out_config_fn,'+w -x','ug');
           end
+        catch ME
+          warning(ME.getReport)
         end
         [~,out_config_fn_name,out_config_fn_ext] = fileparts(configs(config_idx).system_fn);
         out_config_fn = ct_filename_ct_tmp(param,'','headers', ...
           fullfile(config_folder_name, [out_config_fn_name '.xml']));
         fprintf('Copy %s\n  %s\n', configs(config_idx).system_fn,out_config_fn);
-        copyfile(configs(config_idx).system_fn,out_config_fn);
-        if ispc
-          try
+        try
+          copyfile(configs(config_idx).system_fn,out_config_fn);
+          if ispc
             fileattrib(out_config_fn,'+w');
-          end
-        else
-          try
+          else
             fileattrib(out_config_fn,'+w -x','ug');
           end
+        catch ME
+          warning(ME.getReport)
         end
       end
       

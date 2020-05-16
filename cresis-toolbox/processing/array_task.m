@@ -34,7 +34,7 @@ array_tmp_dir = fullfile(ct_filename_out(param, param.array.out_path, 'array_tmp
 %% Load surface layer
 % =========================================================================
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(param);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 
@@ -276,10 +276,8 @@ for img = 1:length(param.array.imgs)
           % Load next chunk data
           % ===============================================================
           
-          % If on the first chunk of the frame, then look at the previous
-          % frame. Special cases (like frm == 1 and empty
-          % param.load.prev_frm_num_chunks are handled by letting the file
-          % search fail).
+          % If on the last chunk of the frame, then look at the next 
+          % frame. Special case when frm > number-of-frames checked.
           if param.load.chunk_idx == param.load.num_chunks
             load_frm = param.load.frm+1;
             load_chunk_idx = 1;
@@ -298,7 +296,7 @@ for img = 1:length(param.array.imgs)
               sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
           end
           
-          if ~next_chunk_failed_flag && ~isempty(sar_type_fn)
+          if ~next_chunk_failed_flag && ~isempty(sar_type_fn) && load_frm <= length(frames.frame_idxs)
             % If file exists, then load it
             sar_data = load(sar_type_fn{1});
             
@@ -360,11 +358,11 @@ for img = 1:length(param.array.imgs)
   
   if prev_chunk_failed_flag
     % Remove prev chunk data
+    lat = lat(num_prev_chunk_rlines+1:end);
+    lon = lon(num_prev_chunk_rlines+1:end);
+    elev = elev(num_prev_chunk_rlines+1:end);
     for ml_idx = 1:length(ml_list)
       data{ml_idx} = data{ml_idx}(:,num_prev_chunk_rlines+1:end,:,:,:);
-      lat = lat(num_prev_chunk_rlines+1:end);
-      lon = lon(num_prev_chunk_rlines+1:end);
-      elev = elev(num_prev_chunk_rlines+1:end);
       for wf_adc = 1:size(wf_adc_list,1)
         fcs{ml_idx}{wf_adc}.origin = fcs{ml_idx}{wf_adc}.origin(:,num_prev_chunk_rlines+1:end);
         fcs{ml_idx}{wf_adc}.x = fcs{ml_idx}{wf_adc}.x(:,num_prev_chunk_rlines+1:end);
@@ -384,11 +382,11 @@ for img = 1:length(param.array.imgs)
   
   if next_chunk_failed_flag
     % Remove next chunk data
+    lat = lat(1:end-num_next_chunk_rlines);
+    lon = lon(1:end-num_next_chunk_rlines);
+    elev = elev(1:end-num_next_chunk_rlines);
     for ml_idx = 1:length(ml_list)
       data{ml_idx} = data{ml_idx}(:,1:end-num_next_chunk_rlines,:,:,:);
-      lat = lat(1:end-num_next_chunk_rlines);
-      lon = lon(1:end-num_next_chunk_rlines);
-      elev = elev(1:end-num_next_chunk_rlines);
       for wf_adc = 1:size(wf_adc_list,1)
         fcs{ml_idx}{wf_adc}.origin = fcs{ml_idx}{wf_adc}.origin(:,1:end-num_next_chunk_rlines);
         fcs{ml_idx}{wf_adc}.x = fcs{ml_idx}{wf_adc}.x(:,1:end-num_next_chunk_rlines);
@@ -408,7 +406,7 @@ for img = 1:length(param.array.imgs)
   
   %% Process: Fast-time oversampling
   % =======================================================================
-  if isfield(param.array,'ft_over_sample') && ~isempty(param.array.ft_over_sample)
+  if param.array.ft_over_sample ~= 1
     % param.array.ft_over_sample should be a positive integer
     for ml_idx = 1:length(data)
       data{ml_idx} = interpft(data{ml_idx},size(data{ml_idx},1) * param.array.ft_over_sample);
@@ -422,6 +420,7 @@ for img = 1:length(param.array.imgs)
       sar_data.wfs(wf).freq = sar_data.wfs(wf).fc ...
         + sar_data.wfs(wf).df * ifftshift( -floor(sar_data.wfs(wf).Nt/2) : floor((sar_data.wfs(wf).Nt-1)/2) ).';
     end
+    Time = sar_data.wfs(wf_base).time;
   end
   
   param.array_proc.chan_equal = chan_equal;
@@ -692,17 +691,18 @@ for img = 1:length(param.array.imgs)
   else
     file_version = '1';
   end
+  file_type = 'array_tmp';
   if ~param.array.tomo_en
     % Do not save tomographic 3D-image
     ct_save('-v7.3',array_fn,'Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
-      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');
   else
     % Save tomographic 3D-image
     Tomo = dout.tomo;
     ct_save('-v7.3',array_fn,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
-      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+      'param_sar', 'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');
   end
   
 end

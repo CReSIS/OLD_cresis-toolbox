@@ -16,13 +16,11 @@ function gps = read_gps_novatel(fn,param)
 %  fn = '/cresis/snfs1/dataproducts/metadata/2011_Greenland_TO/2011_Greenland_TO_GPSwINS/txt/rover_TC_diff_Greenland_20110331.gps';
 %  fn = '/cresis/snfs1/dataproducts/metadata/2011_Antarctica_TO/twinotter_diff_antarctica_20111129.txt';
 %  gps = read_gps_novatel(fn, struct('time_reference','gps'));
-%  plot_gps(gps);
+%  gps_plot(gps);
 %
 % Author: Huan Zhao, John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 % 2009 Antarctica TO FORMAT:
 % =========================================================================

@@ -891,7 +891,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 if any(strcmpi('gps_20110328.mat',out_fns))
   file_idx = find(strcmpi('gps_20110328.mat',out_fns))  

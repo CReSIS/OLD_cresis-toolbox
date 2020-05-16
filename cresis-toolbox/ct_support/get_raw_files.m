@@ -97,13 +97,10 @@ for img = 1:length(imgs)
 end
 
 % Load the records file
-records_fn = ct_filename_support(param,'','records');
-% load(records_fn);
-records = load(records_fn);
+records = records_load(param);
 
 % Load the frames file
-frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(param);
 
 %% Get the records associated with the frm or record
 if exist('rec_range','var') && ~isempty(rec_range)

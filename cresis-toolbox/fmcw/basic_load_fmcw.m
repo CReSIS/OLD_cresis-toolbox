@@ -20,7 +20,7 @@ function [hdr,data] = basic_load_fmcw(fn, param)
 %      used for skipping over "garbage" data at the front of the file
 %      (scalar integer)
 %   .records
-%     .en = Special field for create_records_fmcw_accum.m. If true, all
+%     .en = NOT USED. If true, all
 %       headers will be loaded and the output arguments become:
 %       hdr --> success flag (returns 1)
 %       data --> hdr (every header)

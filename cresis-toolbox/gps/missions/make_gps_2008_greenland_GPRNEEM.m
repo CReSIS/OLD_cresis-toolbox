@@ -95,7 +95,7 @@ gps_source = 'nmea';
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 if strcmpi(in_fns{file_idx}(end-11:end-4),'20080807')
     gps.time_offset = 9.1617;
 elseif strcmpi(in_fns{file_idx}(end-11:end-4),'20080808')

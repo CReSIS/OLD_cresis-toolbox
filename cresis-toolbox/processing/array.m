@@ -55,7 +55,8 @@ if ~isfield(param.array,'imgs') || isempty(param.array.imgs)
 end
 
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
+
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
@@ -101,8 +102,16 @@ if ~isfield(param.array,'chunk_len') || isempty(param.array.chunk_len)
   end
 end
 
+if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_averaged)
+  param.array.fcs_pos_averaged = true;
+end
+
 if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
   param.array.frm_types = {-1,-1,-1,-1,-1};
+end
+
+if ~isfield(param.array,'ft_over_sample') || isempty(param.array.ft_over_sample)
+  param.array.ft_over_sample = 1;
 end
 
 if ~isfield(param.array,'img_comb') || isempty(param.array.img_comb)
@@ -115,10 +124,6 @@ end
 
 if ~isfield(param.array,'out_path') || isempty(param.array.out_path)
   param.array.out_path = param.array.method;
-end
-
-if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_averaged)
-  param.array.fcs_pos_averaged = true;
 end
 
 if ~isfield(param.array,'presums') || isempty(param.array.presums)
@@ -196,8 +201,7 @@ end
 array_out_dir = ct_filename_out(param, param.array.out_path);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -251,7 +255,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
-  cpu_time_mult = 6e-9;
+  cpu_time_mult = 1e-9;
   mem_mult = 32;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
@@ -274,24 +278,33 @@ else
 end
 
 cpu_time_method_mult = 0;
+Nsv_mult = 0;
 for method_idx = 1:length(param.array.method)
   switch (param.array.method(method_idx))
     case STANDARD_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 1;
+      Nsv_mult = Nsv_mult + 0.2;
     case MVDR_METHOD
-      cpu_time_method_mult = cpu_time_method_mult + 4;
+      cpu_time_method_mult = cpu_time_method_mult + 1.5;
+      Nsv_mult = Nsv_mult + 0.2;
     case MUSIC_METHOD
-      cpu_time_method_mult = cpu_time_method_mult + 6;
+      cpu_time_method_mult = cpu_time_method_mult + 1.5;
+      Nsv_mult = Nsv_mult + 0.2;
     case GEONULL_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 8;
+      Nsv_mult = Nsv_mult + 0.2;
     case GSLC_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 8;
+      Nsv_mult = Nsv_mult + 0.2;
     case SNAPSHOT_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 32;
+      Nsv_mult = Nsv_mult + 0.2;
     case MLE_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 480;
+      Nsv_mult = Nsv_mult + 1;
     otherwise
       cpu_time_method_mult = cpu_time_method_mult + 1;
+      Nsv_mult = Nsv_mult + 0.2;
   end
 end
 cpu_time_mult = cpu_time_mult * cpu_time_method_mult;
@@ -380,7 +393,7 @@ for frm_idx = 1:length(param.cmd.frms);
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
     dparam.notes = sprintf('%s %s:%s:%s %s_%03d (%d of %d)/%d of %d', ...
-      sparam.task_function, array_proc_method_str(param.array.method(1)), param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      sparam.task_function, param.array.out_path, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       chunk_idx, num_chunks);
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the array task file success
@@ -402,7 +415,7 @@ for frm_idx = 1:length(param.cmd.frms);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.array.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*total_num_sam_output(img)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*total_num_sam_output(img)*cpu_time_mult/Nsv*(1 + (Nsv-1)*Nsv_mult);
       % Take the max of the input data size and the output data size
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
         + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );
@@ -467,7 +480,7 @@ for img = 1:length(param.array.imgs)
   end
 end
 sparam.notes = sprintf('%s %s:%s:%s %s combine frames', ...
-  sparam.task_function, array_proc_method_str(param.array.method(1)), param.radar_name, param.season_name, param.day_seg);
+  sparam.task_function, param.array.out_path, param.radar_name, param.season_name, param.day_seg);
 
 % Create success condition
 sparam.file_success = {};

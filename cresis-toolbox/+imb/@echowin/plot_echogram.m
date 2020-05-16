@@ -86,7 +86,7 @@ if yaxis_choice == 1 % TWTT
   % update yaxis and yaxis_time
   obj.eg.image_yaxis = obj.eg.time*1e6;
   % update y label
-  obj.eg.y_label = 'Two-way Propagation (\mus)';
+  obj.eg.y_label = 'Two-way propagation (\mus)';
   obj.eg.y_order = 'reverse';
   
 elseif yaxis_choice == 2 % WGS_84 Elevation

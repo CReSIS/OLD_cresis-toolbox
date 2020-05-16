@@ -14,7 +14,7 @@ function list_out = merge_filelists(list_in,list_override)
 % 
 % Author: John Paden
 %
-% See also: create_records_mcords, get_heights, csarp, combine_wf_chan
+% See also: 
 
 list_out = list_override;
 

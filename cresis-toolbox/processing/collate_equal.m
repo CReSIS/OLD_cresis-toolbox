@@ -31,6 +31,15 @@ if ~isfield(param.collate_equal,'cmd_idx') || isempty(param.collate_equal.cmd_id
 end
 cmd = param.analysis.cmd{param.collate_equal.cmd_idx};
 
+if ~isfield(param.collate_equal,'debug_out_dir') || isempty(param.collate_equal.debug_out_dir)
+  param.collate_equal.debug_out_dir = 'collate_equal';
+end
+debug_out_dir = param.collate_equal.debug_out_dir;
+
+if ~isfield(param.collate_equal,'debug_out_fn') || isempty(param.collate_equal.debug_out_fn)
+  param.collate_equal.debug_out_fn = 'analysis';
+end
+
 if ~isfield(param.collate_equal,'debug_plots')
   param.collate_equal.debug_plots = {'before_comp','after_comp','surf','final','visible','comp_image'};
 end
@@ -67,7 +76,7 @@ if ~isfield(param.collate_equal,'motion_comp_en') || isempty(param.collate_equal
 end
 
 if ~isfield(param.collate_equal,'out_path') || isempty(param.collate_equal.out_path)
-  param.collate_equal.out_path = 'analysis';
+  param.collate_equal.out_path = 'equal';
 end
 
 if ~isfield(param.collate_equal,'ref') || isempty(param.collate_equal.ref)
@@ -198,6 +207,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     plot_bins = zero_surf_bin;
     
     clf(h_fig(1));
+    set(h_fig(1),'Name','Power-Phase-Roll');
     pos = get(h_fig(1),'Position');
     set(h_fig(1),'Position',[pos(1:2) 700 800]);
     h_axes = subplot(3,1,1,'parent',h_fig(1));
@@ -208,7 +218,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     h_axes(2) = subplot(3,1,2,'parent',h_fig(1));
     plot(h_axes(2), 180/pi*angle(wf_data(plot_bins,:,debug_wf_adc_idx) .* conj(wf_data(plot_bins,:,ref_wf_adc_idx)) ).','.')
     grid(h_axes(2),'on');
-    ylabel(h_axes(2),'Relative angle (deg)');
+    ylabel(h_axes(2),'Relative phase (deg)');
     h_axes(3) = subplot(3,1,3,'parent',h_fig(1));
     plot(h_axes(3),180/pi*roll.');
     grid(h_axes(3),'on');
@@ -216,6 +226,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     xlabel(h_axes(3),'Range line');
     
     clf(h_fig(2));
+    set(h_fig(2),'Name','Echogram-Surface');
     h_axes(4) = subplot(3,1,1:2,'parent',h_fig(2));
     imagesc(lp(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
     ylabel(h_axes(4), 'Relative range bin');
@@ -226,6 +237,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     grid(h_axes(5), 'on');
     
     clf(h_fig(3));
+    set(h_fig(3),'Name','Relative Angle');
     h_axes(6) = axes('parent',h_fig(3));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);
@@ -265,25 +277,25 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     linkaxes(h_axes,'x');
     xlim(h_axes(1), [1 size(wf_data,2)]);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_single_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_single_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
     ct_saveas(h_fig(1),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_single_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_single_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_surface_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_surface_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_all_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_before_all_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
     
@@ -296,8 +308,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   
   %% Retrack surface
   % =====================================================================
-  if param.collate_equal.retrack_en
-    ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
+  ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
+  if ~param.collate_equal.retrack_en
+    surf_bin = zero_surf_bin*ones(1,Nx);
+  else
     
     surf_param = param;
     surf_param.cmd.frms = 1;
@@ -325,6 +339,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   
   if any(strcmp('surf',param.collate_equal.debug_plots))
     clf(h_fig(1));
+    set(h_fig(1),'Name','Echogram');
     h_axes = axes('parent',h_fig(1));
     imagesc(lp(ml_data),'parent',h_axes(1));
     colormap(h_axes(1),1-gray(256));
@@ -335,6 +350,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if param.collate_equal.retrack_en
       % Check to make sure surface is flat
       clf(h_fig(2));
+      set(h_fig(2),'Name','Echogram Surface Corrected');
       h_axes(2) = axes('parent',h_fig(2));
       imagesc(lp(fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1)),'parent',h_axes(2));
       colormap(h_axes(2),1-gray(256));
@@ -342,7 +358,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       linkaxes(h_axes);
     end
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track1_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_track1_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
@@ -350,9 +366,13 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     end
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track2_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
-    fprintf('Saving %s\n', fig_fn);
-    ct_saveas(h_fig(2),fig_fn);
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_track2_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
+    if param.collate_equal.retrack_en
+      fprintf('Saving %s\n', fig_fn);
+      ct_saveas(h_fig(2),fig_fn);
+    elseif exist(fig_fn,'file')
+      delete(fig_fn);
+    end
     
     if enable_visible_plot
       keyboard
@@ -492,6 +512,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     plot_bins = zero_surf_bin;
     
     clf(h_fig(1));
+    set(h_fig(1),'Name','Power-Phase-Roll');
     pos = get(h_fig(1),'Position');
     set(h_fig(1),'Position',[pos(1:2) 700 800]);
     h_axes = subplot(3,1,1,'parent',h_fig(1));
@@ -510,6 +531,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     xlabel(h_axes(3),'Range line');
     
     clf(h_fig(2));
+    set(h_fig(2),'Name','Echogram-Surface');
     h_axes(4) = subplot(3,1,1:2,'parent',h_fig(2));
     imagesc(lp(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
     ylabel(h_axes(4), 'Relative range bin');
@@ -520,6 +542,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     grid(h_axes(5), 'on');
     
     clf(h_fig(3));
+    set(h_fig(3),'Name','Relative Phase');
     h_axes(6) = subplot(3,1,1:2,'parent',h_fig(3));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);
@@ -568,25 +591,25 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       xlim(h_axes(1), [1 size(wf_data,2)]);
     end
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_single_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_single_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
     ct_saveas(h_fig(1),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_single_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_single_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_surface_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_surface_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_all_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_after_all_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
     
@@ -734,28 +757,28 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     set(h_fig(2),'Position',[pos{2}(1:2) 700 pos{2}(4)]);
     set(h_fig(3),'Position',[pos{3}(1:2) 700 pos{3}(4)]);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_amp_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_amp_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     fig_fn_dir = fileparts(fig_fn);
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
     ct_saveas(h_fig(1),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_amp_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_amp_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(1),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_phase_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_phase_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(2),fig_fn);
     
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_path,img)) '.fig'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_time_img_%02d',param.collate_equal.debug_out_fn,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
-    fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_path,img)) '.jpg'];
+    fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_time_img_%02d',param.collate_equal.debug_out_fn,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     ct_saveas(h_fig(3),fig_fn);
     
@@ -863,7 +886,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if any(strcmp('final',param.collate_equal.debug_plots))
       sw_version = current_software_version;
       
-      diary_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_table_img_%02d',param.collate_equal.out_path,img)) '.txt'];
+      diary_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_table_img_%02d_wf_%02d',param.collate_equal.debug_out_fn,img,wf)) '.txt'];
       fid = fopen(diary_fn,'wb');
       for fid = [1 fid]
         if fid == 1; fid_error = 2; else fid_error = fid; end;
@@ -912,7 +935,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   
   %% Save Results
   % =========================================================================
-  equal_fn_dir = ct_filename_out(param,'equal','',1);
+  equal_fn_dir = ct_filename_out(param,param.collate_equal.out_path,'',1);
   if ~exist(equal_fn_dir)
     mkdir(equal_fn_dir);
   end
@@ -920,8 +943,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   equal.param_equal = param;
   equal.in_fn = dir(fn);
   equal.sw_version = current_software_version;
+  equal.file_version = '1';
+  equal.file_type = 'equal';
   fprintf('Saving %s\n', equal_fn);
-  save(equal_fn,'-struct','equal');
+  ct_save(equal_fn,'-struct','equal');
   
 end
 

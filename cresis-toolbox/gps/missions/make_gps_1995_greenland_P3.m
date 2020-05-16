@@ -98,7 +98,7 @@ gps_source{file_idx} = 'nmea-field';
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 %% No GPS Data Available: Fix GPS elevation information
 match_idx = strmatch('gps_19950523.mat',out_fns,'exact');

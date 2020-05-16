@@ -107,6 +107,53 @@ function gps = read_gps_general_ascii(fn,param)
 % param.time_reference = 'utc';
 % gps = read_gps_general_ascii(fn,param);
 %
+% % Example 7: Technical University of Denmark, National Space Institute,Sine Munk Hvidegaard (2019_Greenland_TO)
+%
+%   TimeOfDay(UTC) PosLat(deg) PosLon(deg) PosHeight(m) AnglePitch(deg) AngleRoll(deg) Heading(deg), Non relevant interger
+%   10.9500533  65.6525285  -18.0744854    64.79   1.302  -0.879   -6.153  0
+%
+% fn = '/cresis/snfs1/dataproducts/metadata/2019_Greenland_TO/222_gpsegi.pos';
+% param = [];
+% param.format_str = '%f%f%f%f%f%f%f%f';
+% param.types = {'hour','lat_deg','lon_deg','elev_m','pitch_deg','roll_deg','heading_deg','non_relevant_int'};
+% param.textscan = {};
+% param.headerlines = 0;
+% param.time_reference = 'utc';
+% param.year = 2019;
+% param.month = 8;
+% param.day = 10;
+% gps = read_gps_general_ascii(fn,param);
+%
+% % Example 8: CReSIS/University of Kansas Novatel Inertial Explorer Custom Output without IMU (2019_Antarctica_Ground)
+%
+%      Date     GPSTime       Latitude       Longitude        H-Ell           Roll          Pitch        Heading      SDNorth       SDEast     SDHeight
+%     (YMD)       (HMS)          (Deg)           (Deg)          (m)          (Deg)          (Deg)          (Deg)          (m)          (m)          (m)
+% 2020/01/06 21:04:35.03 -86.1831485554 -107.5646197725     2581.715  -0.7619420000  -2.9489170000  32.0370050000        0.003        0.003        0.006
+%
+% fn = 'ie_20200106_01_ver1.txt';
+% param = [];
+% param.format_str = '%s%s%f%f%f%f%f%f%f%f%f';
+% param.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+% param.textscan = {};
+% param.headerlines = 15;
+% param.time_reference = 'gps';
+% gps = read_gps_general_ascii(fn,param);
+%
+% % Example 9: CReSIS/University of Kansas Novatel Inertial Explorer Custom Output with IMU (2019_Antarctica_Ground)
+%
+%      Date     GPSTime       Latitude       Longitude        H-Ell           Roll          Pitch        Heading      SDNorth       SDEast     SDHeight
+%     (YMD)       (HMS)          (Deg)           (Deg)          (m)          (Deg)          (Deg)          (Deg)          (m)          (m)          (m)
+% 2020/01/06 21:04:35.03 -86.1831485554 -107.5646197725     2581.715  -0.7619420000  -2.9489170000  32.0370050000        0.003        0.003        0.006
+%
+% fn = 'ie_20200106_01_ver2.txt';
+% param = [];
+% param.format_str = '%s%s%f%f%f%f%f%f%f%f%f';
+% param.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+% param.textscan = {};
+% param.headerlines = 21;
+% param.time_reference = 'gps';
+% gps = read_gps_general_ascii(fn,param);
+%
 % Author: John Paden
 
 [fid,msg] = fopen(fn,'r');

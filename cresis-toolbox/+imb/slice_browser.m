@@ -79,7 +79,7 @@ classdef slice_browser < handle
   
   methods
     %% constructor/slice_browser:
-    function obj = slice_browser(data,h_control_image,param)
+    function obj = slice_browser(mdata,h_control_image,param)
       if ~exist('param','var')
         param = [];
       end
@@ -110,7 +110,7 @@ classdef slice_browser < handle
       end
       undo_param.id = [];
       obj.undo_stack = imb.undo_stack(undo_param);
-      obj.data = data;
+      obj.data = 10*log10(mdata.Tomo.img);
       obj.slice = 1;
       obj.plot_visibility = true;
       obj.bounds_relative = param.bounds_relative;
@@ -125,13 +125,11 @@ classdef slice_browser < handle
       %start(obj.slice_tool.timer)
       
       % Load surface data
-      if isfield(param,'surfdata_fn') && ~isempty(param.surfdata_fn)
-        obj.sd = tomo.surfdata(param.surfdata_fn,param);
-        obj.surfdata_fn = param.surfdata_fn;
-      else
-        obj.sd = tomo.surfdata(param);
-        obj.surfdata_fn = '';
-      end
+      obj.sd = tomo.surfdata(param.surfdata_fn);
+      obj.sd.theta = mdata.Tomo.theta(:,1);
+      obj.sd.time = mdata.Time;
+      obj.sd.units('bins');
+      obj.surfdata_fn = param.surfdata_fn;
       
       if ~isempty(h_control_image)
         obj.h_control_is_child = false;
@@ -144,7 +142,7 @@ classdef slice_browser < handle
         obj.h_control_axes = axes('Parent',obj.h_control_fig,'YDir','reverse');
         hold(obj.h_control_axes,'on');
         if ~param.doa_method_flag
-          obj.h_control_image = imagesc(squeeze(obj.data(:,floor(size(data,2)/2)+1,:)),'Parent',obj.h_control_axes);
+          obj.h_control_image = imagesc(squeeze(obj.data(:,floor(size(obj.data,2)/2)+1,:)),'Parent',obj.h_control_axes);
           colormap(obj.h_control_axes,parula(256));
           xlabel(obj.h_control_axes,'Along-track range line');
           ylabel(obj.h_control_axes,'Range bin');
@@ -888,17 +886,13 @@ classdef slice_browser < handle
             end
             
           case 'period'
-            if ~obj.shift_pressed
-              obj.change_slice(obj.slice + 5,false);
-            else
-              obj.change_slice(obj.slice + 1,false);
-            end
+            obj.change_slice(obj.slice + 1,false);
           case 'comma'
-            if ~obj.shift_pressed
-              obj.change_slice(obj.slice - 5,false);
-            else
-              obj.change_slice(obj.slice - 1,false);
-            end
+            obj.change_slice(obj.slice - 1,false);
+          case 'l'
+            obj.change_slice(obj.slice - 5,false);
+          case 'semicolon'
+            obj.change_slice(obj.slice + 5,false);
             
           case 'delete'
             surf_idx = get(obj.gui.surfaceLB,'Value');

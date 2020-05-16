@@ -71,6 +71,11 @@ if strcmpi(example_setup,'vertical')
   %   DEM points needed to properly represent the surface.
   tomo_collate.dem_per_slice_guard = 240;
   
+  % .ground_based_flag: logical default is false, if true data are treated
+  % as ground based and surface twtt and ice_mask are set to zero and one
+  % for all pixels respectively.
+  tomo_collate.ground_based_flag = false;
+  
   % .bounds_relative: DOA bins and along-track slices to trim off from each edge [top bottom left right]
   tomo_collate.bounds_relative = [3 2 0 0];
   
@@ -159,6 +164,11 @@ elseif strcmpi(example_setup,'horizontal')
   %   Setting too high slows the process down, setting too low will miss
   %   DEM points needed to properly represent the surface.
   tomo_collate.dem_per_slice_guard = 240;
+  
+  % .ground_based_flag: logical default is false, if true data are treated
+  % as ground based and surface twtt and ice_mask are set to zero and one
+  % for all pixels respectively.
+  tomo_collate.ground_based_flag = false;
   
   % .bounds_relative: DOA bins and along-track slices to trim off from each edge [top bottom left right]
   tomo_collate.bounds_relative = [3 2 0 0];
@@ -333,6 +343,11 @@ elseif strcmpi(example_setup,'grid')
   %   Setting too high slows the process down, setting too low will miss
   %   DEM points needed to properly represent the surface.
   tomo_collate.dem_per_slice_guard = 240;
+  
+  % .ground_based_flag: logical default is false, if true data are treated
+  % as ground based and surface twtt and ice_mask are set to zero and one
+  % for all pixels respectively.
+  tomo_collate.ground_based_flag = false;
   
   % .bounds_relative: DOA bins and along-track slices to trim off from each edge [top bottom left right]
   tomo_collate.bounds_relative = [3 2 0 0];

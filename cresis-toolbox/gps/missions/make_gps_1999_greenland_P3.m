@@ -127,7 +127,7 @@ file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
 gps_source{file_idx} = 'nmea-field'; 
  
-make_gps;
+gps_make;
 match_idx = strmatch('gps_19950518.mat',out_fns,'exact');
 if ~isempty(match_idx)
   gps_fn = fullfile(gps_path,out_fns{match_idx});

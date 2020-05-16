@@ -4,15 +4,25 @@ function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 % Function specified in sv_fh column of array worksheet of param
 % spreadsheet for use with array_proc.
 %
-% Nsv = number of steering vectors to create
-% fc = center frequency (Hz)
-% yAnt,zAnt = phase centers from lever arm (note this includes tx and
+% Nsv: Several Options:
+%   Nsv is a cell array:
+%     Nsv{1}: 'theta'
+%     Nsv{2}: theta vector (radians) of angles at which steering vectors
+%       will be made.
+%   Nsv is numeric scalar:
+%     Contains the number of uniformily sampled in wavenumber space
+%     steering vectors will be created.
+% fc: center frequency (Hz)
+%   To adjust the dielectric of the steering vectors, pass in the effective
+%   center frequency after considering the dielectric. For example:
+%     fc_effective = fc_actual*sqrt(relative_dielectric)
+% yAnt,zAnt: phase centers from lever arm (note this includes tx and
 %   rx positions, so nyquist sampling is quarter wavelength for the
 %   phase centers because of two way propagation... i.e. k = 4*pi*fc/c)
 %   These are Ny by 1 vectors
-% roll = roll information (aircraft attitude)
-% LUT = measured steering vectors lookup table
-% rx_paths = active receive adcs
+% roll: roll information (aircraft attitude)
+% LUT: measured steering vectors lookup table
+% rx_paths: active receive adcs
 %
 % sv = steering vector of size Ny by Nsv
 % theta = incidence angle vector of size 1 by Nsv, defined by atan2(ky,kz)
@@ -32,7 +42,7 @@ function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 % Decide ideal or measured steering vectors generation
 ni = nargin;
 % Creation of linear steering vector for 2D arbitrary array
-physical_constants;
+c = 2.997924580003452e+08; % physical_constants too slow
 % Wavenumber for two way propagation
 k = 4*pi*fc/c;
 

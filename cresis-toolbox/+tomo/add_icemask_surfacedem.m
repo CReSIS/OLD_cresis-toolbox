@@ -85,12 +85,10 @@ dec_idxs = round(linspace(1,Nx,min(Nx,200)));
 physical_constants;
 [latb,lonb] = bufferm(mdata.Latitude(dec_idxs),mdata.Longitude(dec_idxs),param.tomo_collate.dem_guard/WGS84.semimajor*180/pi);
 gdem_str = sprintf('%s:%s:%s_%03d',param.radar_name,param.season_name,param.day_seg,param.load.frm);
-if ~strcmpi(gdem_str,gdem.name)
-  gdem.set_vector(latb,lonb,gdem_str);
-end
-
 gdem.set_vector(latb,lonb,gdem_str);
+
 [DEM,msl,ocean_mask,proj,DEM_x,DEM_y] = gdem.get_vector_mosaic(100);
+% fprintf('The dem_class found that %.f%% of the area is ocean. If this is incorrect set param.tomo_collate.ocean_mask to 0. Default is NaN which automates the mask')
 DEM(ocean_mask) = msl(ocean_mask);
 [mdata.x,mdata.y] = projfwd(proj,mdata.Latitude,mdata.Longitude);
 
@@ -147,11 +145,16 @@ else
 end
 
 if all(all(isnan(DEM)))
-  warning('Input DEM contains all NaN data for Frame %d.',param.proc.frm);
+  warning('Input DEM contains all NaN data for Frame %d.',param.load.frm);
   twtt(:,:) = NaN;
   Nx = 0;
 end
-  
+
+if param.tomo_collate.ground_based_flag == true
+  ice_mask = ones(Nsv,Nx);
+  twtt = zeros(Nsv,Nx);
+
+else
 DEM_coverage_warning = false;
 for rline = 1:Nx
   if ~mod(rline-1,10^floor(log10(Nx)-1))
@@ -165,7 +168,7 @@ for rline = 1:Nx
   DEM_idxs = find(DEM_mask);
   
   if numel(DEM_idxs)==0
-    warning('Range Line %d of Frame %d is not spanned by DEM.',rline,param.proc.frm);
+    warning('Range Line %d of Frame %d is not spanned by DEM.',rline,param.load.frm);
   end
   
   if 0
@@ -180,12 +183,12 @@ for rline = 1:Nx
   physical_constants;
   [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
   
-  origin = mdata.param_array.array_proc.fcs{1}{1}.origin(:,rline);
+  origin = mdata.param_array.array_proc.fcs.origin(:,rline);
   
   % Convert from ECEF to FCS/SAR
-  Tfcs_ecef = [mdata.param_array.array_proc.fcs{1}{1}.x(:,rline), ...
-    mdata.param_array.array_proc.fcs{1}{1}.y(:,rline), ...
-    mdata.param_array.array_proc.fcs{1}{1}.z(:,rline)];
+  Tfcs_ecef = [mdata.param_array.array_proc.fcs.x(:,rline), ...
+    mdata.param_array.array_proc.fcs.y(:,rline), ...
+    mdata.param_array.array_proc.fcs.z(:,rline)];
   Tecef_fcs = inv(Tfcs_ecef);
   
   tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
@@ -296,6 +299,7 @@ for rline = 1:Nx
     keyboard
   end
   
+end
 end
 
 if 0

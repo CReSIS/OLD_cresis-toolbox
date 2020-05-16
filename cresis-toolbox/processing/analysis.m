@@ -38,11 +38,6 @@ if ~isfield(param,'analysis') || isempty(param.analysis)
   error('The analysis field (worksheet) is missing.');
 end
 
-if ~isfield(param.analysis,'bit_mask') || isempty(param.analysis.bit_mask)
-  % Set to 3 to mask out stationary and bad records (useful for coherent noise estimation on ground based data that may have stationary records)
-  param.analysis.bit_mask = 1;
-end
-
 if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
   param.analysis.block_size = 6000;
 end
@@ -64,15 +59,22 @@ if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
   param.analysis.presums = 1;
 end
 
+if ~isfield(param.analysis,'resample') || isempty(param.analysis.resample)
+  param.analysis.resample = [1 1; 1 1];
+end
+if ~isequal(param.analysis.resample(2,1:2),[1 1])
+  error('The bottom row of param.analysis.resample must be [1 1] because resampling in the along-track is not supported. Use line_rng and dline instead.');
+end
+
 if ~isfield(param.analysis,'surf_layer') || isempty(param.analysis.surf_layer)
   param.analysis.surf_layer.name = 'surface';
-  param.analysis.surf_layer.source = 'layerData';
+  param.analysis.surf_layer.source = 'layerdata';
 end
 % Never check for the existence of files
 param.analysis.surf_layer.existence_check = false;
 
 % For each command in the list, set its default settings
-enabled_cmds = 0;
+enabled_cmds = {};
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};
   
@@ -82,7 +84,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
   if ~cmd.en
     continue;
   end
-  enabled_cmds = enabled_cmds + 1;
   
   if ~isfield(cmd,'out_path') || isempty(cmd.out_path)
     cmd.out_path = param.analysis.out_path;
@@ -290,11 +291,23 @@ for cmd_idx = 1:length(param.analysis.cmd)
   
   % Update the command structure
   param.analysis.cmd{cmd_idx} = cmd;
+  enabled_cmds{end+1} = cmd.method;
 end
 
-if enabled_cmds == 0
+if isempty(enabled_cmds)
   ctrl_chain = {};
   return;
+end
+
+if ~isfield(param.analysis,'bit_mask') || isempty(param.analysis.bit_mask)
+  % Set to 3 to mask out stationary and bad records (useful for coherent noise estimation on ground based data that may have stationary records)
+  if all(strcmp('coh_noise',enabled_cmds))
+    % If coherent noise only command, the default is 3
+    param.analysis.bit_mask = 3;
+  else
+    % Otherwise the default is 1
+    param.analysis.bit_mask = 1;
+  end
 end
 
 %% Setup processing
@@ -303,12 +316,8 @@ end
 % Get the standard radar name
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
-% Load frames file
-load(ct_filename_support(param,'','frames'));
-
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 % Apply presumming
 if param.analysis.presums > 1
   records.lat = fir_dec(records.lat,param.analysis.presums);
@@ -318,7 +327,6 @@ if param.analysis.presums > 1
   records.pitch = fir_dec(records.pitch,param.analysis.presums);
   records.heading = fir_dec(records.heading,param.analysis.presums);
   records.gps_time = fir_dec(records.gps_time,param.analysis.presums);
-  records.surface = fir_dec(records.surface,param.analysis.presums);
 end
 
 % Compute all estimates with pulse compressed numbers even though raw data
@@ -593,8 +601,8 @@ for break_idx = 1:length(breaks)
   
   % Rerun only mode: Test to see if we need to run this task
   % =================================================================
-  dparam.notes = sprintf('%s%s:%s:%s %s %d of %d recs %d-%d', ...
-    mfilename, cmd_method_str, param.radar_name, param.season_name, param.day_seg, ...
+  dparam.notes = sprintf('%s%s %s:%s:%s %s %d of %d recs %d-%d', ...
+    mfilename, cmd_method_str, param.analysis.cmd{1}.out_path, param.radar_name, param.season_name, param.day_seg, ...
     break_idx, length(breaks), actual_cur_recs);
   if ctrl.cluster.rerun_only
     % If we are in rerun only mode AND the analysis task file success
@@ -706,8 +714,8 @@ for img = 1:length(param.analysis.imgs)
   end
 end
 sparam.file_success = combine_file_success;
-sparam.notes = sprintf('%s:%s:%s %s combine', ...
-  mfilename, param.radar_name, param.season_name, param.day_seg);
+sparam.notes = sprintf('%s %s:%s:%s %s combine', ...
+  mfilename, param.analysis.cmd{1}.out_path, param.radar_name, param.season_name, param.day_seg);
 
 ctrl = cluster_new_task(ctrl,sparam,[]);
 

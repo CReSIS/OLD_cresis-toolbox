@@ -104,7 +104,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 %% No GPS Data Available: Fakes GPS position information
 match_idx = strmatch('gps_20160331.mat',out_fns,'exact');

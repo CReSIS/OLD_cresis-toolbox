@@ -4,9 +4,9 @@
 %
 % This function searches through all the raw files and finds zero blocks.
 % The zero blocks were caused by an error in the data archival scripts.
-% This function's output is used by remove_zero_blocks_from_records.
+% This function's output is used by records_remove_zero_blocks.
 %
-% See also: remove_zero_blocks_from_records.m
+% See also: records_remove_zero_blocks.m
 
 % fn = '/N/dc/projects/cresis/2012_Chile_DC8/mcords/20121025/board0/mcords2_0_20121025_135855_00_0001.bin'
 

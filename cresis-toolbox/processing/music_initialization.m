@@ -29,8 +29,6 @@ function out = music_initialization(Rxx,param)
 % See also: array_proc.m, music_cost_function.m
 % =========================================================================
 
-physical_constants
-
 [V,D]                   = eig(Rxx);
 eigenVals               = diag(D);
 [eigenVals, eigenValIdxs]  = sort(real(eigenVals),'descend');

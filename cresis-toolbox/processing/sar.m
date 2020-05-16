@@ -35,7 +35,7 @@ fprintf('=====================================================================\n
 physical_constants;
 
 % Remove frames that do not exist from param.cmd.frms list
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
@@ -46,6 +46,11 @@ if length(valid_frms) ~= length(param.cmd.frms)
   warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
     param.cmd.frms(find(bad_mask,1)));
   param.cmd.frms = valid_frms;
+end
+
+if ~isfield(param.sar,'bit_mask') || isempty(param.sar.bit_mask)
+  % Remove bad records (bit_mask==1) and stationary records (bit_mask==2)
+  param.sar.bit_mask = 3;
 end
 
 if ~isfield(param.sar,'combine_rx') || isempty(param.sar.combine_rx)
@@ -65,7 +70,8 @@ if ~isfield(param.sar,'wf_adc_pair_task_group_method') || isempty(param.sar.wf_a
   %   parallelization at the cost of increased disk IO
   % 'img': One image per task, most constant amount of memory required for
   %   each SAR image being produced by a single task, may increase
-  %   disk IO.
+  %   disk IO. This is the default and usually the best setting unless disk
+  %   IO or memory are very important to minimize.
   % 'board': All images for a board in one task, least disk IO and maximum
   %   memory
   param.sar.wf_adc_pair_task_group_method = 'img';
@@ -173,8 +179,7 @@ end
 [~,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn);
+records = records_load(param);
 if any(isnan(records.gps_time)) ...
     || any(isnan(records.lat)) ...
     || any(isnan(records.lon)) ...
@@ -184,6 +189,17 @@ if any(isnan(records.gps_time)) ...
     || any(isnan(records.heading))
   error('NaN in records gps_time, trajectory, or attitude is not allowed for SAR processing.');
 end
+% Determine records bad mask (especially important for removing stationary
+% records and correct computation of cluster resources). All boards must
+% be bad for a record to be discarded.
+good_recs = records.bit_mask(1,:) & param.sar.bit_mask;
+for board_idx = 2:size(records.bit_mask,1)
+  good_recs = bitand(good_recs,records.bit_mask(board_idx,:) & param.sar.bit_mask);
+end
+% At this point good_recs is "true" for a particular record if all boards
+% are bad for that record. Now we find the indices of the records that are
+% false (i.e. at least one good board).
+good_recs = find(~good_recs);
 % Apply presumming
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -193,10 +209,11 @@ if param.sar.presums > 1
   records.pitch = fir_dec(records.pitch,param.sar.presums);
   records.heading = fir_dec(records.heading,param.sar.presums);
   records.gps_time = fir_dec(records.gps_time,param.sar.presums);
-  records.surface = fir_dec(records.surface,param.sar.presums);
 end
 % Along-track
-along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
+along_track_approx = nan(size(records.gps_time));
+along_track_approx(good_recs) = geodetic_to_along_track(records.lat(good_recs),records.lon(good_recs),records.elev(good_recs));
+along_track_approx = interp_finite(along_track_approx);
 
 % SAR output directory
 sar_out_dir = ct_filename_out(param, param.sar.out_path);
@@ -212,11 +229,32 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 
 %% Create the SAR coordinate system (used for structuring processing)
 % =====================================================================
+  
+% Load surface from layerdata
+tmp_param = param;
+tmp_param.cmd.frms = [];
+surf_layer = opsLoadLayers(tmp_param,param.sar.surf_layer);
+if isempty(surf_layer.gps_time)
+  records.surface(:) = 0;
+elseif length(surf_layer.gps_time) == 1
+  records.surface(:) = surf_layer.twtt;
+else
+  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time),0);
+end
 
 sar_fn = fullfile(sar_coord_dir,'sar_coord.mat');
 fprintf('sar_coord_task %s (%s):\n  %s\n', datestr(now), param.day_seg, sar_fn);
 if exist(sar_fn,'file')
-  sar_fields = {'Lsar','gps_source','gps_time_offset','type','sigma_x','presums','version','along_track'};
+  sar_fields = whos('-file',sar_fn);
+  if any(strcmp('version',{sar_fields.name}))
+    warning('Old SAR coordinate file. Updating file_version and file_type fields in file.');
+    fcs = load(sar_fn);
+    fcs = rmfield(fcs,'version');
+    fcs.file_version = '1';
+    fcs.file_type = 'sar_coord';
+    ct_save(sar_fn,'-struct','fcs');
+  end
+  sar_fields = {'Lsar','gps_source','gps_time_offset','type','sigma_x','presums','file_version','file_type','along_track'};
   fcs = load(sar_fn,sar_fields{:});
   for sar_field = sar_fields
     if ~isfield(fcs,sar_field{1})
@@ -232,7 +270,7 @@ if ~exist(sar_fn,'file') ...
     || fcs.type ~= param.sar.mocomp.type ...
     || fcs.sigma_x ~= param.sar.sigma_x ...
     || fcs.presums ~= param.sar.presums ...
-    || fcs.version ~= 1.0
+    || fcs.file_version(1) ~= '1'
   %% SAR coordinates file does not exist or needs to be recreated
   
   ctrl = cluster_new_batch(param);
@@ -254,8 +292,8 @@ if ~exist(sar_fn,'file') ...
   sparam.cpu_time = 60 + Nx*cpu_time_mult;
   records_var = whos('records');
   sparam.mem = 250e6 + records_var.bytes*mem_mult;
-  sparam.notes = sprintf('%s:%s:%s %s', ...
-    sparam.task_function, param.radar_name, param.season_name, param.day_seg);
+  sparam.notes = sprintf('%s %s:%s:%s %s', ...
+    sparam.task_function, param.sar.out_path, param.radar_name, param.season_name, param.day_seg);
     
   % Create success condition
   success_error = 64;
@@ -284,22 +322,25 @@ else
     end
   end
   
-  % Load surface from layerdata
-  tmp_param = param;
-  tmp_param.cmd.frms = [];
-  surf_layer = opsLoadLayers(tmp_param,param.sar.surf_layer);
-  if isempty(surf_layer.gps_time)
-    records.surface(:) = 0;
-  elseif length(surf_layer.gps_time) == 1
-    records.surface(:) = surf_layer.twtt;
+  frame_length = round(param.sar.surf_filt_dist / median(diff(fcs.along_track(surf_idxs)))/2)*2+1;
+  if length(surf_idxs) <= 3
+    % Handle too short segment
+    error('This data is too short in along-track length (possibly stationary data) to be SAR processed.');
+  elseif length(surf_idxs) < frame_length
+    % Handle very short segment
+    if mod(length(surf_idxs),2) == 0
+      % Even length(surf_idxs), but sgolayfilt filter must be odd length
+      surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs)-1);
+    else
+      surf = sgolayfilt(records.surface(surf_idxs),3,length(surf_idxs));
+    end
   else
-    records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time),0);
+    % Handle normal segment
+    surf = sgolayfilt(records.surface(surf_idxs),3,frame_length);
   end
-
-  surf = sgolayfilt(records.surface(surf_idxs),3,round(param.sar.surf_filt_dist / median(diff(fcs.along_track(surf_idxs)))/2)*2+1);
   fcs.surf_pp = spline(fcs.along_track(surf_idxs),surf);
   
-  fprintf('  Exists. Updating with new surface values from param.sar.surf_layer.\n');
+  fprintf('  Exists. Updating with current surface values from param.sar.surf_layer.\n');
   save(sar_fn,'-append','-struct','fcs','surf_pp');
 end
 
@@ -321,10 +362,10 @@ if param.sar.combine_rx
   end
   
 else
-  % One SAR image per wf-adc pair
-  
   if strcmpi(param.sar.wf_adc_pair_task_group_method,'one')
-    % One SAR image per task
+    % One SAR image task per wf-adc pair. This requires the least memory
+    % but requires more file IO for systems that have multiple wf-adc pairs
+    % in a single ADC board.
     for img = 1:length(param.sar.imgs)
       for wf_adc = 1:length(param.sar.imgs{img})
         imgs_list{end+1}{1}(1,:) = param.sar.imgs{img}(wf_adc,:);
@@ -334,9 +375,15 @@ else
   else
     % Handles:
     %  strcmpi(param.sar.wf_adc_pair_task_group_method,'board')
-    %    All SAR images for a single board in one task
+    %    All SAR images for a single ADC board are put into one task. A
+    %    single ADC board implies a single data file which contains data
+    %    streams for one or more wf-adc pairs. By processing all the wf-adc
+    %    pairs together, this reduces file IO but does take more memory.
     %  strcmpi(param.sar.wf_adc_pair_task_group_method,'img')
-    %    All SAR images for a single board/image pair in one task
+    %    All SAR images for a single ADC board/image pair are processed in
+    %    one task. This breaks up the wf-adc pairs from each board into
+    %    images. This requires extra file-IO, but makes the images within a
+    %    task all use the same amount of memory.
     
     % Divide images up into boards
     for img = 1:length(param.sar.imgs)
@@ -450,7 +497,7 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Determine length of the frame
   frm_dist = along_track_approx(stop_rec) - along_track_approx(start_rec);
-  dx_approx = median(diff(along_track_approx));
+  dx_approx = median(diff(along_track_approx(good_recs)));
   
   % Determine number of chunks and range lines per chunk
   num_chunks = round(frm_dist / param.sar.chunk_len);
@@ -554,8 +601,8 @@ for frm_idx = 1:length(param.cmd.frms)
       
       % Rerun only mode: Test to see if we need to run this task
       % =================================================================
-      dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
-        sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      dparam.notes = sprintf('%s %s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
+        sparam.task_function, param.sar.out_path, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
         chunk_idx, num_chunks, wf_adc_str, (dparam.argsin{1}.load.recs(1)-1)*param.sar.presums+1, ...
         dparam.argsin{1}.load.recs(2)*param.sar.presums);
       if ctrl.cluster.rerun_only
@@ -627,19 +674,19 @@ for frm_idx = 1:length(param.cmd.frms)
       
       if dparam.mem > ctrl.cluster.max_mem_per_job
         if strcmpi(param.sar.wf_adc_pair_task_group_method,'board')
-          error('Task is requiring too much memory. Use param.sar.wf_adc_pair_task_group_method = ''img'' or ''one'' to reduce memory usage.');
+          error('Task is requiring too much memory. Adjust ctrl.cluster.max_mem_per_job or use param.sar.wf_adc_pair_task_group_method = ''img'' or ''one'' to reduce memory usage.');
         elseif strcmpi(param.sar.wf_adc_pair_task_group_method,'one')
-          error('Task is requiring too much memory. Either decrease the chunk size or increase cluster.max_mem_per_job.');
+          error('Task is requiring too much memory. Adjust ctrl.cluster.max_mem_per_job, decrease the chunk size, or increase cluster.max_mem_per_job.');
         end
-        warning('Task is requiring too much memory. Converting this task to param.sar.wf_adc_pair_task_group_method = ''one''.');
+        warning('Task is requiring too much memory. Consider adjusting ctrl.cluster.max_mem_per_job. Converting this task to param.sar.wf_adc_pair_task_group_method = ''one''.');
         for wf_adc = 1:size(dparam.argsin{1}.load.imgs{1},1)
           tmp_dparam = dparam;
           tmp_dparam.argsin{1}.load.imgs = {dparam.argsin{1}.load.imgs{1}(wf_adc,:)};
           wf = tmp_dparam.argsin{1}.load.imgs{1}(1,1);
           adc = tmp_dparam.argsin{1}.load.imgs{1}(1,2);
           wf_adc_str = sprintf('%d,%d', wf, adc);
-          tmp_dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
-            sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+          tmp_dparam.notes = sprintf('%s %s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
+            sparam.task_function, param.sar.out_path, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
             chunk_idx, num_chunks, wf_adc_str, (dparam.argsin{1}.load.recs(1)-1)*param.sar.presums+1, ...
             dparam.argsin{1}.load.recs(2)*param.sar.presums);
           

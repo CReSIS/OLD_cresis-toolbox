@@ -37,8 +37,8 @@ sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 % gps_source_to_use = 'arena';
 % gps_source_to_use = 'arena_cpu_time';
-% gps_source_to_use = 'trimble_cpu_time';
-gps_source_to_use = 'trimble_cpu_time2';
+% gps_source_to_use = 'trimble_cpu_time_shun';
+gps_source_to_use = 'trimble_cpu_time_paden';
 
 if strcmpi(gps_source_to_use,'arena')
   %% ARENA
@@ -55,29 +55,29 @@ if strcmpi(gps_source_to_use,'arena')
   %   sync_file_type{file_idx} = 'arena';
   %   sync_params{file_idx} = struct('time_reference','utc');
   
-  %   year = 2018; month = 10; day = 14;
-  %   file_idx = file_idx + 1;
-  %   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  %   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  %   file_type{file_idx} = 'arena';
-  %   params{file_idx} = struct('year',2018,'time_reference','utc');
-  %   gps_source{file_idx} = 'arena-field';
-  %   sync_flag{file_idx} = 1;
-  %   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  %   sync_file_type{file_idx} = 'arena';
-  %   sync_params{file_idx} = struct('time_reference','utc');
+    year = 2018; month = 10; day = 14;
+    file_idx = file_idx + 1;
+    in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+    out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+    file_type{file_idx} = 'arena';
+    params{file_idx} = struct('year',2018,'time_reference','utc');
+    gps_source{file_idx} = 'arena-field';
+    sync_flag{file_idx} = 1;
+    sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+    sync_file_type{file_idx} = 'arena';
+    sync_params{file_idx} = struct('time_reference','utc');
   
-  year = 2018; month = 10; day = 15;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2018,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
+%   year = 2018; month = 10; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',2018,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
   
 elseif strcmpi(gps_source_to_use,'arena_cpu_time')
   correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
@@ -108,8 +108,12 @@ elseif strcmpi(gps_source_to_use,'arena_cpu_time')
   sync_params{file_idx} = struct('time_reference','utc', ...
     'cpu_time_correction',correction);
 
-elseif strcmpi(gps_source_to_use,'trimble_cpu_time')
+elseif strcmpi(gps_source_to_use,'trimble_cpu_time_shun')
   correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
+
+  % Shun processed with ? software, but noticed unusually large errors:
+  % currently not using this versino of the processed data
+  error('Do not use this gps_source.');
 
 %   year = 2018; month = 12;
 %   for day = [17 19 20 21 22 23 24 25 26 27 28 29]
@@ -162,9 +166,13 @@ elseif strcmpi(gps_source_to_use,'trimble_cpu_time')
 %       'cpu_time_correction',correction);
 %   end
       
-elseif strcmpi(gps_source_to_use,'trimble_cpu_time2')
+elseif strcmpi(gps_source_to_use,'trimble_cpu_time_paden')
   correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
   
+  % Paden processed with the Canadian online service. The results seem to
+  % be smoother than Shun's processed results and the reported errors are
+  % much smaller.
+  %
   % HDR GRP CANADIAN GEODETIC SURVEY, SURVEYOR GENERAL BRANCH, NATURAL RESOURCES CANADA
   % HDR ADR GOVERNMENT OF CANADA, 588 BOOTH STREET ROOM 334, OTTAWA ONTARIO K1A 0Y7
   % HDR TEL 343-292-6617
@@ -194,7 +202,7 @@ elseif strcmpi(gps_source_to_use,'trimble_cpu_time2')
 %     'cpu_time_correction',correction);
 
   year = 2018; month = 12;
-  for day = 31%[19 20 21 22 23 24 25 26 27 28 29 31]
+  for day = 24%[19 20 21 22 23 24 25 26 27 28 29 31]
     file_idx = file_idx + 1;
     in_fns{file_idx} = get_filenames(fullfile(in_base_path,'Field_data_SM100',sprintf('%04d%02d%02d_PPP',year,month,day)),'','','0000.pos');
     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -240,7 +248,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
@@ -266,7 +274,26 @@ for idx = 1:length(file_type)
     end
   end
   
-  if regexpi(gps.gps_source,'brice')
+  if 0 && regexpi(gps.gps_source,'trimble_cpu_time_paden')
+    % Smoothing is necessary due to vibration
+    warning('Smoothing GPS and IMU data: %s', out_fn);
+    gps = load(out_fn);
+    
+    gps.elev = sgolayfilt(gps.elev,2,201); % Adjust filter length as needed to remove high frequency noise
+    
+    heading_x = cos(gps.heading);
+    heading_y = sin(gps.heading);
+    heading_x  = sgolayfilt(heading_x,2,501); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = sgolayfilt(heading_y,2,501); % Adjust filter length as needed to remove high frequency noise
+    new_heading = atan2(heading_y,heading_x);
+    filter_mask = abs(new_heading-gps.heading) < 20/180*pi;
+    gps.heading(filter_mask) = new_heading(filter_mask);
+    
+    save(out_fn,'-append','-struct','gps','elev','heading');
+    
+  end
+  
+  if regexpi(gps.gps_source,'trimble_cpu_time_shun')
     % Smoothing is necessary because data are poor quality
     warning('Smoothing GPS and IMU data: %s', out_fn);
     gps = load(out_fn);

@@ -29,15 +29,15 @@ function gps = read_ins_litton(litton_fn, param)
 %
 %   fn = '/users/paden/tmp/litton_20100503/ln100g.20100503_151708.bin.asc';
 %   gps = read_ins_litton(fn,struct('year',2010,'month',05,'day',3,'time_reference','gps'));
-%   plot_gps(gps);
+%   gps_plot(gps);
 %
 %   fns = get_filenames('/users/paden/tmp/litton_20100503/','ln100g.','','.bin.asc');
 %   gps = read_ins_litton(fns,struct('year',2010,'month',05,'day',3,'time_reference','gps'));
-%   plot_gps(gps);
+%   gps_plot(gps);
 % 
 % Author: John Paden
 %
-% See also plot_gps.m
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 if ischar(litton_fn)
   tmp = litton_fn;

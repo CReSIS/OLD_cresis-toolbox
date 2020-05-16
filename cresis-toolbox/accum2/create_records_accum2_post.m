@@ -233,6 +233,6 @@ save(records_fn,'-v7.3','-struct','records'); % Handle large file sizes, so use 
 % =====================================================================
 
 fprintf('Creating auxiliary records files %s (%s)\n',records_fn,datestr(now));
-create_records_aux_files(records_fn);
+records_aux_files_create(records_fn);
 
 fprintf('Done (%s)\n\n', datestr(now));

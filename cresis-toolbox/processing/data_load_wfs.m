@@ -57,6 +57,7 @@ for state_idx = 1:length(boards)
     states(state_idx).img = [];
     states(state_idx).weight = [];
     states(state_idx).next = [];
+    states(state_idx).reset_sum = [];
   end
   for img = 1:length(param.load.imgs) % For each image img
     for wf_adc = 1:size(param.load.imgs{img},1) % For ach wf-adc pair
@@ -89,6 +90,7 @@ for state_idx = 1:length(boards)
       states(state_idx).wf_adc(end+1) = wf_adc;
       states(state_idx).img(end+1) = img;
       states(state_idx).weight(end+1) = param.radar.wfs(wf).weight(adc);
+      states(state_idx).reset_sum(end+1) = true;
       next = param.radar.wfs(wf).next(adc,1:2);
       while ~isnan(next(1))
         wf = next(1);
@@ -122,6 +124,7 @@ for state_idx = 1:length(boards)
           states(next_state_idx).img = [];
           states(next_state_idx).weight = [];
           states(next_state_idx).next = [];
+          states(next_state_idx).reset_sum = [];
         end
         states(next_state_idx).adc(end+1) = adc;
         states(next_state_idx).wf(end+1) = wf;
@@ -130,6 +133,7 @@ for state_idx = 1:length(boards)
         states(next_state_idx).wf_adc(end+1) = wf_adc;
         states(next_state_idx).img(end+1) = img;
         states(next_state_idx).weight(end+1) = param.radar.wfs(wf).weight(adc);
+        states(next_state_idx).reset_sum(end+1) = false;
         next = param.radar.wfs(wf).next(adc,1:2);
       end
     end

@@ -10,7 +10,6 @@ function [success] = sar_task(param)
 %  .radar = structured used by load_mcords_hdr
 %
 %  .load = structure containing info about what data to load
-%   .records_fn = records filename
 %   .recs = 2 element vector containing the start and stop records
 %   .imgs = cell vector of images to load, each image is Nx2 array of
 %     wf/adc pairs
@@ -74,8 +73,7 @@ wgs84 = wgs84Ellipsoid('meters');
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn,'settings','param_records');
+records = records_load(param,'settings','param_records');
 
 if param.sar.combine_rx && param.sar.mocomp.en
   warning('SAR motion compensation mode must be 0 for combine_rx (setting to 0)');
@@ -88,7 +86,7 @@ sar_coord_dir = ct_filename_out(param, param.sar.coord_path);
 
 % Load SAR coordinate system
 sar_fn = fullfile(sar_coord_dir,'sar_coord.mat');
-sar = load(sar_fn,'version','Lsar','gps_source','type','sigma_x','presums','along_track','surf_pp');
+sar = load(sar_fn,'file_version','Lsar','gps_source','type','sigma_x','presums','along_track','surf_pp');
 
 % Determine output range lines
 output_along_track = 0 : param.sar.sigma_x : sar.along_track(end);
@@ -180,7 +178,7 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 % =========================================================================
 recs = [(param.load.recs(1)-1)*param.sar.presums+1, ...
         param.load.recs(2)*param.sar.presums];
-records = read_records_aux_files(records_fn,recs);
+records = records_load(param,recs);
 % Decimate records according to presums
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -201,8 +199,7 @@ param_records.gps_source = records.gps_source;
 
 %% Load surface layer
 % =========================================================================
-frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(param);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 layer_params = [];
@@ -253,7 +250,7 @@ end
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.sar.presums;
-param.load.bit_mask = 3; % Skip stationary records and bad records marked in records.bit_mask
+param.load.bit_mask = param.sar.bit_mask; % Skip stationary records and bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
@@ -355,7 +352,7 @@ for img = 1:length(param.load.imgs)
       
       good_mask = ~hdr.bad_rec{img}(1,:,wf_adc);
 
-      % To save memory, shift the data out one wf_adc at a time
+      % To conserve memory, shift the data out one wf_adc at a time
       if isempty(data{img})
         % All records were bad so data is an empty matrix
         fk_data = wfs(wf).bad_value * ones(length(time_bins),size(data{img},2));
@@ -446,6 +443,11 @@ for img = 1:length(param.load.imgs)
         % of a hack.
         x_lin = linspace(along_track(1), ...
           along_track(end),length(along_track));
+        dx = mean(diff(x_lin));
+        pre_x_lin = fliplr(x_lin(1)-dx:-dx:output_along_track_full(1));
+        post_x_lin = x_lin(end)+dx:dx:output_along_track_full(end);
+        x_lin = [pre_x_lin, x_lin, post_x_lin];
+        fk_data = [zeros(size(fk_data,1),length(pre_x_lin)), fk_data, zeros(size(fk_data,1),length(post_x_lin))];
         
         % Create kx (along-track wavenumber) axis of input data
         kx = gen_kx(x_lin);
@@ -542,6 +544,7 @@ for img = 1:length(param.load.imgs)
         else
           file_version = '1';
         end
+        file_type = 'sar';
         if param.sar.combine_rx
           out_fn = fullfile(out_fn_dir,sprintf('img_%02d_chk_%03d.mat', img, param.load.chunk_idx));
         else
@@ -551,7 +554,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
         wfs(wf).time = time;
         wfs(wf).freq = freq;
-        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
+        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version','file_type');
       end
       
     elseif strcmpi(param.sar.sar_type,'tdbp_old')
