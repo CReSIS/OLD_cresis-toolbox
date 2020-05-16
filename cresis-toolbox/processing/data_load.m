@@ -135,6 +135,23 @@ for state_idx = 1:length(states)
     
     rec = total_rec+1;
     
+  elseif param.records.file.version == 1000
+    % for the full simulator
+    raw_data_file = load(param.sim.out_fn_raw_data); % has raw_data and param
+    wf = 1;
+    img = 1;
+    data = raw_data_file.raw_data;
+    hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
+    hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};
+    hdr.nyquist_zone_signal{img}  = raw_data_file.hdr.nyquist_zone_signal{img};
+    hdr.DDC_dec{img}              = raw_data_file.hdr.DDC_dec{img};
+    hdr.DDC_freq{img}             = raw_data_file.hdr.DDC_freq{img};
+    hdr.Nt{img}                   = raw_data_file.hdr.Nt{img};
+    hdr.t0_raw{img}               = raw_data_file.hdr.t0_raw{img};
+    hdr.t_ref{img}                = raw_data_file.hdr.t_ref{img};
+    
+    rec = total_rec+1;
+    
   else
     rec = 1;
   end
@@ -144,9 +161,7 @@ for state_idx = 1:length(states)
     %% Load in a file
     if param.records.file.version == 414
       file_idx = file_idxs(rec);
-    elseif records.offset(board_idx,rec) == -2^31 || bitand(param.load.bit_mask, records.bit_mask(board_idx,rec))
-      file_idx = -1;
-    else
+    elseif records.offset(board_idx,rec) ~= -2^31
       % Determine which file has the current record
       file_idx = file_idxs(rec);
       if ~isempty(file_data_last_file)
@@ -185,12 +200,13 @@ for state_idx = 1:length(states)
       % Load the rest of the file into memory
       file_data = [file_data_last_file(:); fread(fid,inf,'uint8=>uint8')];
       fclose(fid);
+    else
+      file_idx = -1;
     end
     
     %% Pull out records from this file
     while rec <= total_rec
-      if records.offset(board_idx,rec) == -2^31 || bitand(param.load.bit_mask, records.bit_mask(board_idx,rec))
-      elseif param.records.file.version == 414
+      if param.records.file.version == 414
         % If the current record is in the next file, break out of loop
         if file_idxs(rec) > file_idx
           % Force the file to be loaded when the next record is loaded
@@ -278,7 +294,7 @@ for state_idx = 1:length(states)
           end
         end
         
-      else
+      elseif records.offset(board_idx,rec) ~= -2^31
         if records.offset(board_idx,rec) < 0
           if isempty(file_data_last_file)
             % Record offset is negative and so represents a record that
@@ -470,10 +486,19 @@ for state_idx = 1:length(states)
               % records.settings.nyquist_zone)
               nyquist_zone_hw{img}(num_accum(ai)+1) = 1;
             end
+            % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
+            nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
           end
           if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
+%             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.settings.nyquist_zone_hw(rec)
+%               fprintf('Overwriting nz fro rec:%d from records.settings\n',rec);
+%             end              
             nyquist_zone_hw{img}(num_accum(ai)+1) = records.settings.nyquist_zone_hw(rec);
           end
+          % For the records generated using old data_load
+          % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
+          nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
+          
           nyquist_zone_signal{img}(num_accum(ai)+1) = nyquist_zone_hw{img}(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
             nyquist_zone_signal{img}(num_accum(ai)+1) = records.settings.nyquist_zone(rec);
@@ -647,7 +672,8 @@ for state_idx = 1:length(states)
               || Nt{img}(1) <= 0 ...
               || any(Nt{img}(1:num_accum(ai)) ~= Nt{img}(1)) ...
               || any(t0{img}(1:num_accum(ai)) ~= t0{img}(1)) ...
-              || any(t_ref{img}(1:num_accum(ai)) ~= t_ref{img}(1))
+              || any(t_ref{img}(1:num_accum(ai)) ~= t_ref{img}(1)) % ...
+            % || ~records.settings.records_mask_manual(rec) % set by manually_update_bad_records.m
             % Too few presums, mark as bad record
             % Or a parameter changed within the presum block or across wf_adc_sums
             hdr.Nt{img}(out_rec) = 0;

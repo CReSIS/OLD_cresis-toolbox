@@ -6,21 +6,29 @@ param.config.default = [];
 
 
 %% MCORDS3 SINGLE DAY
-cur_idx = length(param.config.default)+1;
-param.config.default{cur_idx} = default_radar_params_2019_Antarctica_GV_rds();
-param.config.base_dir{cur_idx} = '/cresis/snfs1/data/MCoRDS/2019_Antarctica_GV/';
-param.config.config_folder_names{cur_idx} = '20191009/';
-param.config.board_folder_names{cur_idx} = '20191009/%b';
-param.config.date_strs{cur_idx} = '20191009';
+% cur_idx = length(param.config.default)+1;
+% param.config.default{cur_idx} = default_radar_params_2019_Greenland_P3_rds();
+% param.config.base_dir{cur_idx} = 'P:\OIB\P3_Spring_2019\Measurements\MCoRDS_DATA\';
+% param.config.config_folder_names{cur_idx} = '20190129';
+% param.config.board_folder_names{cur_idx} = '20190129/%b';
+% param.config.date_strs{cur_idx} = '20190129';
 
 %% SNOW8 SINGLE DAY
+%% SNOW3 SINGLE DAY
 % cur_idx = length(param.config.default)+1;
-% param.config.default{cur_idx} = default_radar_params_2019_Arctic_GV_snow();
-% param.config.base_dir{cur_idx} = '/cresis/snfs1/data/SnowRadar/2019_Antarctica_GV/';
-% param.config.config_folder_names{cur_idx} = '';
-% param.config.board_folder_names{cur_idx} = '';
-% param.config.date_strs{cur_idx} = '20191009';
+% param.config.default{cur_idx} = default_radar_params_2013_Greenland_P3_snow;
+% param.config.base_dir{cur_idx} = '/cresis/snfs1/data/SnowRadar/2013_Greenland_P3/';
+% param.config.config_folder_names{cur_idx} = '20130420';
+% param.config.board_folder_names{cur_idx} = '20130420';
+% param.config.date_strs{cur_idx} = '20130420';
 
+%% SNOW3 SINGLE DAY
+cur_idx = length(param.config.default)+1;
+param.config.default{cur_idx} = default_radar_params_2014_Greenland_P3_snow;
+param.config.base_dir{cur_idx} = '/cresis/snfs1/data/SnowRadar/2014_Greenland_P3/';
+param.config.config_folder_names{cur_idx} = '20140428';
+param.config.board_folder_names{cur_idx} = '20140428';
+param.config.date_strs{cur_idx} = '20140428';
 %% MCORDS5-ACCUM SINGLE DAY
 % cur_idx = length(param.config.default)+1;
 % param.config.default{cur_idx} = default_radar_params_2018_Greenland_P3_accum();

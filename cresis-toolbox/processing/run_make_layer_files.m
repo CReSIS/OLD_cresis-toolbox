@@ -19,8 +19,8 @@ params = ct_set_params(params,'cmd.frms',[16]);
 % .echogram_input = ct_filename_out path argument for which 
 %   radar echograms to use for grabbing the initial surface values and the
 %   time axis from. Typical values are shown here.
-% layer.echogram_input = 'qlook';
-layer.echogram_input = 'standard';
+layer.echogram_input = 'qlook';
+% layer.echogram_input = 'standard';
 % layer.echogram_input = 'CSARP_post/qlook';
 % layer.echogram_input = 'CSARP_post/standard';
 

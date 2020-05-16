@@ -11,23 +11,26 @@
 % =====================================================================
 param_override = [];
 
-params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
+params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
 
 % Example to run specific segments and frames by overriding parameter spreadsheet values
-% params = ct_set_params(params,'cmd.qlook',0);
-% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20181015_01');
-% params = ct_set_params(params,'cmd.frms',[]);
+params = ct_set_params(params,'cmd.qlook',0);
+params = ct_set_params(params,'cmd.qlook',1,'day_seg','20120330_04');
+% params = ct_set_params(params,'cmd.frms',[239]);% 2 195 196]);
+
+% param = ct_set_params(params,'qlook.inc_B_filter', ones(1,9));
+% param = ct_set_params(params,'qlook.resample', [2 1; 1 1]);
 
 % dbstop if error;
-% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
-% param_override.cluster.cpu_time_mult  = 2;
-% param_override.cluster.mem_mult  = 2;
+param_override.cluster.cpu_time_mult  = 10;
+param_override.cluster.mem_mult  = 5;
 
 %% Automated Section
 % =====================================================================
@@ -43,6 +46,7 @@ end
 % Process each of the segments
 ctrl_chain = {};
 for param_idx = 1:length(params)
+  params(param_idx).radar.wfs(1).coh_noise_method = 'analysis';%<#######
   param = params(param_idx);
   if param.cmd.qlook
     ctrl_chain{end+1} = qlook(param,param_override);

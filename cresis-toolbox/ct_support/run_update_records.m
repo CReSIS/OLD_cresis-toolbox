@@ -14,9 +14,10 @@ param_override = [];
 % Parameters spreadsheet to use for updating
 %   1. Segment and frame list are taken from the parameter sheet
 %   2. For GPS update, GPS time offsets are pulled from the parameter sheet
-params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'));
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20180315');
+params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
+params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330');
+params = ct_set_params(params,'cmd.generic',0,'cmd.notes','DO NOT PROCESS');
 
 %% Automated section
 % =========================================================================

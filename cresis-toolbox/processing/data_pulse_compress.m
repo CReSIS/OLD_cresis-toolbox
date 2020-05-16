@@ -69,7 +69,6 @@ for img = 1:length(param.load.imgs)
         end % rec loop
       end % INVERSE FILTER if strcmpi ends here
       
-      extra_delay = zeros(1,size(data{img},2));
       if strcmpi(wfs(wf).prepulse_H.type,'NI_DDC_2019')
         if 0
           % Test code to find each DDC filter delay
@@ -132,9 +131,15 @@ for img = 1:length(param.load.imgs)
           plot(angle(ref8))
         end
         
+        data_complex_hack = false; %
         for rec = 1:size(data{img},2)
           freq_axis = ifftshift(-floor(hdr.Nt{img}(rec)/2):floor((hdr.Nt{img}(rec)-1)/2)).';
-          if hdr.DDC_dec{img}(rec) == 2
+          if hdr.DDC_dec{img}(rec) == 1
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = 44.157 * exp(1i*(-111.6671-171.9246-28.5284-14.2655+22.6656)/180*pi)...
+              * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+              .* exp(1i*2*pi*-3.25*freq_axis/hdr.Nt{img}(rec)));
+          elseif hdr.DDC_dec{img}(rec) == 2
             % Scale output
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = hdr.DDC_dec{img}(rec) ...
               * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
@@ -143,15 +148,13 @@ for img = 1:length(param.load.imgs)
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = exp(1i*-pi/2)*hdr.DDC_dec{img}(rec) ...
               * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
             % Delay of 100/4 = 25 relative to DDC_dec==2
-            extra_delay(rec) = 25;
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
-              .* exp(1i*2*pi*25*freq_axis/hdr.Nt{img}(rec)));
+              .* exp(1i*2*pi*(25+0.625)*freq_axis/hdr.Nt{img}(rec)));
           elseif hdr.DDC_dec{img}(rec) == 8
             % Scale output
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = exp(1i*-pi/2)*hdr.DDC_dec{img}(rec) ...
               * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
             % Delay of (100+2*100)/8 = 37.5 relative to DDC_dec==2
-            extra_delay(rec) = 37.5;
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
               .* exp(1i*2*pi*37.5*freq_axis/hdr.Nt{img}(rec)));
           elseif hdr.DDC_dec{img}(rec) == 16
@@ -162,6 +165,18 @@ for img = 1:length(param.load.imgs)
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
               .* exp(1i*2*pi*43.75*freq_axis/hdr.Nt{img}(rec)));
           end
+          if ~isreal(data{img}) && ~data_complex_hack && size(data{img},1) > 0
+            data_complex_hack = true;
+            % Temporarily add an imaginary part to the first value in the
+            % matrix so that Matlab will know right away that this matrix
+            % is complex and won't have to search through the entire
+            % matrix to find this out. We remove this value at the end of
+            % the loop.
+            data{img}(1) = data{img}(1) + 1i;
+          end
+        end
+        if data_complex_hack
+          data{img}(1) = data{img}(1) - 1i;
         end
       end
     end
@@ -951,6 +966,7 @@ for img = 1:length(param.load.imgs)
           else
             window_start_idx = find(f_rf >= wfs(wf).BW_window(1),1);
           end
+          f_rf = wfs(wf).f0 + wfs(wf).chirp_rate*(time_raw_no_trim - wfs(wf).td_mean);
           window_start_idx = window_start_idx_norm;
           H_idxs = window_start_idx : window_start_idx+Nt_raw_trim-1;
           if 0
@@ -1134,7 +1150,7 @@ for img = 1:length(param.load.imgs)
               %
               % The frequency reversal and conjugation are fixed by conjugating the
               % signal before the FFT.
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
             end
             
             % Modulate the raw data to adjust the start time to always be a

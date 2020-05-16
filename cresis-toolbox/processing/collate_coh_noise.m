@@ -137,39 +137,36 @@ for img = param.collate_coh_noise.imgs
     wf = param.analysis.imgs{img}(wf_adc,1);
     adc = param.analysis.imgs{img}(wf_adc,2);
     
-    %% Reuse debug file if exists
-    % =====================================================================
+    % reuse debug file if exists
     reuse_success = 0;
     reuse_fn = ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('reuse_debug_wf_%02d_adc_%02d.mat',wf,adc));
     if enable_reuse_files
       try
-        fprintf('Loading %s\n', reuse_fn);
-        load(reuse_fn, 'param_collate_coh_noise');
-        if strcmpi( param_collate_coh_noise.method{img}, param.collate_coh_noise.method{img} ) ...
-            && param_collate_coh_noise.dft_corr_time == param.collate_coh_noise.dft_corr_time ...
-            && param_collate_coh_noise.firdec_fs{img} == param.collate_coh_noise.firdec_fs{img} ...
-            && strcmpi( func2str(param_collate_coh_noise.firdec_fcutoff{img}), func2str(param.collate_coh_noise.firdec_fcutoff{img}) )...
-            && param_collate_coh_noise.threshold_en == param.collate_coh_noise.threshold_en ...
-            && param_collate_coh_noise.threshold_fir_dec == param.collate_coh_noise.threshold_fir_dec
-          load(reuse_fn);
-          noise.gps_time = gps_time;
-          noise.dt = dt;
-          noise.fc = fc;
-          noise.param_records = param_records;
-          noise.param_analysis = param_analysis;
-          reuse_success = 1;
-        else
-          reuse_success = 0;
-        end
+        fprintf('Trying to load %s\n', reuse_fn);
+        % load(reuse_fn,'-regexp','[^enable_visible_plot ^enable_threshold_plot ^enable_cn_plot ^enable_reuse_files ^debug_out_dir ^reuse_fn]');
+        load(reuse_fn,'-regexp',['^(?!' 'enable_visible_plot|enable_threshold_plot|enable_cn_plot|enable_reuse_files|debug_out_dir|reuse_fn|h_fig' ')\w']);
+        reuse_success = 1;
       catch
-        fprintf('Unable to reuse file: %s\n',reuse_fn);
+        fprintf('Missing reuse file: %s\n',reuse_fn);
         reuse_success = 0;
       end
     end
     
+    % 1. Save .mat file and do not save a .fig file for the big matrices any
+    % more. Store .mat where .jpg are stored.
+    % 2. Save specific variables to the .mat file: param_collate_coh_noise, cn_before, cn_after, threshold, etc. into .mat
+    %   Should be everything required to implement reuse function
+    % 3. Reuse runs when 'reuse' is set and param_collate_coh_noise and
+    % param are the same for the variables that matter (e.g. cutoff
+    % frequency, LPF mode, etc)
+    % All .mat files should have: file_version and file_type field
+    % file_type = 'collate_coh_noise'
+    % file_version = '1'
+    % Use ct_save to save
+    
     if ~reuse_success % rerun estimate or jump to plots
       %% Load the coherent noise file
-      % ===================================================================
+      % =====================================================================
       fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.in_path));
       fn = fullfile(fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s (%s)\n', fn, datestr(now));
@@ -200,7 +197,6 @@ for img = param.collate_coh_noise.imgs
       %% Fourier analysis of each bin
       % =====================================================================
       Nx = length(noise.gps_time);
-      recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
       
       Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time);
       if Nx_dft<1
@@ -209,14 +205,14 @@ for img = param.collate_coh_noise.imgs
       dft_freqs = ifftshift(-floor(Nx_dft/2) : floor((Nx_dft-1)/2));
       [~,dft_freqs_idxs] = sort(abs(dft_freqs));
       dft_freqs = dft_freqs(dft_freqs_idxs);
-      noise_dft = zeros(Nt, Nx_dft, 'single');
+      noise.dft = zeros(Nt, Nx_dft, 'single');
       
       dgps_time = median(diff(noise.gps_time));
       dx = max(1,round(1/(dgps_time * param.collate_coh_noise.firdec_fs{img})));
       dec_idxs = 1:dx:Nx;
-      gps_time_coh_noise = noise.gps_time(dec_idxs);
+      noise.coh_noise_gps_time = noise.gps_time(dec_idxs);
       Nx_coh_noise = length(dec_idxs);
-      noise_coh_noise = zeros(Nt, Nx_coh_noise, 'single');
+      noise.coh_noise = zeros(Nt, Nx_coh_noise, 'single');
       
       if enable_threshold
         threshold = zeros(Nt,1);
@@ -273,26 +269,26 @@ for img = param.collate_coh_noise.imgs
         if strcmpi(param.collate_coh_noise.method{img},'dft')
           for dft_idx = 1:length(dft_freqs)
             mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
-            noise_dft(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
-            coh_bin = coh_bin - noise_dft(bin_idx,dft_idx) * mf;
+            noise.dft(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
+            coh_bin = coh_bin - noise.dft(bin_idx,dft_idx) * mf;
           end
         elseif strcmpi(param.collate_coh_noise.method{img},'firdec')
-          noise_dft(bin_idx,1) = nanmean(coh_bin);
+          noise.dft(bin_idx,1) = nanmean(coh_bin);
           fcutoff = param.collate_coh_noise.firdec_fcutoff{img}(noise.dt*bin);
           if fcutoff == 0
             % Zero cutoff frequency: Take mean over all values
-            noise_coh_noise(bin_idx,:) = nanmean(coh_bin);
+            noise.coh_noise(bin_idx,:) = nanmean(coh_bin);
           elseif fcutoff < 0
             % Negative cutoff frequency: Disable coherent noise removal
-            noise_coh_noise(bin_idx,:) = 0;
+            noise.coh_noise(bin_idx,:) = 0;
           else
             % Positive cutoff frequency: Regular FIR filter
             B = tukeywin(round(1/(fcutoff*dgps_time)/2)*2+1,0.5).';
             B = B / sum(B);
-            noise_coh_noise(bin_idx,:) = nan_fir_dec(coh_bin,B,dx);
+            noise.coh_noise(bin_idx,:) = nan_fir_dec(coh_bin,B,dx);
           end
-          %noise_coh_noise(bin_idx,isnan(noise_coh_noise(bin_idx,:))) = 0;
-          noise_est = interp_finite(interp1(gps_time_coh_noise,noise_coh_noise(bin_idx,:),noise.gps_time),0);
+          %noise.coh_noise(bin_idx,isnan(noise.coh_noise(bin_idx,:))) = 0;
+          noise_est = interp_finite(interp1(noise.coh_noise_gps_time,noise.coh_noise(bin_idx,:),noise.gps_time),0);
           coh_bin = coh_bin - noise_est;
         end
         if enable_cn_plot
@@ -300,7 +296,7 @@ for img = param.collate_coh_noise.imgs
         end
         if 0
           % Debug plots
-          noise_dft(bin_idx,dft_idx)
+          noise.dft(bin_idx,dft_idx)
           keyboard
         end
       end
@@ -320,43 +316,15 @@ for img = param.collate_coh_noise.imgs
           % Examples:
           % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'
           % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
-          % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise_dft(:,1)).^2)+6);';
-          % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(nt,threshold+6),max_filt1(10*log10(abs(noise_dft(:,1)).^2)+15-1e6*(time>(Tpd+1.2e-6)),5));';
+          % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
+          % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(nt,threshold+6),max_filt1(10*log10(abs(noise.dft(:,1)).^2)+15-1e6*(time>(Tpd+1.2e-6)),5));';
           eval(param.collate_coh_noise.threshold_eval{img});
         end
       end
       
-      %% Save reuse debug file
-      % ===================================================================
-      reuse.Nx                  = Nx;
-      reuse.recs                = recs;
-      reuse.start_bin           = start_bin;
-      reuse.dft_freqs           = dft_freqs;
-      reuse.noise_dft           = noise_dft;
-      reuse.noise_coh_noise     = noise_coh_noise;
-      reuse.gps_time_coh_noise  = gps_time_coh_noise;
-      
-      reuse.dt              = noise.dt;
-      reuse.fc              = noise.fc;
-      reuse.gps_time        = noise.gps_time;
-      reuse.param_records   = noise.param_records;
-      reuse.param_analysis  = noise.param_analysis;
-      
-      reuse.cn_after                = cn_after;
-      reuse.cn_before               = cn_before;
-      reuse.param_collate_coh_noise = param.collate_coh_noise;
-      
-      if enable_threshold
-        reuse.orig_threshold  = orig_threshold;
-        reuse.threshold       = threshold;
-      end
-      
-      reuse.file_version = '1';
-      reuse.file_type = 'collate_coh_noise';
-      fprintf('Saving %s\n', reuse_fn);
-      ct_save(reuse_fn, '-struct', 'reuse');
-      clear reuse
-      
+      % Save reuse debug file
+      fprintf('Saving reuse_debug file %s\n', reuse_fn);
+      save(reuse_fn,'-v7.3','-regexp',['^(?!' 'h_fig' ')\w']);
     end
     
     %% Plot
@@ -389,7 +357,12 @@ for img = param.collate_coh_noise.imgs
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(1),fig_fn);
-      
+      size_fig = whos('cn_before');
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
       
       %cn_before(bsxfun(@gt,lp(cn_before,2),threshold)) = NaN;
       clf(h_fig(2));
@@ -403,7 +376,11 @@ for img = param.collate_coh_noise.imgs
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(2),fig_fn);
-      
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(2),fig_fn);
+      end
       
       %cn_before(bsxfun(@gt,lp(cn_before,2),threshold)) = NaN;
       clf(h_fig(3));
@@ -416,7 +393,11 @@ for img = param.collate_coh_noise.imgs
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
-      
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(3),fig_fn);
+      end
       
       clf(h_fig(4));
       set(h_fig(4), 'name', 'collate_coh_noise After');
@@ -429,6 +410,11 @@ for img = param.collate_coh_noise.imgs
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(4),fig_fn);
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(4),fig_fn);
+      end
       
       linkaxes(h_axes(2:4));
     end
@@ -441,7 +427,7 @@ for img = param.collate_coh_noise.imgs
       hold(h_axes(5), 'on');
       grid(h_axes(5), 'on');
       plot(h_axes(5), threshold, 'LineStyle', '--')
-      plot(h_axes(5), lp(abs(noise_dft(:,1)).^2,1))
+      plot(h_axes(5), lp(abs(noise.dft(:,1)).^2,1))
       legend(h_axes(5), 'Original', 'Modified', 'DC Noise', 'location', 'best')
       xlabel(h_axes(5), 'Range bin');
       ylabel(h_axes(5), 'Relative power (dB)');
@@ -456,6 +442,9 @@ for img = param.collate_coh_noise.imgs
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(5),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      ct_saveas(h_fig(5),fig_fn);
     end
     
     if enable_visible_plot
@@ -464,31 +453,30 @@ for img = param.collate_coh_noise.imgs
         figure(h_fig(h_fig_idx));
       end
       % Enter debug mode
-      keyboard
+%       keyboard
     end
     
     %% Create the simplified output
     % =====================================================================
-    noise_simp            = struct('gps_time',noise.gps_time);
-    noise_simp.dt         = noise.dt;
-    noise_simp.fc         = noise.fc;
-    noise_simp.recs       = recs;
-    noise_simp.start_bin  = start_bin;
-    noise_simp.datestr    = datestr(now);
-    noise_simp.param_collate_coh_noise  = param;
+    noise_simp = struct('gps_time',noise.gps_time);
+    noise_simp.start_bin = start_bin;
+    noise_simp.dt = noise.dt;
+    noise_simp.fc = noise.fc;
     if strcmpi(param.collate_coh_noise.method{img},'dft')
-      noise_simp.dft_freqs  = dft_freqs;
-      noise_simp.dft        = noise_dft;
+      noise_simp.dft_freqs = dft_freqs;
+      noise_simp.dft = noise.dft;
     elseif strcmpi(param.collate_coh_noise.method{img},'firdec')
-      noise_simp.gps_time_coh_noise = gps_time_coh_noise;
-      noise_simp.coh_noise          = noise_coh_noise;
+      noise_simp.coh_noise_gps_time = noise.coh_noise_gps_time;
+      noise_simp.coh_noise = noise.coh_noise;
     end
-    noise_simp.param_records  = noise.param_records;
+    noise_simp.param_records = noise.param_records;
     noise_simp.param_analysis = noise.param_analysis;
     if enable_threshold
-      noise_simp.threshold    = threshold;
+      noise_simp.threshold = threshold;
     end
-    
+    noise_simp.param_collate_coh_noise = param;
+    noise_simp.datestr = datestr(now);
+    noise_simp.recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
     if param.ct_file_lock
       noise_simp.file_version = '1L';
     else
@@ -501,7 +489,7 @@ for img = param.collate_coh_noise.imgs
     out_fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.out_path, ''));
     out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Saving %s (%s)\n', out_fn, datestr(now));
-    ct_save(out_fn,'-struct','noise_simp');
+    save(out_fn,'-v7.3','-struct','noise_simp');
     
     %         case 'custom2'
     %
