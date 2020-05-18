@@ -51,6 +51,9 @@ switch ct_output_dir(params(1).radar_name)
     % RDS
     track.profile = 'rds_OIB';
 
+    track.min_bin = struct('name','tomo_top');
+    track.max_bin = struct('name','tomo_bottom');
+    
     % Override default filter settings
     if 0
       track.filter	= [3 3];

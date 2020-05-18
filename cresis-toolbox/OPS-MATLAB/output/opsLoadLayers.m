@@ -169,23 +169,10 @@ physical_constants;
 if ~isempty(layerdata_sources) || records_en || echogram_en || ~isempty(lidar_layer_idx)
   % Load frames file
   frames = frames_load(param);
+  param.cmd.frms = frames_param_cmd_frms(param,frames);
 
   if records_en || ~isempty(lidar_layer_idx)
     records = records_load(param);
-  end
-  
-  % Determine which frames need to be processed
-  if isempty(param.cmd.frms)
-    param.cmd.frms = 1:length(frames.frame_idxs);
-  end
-  % Remove frames that do not exist from param.cmd.frms list
-  [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-  if length(valid_frms) ~= length(param.cmd.frms)
-    bad_mask = ones(size(param.cmd.frms));
-    bad_mask(keep_idxs) = 0;
-    warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-      param.cmd.frms(find(bad_mask,1)));
-    param.cmd.frms = valid_frms;
   end
 end
 
