@@ -153,7 +153,7 @@ records = records_load(param);
 
 % Load frames file
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = load(frames_fn);
 
 % =========================================================================
 %% Load in ocean mask, land DEM, and sea surface DEM
