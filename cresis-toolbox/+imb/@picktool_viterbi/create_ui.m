@@ -96,30 +96,6 @@ set(obj.top_panel.r_extr,'Position',[0 0 200 15]);
 set(obj.top_panel.r_extr,'Value', 1);
 set(obj.top_panel.r_extr,'TooltipString', 'Use echogram within outer-most (horizontally) ground truth points within selection box.');
 
-%----layers label
-tooltip = 'List of layers to repulse or attract the viterbi layer. Enter as a vector. The first entry is the top and the viterbi layer may not exceed.';
-obj.top_panel.layers_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_label,'Style','text');
-set(obj.top_panel.layers_label,'String','Layers:');
-set(obj.top_panel.layers_label,'TooltipString', tooltip);
-%----layers box
-obj.top_panel.layers_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_TE,'Style','edit');
-set(obj.top_panel.layers_TE,'String', '[1]');
-set(obj.top_panel.layers_TE,'TooltipString', tooltip);
-
-%----layer weight label
-tooltip = 'List of layer weights. Larger positive values cause repulsion. Larger negative values cause attraction.';
-obj.top_panel.layers_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_weight_label,'Style','text');
-set(obj.top_panel.layers_weight_label,'String','Layer Weights:');
-set(obj.top_panel.layers_weight_label,'TooltipString', tooltip);
-%----layer  weight box
-obj.top_panel.layers_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_weight_TE,'Style','edit');
-set(obj.top_panel.layers_weight_TE,'String', '[1000]');
-set(obj.top_panel.layers_weight_TE,'TooltipString', tooltip);
-
 %----multiple weight label
 tooltip = 'Amount by which to repel surface multiples if suppression enabled. Greater value = greater avoidance.';
 obj.top_panel.mult_weight_label = uicontrol('Parent',obj.top_panel.handle);
@@ -168,29 +144,17 @@ set(obj.top_panel.surf_slope_cbox,'Style','checkbox');
 set(obj.top_panel.surf_slope_cbox,'Value', 1);
 set(obj.top_panel.surf_slope_cbox,'TooltipString', tooltip);
 
-%----max slope label
-tooltip = 'The maximum allowed slope of the target layer. -1 for no max.';
-obj.top_panel.max_slope_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.max_slope_label,'Style','text');
-set(obj.top_panel.max_slope_label,'String','Max Slope:');
-set(obj.top_panel.max_slope_label,'TooltipString', tooltip);
-%----max slope box
-obj.top_panel.max_slope_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.max_slope_TE,'Style','edit');
-set(obj.top_panel.max_slope_TE,'String', '-1');
-set(obj.top_panel.max_slope_TE,'TooltipString', tooltip);
-
-%----transition weight label
+%----along track weight label
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
-obj.top_panel.transition_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.transition_weight_label,'Style','text');
-set(obj.top_panel.transition_weight_label,'String','Transition weight:');
-set(obj.top_panel.transition_weight_label,'TooltipString', tooltip);
-%----transition weight box
-obj.top_panel.transition_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.transition_weight_TE,'Style','edit');
-set(obj.top_panel.transition_weight_TE,'String', '1');
-set(obj.top_panel.transition_weight_TE,'TooltipString', tooltip);
+obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.along_track_weight_label,'Style','text');
+set(obj.top_panel.along_track_weight_label,'String','Along Track weight:');
+set(obj.top_panel.along_track_weight_label,'TooltipString', tooltip);
+%----along track weight box
+obj.top_panel.along_track_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.along_track_weight_TE,'Style','edit');
+set(obj.top_panel.along_track_weight_TE,'String', '1');
+set(obj.top_panel.along_track_weight_TE,'TooltipString', tooltip);
 
 %----image magnitude weight label
 tooltip = 'The weight by which to multiply the image magnitude cost. Greater weight = prefer greater image magnitude';

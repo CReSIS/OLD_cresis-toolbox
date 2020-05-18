@@ -80,17 +80,6 @@ if tool_idx == 1
       
       % Surface and multiple suppression weights
       try
-        layers = eval(obj.top_panel.layers_TE.String);
-      catch
-        layers = [1];
-      end
-      try
-        layers_weight = eval(obj.top_panel.layers_weight_TE.String);
-      catch
-        layers_weight = [1000];
-      end
-      
-      try
         mult_weight = eval(obj.top_panel.mult_weight_TE.String);
       catch ME
         mult_weight = 100;
@@ -107,19 +96,9 @@ if tool_idx == 1
       end
       
       try
-        max_slope = eval(obj.top_panel.max_slope_TE.String);
-      catch ME
-        max_slope = -1;
-      end
-      try
-        along_track_weight = eval(obj.top_panel.transition_weight_TE.String);
+        along_track_weight = eval(obj.top_panel.along_track_weight_TE.String);
       catch ME
         along_track_weight = 1;
-      end
-      try
-        image_mag_weight = eval(obj.top_panel.image_mag_weight_TE.String);
-      catch ME
-        image_mag_weight = 1;
       end
       try
         gt_weight = -eval(obj.top_panel.ground_truth_weight_TE.String);
@@ -148,9 +127,8 @@ if tool_idx == 1
       bound_gt_idxs = find(~isnan(gt));
       bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
 
-
+      % TODO[reece]: interp top and bottom layers
       layers_bins = zeros(length(layers),length(image_x));
-      layer_costs = zeros(length(layers),length(image_x));
       for layers_idx = 1:length(layers)
         % Interpolate surface layer to match image x-axis coordinates
         new_layer_bins = interp1(param.layer.x,param.layer.y{layers(layers_idx)},image_x);
@@ -159,10 +137,7 @@ if tool_idx == 1
         % Interpolate all non-finite values using surrounding data
         new_layer_bins = interp_finite(new_layer_bins, 0);
         layers_bins(layers_idx,:) = new_layer_bins;
-        layer_costs(layers_idx,:) = layers_weight(layers_idx);
       end
-      
-      along_track_slope = diff(layers_bins(1,:));
       
       % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
       transition_weights = ones(1, size(viterbi_data, 2) - 1) * along_track_weight;
@@ -171,14 +146,9 @@ if tool_idx == 1
         along_track_slope(:) = 0;
       end
 
-      layers_bins = [layers_bins; gt];
       
       gt_costs = nan(1, size(viterbi_data, 2));
       gt_costs(~isnan(gt)) = gt_weight;
-      layer_costs = [
-        layer_costs;
-        gt_costs
-      ];
       
       gt_cutoffs = nan(1, size(viterbi_data, 2));
       gt_cutoffs(~isnan(gt)) = gt_cutoff;
