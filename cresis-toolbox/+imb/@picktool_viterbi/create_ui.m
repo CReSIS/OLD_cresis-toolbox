@@ -226,14 +226,6 @@ row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.hori_bound_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_bg;
 obj.top_panel.table.height(row, :)   = 40;
-%% Layers
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.layers_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.layers_TE;
-%% Layers Weight
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.layers_weight_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.layers_weight_TE;
 %% Multiple Weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_label;
@@ -250,14 +242,10 @@ obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_local_decay_TE;
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.surf_slope_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.surf_slope_cbox;
-%% Max Slope 
+%% Along-track Weight
 row = row + 1;
-obj.top_panel.table.handles{row,1}  = obj.top_panel.max_slope_label;
-obj.top_panel.table.handles{row,2}  = obj.top_panel.max_slope_TE;
-%% Transition Weight
-row = row + 1;
-obj.top_panel.table.handles{row,1}  = obj.top_panel.transition_weight_label;
-obj.top_panel.table.handles{row,2}  = obj.top_panel.transition_weight_TE;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.along_track_weight_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.along_track_weight_TE;
 %% Image magnitude weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.image_mag_weight_label;
