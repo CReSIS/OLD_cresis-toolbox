@@ -12,6 +12,27 @@ function data = echo_mult_suppress(mdata, layer, param)
 %
 % param: struct controlling how the surface multiple suppression is done
 %
+%  .est_value_filter: Estimated surface multiple filter. Default is:
+%   param.est_value_filter = [0 1 2 2 2 2 1];
+%   20 * param.est_value_filter/sum(param.est_value_filter);
+%
+%  .guard_dB: threshold above noise floor that signal must remain to not
+%  get removed. Default is 12.
+%
+%  .max_filt_len: Length of max_filt1 on surface values. Default is 11.
+%
+%  .multiple_loss_dB: Extra loss of surface multiple relative to surface
+%  multiple. Default is 52.
+%
+%  .noise_bins: Bins relative to surface multiple to estimate background
+%  power. Default is 20.
+%
+%  .noise_threshold_dB: threshold above noise floor for which surface
+%  multiple corrected data will be set to NaN. Default is 5.
+%
+%  .window_units: scalar char either "s" for seconds or "b" for bins.
+%  Default is "s".
+%
 % OUTPUTS:
 %
 % data: surface multiple suppressed input (2D matrix the same size as
@@ -99,10 +120,7 @@ if ~isfield(param,'noise_threshold_dB') || isempty(param.noise_threshold_dB)
 end
 noise_threshold = 10.^(param.noise_threshold_dB/10);
 
-if ~isfield(param,'window_mode') || isempty(param.window_mode)
-  param.window_mode = 'f';
-end
-
+%  .window_units: scalar char either "s" for seconds or "b" for bins
 if ~isfield(param,'window_units') || isempty(param.window_units)
   param.window_units = 's';
 end
@@ -122,7 +140,6 @@ else
     param.window = [-5; 11];
   end
   bins = param.window(1):param.window(end);
-  neighbor_bins = 1 : param.neighbor_window;
 end
 
 % Get surface and surface multiple layer statistics
@@ -136,7 +153,7 @@ Nt = size(data,1);
 Nx = size(data,2);
 
 %% Spherical spreading range loss (relative dB)
-surf_spherical_spreading_loss_dB = 25*log10(mdata.Surface);
+surf_spherical_spreading_loss_dB = 25*log10(layer);
 surf_spherical_spreading_loss_dB = surf_spherical_spreading_loss_dB - min(surf_spherical_spreading_loss_dB);
 
 surf_value_corr = surf_value + surf_spherical_spreading_loss_dB;
@@ -166,6 +183,9 @@ if 0
   fprintf('%.14g ',p_roll_surf_corr); fprintf('\n');
 end
 p_roll_surf_corr(end) = 0;
+if any(~isfinite(p_roll_surf_corr))
+  p_roll_surf_corr = mean(surf_value_corr(mask));
+end
 
 %% Estimate surface multiple roll correction
 mask = isfinite(mult_value_corr);
@@ -182,6 +202,9 @@ if 0
   fprintf('%.14g ',p_roll_corr); fprintf('\n');
 end
 p_roll_corr(end) = 0;
+if any(~isfinite(p_roll_corr))
+  p_roll_corr = mean(mult_value_corr(mask));
+end
 
 % p_roll_surf_corr = [2.2255958717854e-15 -1.3572630870759e-13 2.3527709210261e-12 2.124281696932e-11 -1.1228041256249e-09 6.0543207183435e-09 1.6645234883187e-07 -1.6766045475499e-06 -1.0712601140495e-05 0.0001376158654882 0.0003367560066867 -0.0042097661445678 -0.0054248806810891 -0.018969197708196 -0.23904092116243 0];
 roll_surf_loss_dB = polyval(p_roll_surf_corr, mdata.Roll*180/pi);

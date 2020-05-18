@@ -50,6 +50,21 @@ set(obj.panel.sourceTB,'String','1');
 set(obj.panel.sourceTB,'FontSize',10);
 set(obj.panel.sourceTB,'TooltipString','This is the source layer to convert all active layers to. Select parts of this layer in the echogram to convert layers to the selected section.');
 
+%----source eval label
+obj.panel.source_eval_label = uicontrol('Parent',obj.panel.handle);
+set(obj.panel.source_eval_label,'Style','text');
+set(obj.panel.source_eval_label,'String','Source eval:');
+set(obj.panel.source_eval_label,'FontSize',10)
+tooltip_str = 'The source layer will have this operation run on it. The source layer is stored in a variable called "s". Default is "s=s" which does no operation. "s=0.5*s" would halve the value of the source layer.';
+set(obj.panel.source_eval_label,'TooltipString',tooltip_str);
+
+%----source eval edit
+obj.panel.source_evalTB = uicontrol('Parent',obj.panel.handle);
+set(obj.panel.source_evalTB,'Style','edit');
+set(obj.panel.source_evalTB,'String','s=s');
+set(obj.panel.source_evalTB,'FontSize',10);
+set(obj.panel.source_evalTB,'TooltipString',tooltip_str);
+
 %----correct layer label
 obj.panel.correct_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.correct_label,'Style','text');
@@ -127,6 +142,20 @@ obj.panel.table.height_margin(row,col) = 3;
 
 col = 2;
 obj.panel.table.handles{row,col}   = obj.panel.sourceTB;
+obj.panel.table.width(row,col)     = inf;
+obj.panel.table.height(row,col)    = 20;
+obj.panel.table.width_margin(row,col) = 0;
+obj.panel.table.height_margin(row,col) = 0;
+
+row = row+1; col = 1;
+obj.panel.table.handles{row,col}   = obj.panel.source_eval_label;
+obj.panel.table.width(row,col)     = inf;
+obj.panel.table.height(row,col)    = 20;
+obj.panel.table.width_margin(row,col) = 0;
+obj.panel.table.height_margin(row,col) = 3;
+
+col = 2;
+obj.panel.table.handles{row,col}   = obj.panel.source_evalTB;
 obj.panel.table.width(row,col)     = inf;
 obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
