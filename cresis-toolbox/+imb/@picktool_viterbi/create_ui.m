@@ -96,6 +96,27 @@ set(obj.top_panel.r_extr,'Position',[0 0 200 15]);
 set(obj.top_panel.r_extr,'Value', 1);
 set(obj.top_panel.r_extr,'TooltipString', 'Use echogram within outer-most (horizontally) ground truth points within selection box.');
 
+%----Vertical Bounding
+tooltip = 'How to bound the input and output of Viterbi vertically.';
+obj.top_panel.vert_bound_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.vert_bound_label,'Style','text');
+set(obj.top_panel.vert_bound_label,'String',sprintf('Vertical Bounding:'));
+set(obj.top_panel.vert_bound_label,'TooltipString', tooltip);
+%----Vertical Bounding radio buttons
+obj.top_panel.vert_bound_bg = uibuttongroup('Parent',obj.top_panel.handle);  % bg = button_group
+obj.top_panel.r_echo_vert = uicontrol('Parent', obj.top_panel.vert_bound_bg);
+set(obj.top_panel.r_echo_vert,'Style','radiobutton');
+set(obj.top_panel.r_echo_vert,'String','Entire Echogram');
+set(obj.top_panel.r_echo_vert,'Position',[0 15 200 15]);
+set(obj.top_panel.r_echo_vert,'Value', 0);
+set(obj.top_panel.r_echo_vert,'TooltipString', 'Pass in the entire echogram (no vertical bounding).');
+obj.top_panel.r_sel_vert = uicontrol('Parent', obj.top_panel.vert_bound_bg);
+set(obj.top_panel.r_sel_vert,'Style','radiobutton');
+set(obj.top_panel.r_sel_vert,'String','Selection Box');
+set(obj.top_panel.r_sel_vert,'Position',[0 0 200 15]);
+set(obj.top_panel.r_sel_vert,'Value', 1);
+set(obj.top_panel.r_sel_vert,'TooltipString', 'Use echogram within vertical bounds of selection box.');
+
 %----multiple weight label
 tooltip = 'Amount by which to repel surface multiples if suppression enabled. Greater value = greater avoidance.';
 obj.top_panel.mult_weight_label = uicontrol('Parent',obj.top_panel.handle);
@@ -131,18 +152,6 @@ obj.top_panel.mult_weight_local_decay_TE = uicontrol('Parent',obj.top_panel.hand
 set(obj.top_panel.mult_weight_local_decay_TE,'Style','edit');
 set(obj.top_panel.mult_weight_local_decay_TE,'String', '0.8');
 set(obj.top_panel.mult_weight_local_decay_TE,'TooltipString', tooltip);
-
-%----surface slope label
-tooltip = 'Use the slope of the surface layer as the expected slope of the target layer';
-obj.top_panel.surf_slope_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.surf_slope_label,'Style','text');
-set(obj.top_panel.surf_slope_label,'String',sprintf('Calc slope from surf:'));
-set(obj.top_panel.surf_slope_label,'TooltipString', tooltip);
-%----surface slope cbox
-obj.top_panel.surf_slope_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.surf_slope_cbox,'Style','checkbox');
-set(obj.top_panel.surf_slope_cbox,'Value', 1);
-set(obj.top_panel.surf_slope_cbox,'TooltipString', tooltip);
 
 %----along track weight label
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
@@ -213,10 +222,6 @@ obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
 
 row = 0;
 
-%% Mode
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.mode_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.tool_PM;
 %% Insert Range
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.insert_range_label;
@@ -226,6 +231,11 @@ row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.hori_bound_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_bg;
 obj.top_panel.table.height(row, :)   = 40;
+%% Vertical Bound
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.vert_bound_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.vert_bound_bg;
+obj.top_panel.table.height(row, :)   = 30;
 %% Multiple Weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_label;
@@ -238,10 +248,6 @@ obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_decay_TE;
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_local_decay_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_local_decay_TE;
-%% Transition Slope from Surface
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.surf_slope_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.surf_slope_cbox;
 %% Along-track Weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.along_track_weight_label;

@@ -39,8 +39,19 @@ if tool_idx == 1
       % Match GT points with axis coordinates
       gt = [interp1(image_x, 1:length(image_x),param.layer.x(selected_manual_idxs), 'nearest', 'extrap');
         interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(selected_manual_idxs), 'nearest', 'extrap')];
-      upper_bound = interp1(image_y, 1:length(image_y),param.y(1), 'nearest', 'extrap');
-      lower_bound = interp1(image_y, 1:length(image_y),param.y(2), 'nearest', 'extrap');
+      if obj.top_panel.r_sel_vert.Value
+        upper_bounds = ones(1, Nx)*interp1(image_y, 1:length(image_y),param.y(1), 'nearest', 'extrap');
+        lower_bounds = ones(1, Nx)*interp1(image_y, 1:length(image_y),param.y(2), 'nearest', 'extrap');
+        if upper_bounds(1) > lower_bounds(1)
+          temp_bounds = lower_bounds;
+          lower_bounds = upper_bounds;
+          upper_bounds = temp_bounds;
+          clear temp_bounds;
+        end
+      elseif obj.top_panel.r_echo_vert.Value
+        upper_bounds = ones(1, Nx);
+        lower_bounds = ones(1, Nx)*length(image_y);
+      end
       x_points       = gt(1, :);
       y_points       = gt(2, :);
       gt             = nan(1, Nx);
@@ -118,7 +129,7 @@ if tool_idx == 1
         hori_bounds = round(param.x([1 2]));
       end
       if obj.top_panel.r_extr.Value
-        selected_manual_idxs = find(~isnan(gt)&gt>=upper_bound&gt<=lower_bound);
+        selected_manual_idxs = find(~isnan(gt)&gt>=upper_bounds&gt<=lower_bounds);
         if length(selected_manual_idxs) < 2
           error('Less than 2 gt points are selected but horizontal bounding option is set to extreme gt points.');
         end
@@ -128,6 +139,7 @@ if tool_idx == 1
       bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
 
       % TODO[reece]: interp top and bottom layers
+      layers = [];
       layers_bins = zeros(length(layers),length(image_x));
       for layers_idx = 1:length(layers)
         % Interpolate surface layer to match image x-axis coordinates
@@ -141,11 +153,6 @@ if tool_idx == 1
       
       % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
       transition_weights = ones(1, size(viterbi_data, 2) - 1) * along_track_weight;
-
-      if ~obj.top_panel.surf_slope_cbox.Value
-        along_track_slope(:) = 0;
-      end
-
       
       gt_costs = nan(1, size(viterbi_data, 2));
       gt_costs(~isnan(gt)) = gt_weight;
@@ -156,17 +163,20 @@ if tool_idx == 1
         nan(length(layers), size(viterbi_data, 2));
         gt_cutoffs
       ];
-
-      upper_bounds = ones(1, Nx)*upper_bound;
-      lower_bounds = ones(1, Nx)*lower_bound;
-
+      
       gt_idxs = find(~isnan(gt(1, :)));
 
       upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
       lower_bounds(gt_idxs) = min([gt(gt_idxs) + gt_cutoff; lower_bounds(gt_idxs)]);
 
-      upper_bounds = max([upper_bounds; layers_bins(1, :)]);
+      along_track_slope = zeros(1, Nx-1);
+      if ~isempty(layers_bins)
+        upper_bounds = max([upper_bounds; layers_bins(1, :)]);
+        along_track_slope = diff(layers_bins(1,:));
+      end
+      
 
+      
       viterbi_timer = tic;
       y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
       fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
