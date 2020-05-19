@@ -219,7 +219,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       % -------------------------------------------------------------------
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
-      surf_bins = sb.sd.surf(surf_idx).y(:,slices);
+      surf_bins = round(sb.sd.surf(surf_idx).y(:,slices));
       surf_weight = 20;
       surf_range = 15;
       for idx = 1:Nx

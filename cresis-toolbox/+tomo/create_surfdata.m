@@ -133,6 +133,7 @@ if ~isempty(param.tomo_collate.tomo_params)
 end
 
 %% Interpolate Bottom, mdata.twtt from twtt to bins
+Bottom(~isfinite(Bottom)) = NaN;
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
 Bottom_bin(isnan(Bottom_bin)) = -1;
 if ~isfield(mdata,'twtt')
