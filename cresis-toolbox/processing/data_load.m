@@ -135,6 +135,23 @@ for state_idx = 1:length(states)
     
     rec = total_rec+1;
     
+  elseif param.records.file.version == 1000
+    % for the full simulator
+    raw_data_file = load(param.sim.out_fn_raw_data); % has raw_data and param
+    wf = 1;
+    img = 1;
+    data = raw_data_file.raw_data;
+    hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
+    hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};
+    hdr.nyquist_zone_signal{img}  = raw_data_file.hdr.nyquist_zone_signal{img};
+    hdr.DDC_dec{img}              = raw_data_file.hdr.DDC_dec{img};
+    hdr.DDC_freq{img}             = raw_data_file.hdr.DDC_freq{img};
+    hdr.Nt{img}                   = raw_data_file.hdr.Nt{img};
+    hdr.t0_raw{img}               = raw_data_file.hdr.t0_raw{img};
+    hdr.t_ref{img}                = raw_data_file.hdr.t_ref{img};
+    
+    rec = total_rec+1;
+    
   else
     rec = 1;
   end
@@ -470,10 +487,19 @@ for state_idx = 1:length(states)
               % records.settings.nyquist_zone)
               nyquist_zone_hw{img}(num_accum(ai)+1) = 1;
             end
+            % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
+            nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
           end
           if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
+%             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.settings.nyquist_zone_hw(rec)
+%               fprintf('Overwriting nz fro rec:%d from records.settings\n',rec);
+%             end              
             nyquist_zone_hw{img}(num_accum(ai)+1) = records.settings.nyquist_zone_hw(rec);
           end
+          % For the records generated using old data_load
+          % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
+          nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
+          
           nyquist_zone_signal{img}(num_accum(ai)+1) = nyquist_zone_hw{img}(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
             nyquist_zone_signal{img}(num_accum(ai)+1) = records.settings.nyquist_zone(rec);
@@ -675,8 +701,8 @@ for state_idx = 1:length(states)
             if state.reset_sum(ai)
               data{img}(1:Nt{img}(1),out_rec,wf_adc) = state.weight(ai)*state.data{ai} / num_accum(ai);
             else
-              data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
-                data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
+            data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
+              data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
             end
             data{img}(Nt{img}(1)+1:end,out_rec,wf_adc) = wfs(wf).bad_value;
             

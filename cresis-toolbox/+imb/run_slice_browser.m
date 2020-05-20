@@ -69,7 +69,7 @@ elseif 1
   param.radar_name = 'rds';
   param.season_name = '2019_Antarctica_Ground';
   out_type = 'music3D_paden';
-  surfdata_source = 'surfData_paden2';
+  surfdata_source = 'surfData_paden';
   param.day_seg = '20200107_01';
   frm = 1;
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
@@ -92,15 +92,15 @@ end
 %% Automated Section
 % =========================================================================
 
-fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
+echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,echogram_fn)
   fprintf('Loading data (%s)\n', datestr(now));
-  mdata = load(fn);
+  mdata = load(echogram_fn);
   
   proj = geotiffinfo(geotiff_fn);
   [DEM, R, tmp] = geotiffread(geotiff_fn);
   
-  run_slice_browser_fn = fn;
+  run_slice_browser_fn = echogram_fn;
   fprintf('  Done loading data (%s)\n', datestr(now));
 end
 
@@ -110,7 +110,10 @@ end
 sb_param = [];
 sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
 if ~exist(sb_param.surfdata_fn,'file')
-  sb_param.surfdata_fn = '';
+  surf = tomo.surfdata(mdata,surfdata_source);
+  surf.save_surfdata(sb_param.surfdata_fn);
+else
+  surf = tomo.surfdata.update_file(sb_param.surfdata_fn,sb_param.surfdata_fn,echogram_fn);
 end
 
 if ~isfield(param,'doa_method_flag') || isempty(param.doa_method_flag)
@@ -126,10 +129,10 @@ end
 try; delete(obj); end;
 if sb_param.doa_method_flag
   % DOA method (DOA is passed in degrees)
-  obj = imb.slice_browser(mdata.Tomo.theta * 180/pi,[],sb_param);
+  obj = imb.slice_browser(mdata,[],sb_param);
 else
   % Beamforming method
-  obj = imb.slice_browser(10*log10(mdata.Tomo.img),[],sb_param);
+  obj = imb.slice_browser(mdata,[],sb_param);
   try; delete(viterbi_tool); end;
   viterbi_tool = imb.slicetool_viterbi();
   obj.insert_tool(viterbi_tool);

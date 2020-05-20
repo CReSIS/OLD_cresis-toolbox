@@ -72,6 +72,7 @@ obj.eg.gps_time = [];
 obj.eg.lat = [];
 obj.eg.lon = [];
 obj.eg.elev = [];
+obj.eg.roll = [];
 obj.eg.surf_twtt = [];
 obj.eg.frms = [];
 
