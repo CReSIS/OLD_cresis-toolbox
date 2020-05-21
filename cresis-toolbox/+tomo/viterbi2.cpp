@@ -24,8 +24,10 @@ mex -v -largeArrayDims viterbi2.cpp
 double *viterbi2::find_path(void)
 {
 
-  int path[f_row * (f_col - 1)];
-  double path_prob[f_row], path_prob_next[f_row], index[f_row];
+  int *path = new int[f_row * (f_col - 1)];
+  double *path_prob = new double[f_row];
+  double *path_prob_next = new double[f_row];
+  double *index = new double[f_row];
 
   for (int k = 0; k < f_col; ++k)
     f_result[k] = NAN;
@@ -56,6 +58,11 @@ double *viterbi2::find_path(void)
     f_result[k] = viterbi_index + 1; // Account for matlab 1-indexing
   }
 
+  delete[] path;
+  delete[] path_prob;
+  delete[] path_prob_next;
+  delete[] index;
+  
   return f_result;
 }
 
