@@ -476,7 +476,7 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.twtt,'double')
-        obj.layer{frm}.quality = double(obj.layer{frm}.quality);
+        obj.layer{frm}.twtt = double(obj.layer{frm}.twtt);
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.quality,'uint8')
@@ -550,12 +550,21 @@ classdef layerdata < handle
       end
 
       % Ensure all values are valid
-      mask = ~isfinite(obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3);
+      mask = obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3;
       if any(mask)
         obj.layer{frm}.quality(mask) = 1;
         obj.layer_modified(frm) = true;
       end
-      mask = ~isfinite(obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4);
+      mask = isinf(obj.layer{frm}.twtt);
+      if any(mask)
+        obj.layer{frm}.twtt(mask) = NaN;
+        obj.layer_modified(frm) = true;
+      end
+      mask = abs(obj.layer{frm}.twtt) > 1;
+      if any(mask)
+        warning('abs(twtt) of some layers is > 1 which is probably incorrect. Manual correction is required if this is an error.');
+      end
+      mask = obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4;
       if any(mask)
         obj.layer{frm}.type(mask) = 2;
         obj.layer_modified(frm) = true;

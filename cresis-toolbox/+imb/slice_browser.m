@@ -1056,7 +1056,13 @@ classdef slice_browser < handle
             'YData', tmp_y);
         end
       end
-      if ~isempty(get(obj.gui.surfaceLB,'String'))
+      surf_idx = get(obj.gui.surfaceLB,'value');
+      surfaceLB_str = get(obj.gui.surfaceLB,'string');
+      if ~isempty(get(obj.gui.surfaceLB,'String')) ...
+          && (isempty(surf_idx) || all(surf_idx ~= 1:length(surfaceLB_str)))
+        surf_idx = 1;
+      end
+      if ~isempty(get(obj.gui.surfaceLB,'String')) && ~isempty(surf_idx)
         % Update surface selection related plots
         surf_idx = get(obj.gui.surfaceLB,'value');
         x_select = obj.sd.surf(surf_idx).x(:,obj.slice);
