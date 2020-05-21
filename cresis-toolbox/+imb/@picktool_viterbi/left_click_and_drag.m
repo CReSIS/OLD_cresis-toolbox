@@ -91,30 +91,9 @@ if tool_idx == 1
       
       % Surface and multiple suppression weights
       try
-        mult_weight = eval(obj.top_panel.mult_weight_TE.String);
-      catch ME
-        mult_weight = 100;
-      end
-      try
-        mult_weight_decay = eval(obj.top_panel.mult_weight_decay_TE.String);
-      catch ME
-        mult_weight_decay = 0;
-      end
-      try
-        mult_weight_local_decay = eval(obj.top_panel.mult_weight_local_decay_TE.String);
-      catch ME
-        mult_weight_local_decay = 0.8;
-      end
-      
-      try
         along_track_weight = eval(obj.top_panel.along_track_weight_TE.String);
       catch ME
         along_track_weight = 1;
-      end
-      try
-        gt_weight = -eval(obj.top_panel.ground_truth_weight_TE.String);
-      catch ME
-        gt_weight = -1;
       end
       try
         gt_cutoff = eval(obj.top_panel.ground_truth_cutoff_TE.String);
@@ -151,12 +130,6 @@ if tool_idx == 1
         layers_bins(layers_idx,:) = new_layer_bins;
       end
       
-      % TODO[reece]: Scale with method Prof. Paden suggested, not based on axis resolutions -- ask for refresher
-      transition_weights = ones(1, size(viterbi_data, 2) - 1) * along_track_weight;
-      
-      gt_costs = nan(1, size(viterbi_data, 2));
-      gt_costs(~isnan(gt)) = gt_weight;
-      
       gt_cutoffs = nan(1, size(viterbi_data, 2));
       gt_cutoffs(~isnan(gt)) = gt_cutoff;
       layer_cutoffs = [
@@ -174,8 +147,6 @@ if tool_idx == 1
         upper_bounds = max([upper_bounds; layers_bins(1, :)]);
         along_track_slope = diff(layers_bins(1,:));
       end
-      
-
       
       viterbi_timer = tic;
       y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);

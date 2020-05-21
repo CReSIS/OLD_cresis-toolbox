@@ -117,42 +117,6 @@ set(obj.top_panel.r_sel_vert,'Position',[0 0 200 15]);
 set(obj.top_panel.r_sel_vert,'Value', 1);
 set(obj.top_panel.r_sel_vert,'TooltipString', 'Use echogram within vertical bounds of selection box.');
 
-%----multiple weight label
-tooltip = 'Amount by which to repel surface multiples if suppression enabled. Greater value = greater avoidance.';
-obj.top_panel.mult_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_label,'Style','text');
-set(obj.top_panel.mult_weight_label,'String','Multiple Repulsion:');
-set(obj.top_panel.mult_weight_label,'TooltipString', tooltip);
-%----multiple weight box
-obj.top_panel.mult_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_TE,'Style','edit');
-set(obj.top_panel.mult_weight_TE,'String', '100');
-set(obj.top_panel.mult_weight_TE,'TooltipString', tooltip);
-
-%----multiple weight decay label
-tooltip = 'Multiply repulsion of each subsequent multiple by this amount to reduce suppression of faded multiples. Smaller = faster repulsion decay.';
-obj.top_panel.mult_weight_decay_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_decay_label,'Style','text');
-set(obj.top_panel.mult_weight_decay_label,'String','Multiple Decay:');
-set(obj.top_panel.mult_weight_decay_label,'TooltipString', tooltip);
-%----multiple weight decay box
-obj.top_panel.mult_weight_decay_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_decay_TE,'Style','edit');
-set(obj.top_panel.mult_weight_decay_TE,'String', '0');
-set(obj.top_panel.mult_weight_decay_TE,'TooltipString', tooltip);
-
-%----multiple weight local decay label
-tooltip = 'Multiply the multiple suppression repulsion by this amount for every subsequent bin past the multiple. Smaller = faster repulsion decay.';
-obj.top_panel.mult_weight_local_decay_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_local_decay_label,'Style','text');
-set(obj.top_panel.mult_weight_local_decay_label,'String','Multiple Local Decay:');
-set(obj.top_panel.mult_weight_local_decay_label,'TooltipString', tooltip);
-%----multiple weight local decay box
-obj.top_panel.mult_weight_local_decay_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_local_decay_TE,'Style','edit');
-set(obj.top_panel.mult_weight_local_decay_TE,'String', '0.8');
-set(obj.top_panel.mult_weight_local_decay_TE,'TooltipString', tooltip);
-
 %----along track weight label
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
 obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
@@ -164,30 +128,6 @@ obj.top_panel.along_track_weight_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.along_track_weight_TE,'Style','edit');
 set(obj.top_panel.along_track_weight_TE,'String', '1');
 set(obj.top_panel.along_track_weight_TE,'TooltipString', tooltip);
-
-%----image magnitude weight label
-tooltip = 'The weight by which to multiply the image magnitude cost. Greater weight = prefer greater image magnitude';
-obj.top_panel.image_mag_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.image_mag_weight_label,'Style','text');
-set(obj.top_panel.image_mag_weight_label,'String','Image Weight:');
-set(obj.top_panel.image_mag_weight_label,'TooltipString', tooltip);
-%----image magnitude weight box
-obj.top_panel.image_mag_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.image_mag_weight_TE,'Style','edit');
-set(obj.top_panel.image_mag_weight_TE,'String', '1');
-set(obj.top_panel.image_mag_weight_TE,'TooltipString', tooltip);
-
-%----gt weight label
-tooltip = 'The weight by which to multiply the ground truth cost. Greater weight = prefer closer to ground truth';
-obj.top_panel.ground_truth_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.ground_truth_weight_label,'Style','text');
-set(obj.top_panel.ground_truth_weight_label,'String','Ground Truth Weight:');
-set(obj.top_panel.ground_truth_weight_label,'TooltipString', tooltip);
-%----gt weight box
-obj.top_panel.ground_truth_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.ground_truth_weight_TE,'Style','edit');
-set(obj.top_panel.ground_truth_weight_TE,'String', '1');
-set(obj.top_panel.ground_truth_weight_TE,'TooltipString', tooltip);
 
 %----gt cutoff label
 tooltip = 'Points must be chosen within this many rangebins of a ground truth point when present. -1 for any distance allowed.';
@@ -204,7 +144,7 @@ set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %---------------------------------------------------------------------------------------------
 % set up top panel table
 cols = 2;
-rows = 14;  % Just keep this larger or equal to actual number of rows.
+rows = 5;  % Just keep this larger or equal to actual number of rows.
 
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -236,30 +176,10 @@ row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.vert_bound_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.vert_bound_bg;
 obj.top_panel.table.height(row, :)   = 30;
-%% Multiple Weight
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_TE;
-%% Multiple Weight Decay
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_decay_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_decay_TE;
-%% Multiple Weight Local Decay 
-row = row + 1;
-obj.top_panel.table.handles{row,1}   = obj.top_panel.mult_weight_local_decay_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.mult_weight_local_decay_TE;
 %% Along-track Weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.along_track_weight_label;
 obj.top_panel.table.handles{row,2}  = obj.top_panel.along_track_weight_TE;
-%% Image magnitude weight
-row = row + 1;
-obj.top_panel.table.handles{row,1}  = obj.top_panel.image_mag_weight_label;
-obj.top_panel.table.handles{row,2}  = obj.top_panel.image_mag_weight_TE;
-%% gt weight
-row = row + 1;
-obj.top_panel.table.handles{row,1}  = obj.top_panel.ground_truth_weight_label;
-obj.top_panel.table.handles{row,2}  = obj.top_panel.ground_truth_weight_TE;
 %% gt cutoff
 row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.ground_truth_cutoff_label;

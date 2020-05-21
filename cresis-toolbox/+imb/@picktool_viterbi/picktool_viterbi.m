@@ -31,7 +31,7 @@ classdef picktool_viterbi < imb.picktool
       obj.top_panel = [];
       obj.table = [];
       obj.w = 350;
-      obj.h = 500;
+      obj.h = 250;
       
       obj.create_ui();
     end
