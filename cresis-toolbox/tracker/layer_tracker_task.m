@@ -324,7 +324,13 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   if isnumeric(track.max_bin)
     % Convert from two way travel time to bins
-    track.max_bin = ones(1,Nx) * find(mdata.Time >= orig_track.max_bin, 1);
+    track.max_bin = find(mdata.Time >= orig_track.max_bin, 1);
+    if isempty(track.max_bin)
+      track.max_bin = ones(1,Nx) * length(mdata.Time);
+    else
+      track.max_bin = ones(1,Nx) * track.max_bin;
+    end
+    
   elseif isstruct(track.max_bin)
     % Load layer
     track.max_bin = opsLoadLayers(param, orig_track.max_bin);

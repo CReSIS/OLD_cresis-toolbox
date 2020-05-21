@@ -64,8 +64,24 @@ for layer_idx = 1:length(cur_layers)
         param.layer.type{cur_layer}(point_idxs), ...
         param.layer.qual{cur_layer}(point_idxs)};
       cmds(end).redo_cmd = 'insert';
+      s = param.layer.y{source_layer}(point_idxs);
+      try
+        size_s = size(s);
+        eval_cmd = get(obj.panel.source_evalTB,'String');
+        evalc(eval_cmd);
+        % Ensure size is correct
+        if ~isequal(size_s, size(s))
+          error('s changed in size which is not allowed. Source eval parameter should be modified to prevent this from happening.');
+        end
+        % Ensure type is correct.
+        if ~isa(s,'double')
+          error('s changed in type which is not allowed. Source eval parameter should be modified to prevent this from happening.');
+        end
+      catch ME;
+        warning(ME.getReport);
+      end;
       cmds(end).redo_args = {cur_layer, point_idxs, ...
-        param.layer.y{source_layer}(point_idxs), ...
+        s, ...
         param.layer.type{source_layer}(point_idxs), ...
         param.layer.qual{source_layer}(point_idxs)};
     end

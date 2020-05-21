@@ -470,6 +470,7 @@ for file_idx = 1:length(in_fns)
   %% Save output file
   fprintf('Output file %s\n', out_fn);
   gps.file_version = '1';
+  gps.file_type = 'gps';
   if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
     % arena
@@ -485,12 +486,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version','file_type');
     else
-      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version','file_type');
     end
   else
-    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version');
+    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type');
   end
   
   if debug_level >= 2

@@ -1,5 +1,5 @@
-function frames_create(param)
-% frames_create(param)
+function frames_check(param)
+% frames_check(param)
 %
 % Checks the fields in the frames files for potential errors.
 %
@@ -14,17 +14,17 @@ function frames_create(param)
 % param = [];
 % param.radar_name = 'mcrds';
 % param.season_name = '2009_Antarctica_TO';
-% frames_create(param)
+% frames_check(param)
 %
 % param = [];
 % param.radar_name = 'icards';
 % param.season_name = '1993_Greenland_P3';
-% frames_create(param)
+% frames_check(param)
 %
 % param = [];
 % param.radar_name = 'snow3';
 % param.season_name = '2013_Antarctica_Basler';
-% frames_create(param)
+% frames_check(param)
 
 if ischar(param)
   % param is a string containing the filename

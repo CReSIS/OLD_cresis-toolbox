@@ -133,6 +133,7 @@ if ~isempty(param.tomo_collate.tomo_params)
 end
 
 %% Interpolate Bottom, mdata.twtt from twtt to bins
+Bottom(~isfinite(Bottom)) = NaN;
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
 Bottom_bin(isnan(Bottom_bin)) = -1;
 if ~isfield(mdata,'twtt')
@@ -320,6 +321,7 @@ sd.set({'bottom','ice mask','bottom gt','bottom quality'}, ...
 sd.set({'top','top gt','top quality'}, ...
   'active','top','gt','top gt','quality','top quality');
 
+fprintf('Saving surf data: %s\n', out_fn);
 sd.save_surfdata(out_fn);
 
 % Reset these two fields for detect/extract surface tracking commands
@@ -1038,5 +1040,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
   end
 end
 
+fprintf('Saving tracked surf data: %s\n', out_fn);
 sd.save_surfdata(out_fn);
 fprintf('Done (%s)\n', datestr(now));
