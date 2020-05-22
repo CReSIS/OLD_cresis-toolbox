@@ -22,7 +22,7 @@ param.y_bounds = 1;
 for layer_idx = 1:length(cur_layers)
   cur_layer = cur_layers(layer_idx);
   
-  [selected_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
+  % [selected_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
   param.x_bounds = 1;
   [all_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
   
@@ -43,6 +43,7 @@ for layer_idx = 1:length(cur_layers)
     viterbi_data   = image_c;
     
     %% Detrending
+    % TODO[reece]: Is this still necessary?
     if 1
       % viterbi_data(end-140:end,:) = 0;
       viterbi_data = echo_norm(viterbi_data,struct('scale',[-40 90]));
@@ -59,19 +60,55 @@ for layer_idx = 1:length(cur_layers)
       % viterbi_data(end-70:end,:) = 0;
     end
     
-    % Surface and multiple suppression weights
+    % Get values from picktool params
+    n = cur_layer;  % Used in top/bottom layer eval
+    try
+      top_layer_num = eval(obj.top_panel.top_layer_TE.String);
+    catch ME
+      warning('Could not evaluate Viterbi top layer input.');
+      top_layer_num = NaN;
+    end
+    try
+      bottom_layer_num = eval(obj.top_panel.bottom_layer_TE.String);
+    catch ME
+      warning('Could not evaluate Viterbi bottom layer input.');
+      bottom_layer_num = NaN;
+    end
     try
       along_track_weight = eval(obj.top_panel.along_track_weight_TE.String);
     catch ME
+      warning('Could not evaluate Viterbi along track weight input.');
       along_track_weight = 1;
     end
     try
       gt_cutoff = eval(obj.top_panel.ground_truth_cutoff_TE.String);
     catch ME
+      warning('Could not evaluate Viterbi groundtruth cutoff input.');
       gt_cutoff = 5;
     end
+    clear n;
     
-    if obj.top_panel.r_sel_vert.Value
+    layers = [top_layer_num bottom_layer_num];
+    layers_bins = nan(length(layers),length(image_x));
+    for layers_idx = 1:length(layers)
+      layer_num = layers(layers_idx);
+      if isnan(layer_num)
+          continue
+      end
+      if layer_num > length(param.layer.y) || layer_num < 1
+          warning('Layer %d not found.', layer_num);
+          continue;
+      end
+      layers_bins(layers_idx, :) = interp_layer(param.layer.y{layer_num}, param.layer.x, image_x, image_y);
+    end
+    
+    % Get Vertical Bounds
+    vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
+    vert_bound_selection = obj.top_panel.vert_bound_PM.String{vert_bound_selection};
+    if strcmp(vert_bound_selection, 'Entire Echogram')
+      upper_bounds = ones(1, Nx);
+      lower_bounds = ones(1, Nx)*length(image_y);
+    elseif strcmp(vert_bound_selection, 'Selection Box')
       upper_bounds = ones(1, Nx)*interp1(image_y, 1:length(image_y),param.y(1), 'nearest', 'extrap');
       lower_bounds = ones(1, Nx)*interp1(image_y, 1:length(image_y),param.y(2), 'nearest', 'extrap');
       if upper_bounds(1) > lower_bounds(1)
@@ -80,11 +117,12 @@ for layer_idx = 1:length(cur_layers)
         upper_bounds = temp_bounds;
         clear temp_bounds;
       end
-    elseif obj.top_panel.r_echo_vert.Value
-      upper_bounds = ones(1, Nx);
-      lower_bounds = ones(1, Nx)*length(image_y);
+    elseif strcmp(vert_bound_selection, 'Layers')
+      upper_bounds = layers_bins(1, :);
+      lower_bounds = layers_bins(2, :);
     end
     
+    % Get horizontal bounds
     hori_bound_selection = obj.top_panel.hori_bound_PM.Value;
     hori_bound_selection = obj.top_panel.hori_bound_PM.String{hori_bound_selection};
     if strcmp(hori_bound_selection, 'Entire Echogram')
@@ -102,19 +140,6 @@ for layer_idx = 1:length(cur_layers)
     bound_gt_idxs = find(~isnan(gt));
     bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
 
-    % TODO[reece]: interp top and bottom layers
-    layers = [];
-    layers_bins = zeros(length(layers),length(image_x));
-    for layers_idx = 1:length(layers)
-      % Interpolate surface layer to match image x-axis coordinates
-      new_layer_bins = interp1(param.layer.x,param.layer.y{layers(layers_idx)},image_x);
-      % Interpolate surface layer y-axis units to image pixels
-      new_layer_bins = interp1(image_y, 1:length(image_y),new_layer_bins);
-      % Interpolate all non-finite values using surrounding data
-      new_layer_bins = interp_finite(new_layer_bins, 0);
-      layers_bins(layers_idx,:) = new_layer_bins;
-    end
-
     gt_idxs = find(~isnan(gt(1, :)));
 
     upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
@@ -127,11 +152,10 @@ for layer_idx = 1:length(cur_layers)
     upper_bounds(unbound_gt) = gt(unbound_gt) - gt_cutoff;
     lower_bounds(unbound_gt) = gt(unbound_gt) + gt_cutoff;
     
+    % TODO[reece]: Interp elevation somehow
+    % elevation = interp_layer(param.echowin.eg.elev, param.layer.x, image_x, image_y);
+    % along_track_slope = diff(elevation);
     along_track_slope = zeros(1, Nx-1);
-    if ~isempty(layers_bins)
-      upper_bounds = max([upper_bounds; layers_bins(1, :)]);
-      along_track_slope = diff(layers_bins(1,:));
-    end
     
     viterbi_timer = tic;
     y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
@@ -179,5 +203,13 @@ for layer_idx = 1:length(cur_layers)
     end
   end
 end
-
 return
+end
+
+function new_layer_bins = interp_layer(layer, layer_x, image_x, image_y)
+  % TODO[reece]: Extrap NaN or set bounds to entire echo?
+  % Interpolate layer to match image x-axis coordinates
+  new_layer_bins = interp1(layer_x, layer, image_x, 'nearest');
+  % Interpolate layer y-axis units to image pixels
+  new_layer_bins = interp1(image_y, 1:length(image_y),new_layer_bins, 'nearest');
+end

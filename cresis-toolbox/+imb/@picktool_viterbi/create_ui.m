@@ -56,11 +56,11 @@ set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String','5');
 set(obj.top_panel.insert_range_TE,'TooltipString', tooltip);
 
+%-----Horizontal Bounding
 tooltip = sprintf(['<html>How to bound the input and output of Viterbi horizontally<br /><br />', ...
                    '<b>Entire Echogram</b>: no bounding -- search entire echogram<br />', ...
                    '<b>Selection Box</b>: Search within bounds of selection box<br />', ...
                    '<b>Extreme Groundtruth</b>: Search between extreme groundtruth points within selection box</html>']);
-%-----Horizontal Bounding label
 obj.top_panel.hori_bound_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.hori_bound_label,'Style','text');
 set(obj.top_panel.hori_bound_label,'String','Horizontal Bounding');
@@ -69,33 +69,27 @@ set(obj.top_panel.hori_bound_label,'TooltipString', tooltip);
 obj.top_panel.hori_bound_PM = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.hori_bound_PM,'Style','popupmenu');
 set(obj.top_panel.hori_bound_PM,'String',{'Entire Echogram', 'Selection Box', 'Extreme Groundtruth'});
-set(obj.top_panel.hori_bound_PM,'Value',1)
+set(obj.top_panel.hori_bound_PM,'Value', 3)
 set(obj.top_panel.hori_bound_PM,'TooltipString', tooltip);
 
-
-%----Vertical Bounding
-tooltip = 'How to bound the input and output of Viterbi vertically.';
+%-----Vertical Bounding
+tooltip = sprintf(['<html>How to bound the input and output of Viterbi vertically<br /><br />', ...
+                   '<b>Entire Echogram</b>: no bounding -- search entire echogram<br />', ...
+                   '<b>Selection Box</b>: Search within bounds of selection box<br />', ...
+                   '<b>Layers</b>: Search between top and bottom layers specified below.</html>']);
 obj.top_panel.vert_bound_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.vert_bound_label,'Style','text');
-set(obj.top_panel.vert_bound_label,'String',sprintf('Vertical Bounding:'));
+set(obj.top_panel.vert_bound_label,'String','Vertical Bounding');
 set(obj.top_panel.vert_bound_label,'TooltipString', tooltip);
-%----Vertical Bounding radio buttons
-obj.top_panel.vert_bound_bg = uibuttongroup('Parent',obj.top_panel.handle);  % bg = button_group
-obj.top_panel.r_echo_vert = uicontrol('Parent', obj.top_panel.vert_bound_bg);
-set(obj.top_panel.r_echo_vert,'Style','radiobutton');
-set(obj.top_panel.r_echo_vert,'String','Entire Echogram');
-set(obj.top_panel.r_echo_vert,'Position',[0 15 200 15]);
-set(obj.top_panel.r_echo_vert,'Value', 0);
-set(obj.top_panel.r_echo_vert,'TooltipString', 'Pass in the entire echogram (no vertical bounding).');
-obj.top_panel.r_sel_vert = uicontrol('Parent', obj.top_panel.vert_bound_bg);
-set(obj.top_panel.r_sel_vert,'Style','radiobutton');
-set(obj.top_panel.r_sel_vert,'String','Selection Box');
-set(obj.top_panel.r_sel_vert,'Position',[0 0 200 15]);
-set(obj.top_panel.r_sel_vert,'Value', 1);
-set(obj.top_panel.r_sel_vert,'TooltipString', 'Use echogram within vertical bounds of selection box.');
+%----Vertical Bounding popupmenu
+obj.top_panel.vert_bound_PM = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.vert_bound_PM,'Style','popupmenu');
+set(obj.top_panel.vert_bound_PM,'String',{'Entire Echogram', 'Selection Box', 'Layers'});
+set(obj.top_panel.vert_bound_PM,'Value', 3)
+set(obj.top_panel.vert_bound_PM,'TooltipString', tooltip);
 
 %----top layer label
-tooltip = 'Upper search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted.';
+tooltip = 'Upper search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted. Ignored if vertical bounds not set to ''Layers''.';
 obj.top_panel.top_layer_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.top_layer_label,'Style','text');
 set(obj.top_panel.top_layer_label,'String','Top Layer:');
@@ -107,7 +101,7 @@ set(obj.top_panel.top_layer_TE,'String', 'n-1');
 set(obj.top_panel.top_layer_TE,'TooltipString', tooltip);
 
 %----bottom layer label
-tooltip = 'Lower search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted.';
+tooltip = 'Lower search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted. Ignored if vertical bounds not set to ''Layers''.';
 obj.top_panel.bottom_layer_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.bottom_layer_label,'Style','text');
 set(obj.top_panel.bottom_layer_label,'String','Bottom Layer:');
@@ -174,8 +168,7 @@ obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_PM;
 %% Vertical Bound
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.vert_bound_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.vert_bound_bg;
-obj.top_panel.table.height(row, :)   = 30;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.vert_bound_PM;
 %% Top Layer
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.top_layer_label;
