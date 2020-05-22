@@ -117,6 +117,30 @@ set(obj.top_panel.r_sel_vert,'Position',[0 0 200 15]);
 set(obj.top_panel.r_sel_vert,'Value', 1);
 set(obj.top_panel.r_sel_vert,'TooltipString', 'Use echogram within vertical bounds of selection box.');
 
+%----top layer label
+tooltip = 'Upper search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted.';
+obj.top_panel.top_layer_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.top_layer_label,'Style','text');
+set(obj.top_panel.top_layer_label,'String','Top Layer:');
+set(obj.top_panel.top_layer_label,'TooltipString', tooltip);
+%----top layer box
+obj.top_panel.top_layer_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.top_layer_TE,'Style','edit');
+set(obj.top_panel.top_layer_TE,'String', 'n-1');
+set(obj.top_panel.top_layer_TE,'TooltipString', tooltip);
+
+%----bottom layer label
+tooltip = 'Lower search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted.';
+obj.top_panel.bottom_layer_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.bottom_layer_label,'Style','text');
+set(obj.top_panel.bottom_layer_label,'String','Bottom Layer:');
+set(obj.top_panel.bottom_layer_label,'TooltipString', tooltip);
+%----bottom layer box
+obj.top_panel.bottom_layer_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.bottom_layer_TE,'Style','edit');
+set(obj.top_panel.bottom_layer_TE,'String', 'n+1');
+set(obj.top_panel.bottom_layer_TE,'TooltipString', tooltip);
+
 %----along track weight label
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
 obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
@@ -144,7 +168,7 @@ set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %---------------------------------------------------------------------------------------------
 % set up top panel table
 cols = 2;
-rows = 5;  % Just keep this larger or equal to actual number of rows.
+rows = 7;  % Just keep this larger or equal to actual number of rows.
 
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -176,6 +200,14 @@ row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.vert_bound_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.vert_bound_bg;
 obj.top_panel.table.height(row, :)   = 30;
+%% Top Layer
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.top_layer_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.top_layer_TE;
+%% Bottom Layer
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.bottom_layer_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.bottom_layer_TE;
 %% Along-track Weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.along_track_weight_label;
