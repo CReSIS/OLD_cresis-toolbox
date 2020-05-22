@@ -44,19 +44,6 @@ table_draw(obj.table);
 %==========================================================================
 % top panel table contents
 
-%----Mode dropdown
-tooltip = 'Switch Viterbi functionality';
-obj.top_panel.tool_PM = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.tool_PM,'Style','popupmenu');
-set(obj.top_panel.tool_PM,'String',{'basic'});
-set(obj.top_panel.tool_PM,'Value',1)
-set(obj.top_panel.tool_PM,'TooltipString', tooltip);
-%-----mode label
-obj.top_panel.mode_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mode_label,'Style','text');
-set(obj.top_panel.mode_label,'String','Mode');
-set(obj.top_panel.mode_label,'TooltipString', tooltip);
-
 %----insert range
 tooltip = 'Viterbi will search +/- this many bins for the peak intensity on insert';
 obj.top_panel.insert_range_label = uicontrol('Parent',obj.top_panel.handle);
@@ -69,32 +56,22 @@ set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String','5');
 set(obj.top_panel.insert_range_TE,'TooltipString', tooltip);
 
-%----Horizontal Bounding
-tooltip = 'How to bound the input and output of Viterbi horizontally.';
+tooltip = sprintf(['<html>How to bound the input and output of Viterbi horizontally<br /><br />', ...
+                   '<b>Entire Echogram</b>: no bounding -- search entire echogram<br />', ...
+                   '<b>Selection Box</b>: Search within bounds of selection box<br />', ...
+                   '<b>Extreme Groundtruth</b>: Search between extreme groundtruth points within selection box</html>']);
+%-----Horizontal Bounding label
 obj.top_panel.hori_bound_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.hori_bound_label,'Style','text');
-set(obj.top_panel.hori_bound_label,'String',sprintf('Horizontal Bounding:'));
+set(obj.top_panel.hori_bound_label,'String','Horizontal Bounding');
 set(obj.top_panel.hori_bound_label,'TooltipString', tooltip);
-%----Horizontal Bounding radio buttons
-obj.top_panel.hori_bound_bg = uibuttongroup('Parent',obj.top_panel.handle);  % bg = button_group
-obj.top_panel.r_echo = uicontrol('Parent', obj.top_panel.hori_bound_bg);
-set(obj.top_panel.r_echo,'Style','radiobutton');
-set(obj.top_panel.r_echo,'String','Entire Echogram');
-set(obj.top_panel.r_echo,'Position',[0 30 200 15]);
-set(obj.top_panel.r_echo,'Value', 0);
-set(obj.top_panel.r_echo,'TooltipString', 'Pass in the entire echogram (no bounding).');
-obj.top_panel.r_sel = uicontrol('Parent', obj.top_panel.hori_bound_bg);
-set(obj.top_panel.r_sel,'Style','radiobutton');
-set(obj.top_panel.r_sel,'String','Selection Box');
-set(obj.top_panel.r_sel,'Position',[0 15 200 15]);
-set(obj.top_panel.r_sel,'Value', 0);
-set(obj.top_panel.r_sel,'TooltipString', 'Use echogram within horizontal bounds of selection box.');
-obj.top_panel.r_extr = uicontrol('Parent', obj.top_panel.hori_bound_bg);
-set(obj.top_panel.r_extr,'Style','radiobutton');
-set(obj.top_panel.r_extr,'String','Extreme Groundtruth');
-set(obj.top_panel.r_extr,'Position',[0 0 200 15]);
-set(obj.top_panel.r_extr,'Value', 1);
-set(obj.top_panel.r_extr,'TooltipString', 'Use echogram within outer-most (horizontally) ground truth points within selection box.');
+%----Horizontal Bounding popupmenu
+obj.top_panel.hori_bound_PM = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.hori_bound_PM,'Style','popupmenu');
+set(obj.top_panel.hori_bound_PM,'String',{'Entire Echogram', 'Selection Box', 'Extreme Groundtruth'});
+set(obj.top_panel.hori_bound_PM,'Value',1)
+set(obj.top_panel.hori_bound_PM,'TooltipString', tooltip);
+
 
 %----Vertical Bounding
 tooltip = 'How to bound the input and output of Viterbi vertically.';
@@ -193,8 +170,7 @@ obj.top_panel.table.handles{row,2}   = obj.top_panel.insert_range_TE;
 %% Horizontal Bound
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.hori_bound_label;
-obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_bg;
-obj.top_panel.table.height(row, :)   = 40;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_PM;
 %% Vertical Bound
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.vert_bound_label;
