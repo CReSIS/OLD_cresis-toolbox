@@ -85,7 +85,7 @@ set(obj.top_panel.vert_bound_label,'TooltipString', tooltip);
 obj.top_panel.vert_bound_PM = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.vert_bound_PM,'Style','popupmenu');
 set(obj.top_panel.vert_bound_PM,'String',{'Entire Echogram', 'Selection Box', 'Layers'});
-set(obj.top_panel.vert_bound_PM,'Value', 3)
+set(obj.top_panel.vert_bound_PM,'Value', 2)
 set(obj.top_panel.vert_bound_PM,'TooltipString', tooltip);
 
 %----top layer label

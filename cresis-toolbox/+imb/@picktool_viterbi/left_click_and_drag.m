@@ -6,6 +6,8 @@ function cmds = left_click_and_drag(obj,param)
 % Compile with
 %   mex -largeArrayDims viterbi.cpp
 
+physical_constants;
+
 image_x = param.image_x;
 image_y = param.image_y;
 image_c = param.image_c;
@@ -122,6 +124,8 @@ for layer_idx = 1:length(cur_layers)
       lower_bounds = layers_bins(2, :);
     end
     
+    % TODO[reece]: Default to using top and bottom of echo if layers don't exist
+
     % Get horizontal bounds
     hori_bound_selection = obj.top_panel.hori_bound_PM.Value;
     hori_bound_selection = obj.top_panel.hori_bound_PM.String{hori_bound_selection};
@@ -136,7 +140,9 @@ for layer_idx = 1:length(cur_layers)
       end
       hori_bounds = selected_manual_idxs([1 end]);
     end
-
+    hori_bounds(1) = max(hori_bounds(1), 1);
+    hori_bounds(end) = min(hori_bounds(end), Nx);
+    
     bound_gt_idxs = find(~isnan(gt));
     bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
 
@@ -147,15 +153,30 @@ for layer_idx = 1:length(cur_layers)
     
     % For ground truth outside the vertical bounds, defer to groundtruth
     %   bounds rather than selection bounds
-    % TODO[reece]: Is this the behavior Paden expects? Move gt instead?
+    % TODO[reece]: Error/warn and not do anything if gt outside vertical bounds
     unbound_gt = lower_bounds < upper_bounds;
     upper_bounds(unbound_gt) = gt(unbound_gt) - gt_cutoff;
     lower_bounds(unbound_gt) = gt(unbound_gt) + gt_cutoff;
     
-    % TODO[reece]: Interp elevation somehow
-    % elevation = interp_layer(param.echowin.eg.elev, param.layer.x, image_x, image_y);
-    % along_track_slope = diff(elevation);
-    along_track_slope = zeros(1, Nx-1);
+    elevation = param.echowin.eg.elev;
+    vel_air = c/2;
+    vel_ice = c/(sqrt(er_ice)*2);
+    dt = param.echo_time(2) - param.echo_time(1);
+    along_track_slope = diff(elevation);
+
+    yaxis_choice = get(param.echowin.left_panel.yaxisPM,'Value');
+    if yaxis_choice == 1 % TWTT
+      drange = dt * vel_air;
+    elseif yaxis_choice == 2 % WGS_84 Elevation
+      drange = dt * vel_ice;
+    elseif yaxis_choice == 3 % Range
+      drange = dt * vel_ice;
+    elseif yaxis_choice == 4 % Range bin
+      drange = dt * vel_air;
+    elseif yaxis_choice == 5 % Surface flat
+      drange = dt * vel_ice;
+    end
+    along_track_slope = round(along_track_slope / drange);
     
     viterbi_timer = tic;
     y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
