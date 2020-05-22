@@ -170,6 +170,9 @@ if ischar(copy_param.layer_dest.name)
   copy_param.layer_dest.name = {copy_param.layer_dest.name};
 end
 
+% For the opsLoadLayers to write the files if they do not already exist
+copy_param.layer_dest.read_only = false;
+
 if ~isfield(copy_param.layer_source,'layerdata_source') || isempty(copy_param.layer_source.layerdata_source)
   % Default is the CSARP_layer directory
   copy_param.layer_source.layerdata_source = 'layer';
@@ -188,9 +191,10 @@ param.cmd.frms = frames_param_cmd_frms(param,frames);
 % Load all frames (for better edge interpolation)
 load_param = param;
 load_param.cmd.frms = max(1,min(param.cmd.frms)-1) : min(length(frames.frame_idxs),max(param.cmd.frms)+1);
+layer_dest = opsLoadLayers(load_param,copy_param.layer_dest);
 if strcmpi(copy_param.layer_source.source,'custom')
   layer_source = [];
-  for layer_idx = 1:length(copy_param.layer_dest)
+  for layer_idx = 1:length(layer_dest)
     % gps_time copy
     if ~iscell(copy_param.layer_source.gps_time)
       copy_param.layer_source.gps_time = {copy_param.layer_source.gps_time};
@@ -225,7 +229,6 @@ if strcmpi(copy_param.layer_source.source,'custom')
 else
   layer_source = opsLoadLayers(load_param,copy_param.layer_source);
 end
-layer_dest = opsLoadLayers(load_param,copy_param.layer_dest);
 
 %% Load framing information (to determine start/stop gps times of each frame)
 if strcmpi(copy_param.layer_dest.source,'ops')
