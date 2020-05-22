@@ -163,7 +163,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       theta_ice = asin(sin(theta)/sqrt(er_ice));
       
       master.GPS_time = sb.sd.gps_time(slices);
-      [master.Latitude,master.Longitude,master.Elevation] = ecef2geodetic(sb.sd.FCS.origin(1,slices),sb.sd.FCS.origin(2,slices),sb.sd.FCS.origin(3,slices),WGS84.ellipsoid);
+      [master.Latitude,master.Longitude,master.Elevation] = ecef2geodetic(sb.sd.fcs.origin(1,slices),sb.sd.fcs.origin(2,slices),sb.sd.fcs.origin(3,slices),WGS84.ellipsoid);
       master.Latitude = master.Latitude/180*pi;
       master.Longitude = master.Longitude/180*pi;
 
@@ -219,7 +219,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       % -------------------------------------------------------------------
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
-      surf_bins = sb.sd.surf(surf_idx).y(:,slices);
+      surf_bins = round(sb.sd.surf(surf_idx).y(:,slices));
       surf_weight = 20;
       surf_range = 15;
       for idx = 1:Nx

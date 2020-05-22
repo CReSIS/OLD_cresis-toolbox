@@ -247,6 +247,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   if ~isfield(track,'max_bin') || isempty(track.max_bin)
     track.max_bin = inf;
+  elseif isstruct(track.max_bin)
+    if ~isfield(track.max_bin,'existence_check')
+      track.max_bin.existence_check = false;
+    end
   end
   
   if ~isfield(track,'max_rng') || isempty(track.max_rng)
@@ -276,7 +280,11 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   if ~isfield(track,'min_bin') || isempty(track.min_bin)
     track.min_bin = 0;
-  end
+  elseif isstruct(track.min_bin)
+    if ~isfield(track.min_bin,'existence_check')
+      track.min_bin.existence_check = false;
+    end
+ end
   
     %  .mult_suppress: struct controlling surface multiple suppression
   if ~isfield(track,'mult_suppress') || isempty(track.mult_suppress)

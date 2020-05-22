@@ -476,7 +476,7 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.twtt,'double')
-        obj.layer{frm}.quality = double(obj.layer{frm}.quality);
+        obj.layer{frm}.twtt = double(obj.layer{frm}.twtt);
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.quality,'uint8')
@@ -550,12 +550,21 @@ classdef layerdata < handle
       end
 
       % Ensure all values are valid
-      mask = ~isfinite(obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3);
+      mask = obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3;
       if any(mask)
         obj.layer{frm}.quality(mask) = 1;
         obj.layer_modified(frm) = true;
       end
-      mask = ~isfinite(obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4);
+      mask = isinf(obj.layer{frm}.twtt);
+      if any(mask)
+        obj.layer{frm}.twtt(mask) = NaN;
+        obj.layer_modified(frm) = true;
+      end
+      mask = abs(obj.layer{frm}.twtt) > 1;
+      if any(mask)
+        warning('abs(twtt) of some layers is > 1 which is probably incorrect. Manual correction is required if this is an error.');
+      end
+      mask = obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4;
       if any(mask)
         obj.layer{frm}.type(mask) = 2;
         obj.layer_modified(frm) = true;
@@ -1203,8 +1212,55 @@ classdef layerdata < handle
     
   end
   
-  %% Static Methods
+  %% Static Methods ==========
   methods(Static)
+    %% interp: interpolate layer data from opsLoadLayers to a common GPS time
+    % Input:
+    %   layers.twtt, layers.quality, layers.type
+    %   layers.gps_time, layers.lat, layers.lon, and layers.elev
+    % Output:
+    %   layers.twtt_ref, layers.type_ref, layers.quality_ref
+    % 
+    % 
+    % param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
+    % layers = opsLoadLayers(param,struct('name','surface'));
+    % mdata = echo_load(param,'standard',1);
+    % layers = layerdata.interp(mdata,layers);
+    function layers = interp(mdata,layers)
+      master = [];
+      if isfield(mdata,'gps_time')
+        master.GPS_time = mdata.gps_time;
+      else
+        master.GPS_time = mdata.GPS_time;
+      end
+      if isfield(mdata,'lat')
+        master.Latitude = mdata.lat;
+      else
+        master.Latitude = mdata.Latitude;
+      end
+      if isfield(mdata,'lon')
+        master.Longitude = mdata.lon;
+      else
+        master.Longitude = mdata.Longitude;
+      end
+      if isfield(mdata,'elev')
+        master.Elevation = mdata.elev;
+      else
+        master.Elevation = mdata.Elevation;
+      end
+      for lay_idx = length(layers)
+        ops_layer = [];
+        ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+        ops_layer{1}.type = layers(lay_idx).type;
+        ops_layer{1}.quality = layers(lay_idx).quality;
+        ops_layer{1}.twtt = layers(lay_idx).twtt;
+        ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+        ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+        lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+        layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+      end
+    end
+    
     %% load_layers: load list of layers
     % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
     % mdata = load(fn);

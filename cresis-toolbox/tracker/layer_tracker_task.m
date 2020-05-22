@@ -311,9 +311,37 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: min_bin/max_bin + time to bins conversions
-  % Convert from two way travel time to bins
-  track.min_bin = find(mdata.Time >= orig_track.min_bin, 1);
-  track.max_bin = find(mdata.Time <= orig_track.max_bin, 1, 'last');
+  if isnumeric(track.min_bin)
+    % Convert from two way travel time to bins
+    track.min_bin = ones(1,Nx) * find(mdata.Time >= orig_track.min_bin, 1);
+  elseif isstruct(track.min_bin)
+    % Load layer
+    track.min_bin = opsLoadLayers(param, orig_track.min_bin);
+    % Interpolate min_bin_layer onto echogram GPS times
+    track.min_bin = layerdata.interp(mdata,track.min_bin);
+    track.min_bin = interp1(mdata.Time,1:length(mdata.Time),track.min_bin.twtt_ref);
+  end
+  
+  if isnumeric(track.max_bin)
+    % Convert from two way travel time to bins
+    track.max_bin = find(mdata.Time >= orig_track.max_bin, 1);
+    if isempty(track.max_bin)
+      track.max_bin = ones(1,Nx) * length(mdata.Time);
+    else
+      track.max_bin = ones(1,Nx) * track.max_bin;
+    end
+    
+  elseif isstruct(track.max_bin)
+    % Load layer
+    track.max_bin = opsLoadLayers(param, orig_track.max_bin);
+    % Interpolate max_bin_layer onto echogram GPS times
+    track.max_bin = layerdata.interp(mdata,track.max_bin);
+    track.max_bin = interp1(mdata.Time,1:length(mdata.Time),track.max_bin.twtt_ref);
+  end
+  
+  min_min_bin = round(max(1,min(track.min_bin)));
+  max_max_bin = round(min(size(mdata.Data,1),max(track.max_bin)));
+  
   dt = mdata.Time(2) - mdata.Time(1);
   track.init.max_diff = orig_track.init.max_diff/dt;
   if strcmpi(track.max_rng_units,'bins')
@@ -321,16 +349,16 @@ for track_idx = param.layer_tracker.tracks_in_task
   else
     track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
   end
-  data = data(track.min_bin:track.max_bin,:);
+  data = data(min_min_bin:max_max_bin,:);
   if track.data_noise_en
-    data_noise = data_noise(track.min_bin:track.max_bin,:);
+    data_noise = data_noise(min_min_bin:max_max_bin,:);
   end
-  track.zero_bin = floor(-mdata.Time(1)/dt + 1);
+  track.zero_bin = floor(-mdata.Time(min_min_bin)/dt + 1);
   
   %% Track: Create Initial Surface
   if strcmpi(track.init.method,'dem')
     % Correct for min_bin removal
-    track.dem = track.dem - track.min_bin + 1;
+    track.dem = track.dem - min_min_bin + 1;
   elseif strcmp(track.init.method,'snake')
     track.init.search_rng = round(orig_track.init.snake_rng(1)/dt) : round(orig_track.init.snake_rng(2)/dt);
     track.dem = tracker_snake_simple(data,track.init);
@@ -444,7 +472,7 @@ for track_idx = param.layer_tracker.tracks_in_task
       end
     end
     %% Track: Convert bins to twtt
-    new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1,'linear','extrap');
+    new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + min_min_bin - 1,'linear','extrap');
     % Some layer sources may not be "double", but we require that layers be double type:
     new_layer = double(new_layer);
     
@@ -460,11 +488,11 @@ for track_idx = param.layer_tracker.tracks_in_task
       plot(h_axes(1),find(new_quality==1),new_layer(new_quality==1),'g');
       plot(h_axes(1),find(new_quality==3),new_layer(new_quality==3),'r');
       if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
-        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
+        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+min_min_bin-1),'m--')
         plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
-          track.dem+track.min_bin-1-track.init.max_diff),'r--')
+          track.dem+min_min_bin-1-track.init.max_diff),'r--')
         plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
-          track.dem+track.min_bin-1+track.init.max_diff),'b--')
+          track.dem+min_min_bin-1+track.init.max_diff),'b--')
       end
       hold(h_axes(1),'off');
       if ~isempty(mdata.Time)
