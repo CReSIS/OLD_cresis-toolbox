@@ -1059,7 +1059,8 @@ classdef slice_browser < handle
       surf_idx = get(obj.gui.surfaceLB,'value');
       surfaceLB_str = get(obj.gui.surfaceLB,'string');
       if ~isempty(get(obj.gui.surfaceLB,'String')) ...
-          && (isempty(surf_idx) || all(surf_idx ~= 1:length(surfaceLB_str)))
+          && (isempty(surf_idx) || surf_idx == 0 || all(surf_idx ~= 1:length(surfaceLB_str)))
+        set(obj.gui.surfaceLB,'value',1);
         surf_idx = 1;
       end
       if ~isempty(get(obj.gui.surfaceLB,'String')) && ~isempty(surf_idx)
