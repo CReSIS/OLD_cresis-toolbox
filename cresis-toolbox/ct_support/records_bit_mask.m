@@ -1,8 +1,10 @@
 function records_bit_mask(param,param_override)
 %
-% GPR profiles usually contain stops, 90+ deg sharp turns, etc that may be
-% undesirable for SAR processing. Use this script to help find the
-% bad data records associated with these maneuvers and remove them.
+% GPR profiles usually contain stops, 270+ deg loop turns, etc that may be
+% undesirable for SAR processing. Use this script to help find the data
+% records associated with these maneuvers and mask them for SAR processing.
+% Usually it is not necessary to do this unless there are long sections of
+% stationary data which can cause the SAR processor to run out of memory.
 %
 % param = struct with processing parameters
 % param_override = parameters in this struct will override parameters

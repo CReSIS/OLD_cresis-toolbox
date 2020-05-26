@@ -66,7 +66,9 @@ end
 gps_time_datenum = epoch_to_datenum(gps.gps_time);
 [year month day hour minute sec] = datevec(gps_time_datenum);
 
-GPS_sod = (day-day(1))*86400+hour*3600+minute*60+sec;  % GPS seconds of day
+day_jumps = day-day(1);
+day_jumps(day_jumps<0) = 1; % this is the case at month jump
+GPS_sod = day_jumps*86400+hour*3600+minute*60+sec;  % GPS seconds of day
 
 fig = 7;
 if isfield(gps,'sync_gps_time')

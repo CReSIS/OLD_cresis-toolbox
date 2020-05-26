@@ -364,8 +364,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (!mxIsClass(prhs[6],"uint32")) {
     mexErrMsgTxt("usage: bounds must be type unsigned int32");
   }
-  if (mxGetNumberOfElements(prhs[6]) != 2*dim_image[2]) {
-    mexErrMsgTxt("usage: bounds must have numel equal to 2*size(image,3)");
+  const size_t *dim_bounds = mxGetDimensions(prhs[6]);
+  if (dim_bounds[0] != dim_image[1] || dim_bounds[1] != dim_image[2]) {
+    mexErrMsgTxt("usage: bounds must have size(bounds,1)=size(image,2) and size(bounds,2)=size(image,3)");
   }
   unsigned int *bounds = (unsigned int *)mxGetData(prhs[6]);
   
