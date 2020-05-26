@@ -170,6 +170,9 @@ if ischar(copy_param.layer_dest.name)
   copy_param.layer_dest.name = {copy_param.layer_dest.name};
 end
 
+% For the opsLoadLayers to write the files if they do not already exist
+copy_param.layer_dest.read_only = false;
+
 if ~isfield(copy_param.layer_source,'layerdata_source') || isempty(copy_param.layer_source.layerdata_source)
   % Default is the CSARP_layer directory
   copy_param.layer_source.layerdata_source = 'layer';

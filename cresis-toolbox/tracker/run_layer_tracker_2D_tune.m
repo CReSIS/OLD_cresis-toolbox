@@ -16,7 +16,8 @@ params = ct_set_params(params,'cmd.frms',[40:48]); % Specify specific frames (or
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
-param_override.layer_tracker.debug_plots = {'tracked_images'};
+param_override.layer_tracker.debug_plots = {};
+% param_override.layer_tracker.debug_plots = {'tracked_images'};
 % param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
@@ -78,14 +79,14 @@ end
 % param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
 % dbstop if error;
-% param_override.cluster.type = 'torque';
+ param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
-% param_override.cluster.cpu_time_mult  = 2;
-% param_override.cluster.mem_mult  = 2;
+param_override.cluster.cpu_time_mult  = 2;
+param_override.cluster.mem_mult  = 2;
 
 %% Automated Section
 % ----------------------------------------------------------------------
