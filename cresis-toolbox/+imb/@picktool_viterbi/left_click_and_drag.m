@@ -123,8 +123,6 @@ for layer_idx = 1:length(cur_layers)
       upper_bounds = layers_bins(1, :);
       lower_bounds = layers_bins(2, :);
     end
-    
-    % TODO[reece]: Default to using top and bottom of echo if layers don't exist
 
     % Get horizontal bounds
     hori_bound_selection = obj.top_panel.hori_bound_PM.Value;
@@ -153,11 +151,10 @@ for layer_idx = 1:length(cur_layers)
     
     % For ground truth outside the vertical bounds, defer to groundtruth
     %   bounds rather than selection bounds
-    % TODO[reece]: Error/warn and not do anything if gt outside vertical bounds
-    unbound_gt = lower_bounds < upper_bounds;
-    upper_bounds(unbound_gt) = gt(unbound_gt) - gt_cutoff;
-    lower_bounds(unbound_gt) = gt(unbound_gt) + gt_cutoff;
-    
+    if any(lower_bounds < upper_bounds)
+      error('Groundtruth points outside vertical bounds.');
+    end
+
     elevation = param.echowin.eg.elev;
     vel_air = c/2;
     vel_ice = c/(sqrt(er_ice)*2);
