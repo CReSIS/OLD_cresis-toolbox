@@ -6,7 +6,7 @@ function viterbi_tests()
   
   % CONSTANTS
   rows = 20;
-  cols = 9;
+  cols = 15;
   surf = 5;
   mult = 10;
   grnd = 17;
@@ -16,16 +16,16 @@ function viterbi_tests()
   matrix(grnd, :) = ones(1, cols) * 10; % Bottom
   
   surf_layer = ones(1, cols) * surf;
-  gt_layer = ones(1, cols) * NaN;
-  gt_layer([1 5 end]) = [16 16 16];
+  gt_layer = nan(1, cols);
+  gt_layer([5 10]) = [16 16];
   
   surf_costs = ones(1, cols) * 100;
-  gt_costs = ones(1, cols) * NaN;
-  gt_costs([1 end]) = [0 0];
+  gt_costs = nan(1, cols);
+  gt_costs(~isnan(gt_layer)) = 0;
 
-  surf_cutoffs = ones(1, cols) * NaN;
-  gt_cutoffs = ones(1, cols) * NaN;
-  gt_cutoffs([1 end]) = [NaN NaN];
+  surf_cutoffs = nan(1, cols);
+  gt_cutoffs = nan(1, cols);
+  gt_cutoffs(~isnan(gt_layer)) = 2;
 
   layers = [surf_layer; gt_layer];
   layer_costs = [surf_costs; gt_costs];
@@ -35,7 +35,7 @@ function viterbi_tests()
   transition_weights = ones(1, cols-1);
   img_mag_weight = 1;
   
-  mult_weight = 100;
+  mult_weight = 10;
   mult_weight_decay = .3;
   mult_weight_local_decay = .7;
 
@@ -45,13 +45,15 @@ function viterbi_tests()
   mask = inf*ones(1, cols);
   slope = round(diff(layers(1, :)));
   max_slope = -1;
-  bounds = [];
-  mask_dist = ones(1, cols) * Inf;
+  bounds = [5 10];
+  mask_dist = inf(1, cols);
   cost_matrix = ones(rows,cols);
+  
+  matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
   % RUN
   layer = tomo.viterbi(matrix, layers, layer_costs, layer_cutoffs, mask, ...
-    img_mag_weight, slope, max_slope, bounds, mask_dist, cost_matrix, ...
+    img_mag_weight, slope, max_slope, int64(bounds), [], mask_dist, cost_matrix, ...
     transition_weights, mult_weight, mult_weight_decay, mult_weight_local_decay, ...
     int64(zero_bin));
   hfig = setup();

@@ -38,7 +38,8 @@ public:
           const double d_img_mag_weight,
           const double *d_smooth_slope,
           const double d_max_slope,
-          const ptrdiff_t *d_bounds,
+          const ptrdiff_t *d_hori_bounds,
+          const ptrdiff_t *d_vert_bounds,
           const double *d_mask_dist,
           const double *d_costmatrix,
           const int d_costmatrix_X,
@@ -59,7 +60,8 @@ public:
                               f_img_mag_weight(d_img_mag_weight),
                               f_smooth_slope(d_smooth_slope),
                               f_max_slope(d_max_slope),
-                              f_bounds(d_bounds),
+                              f_hori_bounds(d_hori_bounds),
+                              f_vert_bounds(d_vert_bounds),
                               f_mask_dist(d_mask_dist),
                               f_costmatrix(d_costmatrix),
                               f_costmatrix_X(d_costmatrix_X),
@@ -80,7 +82,7 @@ public:
     *f_mask, f_img_mag_weight, *f_smooth_slope, f_max_slope, *f_mask_dist, 
     f_mult_weight, f_mult_weight_decay, f_mult_weight_local_decay, *f_costmatrix, 
     *f_transition_weights;
-  const ptrdiff_t *f_bounds;
+  const ptrdiff_t *f_hori_bounds, *f_vert_bounds;
   double *f_result, *f_cost;
 
   int num_col_vis, start_col, end_col;
