@@ -138,22 +138,10 @@ switch ct_output_dir(params(1).radar_name)
         track.ice_mask.fn = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif'));
         track.ice_mask.fn2 = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif'));
       end
-      
-      track.viterbi.use_surf_for_slope  = true;
-      track.viterbi.DIM_matrix          = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
-
-      track.viterbi.surf_weight         = 1000; % Repels
       track.init.dem_layer = struct('name','surface');
       
-      track.viterbi.mult_weight             = 100;
-      track.viterbi.mult_weight_decay       = 0;
-      track.viterbi.mult_weight_local_decay = .8;
-      
-      track.viterbi.max_slope           = -1;
       track.viterbi.transition_weight   = 1; % Larger --> smoother
-      track.viterbi.image_mag_weight    = 1;
-      track.viterbi.gt_weight           = 1; % Attracts
-      track.viterbi.gt_cutoff           = 5;
+      track.viterbi.gt_cutoff           = 50;
       
       track.mult_suppress.en = true;
       track.init.max_diff    = inf;
