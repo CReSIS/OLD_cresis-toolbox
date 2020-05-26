@@ -1078,7 +1078,7 @@ classdef surfdata < handle
         
         % Ensure x,y converted from elevation angle bins, range bins to elevation angle, twtt
         for surf_idx = 1:length(surf_new.surf)
-          if any(surf_new.surf(surf_idx).y(isfinite(surf_new.surf(surf_idx).y)))
+          if any(surf_new.surf(surf_idx).y(isfinite(surf_new.surf(surf_idx).y)) > 1)
             warning('HACK: Fixing temporary file format. Requires echogram_fn input argument. This will overwrite the existing surfdata file. Run "dbcont" to continue or "dbquit" to cancel.');
             keyboard;
             if ~surfdata_updated
