@@ -9,11 +9,13 @@ try
   transition_weight = track.viterbi.transition_weight;
 catch ME
   transition_weight = 1;
+  warning("transition_weight not specified or invalid. Using default of %d.", transition_weight);
 end
 try
   gt_cutoff = track.viterbi.gt_cutoff;
 catch ME
   gt_cutoff = 50;
+  warning("gt_cutoff not specified or invalid. Using default of %d.", gt_cutoff);
 end
 
 along_track_slope = zeros(1, size(data, 2) - 1);
