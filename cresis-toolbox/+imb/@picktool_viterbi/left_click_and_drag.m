@@ -80,7 +80,8 @@ for layer_idx = 1:length(cur_layers)
       continue
     end
     if layer_num > length(param.layer.y) || layer_num < 1
-      error('Layer %d not found.', layer_num);
+      warning('Layer %d not found.', layer_num);
+      continue
     end
     layers_bins(layers_idx, :) = interp_layer(param.layer.y{layer_num}, param.layer.x, image_x, image_y);
   end
@@ -147,7 +148,8 @@ for layer_idx = 1:length(cur_layers)
   % For ground truth outside the vertical bounds, defer to groundtruth
   %   bounds rather than selection bounds
   if any(lower_bounds(hori_bounds(1):hori_bounds(end)) < upper_bounds(hori_bounds(1):hori_bounds(end)))
-    error('Groundtruth points outside vertical bounds.');
+    warning('Groundtruth points outside vertical bounds.');
+    return;
   end
   
   elevation = param.echowin.eg.elev;
@@ -193,7 +195,7 @@ for layer_idx = 1:length(cur_layers)
   
   cmds(end).redo_cmd = 'insert';
   type = param.layer.type{cur_layer}(hori_layer_idxs);
-  type(type ~= 1) = 2; % Some day we will set different types based on the automated method used...
+  type(type ~= 1 | ~isfinite(param.layer.y{cur_layer}(hori_layer_idxs))) = 2; % Some day we will set different types based on the automated method used...
   cmds(end).redo_args = {cur_layer, hori_layer_idxs, y_new, ...
     type, param.cur_quality*ones(size(hori_layer_idxs))};
 end

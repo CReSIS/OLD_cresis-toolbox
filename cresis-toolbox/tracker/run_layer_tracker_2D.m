@@ -44,74 +44,82 @@ param_override.layer_tracker.track_per_task = inf;
 %% param.layer_tracker.track options
 track = [];
 
-%% Enable one set of parameters
+% =========================================================================
+% NOTE ON USAGE:
+% Enable one set of tracking parameters below
+% =========================================================================
 track.en = true;
 switch ct_output_dir(params(1).radar_name)
   case 'rds'
-    % RDS
-    track.profile = 'rds_OIB';
-
-    track.min_bin = struct('name','tomo_top');
-    track.max_bin = struct('name','tomo_bottom');
+    %% RDS
     
-    % Override default filter settings
+    %% RDS: Surface tracking
     if 0
-      track.filter	= [3 3];
-      track.filter_trim	= [3 3];
-      track.threshold = 10;
-      track.max_rng	= [0 2];
+      track.profile = 'rds';
+      
+      track.layer_names                 = {'surface'};
+      
+      % Override default filter settings
+      if 0
+        track.filter	= [3 3];
+        track.filter_trim	= [3 3];
+        track.threshold = 10;
+        track.max_rng	= [0 2];
+      end
+      
+      % Use sidelobe rejection
+      if 0
+        % run_get_echogram_stats output
+        sidelobe = load('/N/dcwan/projects/cresis/output/ct_tmp/echogram_stats/rds/2018_Greenland_P3/stats_20180421_01.mat','sidelobe_rows','sidelobe_dB','sidelobe_vals');
+        track.sidelobe_rows = [sidelobe.sidelobe_rows(75:98)];
+        track.sidelobe_dB = -(sidelobe.sidelobe_dB(75:98,1)-max(sidelobe.sidelobe_dB(:,1))+21);
+        track.sidelobe_dB(track.sidelobe_dB<9) = 9;
+        track.threshold_rel_max = -max(track.sidelobe_dB);
+        track.data_noise_en = true;
+      end
+      
+      % Use feedthrough rejection
+      if 0
+        % run_get_echogram_stats output
+        feedthru = load('/N/dcwan/projects/cresis/output/ct_tmp/echogram_stats/rds/2018_Greenland_P3/stats_20180421_01.mat');
+        track.feedthru.time = feedthru.dt*feedthru.bins;
+        track.feedthru.power_dB = feedthru.min_means+20;
+        bin_mask = track.feedthru.time<2e-6;
+        track.feedthru.time = track.feedthru.time(bin_mask);
+        track.feedthru.power_dB = track.feedthru.power_dB(bin_mask);
+        track.feedthru.power_dB(end) = -inf;
+        track.min_bin = 0.5e-6;
+        track.data_noise_en = true;
+      end
+      
+      % Override default init method
+      if 0
+        track.init.method	= 'dem';
+        track.init.dem_offset = 0;
+        track.init.dem_layer.name = 'surface';
+        track.init.dem_layer.source = 'lidar';
+        track.init.dem_layer.lidar_source = 'atm';
+        track.init.max_diff = 1e-6;
+      elseif 0
+        track.init.method	= 'snake';
+        track.init.snake_rng	= [-0.5e-6 0.5e-6];
+        track.init.max_diff	= 0.5e-6;
+      end
+      
+      % Override default method
+      if 0
+        track.method = 'snake';
+        track.snake_rng	= [-0.15e-6 0.15e-6];
+      end
     end
     
-    % Use sidelobe rejection
-    if 0
-      % run_get_echogram_stats output
-      sidelobe = load('/N/dcwan/projects/cresis/output/ct_tmp/echogram_stats/rds/2018_Greenland_P3/stats_20180421_01.mat','sidelobe_rows','sidelobe_dB','sidelobe_vals');
-      track.sidelobe_rows = [sidelobe.sidelobe_rows(75:98)];
-      track.sidelobe_dB = -(sidelobe.sidelobe_dB(75:98,1)-max(sidelobe.sidelobe_dB(:,1))+21);
-      track.sidelobe_dB(track.sidelobe_dB<9) = 9;
-      track.threshold_rel_max = -max(track.sidelobe_dB);
-      track.data_noise_en = true;
-    end
-    
-    % Use feedthrough rejection
-    if 0
-      % run_get_echogram_stats output
-      feedthru = load('/N/dcwan/projects/cresis/output/ct_tmp/echogram_stats/rds/2018_Greenland_P3/stats_20180421_01.mat');
-      track.feedthru.time = feedthru.dt*feedthru.bins;
-      track.feedthru.power_dB = feedthru.min_means+20;
-      bin_mask = track.feedthru.time<2e-6;
-      track.feedthru.time = track.feedthru.time(bin_mask);
-      track.feedthru.power_dB = track.feedthru.power_dB(bin_mask);
-      track.feedthru.power_dB(end) = -inf;
-      track.min_bin = 0.5e-6;
-      track.data_noise_en = true;
-    end
-    
-    % Override default init method
-    if 0
-      track.init.method	= 'dem';
-      track.init.dem_offset = 0;
-      track.init.dem_layer.name = 'surface';
-      track.init.dem_layer.source = 'lidar';
-      track.init.dem_layer.lidar_source = 'atm';
-      track.init.max_diff = 1e-6;
-    elseif 0
-      track.init.method	= 'snake';
-      track.init.snake_rng	= [-0.5e-6 0.5e-6];
-      track.init.max_diff	= 0.5e-6;
-    end
-    
-    % Override default method
-    if 0
-      track.method = 'snake';
-      track.snake_rng	= [-0.15e-6 0.15e-6];
-    end
-    
-    %% Viterbi
+    %% RDS: Viterbi
     if 1
-      %% Viterbi User Settings
       track.method                      = 'viterbi';
       track.layer_names                 = {'bottom'};
+      
+      track.min_bin = struct('name','tomo_top');
+      track.max_bin = struct('name','tomo_bottom');
       
       track.crossover.en = true;
       track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
@@ -151,18 +159,16 @@ switch ct_output_dir(params(1).radar_name)
       track.xcorr            = echo_xcorr_profile('short_unitstep');
     end
     
-    %% MCMC
+    %% RDS: MCMC
     if 0
-      %% MCMC User Settings
       track.method            = 'mcmc';
       track.layer_names       = {'surface','bottom'};
       track.mcmc.alg          = 'MCMC';
       track.init.max_diff     = inf;
     end
     
-    %% LSM
+    %% RDS: LSM
     if 0
-      %% LSM User Settings
       track.method            = 'lsm';
       track.layer_names       = {'surface','bottom'};
       track.lsm.y             = 220;
@@ -171,12 +177,11 @@ switch ct_output_dir(params(1).radar_name)
       track.init.max_diff     = inf;
       track.detrend           = [];
       track.norm.scale        = [-40 90];
-
+      
     end
     
-    %% Stereo
+    %% RDS: Stereo
     if 0
-      %% Stereo User Settings
       track.method               = 'stereo';
       track.layer_names       = {'surface','bottom'};
       track.stereo.surfaceload   = true;
@@ -190,60 +195,63 @@ switch ct_output_dir(params(1).radar_name)
       track.init.max_diff    = inf;
     end
     
-    %% Threshold
-    if 0
-      track.method = 'threshold';
-    end
-    
-    %% Fixed
-    if 0
-      track.method = 'fixed';
-    end
   case 'accum'
-    % ACCUM
-    track.profile = 'ACCUM';
+    %% ACCUM
     
-    % Override default init method
+    %% ACCUM: Surface tracking
     if 0
-      track.init.method	= 'dem';
-      track.init.dem_offset = 0;
-      track.init.dem_layer.name = 'surface';
-      track.init.dem_layer.source = 'lidar';
-      track.init.dem_layer.lidar_source = 'atm';
-      track.init.max_diff = 0.3e-6;
-    end
-    
-    % Override default method
-    if 0
-      track.method = 'snake';
-      track.snake_rng	= [-0.15e-6 0.15e-6];
+      track.profile = 'accum';
+      
+      track.layer_names                 = {'surface'};
+      
+      % Override default init method
+      if 0
+        track.init.method	= 'dem';
+        track.init.dem_offset = 0;
+        track.init.dem_layer.name = 'surface';
+        track.init.dem_layer.source = 'lidar';
+        track.init.dem_layer.lidar_source = 'atm';
+        track.init.max_diff = 0.3e-6;
+      end
+      
+      % Override default method
+      if 0
+        track.method = 'snake';
+        track.snake_rng	= [-0.15e-6 0.15e-6];
+      end
     end
     
   case {'snow','kuband','kaband'}
-    % FMCW
-    track.profile = 'snow_AWI';
+    %% SNOW (also kaband, kuband)
     
-    % Use sidelobe rejection
+    %% SNOW: Surface tracking
     if 0
-      % run_get_echogram_stats output
-      sidelobe = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/echogram_stats/snow/2011_Greenland_P3/stats_20110329_01.mat','sidelobe_rows','sidelobe_dB','sidelobe_vals');
-      track.sidelobe_rows = [sidelobe.sidelobe_rows(1:194)];
-      track.sidelobe_dB = [-sidelobe.sidelobe_dB(1:194,end)]-sidelobe.sidelobe_vals(end)+4.5;
-      track.threshold_rel_max = -max(track.sidelobe_dB);
-    end
-    
-    % Override default init method
-    if 0
-      track.init.method  = 'dem';
-      track.init.dem_offset = 0;
-      track.init.dem_layer.name = 'surface';
-      track.init.dem_layer.source = 'lidar';
-      track.init.dem_layer.lidar_source = 'atm';
-      track.init.max_diff = 0.3e-6;
-    elseif 0
-      track.init.method  = 'snake';
-      track.init.snake_rng = [-15e-9 15e-9];
-      track.init.max_diff  = 0.3e-6;
+      track.profile = 'snow';
+      
+      track.layer_names                 = {'surface'};
+      
+      % Use sidelobe rejection
+      if 0
+        % run_get_echogram_stats output
+        sidelobe = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/echogram_stats/snow/2011_Greenland_P3/stats_20110329_01.mat','sidelobe_rows','sidelobe_dB','sidelobe_vals');
+        track.sidelobe_rows = [sidelobe.sidelobe_rows(1:194)];
+        track.sidelobe_dB = [-sidelobe.sidelobe_dB(1:194,end)]-sidelobe.sidelobe_vals(end)+4.5;
+        track.threshold_rel_max = -max(track.sidelobe_dB);
+      end
+      
+      % Override default init method
+      if 0
+        track.init.method  = 'dem';
+        track.init.dem_offset = 0;
+        track.init.dem_layer.name = 'surface';
+        track.init.dem_layer.source = 'lidar';
+        track.init.dem_layer.lidar_source = 'atm';
+        track.init.max_diff = 0.3e-6;
+      elseif 0
+        track.init.method  = 'snake';
+        track.init.snake_rng = [-15e-9 15e-9];
+        track.init.max_diff  = 0.3e-6;
+      end
     end
     
 end

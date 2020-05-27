@@ -38,10 +38,11 @@ for track_idx = 1:length(param.layer_tracker.track)
   copy_param.layer_source.gps_time = gps_time;
   copy_param.layer_dest = param.layer_tracker.layer_params;
   copy_param.layer_dest.existence_check = false;
-  if ~isfield(copy_param.layer_dest,'name') || isempty(copy_param.layer_dest.name)
+  if ~isfield(param.layer_tracker.track{track_idx},'layer_names') || isempty(param.layer_tracker.track{track_idx}.layer_names)
     automated_name_en = true;
   else
     automated_name_en = false;
+    copy_param.layer_dest.name = param.layer_tracker.track{track_idx}.layer_names;
   end
   
   %% Track: Copy each layer
@@ -71,7 +72,7 @@ for track_idx = 1:length(param.layer_tracker.track)
           copy_param.layer_dest.name = sprintf('%s_%s_surface',track.name,track.method);
       end
     end
-    fprintf('opsCopyLayers %s %s (%s)\n', param.day_seg, copy_param.layer_dest.name, datestr(now));
+    fprintf('opsCopyLayers %s %s (%s)\n', param.day_seg, copy_param.layer_dest.name{1}, datestr(now));
     opsCopyLayers(param,copy_param);
   end
 end
