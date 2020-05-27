@@ -479,6 +479,11 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).tx_weights   = 1;
   end
+  if isfield(param.radar.wfs(wf),'system_dB') && ~isempty(param.radar.wfs(wf).system_dB)
+    wfs(wf).system_dB   = param.radar.wfs(wf).system_dB;
+  else
+    wfs(wf).system_dB   = 0;
+  end
   if isfield(param.radar.wfs(wf),'adc_gains_dB') && ~isempty(param.radar.wfs(wf).adc_gains_dB)
     wfs(wf).adc_gains_dB   = param.radar.wfs(wf).adc_gains_dB;
   else

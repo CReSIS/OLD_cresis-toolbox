@@ -137,6 +137,10 @@ if ~isfield(param.array,'presums') || isempty(param.array.presums)
   end
 end
 
+if ~isfield(param.array,'radiometric_corr_dB') || isempty(param.array.radiometric_corr_dB)
+  param.array.radiometric_corr_dB = NaN;
+end
+
 if ~isfield(param.array,'sar_type') || isempty(param.array.sar_type)
   if ~isfield(param.sar,'sar_type') || isempty(param.sar.sar_type)
     param.array.sar_type = 'fk';
