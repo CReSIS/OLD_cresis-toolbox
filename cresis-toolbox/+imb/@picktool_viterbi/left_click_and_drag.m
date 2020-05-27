@@ -24,7 +24,6 @@ param.y_bounds = 1;
 for layer_idx = 1:length(cur_layers)
   cur_layer = cur_layers(layer_idx);
   
-  % [selected_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
   param.x_bounds = 1;
   [all_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
   
@@ -78,16 +77,18 @@ for layer_idx = 1:length(cur_layers)
   for layers_idx = 1:length(layers)
     layer_num = layers(layers_idx);
     if isnan(layer_num)
-        continue
+      continue
     end
     if layer_num > length(param.layer.y) || layer_num < 1
-        warning('Layer %d not found.', layer_num);
-        continue;
+      error('Layer %d not found.', layer_num);
     end
     layers_bins(layers_idx, :) = interp_layer(param.layer.y{layer_num}, param.layer.x, image_x, image_y);
   end
   
   % Get Vertical Bounds
+  %   upper_bounds: nearest row to radar
+  %   lower_bounds: furthest row from radar
+  %   upper_bounds < lower_bounds or an error will occur
   vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
   vert_bound_selection = obj.top_panel.vert_bound_PM.String{vert_bound_selection};
   if strcmp(vert_bound_selection, 'Entire Echogram')
@@ -96,6 +97,7 @@ for layer_idx = 1:length(cur_layers)
   elseif strcmp(vert_bound_selection, 'Selection Box')
     upper_bounds = ones(1, Nx)*interp1(image_y, 1:length(image_y),param.y(1), 'nearest', 'extrap');
     lower_bounds = ones(1, Nx)*interp1(image_y, 1:length(image_y),param.y(2), 'nearest', 'extrap');
+    % Sort upper and lower bounds
     if upper_bounds(1) > lower_bounds(1)
       temp_bounds = lower_bounds;
       lower_bounds = upper_bounds;
@@ -106,44 +108,54 @@ for layer_idx = 1:length(cur_layers)
     upper_bounds = layers_bins(1, :);
     lower_bounds = layers_bins(2, :);
   end
-
+  
   % Get horizontal bounds
   hori_bound_selection = obj.top_panel.hori_bound_PM.Value;
   hori_bound_selection = obj.top_panel.hori_bound_PM.String{hori_bound_selection};
   if strcmp(hori_bound_selection, 'Entire Echogram')
+    % Image points
     hori_bounds = [1 Nx];
+    % Layer points
+    hori_layer_idxs = 1:length(param.layer.x);
   elseif strcmp(hori_bound_selection, 'Selection Box')
-    hori_bounds = round(param.x([1 2]));
+    % Image points
+    hori_bounds = interp1(image_x, 1:length(image_x),param.x, 'nearest', 'extrap');
+    % Layer points
+    hori_layer_idxs = find(param.layer.x >= param.x(1) & param.layer.x <= param.x(2));
   elseif strcmp(hori_bound_selection, 'Extreme Groundtruth')
+    % Image points
     selected_manual_idxs = find(~isnan(gt)&gt>=upper_bounds&gt<=lower_bounds);
     if length(selected_manual_idxs) < 2
-      error('Less than 2 gt points are selected but horizontal bounding option is set to extreme gt points.');
+      error('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points".');
     end
     hori_bounds = selected_manual_idxs([1 end]);
+    % Layer points
+    hori_layer_idxs = find(param.layer.x >= image_x(selected_manual_idxs(1)) & param.layer.x <= image_x(selected_manual_idxs(end)));
   end
   hori_bounds(1) = max(hori_bounds(1), 1);
   hori_bounds(end) = min(hori_bounds(end), Nx);
   
+  % Image bounds ground truth
   bound_gt_idxs = find(~isnan(gt));
   bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
-
+  
   gt_idxs = find(~isnan(gt(1, :)));
-
+  
   upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
   lower_bounds(gt_idxs) = min([gt(gt_idxs) + gt_cutoff; lower_bounds(gt_idxs)]);
   
   % For ground truth outside the vertical bounds, defer to groundtruth
   %   bounds rather than selection bounds
-  if any(lower_bounds < upper_bounds)
+  if any(lower_bounds(hori_bounds(1):hori_bounds(end)) < upper_bounds(hori_bounds(1):hori_bounds(end)))
     error('Groundtruth points outside vertical bounds.');
   end
-
+  
   elevation = param.echowin.eg.elev;
   vel_air = c/2;
   vel_ice = c/(sqrt(er_ice)*2);
   dt = param.echo_time(2) - param.echo_time(1);
   along_track_slope = diff(elevation);
-
+  
   yaxis_choice = get(param.echowin.left_panel.yaxisPM,'Value');
   if yaxis_choice == 1 % TWTT
     drange = dt * vel_air;
@@ -159,56 +171,38 @@ for layer_idx = 1:length(cur_layers)
   along_track_slope = round(along_track_slope / drange);
   
   viterbi_timer = tic;
+  viterbi_data = viterbi_data(:,hori_bounds(1):hori_bounds(end));
+  along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);
+  upper_bounds = upper_bounds(:,hori_bounds(1):hori_bounds(end));
+  lower_bounds = lower_bounds(:,hori_bounds(1):hori_bounds(end));
   y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
-
-  bounding_idxs = hori_bounds(1):hori_bounds(2);
-  y_new = y_new(bounding_idxs);
+  
+  bounding_idxs = hori_bounds(1):hori_bounds(end);
+  %y_new = y_new(bounding_idxs);
+  
   % Resample and interpolate y_new to match layer axes
   y_new = interp1(1:length(image_y), image_y,y_new,'linear','extrap');
-  y_new = interp1(image_x(bounding_idxs),y_new,param.layer.x(bounding_idxs),'linear', 'extrap');
+  y_new = interp1(image_x(bounding_idxs),y_new,param.layer.x(hori_layer_idxs),'linear', 'extrap');
   
   cmds(end+1).undo_cmd = 'insert';
-  % Quality measurement from Viterbi algorithm result
-  if false % obj.top_panel.quality_output_cbox.Value
-    % quality calculation not implemented
-    try
-      thrs = str2double(obj.top_panel.quality_threshold_TE.String);
-    catch ME
-      thrs = -20;
-    end
-    quality = ones(size(cost));
-    quality(cost < thrs) = 3;
-    cmds(end).undo_args = {cur_layer, bounding_idxs, ...
-      param.layer.y{cur_layer}(bounding_idxs), ...
-      param.layer.type{cur_layer}(bounding_idxs), quality};
-  else
-    cmds(end).undo_args = {cur_layer, bounding_idxs, ...
-      param.layer.y{cur_layer}(bounding_idxs), ...
-      param.layer.type{cur_layer}(bounding_idxs), ...
-      param.layer.qual{cur_layer}(bounding_idxs)};
-  end
+  cmds(end).undo_args = {cur_layer, hori_layer_idxs, ...
+    param.layer.y{cur_layer}(hori_layer_idxs), ...
+    param.layer.type{cur_layer}(hori_layer_idxs), ...
+    param.layer.qual{cur_layer}(hori_layer_idxs)};
   
   cmds(end).redo_cmd = 'insert';
-  if false % obj.top_panel.quality_output_cbox.Value
-    cmds(end).redo_args = {cur_layer, bounding_idxs, y_new, ...
-      2*ones(size(bounding_idxs)), quality};
-  else
-    type = 2*ones(size(bounding_idxs));
-
-    if ~isempty(bound_gt_idxs)
-        type(bound_gt_idxs - bounding_idxs(1) + 1) = 1;
-    end
-    cmds(end).redo_args = {cur_layer, bounding_idxs, y_new, ...
-    type, param.cur_quality*ones(size(bounding_idxs))};
-  end
+  type = param.layer.type{cur_layer}(hori_layer_idxs);
+  type(type ~= 1) = 2; % Some day we will set different types based on the automated method used...
+  cmds(end).redo_args = {cur_layer, hori_layer_idxs, y_new, ...
+    type, param.cur_quality*ones(size(hori_layer_idxs))};
 end
-return
+
 end
 
 function new_layer_bins = interp_layer(layer, layer_x, image_x, image_y)
-  % Interpolate layer to match image x-axis coordinates
-  new_layer_bins = interp1(layer_x, layer, image_x, 'nearest');
-  % Interpolate layer y-axis units to image pixels
-  new_layer_bins = interp1(image_y, 1:length(image_y),new_layer_bins, 'nearest');
+% Interpolate layer to match image x-axis coordinates
+new_layer_bins = interp1(layer_x, layer, image_x, 'nearest');
+% Interpolate layer y-axis units to image pixels
+new_layer_bins = interp1(image_y, 1:length(image_y),new_layer_bins, 'nearest');
 end
