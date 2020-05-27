@@ -54,6 +54,13 @@ if ~isfield(param,'layer_tracker') || isempty(param.layer_tracker)
   param.layer_tracker = [];
 end
 
+%  .block_size_frms: Number of data frames to load and process at a time.
+%  Default is 1 frame at a time.
+if ~isfield(param.layer_tracker,'block_size_frms') || isempty(param.layer_tracker.block_size_frms)
+  param.layer_tracker.block_size_frms = 1;
+end
+param.layer_tracker.block_size_frms = min(length(param.cmd.frms), param.layer_tracker.block_size_frms);
+
 %  .copy_param: Final output opsCopyLayer parameter struct
 if ~isfield(param.layer_tracker,'copy_param') || isempty(param.layer_tracker.copy_param)
   param.layer_tracker.copy_param = [];
@@ -121,9 +128,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   track = merge_structs(param.qlook.surf,param.layer_tracker.track{track_idx});
   
-  % profile: default is no profile, otherwise loads preset configuration
+  % profile: default is the profile named after the system (e.g. accum,
+  % kaband, kuband, rds, or snow), otherwise loads preset configuration
   if ~isfield(track,'profile') || isempty(track.profile)
-    track.profile = '';
+    track.profile = ct_output_dir(param.radar_name);
   end
   
   track = merge_structs(layer_tracker_profile(param,track.profile), track);

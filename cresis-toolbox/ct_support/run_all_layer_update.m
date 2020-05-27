@@ -1,7 +1,9 @@
 % script run_all_layer_update
 % run_all_layer_update
 %
-% Run layer_update on all seasons.
+% Run layer_update on all seasons. Consider copying from OPS to CSARP_layer if
+% OPS may have newer layer information. You may want to move the existing
+% CSARP_layer files before doing this.
 %   
 % Author: John Paden
 %
