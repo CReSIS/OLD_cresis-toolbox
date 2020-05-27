@@ -750,7 +750,18 @@ if ~param.load.raw_data
       % receiver gain compensation
       chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
         .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-      mult_factor = single(wfs(wf).quantization_to_V(adc)/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
+      if length(wfs(wf).system_dB) == 1
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+        mult_factor = single(wfs(wf).quantization_to_V(adc) ...
+          / (10.^(wfs(wf).adc_gains_dB(adc)/20) * chan_equal ...
+            * 10.^(wfs(wf).system_dB/20)));
+      else
+        % A number is provided for each receiver path for system_dB
+        mult_factor = single(wfs(wf).quantization_to_V(adc) ...
+          / (10.^(wfs(wf).adc_gains_dB(adc)/20) * chan_equal ...
+            * 10.^(wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc))/20)));
+      end
       data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
       
       % Compensate for receiver gain applied before ADC quantized the signal

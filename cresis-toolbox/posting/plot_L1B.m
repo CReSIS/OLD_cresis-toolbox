@@ -14,13 +14,14 @@
 %  fn = 'IRMCR1B_V01_20130408_01_020.nc';
 %  mdata = load_L1B(fn);
 
-fn = '/cresis/snfs1/dataproducts/ct_data/snow/2014_Greenland_P3/CSARP_post/CSARP_qlook/20140324_01/Data_20140324_01_010.mat';
+fn = '/cresis/snfs1/dataproducts/ct_data/accum/2018_Antarctica_TObas/CSARP_post/CSARP_standard/20190130_01/Data_20190130_01_025.mat';
 mdata = load_L1B(fn);
-if 0
+if 1
   % Replace L1B echogram surface with L2 surface from layer data file
-  fn = '/cresis/snfs1/dataproducts/ct_data/snow/2014_Greenland_P3/CSARP_post/CSARP_layerData/20140324_01/Data_20140324_01_010.mat';
+  fn = '/cresis/snfs1/dataproducts/ct_data/accum/2018_Antarctica_TObas/CSARP_post/CSARP_layerData/20190130_01/Data_20190130_01_025.mat';
   lay = load(fn);
   mdata.Surface = interp1(lay.GPS_time,lay.layerData{1}.value{2}.data,mdata.GPS_time);
+  mdata.Bottom = interp1(lay.GPS_time,lay.layerData{2}.value{2}.data,mdata.GPS_time);
 end
 
 %% Set which bins to plot
@@ -34,6 +35,9 @@ ylabel('Two way travel time (us)')
 colormap(1-gray(256))
 hold on
 plot(mdata.Surface*1e6);
+if isfield(mdata,'Bottom')
+  plot(mdata.Bottom*1e6);
+end
 hold off;
 
 %% Elevation Correction Example
@@ -54,6 +58,9 @@ if 1
   colormap(1-gray(256))
   hold on
   plot(mdata_WGS84.Elevation(1) - mdata_WGS84.Surface_Elev);
+  if isfield(mdata,'Bottom')
+    plot(mdata_WGS84.Elevation(1) - mdata_WGS84.Bottom_Elev);
+  end
   hold off;
   
   %% Plot versus WGS-84 elevation
@@ -65,6 +72,9 @@ if 1
   colormap(1-gray(256))
   hold on
   plot(mdata_WGS84.Surface_Elev);
+  if isfield(mdata,'Bottom')
+    plot(mdata_WGS84.Bottom_Elev);
+  end
   hold off;
   
 else
@@ -81,5 +91,3 @@ else
   ylabel('Depth (m)')
   colormap(1-gray(256))
 end
-
-return;
