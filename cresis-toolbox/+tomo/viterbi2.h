@@ -49,7 +49,7 @@ public:
   // METHODS
   int calculate_best(float *path_prob);
   float *find_path(void);
-  void viterbi_right(int *path, float *path_prob, float *path_prob_next, float *index);
+  void viterbi_right(int *path, float *& path_prob, float *& path_prob_next, float *index);
 
   // Compute square value
   template <class T>

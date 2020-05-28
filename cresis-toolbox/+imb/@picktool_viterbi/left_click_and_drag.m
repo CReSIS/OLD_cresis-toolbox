@@ -136,10 +136,6 @@ for layer_idx = 1:length(cur_layers)
   hori_bounds(1) = max(hori_bounds(1), 1);
   hori_bounds(end) = min(hori_bounds(end), Nx);
   
-  % Image bounds ground truth
-  bound_gt_idxs = find(~isnan(gt));
-  bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
-  
   gt_idxs = find(~isnan(gt(1, :)));
   
   upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);

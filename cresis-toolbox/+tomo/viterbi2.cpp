@@ -84,7 +84,7 @@ int viterbi2::calculate_best(float *path_prob)
 }
 
 // Perform viterbi to the right
-void viterbi2::viterbi_right(int *path, float *path_prob, float *path_prob_next, float *index)
+void viterbi2::viterbi_right(int *path, float *& path_prob, float *& path_prob_next, float *index)
 {
   bool next = false;
 
@@ -136,13 +136,13 @@ void viterbi2::viterbi_right(int *path, float *path_prob, float *path_prob_next,
 
   // path_prob is checked for best index but path_prob_next is more recent,
   // update path_prob to reflect path_prob_next
-  // TODO[reece]: Change pointer path instead of copying
   if (next)
   {
-    for (int i = 0; i < f_row; i++)
-    {
-      path_prob[i] = path_prob_next[i];
-    }
+    // path_prob must be passed by reference to alter target of outer path_prob pointer
+    // path_prob_next must be as well to swap the values to allow deletion of both arrays
+    float *temp = path_prob;
+    path_prob = path_prob_next;
+    path_prob_next = temp;
   }
 }
 
