@@ -262,8 +262,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // Allocate output
-  const mwSize dims[]={_col};
-  plhs[0] = mxCreateNumericArray(1, dims, mxSINGLE_CLASS, mxREAL);
+  const mwSize dims[]={1, _col};
+  plhs[0] = mxCreateNumericArray(2, dims, mxSINGLE_CLASS, mxREAL);
   float *_result = (float *)mxGetPr(plhs[0]);
   viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result);
   delete[] _along_track_slope;
