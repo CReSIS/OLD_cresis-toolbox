@@ -147,7 +147,7 @@ void viterbi2::viterbi_right(int *path, float *& path_prob, float *& path_prob_n
 }
 
 /* Check bounds for invalid indices. */
-void verify_bounds(float *bounds_dest, const mxArray *mx_bounds, char *bounds_name, int default_bound, int total_rows, int total_cols)
+void verify_bounds(float *bounds_dest, const mxArray *mx_bounds, const char *bounds_name, int default_bound, int total_rows, int total_cols)
 {
   char err_str[100];
   if (mxGetNumberOfElements(mx_bounds) != 0)
@@ -166,7 +166,7 @@ void verify_bounds(float *bounds_dest, const mxArray *mx_bounds, char *bounds_na
 
     for (int i = 0; i < total_cols; i++)
     {
-      bounds_dest[i] = (float)(mxGetPr(mx_bounds)[i]) - 1; // Account for matlab 1-indexing
+      bounds_dest[i] = static_cast<float>(mxGetPr(mx_bounds)[i]) - 1; // Account for matlab 1-indexing
       if (bounds_dest[i] < 0)
       {
         sprintf(err_str, "Usage: %s must be >= 1 (displaying with matlab 1-indexing: index %d is %.0f)", bounds_name, i + 1, bounds_dest[i] + 1);
@@ -215,7 +215,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   const int _row = mxGetM(prhs[arg]);
   const int _col = mxGetN(prhs[arg]);
-  const float *_image = (float *)mxGetPr(prhs[arg]);
+  const float *_image = reinterpret_cast<float *>(mxGetPr(prhs[arg]));
 
   // along_track_slope =======================================================
   arg++;
@@ -230,7 +230,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   float *_along_track_slope = new float[_col - 1];
   // Cast all values to float (in case of double)
   for (int i = 0; i < _col - 1; i++) {
-    _along_track_slope[i] = (float) (mxGetPr(prhs[arg])[i]);
+    _along_track_slope[i] = static_cast<float>(mxGetPr(prhs[arg])[i]);
   }
 
   // along_track_weight ==========================================================
@@ -239,7 +239,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   {
     mexErrMsgIdAndTxt("MATLAB:inputError", "usage: along_track_weight must be scalar floating-point");
   }
-  const float _along_track_weight = (float) *mxGetPr(prhs[arg]);
+  const float _along_track_weight = static_cast<float>(*mxGetPr(prhs[arg]));
 
   // Upper bounds =============================================================
   arg++;
@@ -263,9 +263,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // Allocate output
-  const mwSize dims[]={1, _col};
+  const mwSize dims[]={1, static_cast<unsigned>(_col)};
   plhs[0] = mxCreateNumericArray(2, dims, mxSINGLE_CLASS, mxREAL);
-  float *_result = (float *)mxGetPr(plhs[0]);
+  float *_result = reinterpret_cast<float *>(mxGetPr(plhs[0]));
   viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result);
 
   delete[] _along_track_slope;

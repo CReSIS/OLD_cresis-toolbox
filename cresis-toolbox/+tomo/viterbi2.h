@@ -62,22 +62,24 @@ public:
   // With minor adjustments by Reece Mathews (transition_weight)
   // Distance transform
   // -- Every index from d1 to d2 will be set in dst and dst_ind
-  // -- dst will contain the minimum value for that destination
-  // -- dst_ind will contain the minimum source index for that destination
+  // -- Every index from s1 to s2 will be searched for minimum cost to each destination
+  // -- dst will contain the minimum cost for that destination
+  // -- dst_ind will contain the corresponding source index which yields the minimum cost for that destination
   void dt(const float *src, float *dst, float *dst_ind, int s1, int s2,
           int d1, int d2, float transition_weight, int off = 0)
   {
-
-    int d = (d1 + d2) >> 1, s = ((s1 + s2) >> 1) - off; // Find the midpoint of the destination
+    // Destination and default source index set to midpoints of destination-space and source-space
+    int d = (d1 + d2) >> 1, s = (s1 + s2) >> 1;
     for (int p = s1; p <= s2; p++)
-    { // Search through all the sources and find the minimum
+    { //  Search through all the sources and find the index with minimum cost to the destination
+      //  potential minimum cost                        < current minimum cost
       if (src[p] + sqr(p - d - off) * transition_weight < src[s] + sqr(s - d - off) * transition_weight)
       {
         s = p;
       }
     }
-    dst[d] = src[s] + sqr(s - d - off) * transition_weight; // Minimum value to the midpoint
-    dst_ind[d] = s;                                         // Minimum source index for the midpoint
+    dst[d] = src[s] + sqr(s - d - off) * transition_weight; // Minimum cost to the destination
+    dst_ind[d] = s;                                         // Corresponding source index for the destination
     if (d2 >= d + 1)
     { // Recursive call, binary search (top half of destinations)
       dt(src, dst, dst_ind, s, s2, d + 1, d2, transition_weight, off);
@@ -87,14 +89,6 @@ public:
       dt(src, dst, dst_ind, s1, s, d1, d - 1, transition_weight, off);
     }
   }
-  void dt_1d(const float *f, float transition_weight, float *result, float *dst_ind,
-             int beg, int end, int off = 0)
-  {
-    dt(f, result, dst_ind, beg, end, beg, end, transition_weight, off);
-  }
   // END CODE FROM DAVID CRANDALL
 };
 #endif
-
-// TODO[reece]: dt must update bounds of next column to refer to rows within bounds of previous column
-//              Does not appear to be happening. Due to dt's search-space optimization? Does it not update entire search space?
