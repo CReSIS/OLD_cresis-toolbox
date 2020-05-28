@@ -154,11 +154,6 @@ if ~any(copy_param.quality.value == [1 2 3])
   error('Invalid quality value %d', copy_param.quality.value);
 end
 
-if ~isfield(copy_param.layer_dest,'group_name') || isempty(copy_param.layer_dest.group_name)
-  % Default is no group name
-  copy_param.layer_dest.group_name = '';
-end
-
 if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
   % Default is the CSARP_layer directory
   copy_param.layer_dest.layerdata_source = 'layer';
@@ -224,6 +219,34 @@ if strcmpi(copy_param.layer_source.source,'custom')
       layer_source(layer_idx).quality = copy_param.layer_source.quality{layer_idx};
     else
       layer_source(layer_idx).quality = ones(size(layer_source(layer_idx).gps_time));
+    end
+    % age
+    if isfield(copy_param.layer_source,'age') ...
+        && ~isempty(copy_param.layer_source.age)
+      layer_source(layer_idx).age = copy_param.layer_source.age{layer_idx};
+    else
+      layer_source(layer_idx).age = [];
+    end
+    % age_source
+    if isfield(copy_param.layer_source,'age_source') ...
+        && ~isempty(copy_param.layer_source.age_source)
+      layer_source(layer_idx).age_source = copy_param.layer_source.age_source{layer_idx};
+    else
+      layer_source(layer_idx).age_source = [];
+    end
+    % desc
+    if isfield(copy_param.layer_source,'desc') ...
+        && ~isempty(copy_param.layer_source.desc)
+      layer_source(layer_idx).desc = copy_param.layer_source.desc{layer_idx};
+    else
+      layer_source(layer_idx).desc = [];
+    end
+    % group_name
+    if isfield(copy_param.layer_source,'group_name') ...
+        && ~isempty(copy_param.layer_source.group_name)
+      layer_source(layer_idx).group_name = copy_param.layer_source.group_name{layer_idx};
+    else
+      layer_source(layer_idx).group_name = [];
     end
   end
 else
@@ -570,11 +593,33 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
         error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', copy_param.layer_dest.name{layer_idx}, layers.layer_organizer_fn());
       else
         layer_organizer = [];
-        layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name};
+        if ~isempty(layer_source(layer_idx).group_name)
+          layer_organizer.lyr_group_name = {layer_source(layer_idx).group_name};
+        else
+          layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name};
+        end
         layer_organizer.lyr_name = {copy_param.layer_dest.name{layer_idx}};
         id = layers.insert_layers(layer_organizer);
       end
     end
+    % Update layer information
+    if ~isempty(layer_source.age)
+      layers.set_age(id,layer_source(layer_idx).age);
+    elseif isfield(copy_param.layer_dest,'age')
+      layers.set_age(id,copy_param.layer_dest.age);
+    end
+    if ~isempty(layer_source.age_source)
+      layers.set_age_source(id,layer_source(layer_idx).age_source);
+    elseif isfield(copy_param.layer_dest,'age_source')
+      layers.set_age_source(id,copy_param.layer_dest.age_source);
+    end
+    if ~isempty(layer_source.desc)
+      layers.set_desc(id,layer_source(layer_idx).desc);
+    elseif isfield(copy_param.layer_dest,'desc')
+      layers.set_desc(id,copy_param.layer_dest.desc);
+    end
+    
+    % Update layer vectors
     layers.update_layer(param.cmd.frms, id, all_points(layer_idx).gps_time, ...
       all_points(layer_idx).twtt_final,all_points(layer_idx).quality_final,all_points(layer_idx).type_final);
   end

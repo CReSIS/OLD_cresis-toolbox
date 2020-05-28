@@ -857,11 +857,29 @@ classdef layerdata < handle
       end
     end
     
-    %% get_id: get layer id from layer name
-    function id = get_id(obj,name)
+    %% get_id: get layer id and other layer information from layer id or name
+    function [id,name,group_name,desc,age,age_source] = get_id(obj,name)
       obj.check_layer_organizer();
-      match_idx = find(strcmp(name,obj.layer_organizer.lyr_name));
-      id = obj.layer_organizer.lyr_id(match_idx);
+      if ischar(name)
+        match_idx = find(strcmp(name,obj.layer_organizer.lyr_name),1);
+      else
+        match_idx = find(name == obj.layer_organizer.lyr_id,1);
+      end
+      if isempty(match_idx)
+        id = [];
+        age = [];
+        age_source = [];
+        desc = [];
+        group_name = [];
+        name = [];
+      else
+        id = obj.layer_organizer.lyr_id(match_idx);
+        age = obj.layer_organizer.lyr_age(match_idx);
+        age_source = obj.layer_organizer.lyr_age_source{match_idx};
+        desc = obj.layer_organizer.lyr_desc{match_idx};
+        group_name = obj.layer_organizer.lyr_group_name{match_idx};
+        name = obj.layer_organizer.lyr_name{match_idx};
+      end
     end
     
     %% get_layer: get layer twtt, quality, type
@@ -1126,6 +1144,30 @@ classdef layerdata < handle
           obj.layer_modified(frm) = false;
         end
       end
+    end
+    
+    %% set_age: set age for a layer
+    function set_age(obj,id,age)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_age(match_idx) = age;
+      obj.layer_organizer_modified = true;
+    end
+    
+    %% set_age_source: set age_source for a layer
+    function set_age_source(obj,id,age_source)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_age_source{match_idx} = age_source;
+      obj.layer_organizer_modified = true;
+    end
+    
+    %% set_desc: set desc for a layer
+    function set_desc(obj,id,desc)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_desc{match_idx} = desc;
+      obj.layer_organizer_modified = true;
     end
     
     %% update_gps: update gps for a frame
