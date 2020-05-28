@@ -25,4 +25,4 @@ lower_bounds = nan(1, size(data, 2));
 upper_bounds(gt(1, :)) = gt(2, :) - gt_cutoff;
 lower_bounds(gt(1, :)) = gt(2, :) + gt_cutoff;
 
-labels = tomo.viterbi2(double(data), along_track_slope, transition_weight, upper_bounds, lower_bounds);
+labels = tomo.viterbi2(single(data), along_track_slope, transition_weight, upper_bounds, lower_bounds);
