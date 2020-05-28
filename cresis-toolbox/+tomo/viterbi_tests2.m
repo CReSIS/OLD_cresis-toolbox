@@ -32,7 +32,7 @@ function viterbi_tests2()
   matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
   % RUN
-  layer = tomo.viterbi2(matrix, along_track_slope, along_track_weight, upper_bounds, lower_bounds);
+  layer = tomo.viterbi2(single(matrix), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   hfig = setup();
   resize(hfig);
 end
