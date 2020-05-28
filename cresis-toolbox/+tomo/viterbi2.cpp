@@ -228,6 +228,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgIdAndTxt("MATLAB:inputError", "usage: along_track_slope must have numel(along_track_slope)=size(image,2)-1");
   }
   float *_along_track_slope = new float[_col - 1];
+  // Cast all values to float (in case of double)
   for (int i = 0; i < _col - 1; i++) {
     _along_track_slope[i] = (float) (mxGetPr(prhs[arg])[i]);
   }
@@ -266,5 +267,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   plhs[0] = mxCreateNumericArray(2, dims, mxSINGLE_CLASS, mxREAL);
   float *_result = (float *)mxGetPr(plhs[0]);
   viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result);
+
   delete[] _along_track_slope;
 }

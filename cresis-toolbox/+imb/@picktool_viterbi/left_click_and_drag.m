@@ -72,6 +72,9 @@ for layer_idx = 1:length(cur_layers)
   end
   clear n;
   
+  vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
+  vert_bound_selection = obj.top_panel.vert_bound_PM.String{vert_bound_selection};
+
   layers = [top_layer_num bottom_layer_num];
   layers_bins = nan(length(layers),length(image_x));
   for layers_idx = 1:length(layers)
@@ -79,8 +82,8 @@ for layer_idx = 1:length(cur_layers)
     if isnan(layer_num)
       continue
     end
-    if layer_num > length(param.layer.y) || layer_num < 1
-      warning('Layer %d not found.', layer_num);
+    if (layer_num > length(param.layer.y) || layer_num < 1) && strcmp(vert_bound_selection, 'Layers')
+      warning('Layer %d not found. Defaulting to echogram bound.', layer_num);
       continue
     end
     layers_bins(layers_idx, :) = interp_layer(param.layer.y{layer_num}, param.layer.x, image_x, image_y);
@@ -89,9 +92,7 @@ for layer_idx = 1:length(cur_layers)
   % Get Vertical Bounds
   %   upper_bounds: nearest row to radar
   %   lower_bounds: furthest row from radar
-  %   upper_bounds < lower_bounds or an error will occur
-  vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
-  vert_bound_selection = obj.top_panel.vert_bound_PM.String{vert_bound_selection};
+  %   upper_bounds <= lower_bounds or an error will occur in c++ call
   if strcmp(vert_bound_selection, 'Entire Echogram')
     upper_bounds = ones(1, Nx);
     lower_bounds = ones(1, Nx)*length(image_y);
