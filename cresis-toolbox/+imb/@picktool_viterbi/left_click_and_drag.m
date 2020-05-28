@@ -125,7 +125,7 @@ for layer_idx = 1:length(cur_layers)
     hori_layer_idxs = find(param.layer.x >= param.x(1) & param.layer.x <= param.x(2));
   elseif strcmp(hori_bound_selection, 'Extreme Groundtruth')
     % Image points
-    selected_manual_idxs = find(~isnan(gt)&gt>=upper_bounds&gt<=lower_bounds);
+    selected_manual_idxs = find(~isnan(gt) & image_x >= param.x(1) & image_x <= param.x(end));
     if length(selected_manual_idxs) < 2
       error('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points".');
     end

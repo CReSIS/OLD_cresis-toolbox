@@ -67,7 +67,7 @@ public:
           int d1, int d2, double transition_weight, int off = 0)
   {
 
-    int d = (d1 + d2) >> 1, s = ((s1 + s2) >> 1) - off; // Find the midpoint of the destination
+    int d = (d1 + d2) >> 1, s = ((s1 + s2) >> 1); // Find the midpoint of the destination
     for (int p = s1; p <= s2; p++)
     { // Search through all the sources and find the minimum
       if (src[p] + sqr(p - d - off) * transition_weight < src[s] + sqr(s - d - off) * transition_weight)
@@ -85,11 +85,6 @@ public:
     { // Recursive call, binary search (bottom half of destinations)
       dt(src, dst, dst_ind, s1, s, d1, d - 1, transition_weight, off);
     }
-  }
-  void dt_1d(const double *f, double transition_weight, double *result, double *dst_ind,
-             int beg, int end, int off = 0)
-  {
-    dt(f, result, dst_ind, beg, end, beg, end, transition_weight, off);
   }
   // END CODE FROM DAVID CRANDALL
 };
