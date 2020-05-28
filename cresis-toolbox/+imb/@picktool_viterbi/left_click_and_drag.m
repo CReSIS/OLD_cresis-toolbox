@@ -177,11 +177,10 @@ for layer_idx = 1:length(cur_layers)
   along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);
   upper_bounds = upper_bounds(:,hori_bounds(1):hori_bounds(end));
   lower_bounds = lower_bounds(:,hori_bounds(1):hori_bounds(end));
-  y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
+  y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
   
   bounding_idxs = hori_bounds(1):hori_bounds(end);
-  %y_new = y_new(bounding_idxs);
   
   % Resample and interpolate y_new to match layer axes
   y_new = interp1(1:length(image_y), image_y,y_new,'linear','extrap');

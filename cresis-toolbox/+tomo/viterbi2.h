@@ -16,19 +16,19 @@
 #include <limits>
 
 
-double INF = std::numeric_limits<double>::infinity();
+float INF = std::numeric_limits<float>::infinity();
 
 class viterbi2
 {
 public:
   viterbi2(const int d_row,
           const int d_col,
-          const double *d_image,
-          const double *d_along_track_slope,
-          const double d_along_track_weight,
-          const double *d_upper_bounds,
-          const double *d_lower_bounds,
-          double *d_result) : f_row(d_row),
+          const float *d_image,
+          const float *d_along_track_slope,
+          const float d_along_track_weight,
+          const float *d_upper_bounds,
+          const float *d_lower_bounds,
+          float *d_result) : f_row(d_row),
                               f_col(d_col),
                               f_image(d_image),
                               f_along_track_slope(d_along_track_slope),
@@ -42,13 +42,14 @@ public:
 
   // VARIABLES
   const int f_row, f_col;
-  const double *f_image, *f_along_track_slope, f_along_track_weight, *f_upper_bounds, *f_lower_bounds;
-  double *f_result;
+  const float *f_image;
+  const float *f_along_track_slope, f_along_track_weight, *f_upper_bounds, *f_lower_bounds;
+  float *f_result;
 
   // METHODS
-  int calculate_best(double *path_prob);
-  double *find_path(void);
-  void viterbi_right(int *path, double *path_prob, double *path_prob_next, double *index);
+  int calculate_best(float *path_prob);
+  float *find_path(void);
+  void viterbi_right(int *path, float *path_prob, float *path_prob_next, float *index);
 
   // Compute square value
   template <class T>
@@ -63,8 +64,8 @@ public:
   // -- Every index from d1 to d2 will be set in dst and dst_ind
   // -- dst will contain the minimum value for that destination
   // -- dst_ind will contain the minimum source index for that destination
-  void dt(const double *src, double *dst, double *dst_ind, int s1, int s2,
-          int d1, int d2, double transition_weight, int off = 0)
+  void dt(const float *src, float *dst, float *dst_ind, int s1, int s2,
+          int d1, int d2, float transition_weight, int off = 0)
   {
 
     int d = (d1 + d2) >> 1, s = ((s1 + s2) >> 1) - off; // Find the midpoint of the destination
@@ -86,7 +87,7 @@ public:
       dt(src, dst, dst_ind, s1, s, d1, d - 1, transition_weight, off);
     }
   }
-  void dt_1d(const double *f, double transition_weight, double *result, double *dst_ind,
+  void dt_1d(const float *f, float transition_weight, float *result, float *dst_ind,
              int beg, int end, int off = 0)
   {
     dt(f, result, dst_ind, beg, end, beg, end, transition_weight, off);
