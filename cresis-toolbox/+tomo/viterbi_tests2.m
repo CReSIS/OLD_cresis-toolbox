@@ -7,32 +7,26 @@ function viterbi_tests2()
   % CONSTANTS
   rows = 20;
   cols = 20;
-  surf = 5;
-  mult = 10;
-  grnd = 17;
+  flatness = 100;
+  along_track_weight = 100;
+  down_shift = rows;
   matrix = zeros(rows, cols);
+  shift_matrix = 1;
+  shift_elev = 1;
   for i = 1:cols
-      matrix(floor(abs(sin(i)/4)*rows+1) + 8, i) = 30; % Surface
+      matrix(floor(abs(sin(i)/flatness)*rows+1 - shift_matrix*(i/rows)*down_shift) + down_shift, i) = 30; % Layer
   end
-  matrix(mult, :) = ones(1, cols) * 20; % Mult 1
-  matrix(grnd, :) = ones(1, cols) * 10; % Bottom
-  
-  surf_bins = ones(1, cols) * surf;
 
-  % Viterbi params
-  along_track_weight = 1;
-  along_track_slope = round(diff(surf_bins(1, :)));
+  elevation = (down_shift - (rows:-1:1) + 1) * shift_elev;
+  
+  along_track_slope = round(diff(elevation));
   upper_bounds = ones(1, cols)*NaN;
   lower_bounds = ones(1, cols)*NaN;
-  
-  upper_bounds(6) = 1;
-  lower_bounds(6) = 5;
-  
   
   matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
   % RUN
-  layer = tomo.viterbi2(matrix, along_track_slope, along_track_weight, upper_bounds, lower_bounds);
+  layer = tomo.viterbi2(single(matrix), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   hfig = setup();
   resize(hfig);
 end

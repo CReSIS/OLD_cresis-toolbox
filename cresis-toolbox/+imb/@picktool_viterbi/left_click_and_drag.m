@@ -171,11 +171,12 @@ for layer_idx = 1:length(cur_layers)
   end
   along_track_slope = round(along_track_slope / drange);
   
-  viterbi_timer = tic;
   viterbi_data = viterbi_data(:,hori_bounds(1):hori_bounds(end));
   along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);
   upper_bounds = upper_bounds(:,hori_bounds(1):hori_bounds(end));
   lower_bounds = lower_bounds(:,hori_bounds(1):hori_bounds(end));
+  
+  viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
   
