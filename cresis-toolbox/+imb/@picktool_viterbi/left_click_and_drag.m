@@ -127,7 +127,8 @@ for layer_idx = 1:length(cur_layers)
     % Image points
     selected_manual_idxs = find(~isnan(gt) & image_x >= param.x(1) & image_x <= param.x(end));
     if length(selected_manual_idxs) < 2
-      error('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points".');
+      warning('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points".');
+      return;
     end
     hori_bounds = selected_manual_idxs([1 end]);
     % Layer points
@@ -161,16 +162,20 @@ for layer_idx = 1:length(cur_layers)
   yaxis_choice = get(param.echowin.left_panel.yaxisPM,'Value');
   if yaxis_choice == 1 % TWTT
     drange = dt * vel_air;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 2 % WGS_84 Elevation
     drange = dt * vel_ice;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 3 % Range
     drange = dt * vel_ice;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 4 % Range bin
     drange = dt * vel_air;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 5 % Surface flat
     drange = dt * vel_ice;
+    along_track_slope(:) = 0;
   end
-  along_track_slope = round(along_track_slope / drange);
   
   viterbi_timer = tic;
   viterbi_data = viterbi_data(:,hori_bounds(1):hori_bounds(end));

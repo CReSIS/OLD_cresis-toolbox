@@ -164,7 +164,7 @@ if param.post.layers_en
   % Load layers to output
   [layers,param.post.layers] = opsLoadLayers(tmp_param, param.post.layers);
   % Setup output layerdata class
-  out_layers = layerdata(param, fullfile(post_path,'layer'));
+  out_layers = layerdata(param, fullfile(post_path,'CSARP_layer'));
 end
 surface_layer = {opsLoadLayers(tmp_param, param.post.surface_source)};
 
