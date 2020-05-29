@@ -11,6 +11,10 @@ else
   tmp_out_fn_dir_dir = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp');
 end
 
+layer_dest.name = [];
+layer_source.twtt = [];
+layer_source.gps_time = [];
+
 %% Track loop
 % Combine and Copy each tracking result
 for track_idx = 1:length(param.layer_tracker.track)
@@ -46,35 +50,69 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   %% Track: Copy each layer
   for layer_idx = 1:size(twtt,1)
-    copy_param.layer_source.twtt = twtt(layer_idx,:);
-    
     if automated_name_en
-      % Create an automatic name
       switch track.method
         case 'lsm'
           if layer_idx <= length(track.lsm.storeIter)
-            copy_param.layer_dest.name = sprintf('%s_%s_surface_%03d', ...
+            layer_dest.name{end+1} = sprintf('%s_%s_surface_%03d', ...
               track.name,track.method,layer_idx);
           else
-            copy_param.layer_dest.name = sprintf('%s_%s_bottom_%03d', ...
+            layer_dest.name{end+1} = sprintf('%s_%s_bottom_%03d', ...
               track.name,track.method,layer_idx-length(track.lsm.storeIter));
           end
         case {'mcmc','stereo'}
           if layer_idx == 1
-            copy_param.layer_dest.name = sprintf('%s_%s_surface',track.name,track.method);
+            layer_dest.name{end+1} = sprintf('%s_%s_surface',track.name,track.method);
           else
-            copy_param.layer_dest.name = sprintf('%s_%s_bottom',track.name,track.method);
+            layer_dest.name{end+1} = sprintf('%s_%s_bottom',track.name,track.method);
           end
         case 'viterbi'
-          copy_param.layer_dest.name = sprintf('%s_%s_bottom',track.name,track.method);
+          layer_dest.name{end+1} = sprintf('%s_%s_bottom',track.name,track.method);
         otherwise
-          copy_param.layer_dest.name = sprintf('%s_%s_surface',track.name,track.method);
+          layer_dest.name{end+1} = sprintf('%s_%s_surface',track.name,track.method);
       end
     end
-    fprintf('opsCopyLayers %s %s (%s)\n', param.day_seg, copy_param.layer_dest.name, datestr(now));
-    opsCopyLayers(param,copy_param);
+    
+    layer_source.twtt{end+1} = twtt(layer_idx,:);
+    layer_source.gps_time{end+1} = gps_time;
+    
   end
+  
+  
+  %   for layer_idx = 1:size(twtt,1)
+  %     copy_param.layer_source.twtt = twtt(layer_idx,:);
+  %
+  %     if automated_name_en
+  %       % Create an automatic name
+  %       switch track.method
+  %         case 'lsm'
+  %           if layer_idx <= length(track.lsm.storeIter)
+  %             copy_param.layer_dest.name = sprintf('%s_%s_surface_%03d', ...
+  %               track.name,track.method,layer_idx);
+  %           else
+  %             copy_param.layer_dest.name = sprintf('%s_%s_bottom_%03d', ...
+  %               track.name,track.method,layer_idx-length(track.lsm.storeIter));
+  %           end
+  %         case {'mcmc','stereo'}
+  %           if layer_idx == 1
+  %             copy_param.layer_dest.name = sprintf('%s_%s_surface',track.name,track.method);
+  %           else
+  %             copy_param.layer_dest.name = sprintf('%s_%s_bottom',track.name,track.method);
+  %           end
+  %         case 'viterbi'
+  %           copy_param.layer_dest.name = sprintf('%s_%s_bottom',track.name,track.method);
+  %         otherwise
+  %           copy_param.layer_dest.name = sprintf('%s_%s_surface',track.name,track.method);
+  %       end
+  %     end
+  %     fprintf('opsCopyLayers %s %s (%s)\n', param.day_seg, copy_param.layer_dest.name, datestr(now));
+  %     opsCopyLayers(param,copy_param);
+  %   end
 end
-
+   copy_param.layer_source.gps_time = layer_source.gps_time;
+   copy_param.layer_source.twtt = layer_source.twtt;
+   copy_param.layer_dest.name = layer_dest.name;
+   fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
+   opsCopyLayers(param,copy_param);
 fprintf('Done (%s)\n', datestr(now));
 success = true;
