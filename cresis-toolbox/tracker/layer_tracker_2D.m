@@ -3,7 +3,7 @@ function [ctrl_chain,param] = layer_tracker_2D(param,param_override)
 %
 % Check input parameters and create tasks for layer_tracker.
 % layer_tracker_task does the actual tracking.
-% 
+%
 % Outputs stored in:
 % /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_test/20140313_08/
 %
@@ -53,6 +53,13 @@ physical_constants;
 if ~isfield(param,'layer_tracker') || isempty(param.layer_tracker)
   param.layer_tracker = [];
 end
+
+%  .block_size_frms: Number of data frames to load and process at a time.
+%  Default is 1 frame at a time.
+if ~isfield(param.layer_tracker,'block_size_frms') || isempty(param.layer_tracker.block_size_frms)
+  param.layer_tracker.block_size_frms = 1;
+end
+param.layer_tracker.block_size_frms = min(length(param.cmd.frms), param.layer_tracker.block_size_frms);
 
 %  .copy_param: Final output opsCopyLayer parameter struct
 if ~isfield(param.layer_tracker,'copy_param') || isempty(param.layer_tracker.copy_param)
@@ -121,9 +128,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   track = merge_structs(param.qlook.surf,param.layer_tracker.track{track_idx});
   
-  % profile: default is no profile, otherwise loads preset configuration
+  % profile: default is the profile named after the system (e.g. accum,
+  % kaband, kuband, rds, or snow), otherwise loads preset configuration
   if ~isfield(track,'profile') || isempty(track.profile)
-    track.profile = '';
+    track.profile = ct_output_dir(param.radar_name);
   end
   
   track = merge_structs(layer_tracker_profile(param,track.profile), track);
@@ -284,9 +292,9 @@ for track_idx = 1:length(param.layer_tracker.track)
     if ~isfield(track.min_bin,'existence_check')
       track.min_bin.existence_check = false;
     end
- end
+  end
   
-    %  .mult_suppress: struct controlling surface multiple suppression
+  %  .mult_suppress: struct controlling surface multiple suppression
   if ~isfield(track,'mult_suppress') || isempty(track.mult_suppress)
     track.mult_suppress = [];
   end
@@ -427,10 +435,10 @@ while frm_idx <= length(param.cmd.frms)
     dparam.file_success = {};
     dparam.argsin{1}.layer_tracker.frms = frms;
     
-    tracks_in_task = track_idx:min(track_idx-1+param.layer_tracker.track_per_task,length(param.layer_tracker.track)); 
+    tracks_in_task = track_idx:min(track_idx-1+param.layer_tracker.track_per_task,length(param.layer_tracker.track));
     
     dparam.argsin{1}.layer_tracker.tracks_in_task = tracks_in_task;
-
+    
     % File Success
     % ---------------------------------------------------------------------
     for track_idx = tracks_in_task

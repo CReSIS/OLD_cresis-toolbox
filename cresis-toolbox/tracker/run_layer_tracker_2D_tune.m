@@ -1,4 +1,4 @@
-% script run_layer_tracker_2D
+% script run_layer_tracker_2D_tune
 %
 % Runs layer_tracker_2D.m
 

@@ -133,17 +133,17 @@ if sb_param.doa_method_flag
 else
   % Beamforming method
   obj = imb.slice_browser(mdata,[],sb_param);
-  try; delete(viterbi_tool); end;
-  viterbi_tool = imb.slicetool_viterbi();
-  obj.insert_tool(viterbi_tool);
+%   try; delete(viterbi_tool); end;
+%   viterbi_tool = imb.slicetool_viterbi();
+%   obj.insert_tool(viterbi_tool);
   
   try; delete(trws_tool); end;
   trws_tool = imb.slicetool_trws();
   obj.insert_tool(trws_tool);
   
-  try; delete(max_tool); end;
-  max_tool = imb.slicetool_max();
-  obj.insert_tool(max_tool);
+%   try; delete(max_tool); end;
+%   max_tool = imb.slicetool_max();
+%   obj.insert_tool(max_tool);
   
   try; delete(quality_tool); end;
   quality_tool = imb.slicetool_quality();
@@ -153,9 +153,9 @@ else
   delete_tool = imb.slicetool_delete();
   obj.insert_tool(delete_tool);
   
-  try; delete(threshold_tool); end;
-  threshold_tool = imb.slicetool_threshold();
-  obj.insert_tool(threshold_tool);
+%   try; delete(threshold_tool); end;
+%   threshold_tool = imb.slicetool_threshold();
+%   obj.insert_tool(threshold_tool);
 end
 if ~isempty(ice_mask_fn)
   [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);

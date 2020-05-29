@@ -66,12 +66,16 @@ if ~isfield(param.tomo_collate,'in_path') || isempty(param.tomo_collate.in_path)
   param.tomo_collate.in_path = 'music3D';
 end
   
-if ~isfield(param.tomo_collate,'surf_out_path') || isempty(param.tomo_collate.surf_out_path)
-  param.tomo_collate.surf_out_path = 'surfData';
-end
-  
 if ~isfield(param.tomo_collate,'out_path') || isempty(param.tomo_collate.out_path)
   param.tomo_collate.out_path = param.tomo_collate.in_path;
+end
+  
+if ~isfield(param.tomo_collate,'surfData_mode') || isempty(param.tomo_collate.surfData_mode)
+  param.tomo_collate.surfData_mode = 'append';
+end
+  
+if ~isfield(param.tomo_collate,'surf_out_path') || isempty(param.tomo_collate.surf_out_path)
+  param.tomo_collate.surf_out_path = 'surfData';
 end
   
 %% Setup Processing

@@ -133,6 +133,10 @@ if ~isfield(param.qlook,'presums') || isempty(param.qlook.presums)
   param.qlook.presums = 1;
 end
 
+if ~isfield(param.qlook,'radiometric_corr_dB') || isempty(param.qlook.radiometric_corr_dB)
+  param.qlook.radiometric_corr_dB = NaN;
+end
+
 if ~isfield(param.qlook,'resample') || isempty(param.qlook.resample)
   param.qlook.resample = [1 1; 1 1];
 end

@@ -44,19 +44,6 @@ table_draw(obj.table);
 %==========================================================================
 % top panel table contents
 
-%----Mode dropdown
-tooltip = 'Switch Viterbi functionality';
-obj.top_panel.tool_PM = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.tool_PM,'Style','popupmenu');
-set(obj.top_panel.tool_PM,'String',{'basic'});
-set(obj.top_panel.tool_PM,'Value',1)
-set(obj.top_panel.tool_PM,'TooltipString', tooltip);
-%-----mode label
-obj.top_panel.mode_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mode_label,'Style','text');
-set(obj.top_panel.mode_label,'String','Mode');
-set(obj.top_panel.mode_label,'TooltipString', tooltip);
-
 %----insert range
 tooltip = 'Viterbi will search +/- this many bins for the peak intensity on insert';
 obj.top_panel.insert_range_label = uicontrol('Parent',obj.top_panel.handle);
@@ -69,137 +56,73 @@ set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String','5');
 set(obj.top_panel.insert_range_TE,'TooltipString', tooltip);
 
-%----column restriction label
-tooltip = 'Crop echogram input horizontally to values between extreme ground truth points';
-obj.top_panel.column_restriction_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.column_restriction_label,'Style','text');
-set(obj.top_panel.column_restriction_label,'String','Column restriction:');
-set(obj.top_panel.column_restriction_label,'TooltipString', tooltip);
-%----column restriction cbox
-obj.top_panel.column_restriction_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.column_restriction_cbox,'Style','checkbox');
-set(obj.top_panel.column_restriction_cbox,'Value', 1);
-set(obj.top_panel.column_restriction_cbox,'TooltipString', tooltip);
+%-----Horizontal Bounding
+tooltip = sprintf(['<html>How to bound the input and output of Viterbi horizontally<br /><br />', ...
+                   '<b>Entire Echogram</b>: no bounding -- search entire echogram<br />', ...
+                   '<b>Selection Box</b>: Search within bounds of selection box<br />', ...
+                   '<b>Extreme Groundtruth</b>: Search between extreme groundtruth points within selection box</html>']);
+obj.top_panel.hori_bound_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.hori_bound_label,'Style','text');
+set(obj.top_panel.hori_bound_label,'String','Horizontal Bounding');
+set(obj.top_panel.hori_bound_label,'TooltipString', tooltip);
+%----Horizontal Bounding popupmenu
+obj.top_panel.hori_bound_PM = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.hori_bound_PM,'Style','popupmenu');
+set(obj.top_panel.hori_bound_PM,'String',{'Entire Echogram', 'Selection Box', 'Extreme Groundtruth'});
+set(obj.top_panel.hori_bound_PM,'Value', 2)
+set(obj.top_panel.hori_bound_PM,'TooltipString', tooltip);
 
-%----layers label
-tooltip = 'List of layers to repulse or attract the viterbi layer. Enter as a vector. The first entry is the top and the viterbi layer may not exceed.';
-obj.top_panel.layers_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_label,'Style','text');
-set(obj.top_panel.layers_label,'String','Layers:');
-set(obj.top_panel.layers_label,'TooltipString', tooltip);
-%----layers box
-obj.top_panel.layers_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_TE,'Style','edit');
-set(obj.top_panel.layers_TE,'String', '[1]');
-set(obj.top_panel.layers_TE,'TooltipString', tooltip);
+%-----Vertical Bounding
+tooltip = sprintf(['<html>How to bound the input and output of Viterbi vertically<br /><br />', ...
+                   '<b>Entire Echogram</b>: no bounding -- search entire echogram<br />', ...
+                   '<b>Selection Box</b>: Search within bounds of selection box<br />', ...
+                   '<b>Layers</b>: Search between top and bottom layers specified below.</html>']);
+obj.top_panel.vert_bound_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.vert_bound_label,'Style','text');
+set(obj.top_panel.vert_bound_label,'String','Vertical Bounding');
+set(obj.top_panel.vert_bound_label,'TooltipString', tooltip);
+%----Vertical Bounding popupmenu
+obj.top_panel.vert_bound_PM = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.vert_bound_PM,'Style','popupmenu');
+set(obj.top_panel.vert_bound_PM,'String',{'Entire Echogram', 'Selection Box', 'Layers'});
+set(obj.top_panel.vert_bound_PM,'Value', 2)
+set(obj.top_panel.vert_bound_PM,'TooltipString', tooltip);
 
-%----layer weight label
-tooltip = 'List of layer weights. Larger positive values cause repulsion. Larger negative values cause attraction.';
-obj.top_panel.layers_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_weight_label,'Style','text');
-set(obj.top_panel.layers_weight_label,'String','Layer Weights:');
-set(obj.top_panel.layers_weight_label,'TooltipString', tooltip);
-%----layer  weight box
-obj.top_panel.layers_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.layers_weight_TE,'Style','edit');
-set(obj.top_panel.layers_weight_TE,'String', '[1000]');
-set(obj.top_panel.layers_weight_TE,'TooltipString', tooltip);
+%----top layer label
+tooltip = 'Upper search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted. Ignored if vertical bounds not set to ''Layers''.';
+obj.top_panel.top_layer_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.top_layer_label,'Style','text');
+set(obj.top_panel.top_layer_label,'String','Top Layer:');
+set(obj.top_panel.top_layer_label,'TooltipString', tooltip);
+%----top layer box
+obj.top_panel.top_layer_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.top_layer_TE,'Style','edit');
+set(obj.top_panel.top_layer_TE,'String', 'n-1');
+set(obj.top_panel.top_layer_TE,'TooltipString', tooltip);
 
-%----multiple weight label
-tooltip = 'Amount by which to repel surface multiples if suppression enabled. Greater value = greater avoidance.';
-obj.top_panel.mult_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_label,'Style','text');
-set(obj.top_panel.mult_weight_label,'String','Multiple Repulsion:');
-set(obj.top_panel.mult_weight_label,'TooltipString', tooltip);
-%----multiple weight box
-obj.top_panel.mult_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_TE,'Style','edit');
-set(obj.top_panel.mult_weight_TE,'String', '100');
-set(obj.top_panel.mult_weight_TE,'TooltipString', tooltip);
+%----bottom layer label
+tooltip = 'Lower search bound specified as a layer number. "n" refers to selected layer number. Expressions accepted. Ignored if vertical bounds not set to ''Layers''.';
+obj.top_panel.bottom_layer_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.bottom_layer_label,'Style','text');
+set(obj.top_panel.bottom_layer_label,'String','Bottom Layer:');
+set(obj.top_panel.bottom_layer_label,'TooltipString', tooltip);
+%----bottom layer box
+obj.top_panel.bottom_layer_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.bottom_layer_TE,'Style','edit');
+set(obj.top_panel.bottom_layer_TE,'String', 'n+1');
+set(obj.top_panel.bottom_layer_TE,'TooltipString', tooltip);
 
-%----multiple weight decay label
-tooltip = 'Multiply repulsion of each subsequent multiple by this amount to reduce suppression of faded multiples. Smaller = faster repulsion decay.';
-obj.top_panel.mult_weight_decay_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_decay_label,'Style','text');
-set(obj.top_panel.mult_weight_decay_label,'String','Multiple Decay:');
-set(obj.top_panel.mult_weight_decay_label,'TooltipString', tooltip);
-%----multiple weight decay box
-obj.top_panel.mult_weight_decay_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_decay_TE,'Style','edit');
-set(obj.top_panel.mult_weight_decay_TE,'String', '0');
-set(obj.top_panel.mult_weight_decay_TE,'TooltipString', tooltip);
-
-%----multiple weight local decay label
-tooltip = 'Multiply the multiple suppression repulsion by this amount for every subsequent bin past the multiple. Smaller = faster repulsion decay.';
-obj.top_panel.mult_weight_local_decay_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_local_decay_label,'Style','text');
-set(obj.top_panel.mult_weight_local_decay_label,'String','Multiple Local Decay:');
-set(obj.top_panel.mult_weight_local_decay_label,'TooltipString', tooltip);
-%----multiple weight local decay box
-obj.top_panel.mult_weight_local_decay_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mult_weight_local_decay_TE,'Style','edit');
-set(obj.top_panel.mult_weight_local_decay_TE,'String', '0.8');
-set(obj.top_panel.mult_weight_local_decay_TE,'TooltipString', tooltip);
-
-%----surface slope label
-tooltip = 'Use the slope of the surface layer as the expected slope of the target layer';
-obj.top_panel.surf_slope_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.surf_slope_label,'Style','text');
-set(obj.top_panel.surf_slope_label,'String',sprintf('Calc slope from surf:'));
-set(obj.top_panel.surf_slope_label,'TooltipString', tooltip);
-%----surface slope cbox
-obj.top_panel.surf_slope_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.surf_slope_cbox,'Style','checkbox');
-set(obj.top_panel.surf_slope_cbox,'Value', 1);
-set(obj.top_panel.surf_slope_cbox,'TooltipString', tooltip);
-
-%----max slope label
-tooltip = 'The maximum allowed slope of the target layer. -1 for no max.';
-obj.top_panel.max_slope_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.max_slope_label,'Style','text');
-set(obj.top_panel.max_slope_label,'String','Max Slope:');
-set(obj.top_panel.max_slope_label,'TooltipString', tooltip);
-%----max slope box
-obj.top_panel.max_slope_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.max_slope_TE,'Style','edit');
-set(obj.top_panel.max_slope_TE,'String', '-1');
-set(obj.top_panel.max_slope_TE,'TooltipString', tooltip);
-
-%----transition weight label
+%----along track weight label
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
-obj.top_panel.transition_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.transition_weight_label,'Style','text');
-set(obj.top_panel.transition_weight_label,'String','Transition weight:');
-set(obj.top_panel.transition_weight_label,'TooltipString', tooltip);
-%----transition weight box
-obj.top_panel.transition_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.transition_weight_TE,'Style','edit');
-set(obj.top_panel.transition_weight_TE,'String', '1');
-set(obj.top_panel.transition_weight_TE,'TooltipString', tooltip);
-
-%----image magnitude weight label
-tooltip = 'The weight by which to multiply the image magnitude cost. Greater weight = prefer greater image magnitude';
-obj.top_panel.image_mag_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.image_mag_weight_label,'Style','text');
-set(obj.top_panel.image_mag_weight_label,'String','Image Weight:');
-set(obj.top_panel.image_mag_weight_label,'TooltipString', tooltip);
-%----image magnitude weight box
-obj.top_panel.image_mag_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.image_mag_weight_TE,'Style','edit');
-set(obj.top_panel.image_mag_weight_TE,'String', '1');
-set(obj.top_panel.image_mag_weight_TE,'TooltipString', tooltip);
-
-%----gt weight label
-tooltip = 'The weight by which to multiply the ground truth cost. Greater weight = prefer closer to ground truth';
-obj.top_panel.ground_truth_weight_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.ground_truth_weight_label,'Style','text');
-set(obj.top_panel.ground_truth_weight_label,'String','Ground Truth Weight:');
-set(obj.top_panel.ground_truth_weight_label,'TooltipString', tooltip);
-%----gt weight box
-obj.top_panel.ground_truth_weight_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.ground_truth_weight_TE,'Style','edit');
-set(obj.top_panel.ground_truth_weight_TE,'String', '1');
-set(obj.top_panel.ground_truth_weight_TE,'TooltipString', tooltip);
+obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.along_track_weight_label,'Style','text');
+set(obj.top_panel.along_track_weight_label,'String','Along Track weight:');
+set(obj.top_panel.along_track_weight_label,'TooltipString', tooltip);
+%----along track weight box
+obj.top_panel.along_track_weight_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.along_track_weight_TE,'Style','edit');
+set(obj.top_panel.along_track_weight_TE,'String', '1');
+set(obj.top_panel.along_track_weight_TE,'TooltipString', tooltip);
 
 %----gt cutoff label
 tooltip = 'Points must be chosen within this many rangebins of a ground truth point when present. -1 for any distance allowed.';
@@ -214,8 +137,10 @@ set(obj.top_panel.ground_truth_cutoff_TE,'String', '5');
 set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %%
 %---------------------------------------------------------------------------------------------
-rows = 14;  % Update with number of rows and columns
+% set up top panel table
 cols = 2;
+rows = 7;  % Just keep this larger or equal to actual number of rows.
+
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
 obj.top_panel.table.ui=obj.top_panel.handle;
@@ -230,49 +155,42 @@ obj.top_panel.table.height = ones(rows, cols) * inf;
 obj.top_panel.table.width_margin = ones(rows, cols) * 1.5;
 obj.top_panel.table.height_margin = ones(rows, cols) * 1.5;
 
-%% Mode
-obj.top_panel.table.handles{1,1}   = obj.top_panel.mode_label;
-obj.top_panel.table.handles{1,2}   = obj.top_panel.tool_PM;
+row = 0;
+
 %% Insert Range
-obj.top_panel.table.handles{2,1}   = obj.top_panel.insert_range_label;
-obj.top_panel.table.handles{2,2}   = obj.top_panel.insert_range_TE;
-%% Column restriction
-obj.top_panel.table.handles{3,1}   = obj.top_panel.column_restriction_label;
-obj.top_panel.table.handles{3,2}   = obj.top_panel.column_restriction_cbox;
-%% Layers
-obj.top_panel.table.handles{4,1}   = obj.top_panel.layers_label;
-obj.top_panel.table.handles{4,2}   = obj.top_panel.layers_TE;
-%% Layers Weight
-obj.top_panel.table.handles{5,1}   = obj.top_panel.layers_weight_label;
-obj.top_panel.table.handles{5,2}   = obj.top_panel.layers_weight_TE;
-%% Multiple Weight
-obj.top_panel.table.handles{6,1}   = obj.top_panel.mult_weight_label;
-obj.top_panel.table.handles{6,2}   = obj.top_panel.mult_weight_TE;
-%% Multiple Weight Decay
-obj.top_panel.table.handles{7,1}   = obj.top_panel.mult_weight_decay_label;
-obj.top_panel.table.handles{7,2}   = obj.top_panel.mult_weight_decay_TE;
-%% Multiple Weight Local Decay 
-obj.top_panel.table.handles{8,1}   = obj.top_panel.mult_weight_local_decay_label;
-obj.top_panel.table.handles{8,2}   = obj.top_panel.mult_weight_local_decay_TE;
-%% Transition Slope from Surface
-obj.top_panel.table.handles{9,1}   = obj.top_panel.surf_slope_label;
-obj.top_panel.table.handles{9,2}   = obj.top_panel.surf_slope_cbox;
-%% Max Slope 
-obj.top_panel.table.handles{10,1}  = obj.top_panel.max_slope_label;
-obj.top_panel.table.handles{10,2}  = obj.top_panel.max_slope_TE;
-%% Transition Weight
-obj.top_panel.table.handles{11,1}  = obj.top_panel.transition_weight_label;
-obj.top_panel.table.handles{11,2}  = obj.top_panel.transition_weight_TE;
-%% Image magnitude weight
-obj.top_panel.table.handles{12,1}  = obj.top_panel.image_mag_weight_label;
-obj.top_panel.table.handles{12,2}  = obj.top_panel.image_mag_weight_TE;
-%% gt weight
-obj.top_panel.table.handles{13,1}  = obj.top_panel.ground_truth_weight_label;
-obj.top_panel.table.handles{13,2}  = obj.top_panel.ground_truth_weight_TE;
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.insert_range_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.insert_range_TE;
+%% Horizontal Bound
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.hori_bound_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.hori_bound_PM;
+%% Vertical Bound
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.vert_bound_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.vert_bound_PM;
+%% Top Layer
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.top_layer_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.top_layer_TE;
+%% Bottom Layer
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.bottom_layer_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.bottom_layer_TE;
+%% Along-track Weight
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.along_track_weight_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.along_track_weight_TE;
 %% gt cutoff
-obj.top_panel.table.handles{14,1}  = obj.top_panel.ground_truth_cutoff_label;
-obj.top_panel.table.handles{14,2}  = obj.top_panel.ground_truth_cutoff_TE;
-clear rows cols
+row = row + 1;
+obj.top_panel.table.handles{row,1}  = obj.top_panel.ground_truth_cutoff_label;
+obj.top_panel.table.handles{row,2}  = obj.top_panel.ground_truth_cutoff_TE;
+
+if row > rows
+  warning('Viterbi create_ui does not have default values for new rows. Update rows variable to match number of rows present.');
+end
+
+clear row cols
 
 % Draw table
 table_draw(obj.top_panel.table);

@@ -331,19 +331,19 @@ classdef slice_browser < handle
       set(obj.gui.prev10PB,'style','pushbutton')
       set(obj.gui.prev10PB,'string','<<')
       set(obj.gui.prev10PB,'Callback',@obj.prev10_button_callback)
-      set(obj.gui.prev10PB,'TooltipString','Move backward ten slices (<)');
+      set(obj.gui.prev10PB,'TooltipString','Move backward five slices (k)');
       
       obj.gui.next10PB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.next10PB,'style','pushbutton')
       set(obj.gui.next10PB,'string','>>')
       set(obj.gui.next10PB,'Callback',@obj.next10_button_callback)
-      set(obj.gui.next10PB,'TooltipString','Move forward ten slices (>)');
+      set(obj.gui.next10PB,'TooltipString','Move forward five slices (l)');
       if ~obj.doa_method_flag
         obj.gui.savePB = uicontrol('parent',obj.gui.left_panel);
         set(obj.gui.savePB,'style','pushbutton')
         set(obj.gui.savePB,'string','(S)ave')
         set(obj.gui.savePB,'Callback',@obj.save_button_callback)
-        set(obj.gui.savePB,'TooltipString','(S)ave surfaces to file');
+        set(obj.gui.savePB,'TooltipString','Save surfaces to file (shift-S)');
         
         obj.gui.helpPB = uicontrol('parent',obj.gui.left_panel);
         set(obj.gui.helpPB,'style','pushbutton')
@@ -542,12 +542,12 @@ classdef slice_browser < handle
     
     %% next10_button_callback
     function next10_button_callback(obj,source,callbackdata)
-      obj.change_slice(obj.slice + 10,false);
+      obj.change_slice(obj.slice + 5,false);
     end
     
     %% prev10_button_callback
     function prev10_button_callback(obj,source,callbackdata)
-      obj.change_slice(obj.slice - 10,false);
+      obj.change_slice(obj.slice - 5,false);
     end
     
     %% undo_sync
@@ -889,9 +889,9 @@ classdef slice_browser < handle
             obj.change_slice(obj.slice + 1,false);
           case 'comma'
             obj.change_slice(obj.slice - 1,false);
-          case 'l'
+          case 'k'
             obj.change_slice(obj.slice - 5,false);
-          case 'semicolon'
+          case 'l'
             obj.change_slice(obj.slice + 5,false);
             
           case 'delete'
@@ -1059,7 +1059,8 @@ classdef slice_browser < handle
       surf_idx = get(obj.gui.surfaceLB,'value');
       surfaceLB_str = get(obj.gui.surfaceLB,'string');
       if ~isempty(get(obj.gui.surfaceLB,'String')) ...
-          && (isempty(surf_idx) || all(surf_idx ~= 1:length(surfaceLB_str)))
+          && (isempty(surf_idx) || surf_idx == 0 || all(surf_idx ~= 1:length(surfaceLB_str)))
+        set(obj.gui.surfaceLB,'value',1);
         surf_idx = 1;
       end
       if ~isempty(get(obj.gui.surfaceLB,'String')) && ~isempty(surf_idx)
@@ -1231,7 +1232,8 @@ classdef slice_browser < handle
     
     %% Help
     function help_menu(obj)
-      fprintf('Key Short Cuts\n');
+      fprintf('\nMouse Operations\n');
+      fprintf('======================================================\n');
       
       fprintf('\nZoom Mode\n');
       fprintf('left-click and drag: zoom to selection\n');
@@ -1239,11 +1241,16 @@ classdef slice_browser < handle
       fprintf('right-click: zoom out at point\n');
       
       fprintf('\nPointer Mode In "slice" window\n');
-      fprintf('left-click: set layer point (or toggle logical value)\n');
-      fprintf('right-click and drag: select points (shift-key holds selection)\n');
+      fprintf('left-click: set ground truth point or toggle logical value if mask or quality selected\n');
+      fprintf('right-click and drag: select points to operate on (shift-key holds selection)\n');
       
-      fprintf('\nPointer Mode In "layer" and "echogram" window\n');
+      fprintf('\nPointer Mode In "surface" and "echogram" window\n');
       fprintf('left-click: sets current slice\n');
+      fprintf('right-click and drag: select region to operate on (shift-key holds selection)\n');
+      
+      fprintf('\nPointer Mode In "surface" window\n');
+      fprintf('right-click and drag: select region and apply tool\n');
+      fprintf('  For the quality tool, holding shift toggles setting true/false\n');
       
       fprintf('\nAll Modes\n');
       fprintf('scroll: zoom in/out at point\n');
@@ -1257,6 +1264,27 @@ classdef slice_browser < handle
           end
         end
       end
+      
+      fprintf('\nKeyboard Shortcuts\n');
+      fprintf('======================================================\n');
+      
+      fprintf('\nGeneral\n');
+      fprintf('F1: print this help menu\n');
+      fprintf('space: toggle surface visibility\n');
+      fprintf('u: undo the last operation\n');
+      fprintf('r: redo an operation that was undone with undo\n');
+      fprintf('shift-S: save surfaces to surfdata file\n');
+      fprintf('delete: deletes selected points (or sets to false if logical layer)\n');
+      
+      fprintf('\nMovement\n');
+      fprintf('period . : go forward 1 frame\n');
+      fprintf('comma , : go forward 1 frame\n');
+      fprintf('g: go to a specific frame\n');
+      fprintf('k: go back 5 frames\n');
+      fprintf('l: go forward 5 frames\n');
+      fprintf('arrow-keys: pan left/right/up/down in the image\n');
+      fprintf('z: toggle zoom mode on/off\n');
+      fprintf('ctrl-z: zoom reset (zooms all the way out to show the full image)\n');
     end
     
     %% getEventData

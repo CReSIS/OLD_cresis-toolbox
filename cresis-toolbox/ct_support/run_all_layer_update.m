@@ -1,7 +1,9 @@
 % script run_all_layer_update
 % run_all_layer_update
 %
-% Run layer_update on all seasons.
+% Run layer_update on all seasons. Consider copying from OPS to CSARP_layer if
+% OPS may have newer layer information. You may want to move the existing
+% CSARP_layer files before doing this.
 %   
 % Author: John Paden
 %
@@ -68,8 +70,37 @@ param_fns{end+1} = 'rds_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
+% param_fns{end+1} = 'snow_param_2009_Antarctica_DC8.xls';
+% param_fns{end+1} = 'snow_param_2009_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2010_Antarctica_DC8.xls';
+% param_fns{end+1} = 'snow_param_2010_Greenland_DC8.xls';
+% param_fns{end+1} = 'snow_param_2010_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2011_Antarctica_DC8.xls';
+% param_fns{end+1} = 'snow_param_2011_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2012_Antarctica_DC8.xls';
 % param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
-% param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
+% param_fns{end+1} = 'snow_param_2013_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2013_Greenland_Ground.xls';
+% param_fns{end+1} = 'snow_param_2013_Antarctica_P3.xls';
+% param_fns{end+1} = 'snow_param_2013_Antarctica_Basler.xls';
+% param_fns{end+1} = 'snow_param_2014_Alaska_TOnrl.xls';
+% param_fns{end+1} = 'snow_param_2014_Antarctica_DC8.xls';
+% param_fns{end+1} = 'snow_param_2014_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2015_Alaska_TOnrl.xls';
+% param_fns{end+1} = 'snow_param_2015_Greenland_C130.xls';
+% param_fns{end+1} = 'snow_param_2016_Alaska_TOnrl.xls';
+% param_fns{end+1} = 'snow_param_2016_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2016_Antarctica_DC8.xls';
+% param_fns{end+1} = 'snow_param_2016_Greenland_Polar6.xls';
+% param_fns{end+1} = 'snow_param_2017_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2017_Antarctica_P3.xls';
+% param_fns{end+1} = 'snow_param_2018_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2018_Alaska_SO.xls';
+% param_fns{end+1} = 'snow_param_2018_Antarctica_DC8.xls';
+% param_fns{end+1} = 'snow_param_2019_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2019_Arctic_GV.xls';
+% param_fns{end+1} = 'snow_param_2019_Antarctica_GV.xls';
+
 
 param_override = [];
 param_override.layer_update.in_path = 'layerData';

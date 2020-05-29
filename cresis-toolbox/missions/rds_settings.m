@@ -551,6 +551,10 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
         params = ct_set_params(params,'array.line_rng',[-10:10]);
         params = ct_set_params(params,'array.Nsrc',3);
       elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+        params(param_idx).array.Nsv = 64;
+        params(param_idx).array.bin_rng = [-1:1];
+        params(param_idx).array.line_rng = [-10:10];
+        params(param_idx).array.Nsrc = 2;
       elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_Ground')
         adcs = [1:6]; Nchan = length(adcs);
         if length(params(param_idx).radar.wfs) == 3
