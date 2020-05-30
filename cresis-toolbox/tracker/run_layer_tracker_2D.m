@@ -6,9 +6,11 @@
 % ----------------------------------------------------------------------
 param_override = [];
 
+% params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
+% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
@@ -21,6 +23,7 @@ param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncom
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
+param_override.layer_tracker.echogram_source = 'qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
 param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
@@ -34,7 +37,7 @@ param_override.layer_tracker.layer_params.layerdata_source = 'layer_test';
 % param_override.layer_tracker.layer_params.source = 'ops';
 
 % block_size_frms: Number of frames to be loaded at a time
-param_override.layer_tracker.block_size_frms = inf;
+param_override.layer_tracker.block_size_frms = 1;
 
 % track_per_task: Number of tracks per task
 param_override.layer_tracker.track_per_task = inf;
@@ -54,7 +57,7 @@ switch ct_output_dir(params(1).radar_name)
     %% RDS
     
     %% RDS: Surface tracking
-    if 0
+    if 1
       track.profile = 'rds';
       
       track.layer_names                 = {'surface'};
@@ -114,7 +117,7 @@ switch ct_output_dir(params(1).radar_name)
     end
     
     %% RDS: Viterbi
-    if 1
+    if 0
       track.method                      = 'viterbi';
       track.layer_names                 = {'bottom'};
       
@@ -199,7 +202,7 @@ switch ct_output_dir(params(1).radar_name)
     %% ACCUM
     
     %% ACCUM: Surface tracking
-    if 0
+    if 1
       track.profile = 'accum';
       
       track.layer_names                 = {'surface'};
@@ -225,7 +228,7 @@ switch ct_output_dir(params(1).radar_name)
     %% SNOW (also kaband, kuband)
     
     %% SNOW: Surface tracking
-    if 0
+    if 1
       track.profile = 'snow';
       
       track.layer_names                 = {'surface'};
