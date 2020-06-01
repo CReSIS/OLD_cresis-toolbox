@@ -25,6 +25,10 @@ lower_bounds = nan(1, size(data, 2));
 upper_bounds(gt(1, :)) = gt(2, :) - gt_cutoff;
 lower_bounds(gt(1, :)) = gt(2, :) + gt_cutoff;
 
+upper_bounds(isnan(upper_bounds) | upper_bounds < 1) = 1;
+lower_bounds(lower_bounds < 1) = 1;
+lower_bounds(isnan(lower_bounds)) = size(data, 1);
+
 % TODO[reece]: Probably allow surface to be passed and restrict upper_bound accordingly
 
 labels = tomo.viterbi2(single(data), along_track_slope, transition_weight, upper_bounds, lower_bounds);

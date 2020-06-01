@@ -147,9 +147,9 @@ void viterbi2::viterbi_right(int *path, float *& path_prob, float *& path_prob_n
 }
 
 /* Check bounds for invalid indices. */
-void verify_bounds(float *bounds_dest, const mxArray *mx_bounds, const char *bounds_name, int default_bound, int total_rows, int total_cols)
+void verify_bounds(unsigned int *bounds_dest, const mxArray *mx_bounds, const char *bounds_name, int default_bound, int total_rows, int total_cols)
 {
-  char err_str[100];
+  char err_str[200];
   if (mxGetNumberOfElements(mx_bounds) != 0)
   {
     // Must be float or double for NaNs
@@ -166,21 +166,17 @@ void verify_bounds(float *bounds_dest, const mxArray *mx_bounds, const char *bou
 
     for (int i = 0; i < total_cols; i++)
     {
-      bounds_dest[i] = static_cast<float>(mxGetPr(mx_bounds)[i]) - 1; // Account for matlab 1-indexing
-      if (bounds_dest[i] < 0)
+      if (mxGetPr(mx_bounds)[i] <= 0)
       {
-        sprintf(err_str, "Usage: %s must be >= 1 (displaying with matlab 1-indexing: index %d is %.0f)", bounds_name, i + 1, bounds_dest[i] + 1);
+        sprintf(err_str, "Usage: %s must be positive (displaying with matlab 1-indexing: index %d of %s is %d)", bounds_name, i + 1, bounds_name, mxGetPr(mx_bounds)[i] + 1);
         mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
       }
-      if (bounds_dest[i] >= total_rows)
+      else if (mxIsNaN(mxGetPr(mx_bounds)[i]))
       {
-        sprintf(err_str, "Usage: %s must be within image (displaying with matlab 1-indexing: index %d is %.0f and size(image, 1) is %d)", bounds_name, i + 1, bounds_dest[i] + 1, total_rows);
+        sprintf(err_str, "Usage: %s must be finite (displaying with matlab 1-indexing: index %d is %d)", bounds_name, i + 1, mxGetPr(mx_bounds)[i]);
         mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
       }
-      if (mxIsNaN(bounds_dest[i]))
-      {
-        bounds_dest[i] = default_bound;
-      }
+      bounds_dest[i] = static_cast<unsigned int>(mxGetPr(mx_bounds)[i]) - 1; // Account for matlab 1-indexing
     }
   }
   else
@@ -243,21 +239,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // Upper bounds =============================================================
   arg++;
-  float _upper_bounds[_col];
+  unsigned int _upper_bounds[_col];
   verify_bounds(_upper_bounds, prhs[arg], "upper_bounds", 0, _row, _col);
 
   // Lower bounds =============================================================
   arg++;
-  float _lower_bounds[_col];
+  unsigned int _lower_bounds[_col];
   verify_bounds(_lower_bounds, prhs[arg], "lower_bounds", _row - 1, _row, _col);
 
   // Verify lower_bounds below upper_bounds
-  char err_str[100];
+  char err_str[200];
   for (int i = 0; i < _col; i++)
   {
     if (_lower_bounds[i] < _upper_bounds[i])
     {
-      sprintf(err_str, "Usage: lower_bounds must be lower (i.e. >=) than upper_bounds (displaying with matlab 1-indexing: index %d of lower_bounds is %.0f and corresponding upper_bound is %.0f)", i + 1, _lower_bounds[i] + 1, _upper_bounds[i] + 1);
+      sprintf(err_str, "Usage: lower_bounds must be lower (i.e. >=) than upper_bounds (displaying with matlab 1-indexing: index %d of lower_bounds is %d and corresponding upper_bound is %d)", i + 1, _lower_bounds[i] + 1, _upper_bounds[i] + 1);
       mexErrMsgIdAndTxt("MATLAB:inputError", err_str);
     }
   }

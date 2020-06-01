@@ -71,6 +71,12 @@ for layer_idx = 1:length(cur_layers)
     gt_cutoff = 5;
     warning('Could not evaluate Viterbi groundtruth cutoff input. Defaulting to %.0f.', gt_cutoff);
   end
+  try
+    layer_guard = eval(obj.top_panel.layer_guard_TE.String);
+  catch ME
+    layer_guard = 2;
+    warning('Could not evaluate Viterbi layer_guard input. Defaulting to %.0f.', layer_guard);
+  end
   clear n;
   
   vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
@@ -110,8 +116,12 @@ for layer_idx = 1:length(cur_layers)
       clear temp_bounds;
     end
   elseif strcmp(vert_bound_selection, 'Layers')
-    upper_bounds = layers_bins(1, :);
-    lower_bounds = layers_bins(2, :);
+    upper_bounds = layers_bins(1, :) + layer_guard;
+    lower_bounds = layers_bins(2, :) - layer_guard;
+
+    temp_upper_bounds = upper_bounds;
+    upper_bounds = min([upper_bounds; lower_bounds]);
+    lower_bounds = max([temp_upper_bounds; lower_bounds]);
   end
   
   % Get horizontal bounds
@@ -179,6 +189,10 @@ for layer_idx = 1:length(cur_layers)
   along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);
   upper_bounds = upper_bounds(:,hori_bounds(1):hori_bounds(end));
   lower_bounds = lower_bounds(:,hori_bounds(1):hori_bounds(end));
+  
+  upper_bounds(isnan(upper_bounds) | upper_bounds < 1) = 1;
+  lower_bounds(lower_bounds < 1) = 1;
+  lower_bounds(isnan(lower_bounds)) = size(viterbi_data, 1);
   
   viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);

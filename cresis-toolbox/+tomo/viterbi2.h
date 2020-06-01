@@ -26,8 +26,8 @@ public:
           const float *d_image,
           const float *d_along_track_slope,
           const float d_along_track_weight,
-          const float *d_upper_bounds,
-          const float *d_lower_bounds,
+          const unsigned int *d_upper_bounds,
+          const unsigned int *d_lower_bounds,
           float *d_result) : f_row(d_row),
                               f_col(d_col),
                               f_image(d_image),
@@ -42,8 +42,9 @@ public:
 
   // VARIABLES
   const int f_row, f_col;
+  const unsigned int *f_upper_bounds, *f_lower_bounds;
   const float *f_image;
-  const float *f_along_track_slope, f_along_track_weight, *f_upper_bounds, *f_lower_bounds;
+  const float *f_along_track_slope, f_along_track_weight;
   float *f_result;
 
   // METHODS
