@@ -194,8 +194,9 @@ for layer_idx = 1:length(cur_layers)
   
   % Handle NaNs and negative or too large bounds
   upper_bounds(~isfinite(upper_bounds) | upper_bounds < 1) = 1;
+  upper_bounds(upper_bounds > size(viterbi_data, 1)) = size(viterbi_data, 1);
   lower_bounds(lower_bounds < 1) = 1;
-  lower_bounds(~isfinite(lower_bounds)) = size(viterbi_data, 1);
+  lower_bounds(~isfinite(lower_bounds) | lower_bounds > size(viterbi_data, 1)) = size(viterbi_data, 1);
 
   viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);

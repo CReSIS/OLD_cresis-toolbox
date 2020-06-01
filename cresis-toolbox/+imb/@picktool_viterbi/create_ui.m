@@ -128,7 +128,7 @@ set(obj.top_panel.layer_guard_TE,'TooltipString', tooltip);
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
 obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.along_track_weight_label,'Style','text');
-set(obj.top_panel.along_track_weight_label,'String','Along Track weight:');
+set(obj.top_panel.along_track_weight_label,'String','Smoothness weight:');
 set(obj.top_panel.along_track_weight_label,'TooltipString', tooltip);
 %----along track weight box
 obj.top_panel.along_track_weight_TE = uicontrol('Parent',obj.top_panel.handle);
