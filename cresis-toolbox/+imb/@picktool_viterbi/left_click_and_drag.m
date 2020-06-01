@@ -25,20 +25,20 @@ for layer_idx = 1:length(cur_layers)
   cur_layer = cur_layers(layer_idx);
   
   param.x_bounds = 1;
-  [all_manual_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
+  [all_gt_idxs,~,~] = find_matching_pnts(obj,param,cur_layer);
   
   % Nx: number of along track records/range lines
   Nx = length(image_x);
   
   % Match GT points with axis coordinates
-  gt = [interp1(image_x, 1:length(image_x),param.layer.x(all_manual_idxs), 'nearest', 'extrap');
-    interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(all_manual_idxs), 'nearest', 'extrap')];
+  gt = [interp1(image_x, 1:length(image_x),param.layer.x(all_gt_idxs), 'nearest', 'extrap');
+    interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(all_gt_idxs), 'nearest', 'extrap')];
   x_points       = gt(1, :);
   y_points       = gt(2, :);
   gt             = nan(1, Nx);
   gt(x_points)   = y_points;
   gt_idxs = find(~isnan(gt));
-  
+
   % Echogram Parameters
   viterbi_data   = image_c;
   
@@ -141,27 +141,26 @@ for layer_idx = 1:length(cur_layers)
     hori_layer_idxs = find(param.layer.x >= param.x(1) & param.layer.x <= param.x(2));
   elseif strcmp(hori_bound_selection, 'Extreme Groundtruth')
     % Image points
-    selected_manual_idxs = gt_idxs(gt_idxs >= param.x(1) & gt_idxs <= param.x(2));
-    if length(selected_manual_idxs) < 2
+    selected_gt_idxs = gt_idxs(gt_idxs >= param.x(1) & gt_idxs <= param.x(2));
+    if length(selected_gt_idxs) < 2
       warning('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points". Cancelling.');
       return;
     end
-    hori_bounds = selected_manual_idxs([1 end]);
+    hori_bounds = selected_gt_idxs([1 end]);
     % Layer points
-    hori_layer_idxs = find(param.layer.x >= image_x(selected_manual_idxs(1)) & param.layer.x <= image_x(selected_manual_idxs(end)));
+    hori_layer_idxs = find(param.layer.x >= image_x(selected_gt_idxs(1)) & param.layer.x <= image_x(selected_gt_idxs(end)));
   end
   hori_bounds(1) = max(hori_bounds(1), 1);
   hori_bounds(end) = min(hori_bounds(end), Nx);
-  
-  upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
-  lower_bounds(gt_idxs) = min([gt(gt_idxs) + gt_cutoff; lower_bounds(gt_idxs)]);
-  
-  % For ground truth outside the vertical bounds, defer to groundtruth
-  %   bounds rather than selection bounds
-  if any(lower_bounds(hori_bounds(1):hori_bounds(end)) < upper_bounds(hori_bounds(1):hori_bounds(end)))
+
+  bound_gt_idxs = gt_idxs(gt_idxs >= hori_bounds(1) & gt_idxs <= hori_bounds(end)); 
+  if any(gt(bound_gt_idxs) < upper_bounds(bound_gt_idxs) | gt(bound_gt_idxs) > lower_bounds(bound_gt_idxs))
     warning('Groundtruth points outside vertical bounds. Cancelling.');
     return;
   end
+
+  upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
+  lower_bounds(gt_idxs) = min([gt(gt_idxs) + gt_cutoff; lower_bounds(gt_idxs)]);
   
   elevation = param.echowin.eg.elev;
   vel_air = c/2;
