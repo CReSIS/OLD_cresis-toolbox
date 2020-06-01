@@ -118,11 +118,6 @@ for layer_idx = 1:length(cur_layers)
   elseif strcmp(vert_bound_selection, 'Layers')
     upper_bounds = layers_bins(1, :) + layer_guard;
     lower_bounds = layers_bins(2, :) - layer_guard;
-
-    half_bounds = round((upper_bounds + lower_bounds) / 2);
-    invalid_mask = upper_bounds > lower_bounds;
-    upper_bounds(invalid_mask) = half_bounds(invalid_mask);
-    lower_bounds(invalid_mask) = half_bounds(invalid_mask);
   end
   
   % Get horizontal bounds
@@ -186,15 +181,23 @@ for layer_idx = 1:length(cur_layers)
     along_track_slope(:) = 0;
   end
   
+  % Crop input data to horizontal bounds
   viterbi_data = viterbi_data(:,hori_bounds(1):hori_bounds(end));
   along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);
   upper_bounds = upper_bounds(:,hori_bounds(1):hori_bounds(end));
   lower_bounds = lower_bounds(:,hori_bounds(1):hori_bounds(end));
   
-  upper_bounds(isnan(upper_bounds) | upper_bounds < 1) = 1;
+  % Handle NaNs and negative or too large bounds
+  upper_bounds(~isfinite(upper_bounds) | upper_bounds < 1) = 1;
   lower_bounds(lower_bounds < 1) = 1;
-  lower_bounds(isnan(lower_bounds)) = size(viterbi_data, 1);
+  lower_bounds(~isfinite(lower_bounds)) = size(viterbi_data, 1);
   
+  % Handle overlapped bounds
+  half_bounds = round((upper_bounds + lower_bounds) / 2);
+  invalid_mask = upper_bounds > lower_bounds;
+  upper_bounds(invalid_mask) = half_bounds(invalid_mask);
+  lower_bounds(invalid_mask) = half_bounds(invalid_mask);
+
   viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));

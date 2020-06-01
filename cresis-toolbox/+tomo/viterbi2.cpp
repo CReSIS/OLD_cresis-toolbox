@@ -147,7 +147,7 @@ void viterbi2::viterbi_right(int *path, float *& path_prob, float *& path_prob_n
 }
 
 /* Check bounds for invalid indices. */
-void verify_bounds(unsigned int *bounds_dest, const mxArray *mx_bounds, const char *bounds_name, int default_bound, int total_rows, int total_cols)
+void verify_bounds(unsigned int *bounds_dest, const mxArray *mx_bounds, const char *bounds_name, int default_bound, int total_cols)
 {
   char err_str[200];
   if (mxGetNumberOfElements(mx_bounds) != 0)
@@ -182,7 +182,7 @@ void verify_bounds(unsigned int *bounds_dest, const mxArray *mx_bounds, const ch
   else
   {
     // Default setting if empty array passed is to process all rows
-    for (int i = 0; i < total_rows; i++)
+    for (int i = 0; i < total_cols; i++)
     {
       bounds_dest[i] = default_bound;
     }
@@ -196,7 +196,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   if (nrhs != 5 || nlhs != 1)
   {
-    mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: [labels] = viterbi2(image, along_track_slope, along_track_weight, upper_bounds, lower_bounds)\n");
+    mexErrMsgIdAndTxt("MATLAB:inputError", "Usage: [labels] = viterbi2(single image, single along_track_slope, single along_track_weight, single upper_bounds, single lower_bounds)\n");
   }
 
   // Input checking
@@ -240,12 +240,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Upper bounds =============================================================
   arg++;
   unsigned int _upper_bounds[_col];
-  verify_bounds(_upper_bounds, prhs[arg], "upper_bounds", 0, _row, _col);
+  verify_bounds(_upper_bounds, prhs[arg], "upper_bounds", 0, _col);
 
   // Lower bounds =============================================================
   arg++;
   unsigned int _lower_bounds[_col];
-  verify_bounds(_lower_bounds, prhs[arg], "lower_bounds", _row - 1, _row, _col);
+  verify_bounds(_lower_bounds, prhs[arg], "lower_bounds", _row - 1, _col);
 
   // Verify lower_bounds below upper_bounds
   char err_str[200];
@@ -259,7 +259,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // Allocate output
-  const mwSize dims[]={1, static_cast<unsigned>(_col)};
+  const mwSize dims[]={1, static_cast<unsigned int>(_col)};
   plhs[0] = mxCreateNumericArray(2, dims, mxSINGLE_CLASS, mxREAL);
   float *_result = reinterpret_cast<float *>(mxGetPr(plhs[0]));
   viterbi2 obj(_row, _col, _image, _along_track_slope, _along_track_weight, _upper_bounds, _lower_bounds, _result);
