@@ -160,16 +160,20 @@ for layer_idx = 1:length(cur_layers)
   yaxis_choice = get(param.echowin.left_panel.yaxisPM,'Value');
   if yaxis_choice == 1 % TWTT
     drange = dt * vel_air;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 2 % WGS_84 Elevation
     drange = dt * vel_ice;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 3 % Range
     drange = dt * vel_ice;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 4 % Range bin
     drange = dt * vel_air;
+    along_track_slope = round(along_track_slope / drange);
   elseif yaxis_choice == 5 % Surface flat
     drange = dt * vel_ice;
+    along_track_slope(:) = 0;
   end
-  along_track_slope = round(along_track_slope / drange);
   
   viterbi_data = viterbi_data(:,hori_bounds(1):hori_bounds(end));
   along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);

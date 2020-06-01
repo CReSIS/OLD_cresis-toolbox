@@ -27,6 +27,9 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
+% Get the standard radar name and radar type
+[~,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 %% Input Checks: cmd
 % =====================================================================
 
@@ -124,9 +127,14 @@ end
 [~,out_path_dir] = fileparts(param.qlook.out_path);
 
 % nan_fir_dec: if true, function uses the slower nan_fir_dec function on
-% the data instead of fir_dec for the dec and inc_dec functions.
+% the data instead of fir_dec for the dec and inc_dec functions. Default is
+% true for deramp systems and false for non-deramp systems.
 if ~isfield(param.qlook,'nan_dec') || isempty(param.qlook.nan_dec)
-  param.qlook.nan_dec = false;
+  if strcmpi(radar_type,'deramp')
+    param.qlook.nan_dec = true;
+  else
+    param.qlook.nan_dec = false;
+  end
 end
 
 if ~isfield(param.qlook,'presums') || isempty(param.qlook.presums)
@@ -158,9 +166,6 @@ end
 
 %% Setup Processing
 % =====================================================================
-
-% Get the standard radar name
-[~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
 records = records_load(param);

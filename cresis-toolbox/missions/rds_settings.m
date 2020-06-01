@@ -6,6 +6,20 @@
 %% cmd
 % Example to run a specific segment and frame by overriding parameter spreadsheet values
 params = ct_set_params(params,['cmd.' cmd_method],0);
+
+
+% =========================================================================
+% Accumulation Radar
+% =========================================================================
+% -------------------------------------------------------------------------
+% 2018 Antarctica TObas
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190130_01');
+params = ct_set_params(params,'cmd.frms',[1]);
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190131_03');
+
+% =========================================================================
+% Multipass
+% =========================================================================
 % -------------------------------------------------------------------------
 % Eqip Line 1
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140414_02');
@@ -76,6 +90,10 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140502_01');
 % params = ct_set_params(params,'cmd.frms',[41 42]);
 
+% =========================================================================
+% Radar Depth Sounder
+% =========================================================================
+
 % -------------------------------------------------------------------------
 % 2018 Antarctica Ground
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
@@ -103,6 +121,7 @@ params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190107');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190108');
 % params = ct_set_params(params,['cmd.' cmd_method],0,'cmd.notes','do not process');
+
 % -------------------------------------------------------------------------
 % 2019 Antarctica Ground
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190925_04');
@@ -129,6 +148,7 @@ for param_idx = 1:length(params)
   
   %% qlook
   params = ct_set_params(params,'qlook.out_path','qlook');
+  params = ct_set_params(params,'qlook.surf_layer',struct('name','surface','source','layerdata','layerdata_source','layer'));
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
     %params(param_idx).qlook.out_path = 'qlook_test';
     params(param_idx).qlook.out_path = 'qlook_test_adcs5678';

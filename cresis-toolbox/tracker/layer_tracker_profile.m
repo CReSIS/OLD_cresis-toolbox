@@ -57,12 +57,12 @@ if strcmpi(profile_str,'default')
 elseif strcmpi(profile_str,'ACCUM')
   %% ACCUM profile
   track.debug_time_guard = 2e-6;
-  track.filter	= [3 7];%[3 3];
-  track.filter_trim = [0 3];%[3 3];
+  track.filter	= [3 3];
+  track.filter_trim = [0 3];
   track.init.method	= 'medfilt';
   track.init.medfilt	= 11;
   track.init.max_diff = 1e-6;%0.5e-6;
-  track.max_rng	= [0 1];%[0 2];
+  track.max_rng	= [0 3];
   track.max_rng_units = 'bins';
   track.medfilt = 3;%11;
   track.medfilt_threshold = 10;%30;

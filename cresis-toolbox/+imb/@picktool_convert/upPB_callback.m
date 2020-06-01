@@ -6,7 +6,7 @@ function upPB_callback(obj,hObj,event)
 
 cur_layers = find(obj.parent.eg.layers.selected_layers).';
 
-point_idxs = 1:length(obj.parent.eg.layers.x_curUnit{1});
+point_idxs = 1:length(obj.parent.eg.layers.x_curUnit);
 
 dy = obj.parent.eg.image_yaxis(2)-obj.parent.eg.image_yaxis(1);
 

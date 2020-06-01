@@ -191,20 +191,27 @@ for img = 1:length(param.load.imgs)
         fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
         noise.param_collate_coh_noise = noise.param_collate;
         noise = rmfield(noise,'param_collate');
-        save(noise_fn,'-struct','noise')
+        ct_save(noise_fn,'-struct','noise')
       end
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
       if ~isfield(noise,'param_records') || isempty(noise.param_records)
         fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
         noise.param_records = param;
-        save(noise_fn,'-struct','noise')
+        ct_save(noise_fn,'-struct','noise')
       end
       param.collate_coh_noise.param_records = noise.param_records;
       if ~isfield(noise.param_collate_coh_noise.collate_coh_noise,'method') || isempty(noise.param_collate_coh_noise.collate_coh_noise.method)
         fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
         noise.param_collate_coh_noise.collate_coh_noise.method = 'dft';
-        save(noise_fn,'-struct','noise')
+        ct_save(noise_fn,'-struct','noise')
+      end
+      if isfield(noise,'coh_noise') && isfield(noise,'coh_noise_gps_time')
+        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
+        noise.firdec_gps_time = noise.coh_noise_gps_time;
+        noise.firdec_noise    = noise.coh_noise;
+        noise = rmfield(noise,{'coh_noise','coh_noise_gps_time'});
+        ct_save(noise_fn,'-struct','noise')
       end
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate_coh_noise.collate_coh_noise.cmd_idx};
