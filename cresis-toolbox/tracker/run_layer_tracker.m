@@ -1,6 +1,6 @@
-% script run_layer_tracker_2D
+% script run_layer_tracker
 %
-% Runs layer_tracker_2D.m
+% Runs layer_tracker.m
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -287,7 +287,7 @@ ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
-    ctrl_chain{end+1} = layer_tracker_2D(param,param_override);
+    ctrl_chain{end+1} = layer_tracker(param,param_override);
   end
 end
 

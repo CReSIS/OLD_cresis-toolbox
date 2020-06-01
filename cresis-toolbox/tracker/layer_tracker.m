@@ -1,5 +1,5 @@
-function [ctrl_chain,param] = layer_tracker_2D(param,param_override)
-% [ctrl_chain,param] = layer_tracker_2D(param,param_override)
+function [ctrl_chain,param] = layer_tracker(param,param_override)
+% [ctrl_chain,param] = layer_tracker(param,param_override)
 %
 % Check input parameters and create tasks for layer_tracker.
 % layer_tracker_task does the actual tracking.
