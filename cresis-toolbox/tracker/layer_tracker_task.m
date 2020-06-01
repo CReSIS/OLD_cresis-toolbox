@@ -2,7 +2,7 @@ function success = layer_tracker_task(param)
 % success = layer_tracker_task(param)
 %
 % layer_tracker_task is used to load and prepare the data and metadata and
-% run the tracker. See layer_tracker_2D.m.
+% run the tracker. See layer_tracker.m.
 %
 % param: parameter structure from parameter spreadsheet
 %   param.layer_tracker.echogram_source: The normal cluster mode is for
@@ -362,6 +362,11 @@ for track_idx = param.layer_tracker.tracks_in_task
     track.max_bin = layerdata.interp(mdata,track.max_bin);
     track.max_bin = interp1(mdata.Time,1:length(mdata.Time),track.max_bin.twtt_ref);
   end
+  
+  % Fix invalid min_bin and max_bin by setting to the midpoint
+  invalid_min_max = track.max_bin < track.min_bin;
+  track.min_bin(invalid_min_max) = round((track.max_bin(invalid_min_max) + track.min_bin(invalid_min_max))/2);
+  track.max_bin(invalid_min_max) = track.min_bin(invalid_min_max);
   
   min_min_bin = round(max(1,min(track.min_bin)));
   max_max_bin = round(min(size(mdata.Data,1),max(track.max_bin)));

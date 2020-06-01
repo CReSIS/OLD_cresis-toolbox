@@ -42,12 +42,12 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %    .$(custom): Custom fields to be accessed in cmd as es.$(custom)
 %     Variables available are:
 %       physical_constants
-%       "gps_time" (sec)
-%       "along_track" (m)
+%       "time" (sec)
+%       "at" (m)
 %       "lat" (deg)
 %       "lon" (deg)
 %       "elev" (m)
-%       "source" (twtt in sec)
+%       "s" (twtt in sec)
 %       "es" (this eval structure passed in by the user)
 %     The cmd string should generally update "source" variable. For example:
 %        '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter

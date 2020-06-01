@@ -3,7 +3,7 @@
 % Used to find best combination of paramters for given tracker method
 % Uses temporary saved files stored in CSARP_layer_tracker_tmp
 % Enter layer names in the gt_layer_params(idx).name field
-% set temp to the file location of the param structure used for tracking in run_layer_tracker_2D.m script
+% set temp to the file location of the param structure used for tracking in run_layer_tracker.m script
 % set save_name to store final tuning results
 % Statistical data saved: 
 %   number of points with finite values of ground truth of twtt (num_gt_infinite),
