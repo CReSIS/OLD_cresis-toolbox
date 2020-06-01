@@ -119,9 +119,10 @@ for layer_idx = 1:length(cur_layers)
     upper_bounds = layers_bins(1, :) + layer_guard;
     lower_bounds = layers_bins(2, :) - layer_guard;
 
-    temp_upper_bounds = upper_bounds;
-    upper_bounds = min([upper_bounds; lower_bounds]);
-    lower_bounds = max([temp_upper_bounds; lower_bounds]);
+    half_bounds = round((upper_bounds + lower_bounds) / 2);
+    invalid_mask = upper_bounds > lower_bounds;
+    upper_bounds(invalid_mask) = half_bounds(invalid_mask);
+    lower_bounds(invalid_mask) = half_bounds(invalid_mask);
   end
   
   % Get horizontal bounds
