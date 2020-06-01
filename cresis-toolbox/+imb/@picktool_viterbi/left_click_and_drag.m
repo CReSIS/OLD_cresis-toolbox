@@ -118,6 +118,12 @@ for layer_idx = 1:length(cur_layers)
   elseif strcmp(vert_bound_selection, 'Layers')
     upper_bounds = layers_bins(1, :) + layer_guard;
     lower_bounds = layers_bins(2, :) - layer_guard;
+
+    % Handle overlapped bounds
+    half_bounds = round((upper_bounds + lower_bounds) / 2);
+    invalid_mask = upper_bounds > lower_bounds;
+    upper_bounds(invalid_mask) = half_bounds(invalid_mask);
+    lower_bounds(invalid_mask) = half_bounds(invalid_mask);
   end
   
   % Get horizontal bounds
@@ -191,12 +197,6 @@ for layer_idx = 1:length(cur_layers)
   upper_bounds(~isfinite(upper_bounds) | upper_bounds < 1) = 1;
   lower_bounds(lower_bounds < 1) = 1;
   lower_bounds(~isfinite(lower_bounds)) = size(viterbi_data, 1);
-  
-  % Handle overlapped bounds
-  half_bounds = round((upper_bounds + lower_bounds) / 2);
-  invalid_mask = upper_bounds > lower_bounds;
-  upper_bounds(invalid_mask) = half_bounds(invalid_mask);
-  lower_bounds(invalid_mask) = half_bounds(invalid_mask);
 
   viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
