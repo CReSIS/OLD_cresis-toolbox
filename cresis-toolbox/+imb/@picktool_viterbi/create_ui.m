@@ -112,6 +112,18 @@ set(obj.top_panel.bottom_layer_TE,'Style','edit');
 set(obj.top_panel.bottom_layer_TE,'String', 'n+1');
 set(obj.top_panel.bottom_layer_TE,'TooltipString', tooltip);
 
+%----layer guard label
+tooltip = 'Restrict the vertical layer bounds by this many more bins. Only used for ''layer'' vertical bounding.';
+obj.top_panel.layer_guard_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.layer_guard_label,'Style','text');
+set(obj.top_panel.layer_guard_label,'String','Layer Guard:');
+set(obj.top_panel.layer_guard_label,'TooltipString', tooltip);
+%----layer guard box
+obj.top_panel.layer_guard_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.layer_guard_TE,'Style','edit');
+set(obj.top_panel.layer_guard_TE,'String', '2');
+set(obj.top_panel.layer_guard_TE,'TooltipString', tooltip);
+
 %----along track weight label
 tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
 obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
@@ -139,7 +151,7 @@ set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %---------------------------------------------------------------------------------------------
 % set up top panel table
 cols = 2;
-rows = 7;  % Just keep this larger or equal to actual number of rows.
+rows = 8;  % Just keep this larger or equal to actual number of rows.
 
 % set up top panel table
 default_dimensions = NaN*zeros(rows,cols);
@@ -177,6 +189,10 @@ obj.top_panel.table.handles{row,2}   = obj.top_panel.top_layer_TE;
 row = row + 1;
 obj.top_panel.table.handles{row,1}   = obj.top_panel.bottom_layer_label;
 obj.top_panel.table.handles{row,2}   = obj.top_panel.bottom_layer_TE;
+%% Layer Guard
+row = row + 1;
+obj.top_panel.table.handles{row,1}   = obj.top_panel.layer_guard_label;
+obj.top_panel.table.handles{row,2}   = obj.top_panel.layer_guard_TE;
 %% Along-track Weight
 row = row + 1;
 obj.top_panel.table.handles{row,1}  = obj.top_panel.along_track_weight_label;

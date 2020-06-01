@@ -37,6 +37,7 @@ for layer_idx = 1:length(cur_layers)
   y_points       = gt(2, :);
   gt             = nan(1, Nx);
   gt(x_points)   = y_points;
+  gt_idxs = find(~isnan(gt));
   
   % Echogram Parameters
   viterbi_data   = image_c;
@@ -49,29 +50,38 @@ for layer_idx = 1:length(cur_layers)
   try
     top_layer_num = eval(obj.top_panel.top_layer_TE.String);
   catch ME
-    warning('Could not evaluate Viterbi top layer input.');
     top_layer_num = NaN;
+    warning('Could not evaluate Viterbi top layer input. Defaulting to %.0f.', top_layer_num);
   end
   try
     bottom_layer_num = eval(obj.top_panel.bottom_layer_TE.String);
   catch ME
-    warning('Could not evaluate Viterbi bottom layer input.');
     bottom_layer_num = NaN;
+    warning('Could not evaluate Viterbi bottom layer input. Defaulting to %.0f.', bottom_layer_num);
   end
   try
     along_track_weight = eval(obj.top_panel.along_track_weight_TE.String);
   catch ME
-    warning('Could not evaluate Viterbi along track weight input.');
     along_track_weight = 1;
+    warning('Could not evaluate Viterbi along track weight input. Defaulting to %.2f.', along_track_weight);
   end
   try
     gt_cutoff = eval(obj.top_panel.ground_truth_cutoff_TE.String);
   catch ME
-    warning('Could not evaluate Viterbi groundtruth cutoff input.');
     gt_cutoff = 5;
+    warning('Could not evaluate Viterbi groundtruth cutoff input. Defaulting to %.0f.', gt_cutoff);
+  end
+  try
+    layer_guard = eval(obj.top_panel.layer_guard_TE.String);
+  catch ME
+    layer_guard = 2;
+    warning('Could not evaluate Viterbi layer_guard input. Defaulting to %.0f.', layer_guard);
   end
   clear n;
   
+  vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
+  vert_bound_selection = obj.top_panel.vert_bound_PM.String{vert_bound_selection};
+
   layers = [top_layer_num bottom_layer_num];
   layers_bins = nan(length(layers),length(image_x));
   for layers_idx = 1:length(layers)
@@ -79,9 +89,11 @@ for layer_idx = 1:length(cur_layers)
     if isnan(layer_num)
       continue
     end
-    if layer_num > length(param.layer.y) || layer_num < 1
-      warning('Layer %d not found.', layer_num);
-      continue
+    if (layer_num > length(param.layer.y) || layer_num < 1)
+      if strcmp(vert_bound_selection, 'Layers')
+        warning('Layer %.0f not found. Defaulting to echogram bound.', layer_num);
+      end
+      continue;
     end
     layers_bins(layers_idx, :) = interp_layer(param.layer.y{layer_num}, param.layer.x, image_x, image_y);
   end
@@ -89,9 +101,7 @@ for layer_idx = 1:length(cur_layers)
   % Get Vertical Bounds
   %   upper_bounds: nearest row to radar
   %   lower_bounds: furthest row from radar
-  %   upper_bounds < lower_bounds or an error will occur
-  vert_bound_selection = obj.top_panel.vert_bound_PM.Value;
-  vert_bound_selection = obj.top_panel.vert_bound_PM.String{vert_bound_selection};
+  %   upper_bounds <= lower_bounds or an error will occur in c++ call
   if strcmp(vert_bound_selection, 'Entire Echogram')
     upper_bounds = ones(1, Nx);
     lower_bounds = ones(1, Nx)*length(image_y);
@@ -106,8 +116,12 @@ for layer_idx = 1:length(cur_layers)
       clear temp_bounds;
     end
   elseif strcmp(vert_bound_selection, 'Layers')
-    upper_bounds = layers_bins(1, :);
-    lower_bounds = layers_bins(2, :);
+    upper_bounds = layers_bins(1, :) + layer_guard;
+    lower_bounds = layers_bins(2, :) - layer_guard;
+
+    temp_upper_bounds = upper_bounds;
+    upper_bounds = min([upper_bounds; lower_bounds]);
+    lower_bounds = max([temp_upper_bounds; lower_bounds]);
   end
   
   % Get horizontal bounds
@@ -125,9 +139,9 @@ for layer_idx = 1:length(cur_layers)
     hori_layer_idxs = find(param.layer.x >= param.x(1) & param.layer.x <= param.x(2));
   elseif strcmp(hori_bound_selection, 'Extreme Groundtruth')
     % Image points
-    selected_manual_idxs = find(~isnan(gt) & image_x >= param.x(1) & image_x <= param.x(end));
+    selected_manual_idxs = gt_idxs(gt_idxs >= param.x(1) & gt_idxs <= param.x(2));
     if length(selected_manual_idxs) < 2
-      warning('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points".');
+      warning('At least two ground truth points must be selected when horizontal bounding option is set to track between the "extreme gt points". Cancelling.');
       return;
     end
     hori_bounds = selected_manual_idxs([1 end]);
@@ -137,19 +151,13 @@ for layer_idx = 1:length(cur_layers)
   hori_bounds(1) = max(hori_bounds(1), 1);
   hori_bounds(end) = min(hori_bounds(end), Nx);
   
-  % Image bounds ground truth
-  bound_gt_idxs = find(~isnan(gt));
-  bound_gt_idxs = bound_gt_idxs(bound_gt_idxs >= hori_bounds(1) & bound_gt_idxs <= hori_bounds(2));
-  
-  gt_idxs = find(~isnan(gt(1, :)));
-  
   upper_bounds(gt_idxs) = max([gt(gt_idxs) - gt_cutoff; upper_bounds(gt_idxs)]);
   lower_bounds(gt_idxs) = min([gt(gt_idxs) + gt_cutoff; lower_bounds(gt_idxs)]);
   
   % For ground truth outside the vertical bounds, defer to groundtruth
   %   bounds rather than selection bounds
   if any(lower_bounds(hori_bounds(1):hori_bounds(end)) < upper_bounds(hori_bounds(1):hori_bounds(end)))
-    warning('Groundtruth points outside vertical bounds.');
+    warning('Groundtruth points outside vertical bounds. Cancelling.');
     return;
   end
   
@@ -177,16 +185,20 @@ for layer_idx = 1:length(cur_layers)
     along_track_slope(:) = 0;
   end
   
-  viterbi_timer = tic;
   viterbi_data = viterbi_data(:,hori_bounds(1):hori_bounds(end));
   along_track_slope = along_track_slope(:,hori_bounds(1):hori_bounds(end)-1);
   upper_bounds = upper_bounds(:,hori_bounds(1):hori_bounds(end));
   lower_bounds = lower_bounds(:,hori_bounds(1):hori_bounds(end));
-  y_new = tomo.viterbi2(double(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
+  
+  upper_bounds(isnan(upper_bounds) | upper_bounds < 1) = 1;
+  lower_bounds(lower_bounds < 1) = 1;
+  lower_bounds(isnan(lower_bounds)) = size(viterbi_data, 1);
+  
+  viterbi_timer = tic;
+  y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
   
   bounding_idxs = hori_bounds(1):hori_bounds(end);
-  %y_new = y_new(bounding_idxs);
   
   % Resample and interpolate y_new to match layer axes
   y_new = interp1(1:length(image_y), image_y,y_new,'linear','extrap');
