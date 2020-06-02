@@ -1,7 +1,7 @@
-function param = default_radar_params_2019_SouthDakota_CESSNA_snow
-% param = default_radar_params_2019_SouthDakota_CESSNA_snow
+function param = default_radar_params_2019_SouthDakota_N1KU_snow
+% param = default_radar_params_2019_SouthDakota_N1KU_snow
 %
-% Snow: 2019_SouthDakota_CESSNA
+% Snow: 2019_SouthDakota_N1KU
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,7 +9,7 @@ function param = default_radar_params_2019_SouthDakota_CESSNA_snow
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_SouthDakota_CESSNA';
+param.season_name = '2019_SouthDakota_N1KU';
 param.radar_name = 'snow';
 
 param.config.file.version = 4;
