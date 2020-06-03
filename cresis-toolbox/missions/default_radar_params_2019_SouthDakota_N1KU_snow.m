@@ -54,7 +54,7 @@ default.qlook.motion_comp = 0;
 default.qlook.dec = 8;
 default.qlook.inc_dec = 5;
 default.qlook.surf.en = 1;
-default.qlook.surf.profile = 'SNOW_AWI';
+default.qlook.surf.profile = 'SNOW';
 
 
 %% SAR worksheet
@@ -98,7 +98,7 @@ chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
 for wf = 1
-  default.radar.wfs(wf).tx_weights = 1; % Watts
+  default.radar.wfs(wf).tx_weights = 1;
   default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
   default.radar.wfs(wf).ref_fn = '';
@@ -141,6 +141,8 @@ default.radar.wfs(1).f1 = 8e9;
 default.radar.wfs(1).Tpd = 250e-6;
 default.radar.wfs(1).BW_window = [2.5e9 7.72016e9];
 default.radar.wfs(1).t_ref = 0;
+fc = (default.radar.wfs(1).f0+default.radar.wfs(1).f1)/2;
+default.radar.wfs(1).system_dB = 10*log10(0.1)+10.5+10.5+20*log10(300000000/(8*pi*fc))+10*log10(50);
 
 % Survey Mode 2-18 GHz
 % default.radar.wfs(1).f0 = 2e9;
