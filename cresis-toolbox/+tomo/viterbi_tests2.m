@@ -2,7 +2,7 @@
 % Author: Reece Mathews
 
 function viterbi_tests2()
-  global matrix layer;
+  global matrix layer elevation;
   
   % CONSTANTS
   rows = 20;
@@ -20,8 +20,8 @@ function viterbi_tests2()
   elevation = (down_shift - (rows:-1:1) + 1) * shift_elev;
   
   along_track_slope = round(diff(elevation));
-  upper_bounds = ones(1, cols)*NaN;
-  lower_bounds = ones(1, cols)*NaN;
+  upper_bounds = ones(1, cols);
+  lower_bounds = ones(1, cols)*size(matrix, 1);
   
   matrix = echo_norm(matrix,struct('scale',[-40 90]));
   
@@ -32,11 +32,12 @@ function viterbi_tests2()
 end
 
 function plot_viterbi()
-  global layer;
+  global layer elevation;
   
   hold on;
   
   plot(layer, 'g');
+  plot(elevation);
       
   hold off;
 end
