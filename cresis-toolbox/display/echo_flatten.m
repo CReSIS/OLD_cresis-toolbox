@@ -43,5 +43,37 @@ function [mdata] = echo_flatten(mdata,layer_params)
 % echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
 % echo_xcorr_profile
 
+if isstruct(mdata)
+  data = mdata.Data;
+else
+  data = mdata;
+end
+
+Nx = size(data, 2);
+
+if ~exist('layer_params','var') || isempty(layer_params)
+  layer_params = [];
+  elevation = zeros(1, Nx);
+else
+  elevation = layer_params;
+end
+
+base_elevation = round(median(elevation));
+bottom = base_elevation - min(elevation);
+top = max(elevation) - base_elevation;
+
+mdata = [zeros(top, Nx); zeros(size(data, 1), Nx); zeros(bottom, Nx)];
+
+for c = 1:Nx
+   for r = 1:size(data, 1)
+      mdata(elevation(c)+r, c) = data(r, c);
+   end
+end
+
+% nearest neighbor interp and then interp_finite
+% don't use zero padding -- use the nearest neighbor interp or NaN at the
+% very least. Allow NaNs as an option (perhaps let pass a default).
+
+
 
 
