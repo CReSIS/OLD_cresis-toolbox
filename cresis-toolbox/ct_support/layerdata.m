@@ -295,7 +295,8 @@ classdef layerdata < handle
     
       if ~isfield(obj.layer{frm},'file_version')
         % Old file format
-        warning('Old layer file format frame %d\n', frm);
+        layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+        warning('Old layer file format frame %d: %s\n', frm, layer_fn);
         lay = obj.layer{frm};
         obj.check_records();
         obj.layer_modified(frm) = true;
@@ -476,7 +477,7 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.twtt,'double')
-        obj.layer{frm}.quality = double(obj.layer{frm}.quality);
+        obj.layer{frm}.twtt = double(obj.layer{frm}.twtt);
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.quality,'uint8')
@@ -550,12 +551,21 @@ classdef layerdata < handle
       end
 
       % Ensure all values are valid
-      mask = ~isfinite(obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3);
+      mask = obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3;
       if any(mask)
         obj.layer{frm}.quality(mask) = 1;
         obj.layer_modified(frm) = true;
       end
-      mask = ~isfinite(obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4);
+      mask = isinf(obj.layer{frm}.twtt);
+      if any(mask)
+        obj.layer{frm}.twtt(mask) = NaN;
+        obj.layer_modified(frm) = true;
+      end
+      mask = abs(obj.layer{frm}.twtt) > 1;
+      if any(mask)
+        warning('abs(twtt) of some layers is > 1 which is probably incorrect. Manual correction is required if this is an error.');
+      end
+      mask = obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4;
       if any(mask)
         obj.layer{frm}.type(mask) = 2;
         obj.layer_modified(frm) = true;
@@ -630,6 +640,21 @@ classdef layerdata < handle
       if ~isfield(obj.layer{frm}.param.radar,'lever_arm_fh') || isempty(obj.layer{frm}.param.radar.lever_arm_fh)
         obj.layer{frm}.param.radar.lever_arm_fh = obj.param.radar.lever_arm_fh;
         obj.layer_modified(frm) = true;
+      end
+      
+      % Check that GPS times are monotonically increasing (it should never
+      % not be monotonic, but in case files were corrupted or old files
+      % with problems)
+      [new_gps_time,new_idx] = unique(obj.layer{frm}.gps_time);
+      if ~isequal(new_gps_time,obj.layer{frm}.gps_time)
+        obj.layer_modified(frm) = true;
+        obj.layer{frm}.gps_time = new_gps_time;
+        obj.layer{frm}.lat = obj.layer{frm}.lat(new_idx);
+        obj.layer{frm}.lon = obj.layer{frm}.lon(new_idx);
+        obj.layer{frm}.elev = obj.layer{frm}.elev(new_idx);
+        obj.layer{frm}.quality = obj.layer{frm}.quality(:,new_idx);
+        obj.layer{frm}.twtt = obj.layer{frm}.twtt(:,new_idx);
+        obj.layer{frm}.type = obj.layer{frm}.type(:,new_idx);
       end
       
       % Ensure alphabetical ordering so that fields can be concatenated efficiently
@@ -848,11 +873,29 @@ classdef layerdata < handle
       end
     end
     
-    %% get_id: get layer id from layer name
-    function id = get_id(obj,name)
+    %% get_id: get layer id and other layer information from layer id or name
+    function [id,name,group_name,desc,age,age_source] = get_id(obj,name)
       obj.check_layer_organizer();
-      match_idx = find(strcmp(name,obj.layer_organizer.lyr_name));
-      id = obj.layer_organizer.lyr_id(match_idx);
+      if ischar(name)
+        match_idx = find(strcmp(name,obj.layer_organizer.lyr_name),1);
+      else
+        match_idx = find(name == obj.layer_organizer.lyr_id,1);
+      end
+      if isempty(match_idx)
+        id = [];
+        age = [];
+        age_source = [];
+        desc = [];
+        group_name = [];
+        name = [];
+      else
+        id = obj.layer_organizer.lyr_id(match_idx);
+        age = obj.layer_organizer.lyr_age(match_idx);
+        age_source = obj.layer_organizer.lyr_age_source{match_idx};
+        desc = obj.layer_organizer.lyr_desc{match_idx};
+        group_name = obj.layer_organizer.lyr_group_name{match_idx};
+        name = obj.layer_organizer.lyr_name{match_idx};
+      end
     end
     
     %% get_layer: get layer twtt, quality, type
@@ -1006,46 +1049,52 @@ classdef layerdata < handle
     function ids = insert_layers(obj,layer_organizer)
       obj.check_layer_organizer();
       
-      Nlayers = length(layer_organizer.lyr_name);
-      if isempty(obj.layer_organizer.lyr_id)
-        ids = 1:Nlayers;
-      else
-        ids = max(obj.layer_organizer.lyr_id) + (1:Nlayers);
-      end
-      obj.layer_organizer.lyr_id(end+(1:Nlayers)) = ids;
-      obj.layer_organizer.lyr_name(end+(1:Nlayers)) = layer_organizer.lyr_name;
-      
-      if isfield(layer_organizer,'lyr_age') && length(layer_organizer.lyr_age) == Nlayers
-        obj.layer_organizer.lyr_age(end+(1:Nlayers)) = layer_organizer.lyr_age;
-      else
-        obj.layer_organizer.lyr_age(end+(1:Nlayers)) = NaN;
-      end
-      if isfield(layer_organizer,'lyr_age_source') && length(layer_organizer.lyr_age_source) == Nlayers
-        obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = layer_organizer.lyr_age_source;
-      else
-        obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = cellfun(@struct,cell(1,Nlayers),'UniformOutput',false);
-      end
-      if isfield(layer_organizer,'lyr_desc') && length(layer_organizer.lyr_desc) == Nlayers
-        obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = layer_organizer.lyr_desc;
-      else
-        obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
-      end
-      if isfield(layer_organizer,'lyr_group_name') && length(layer_organizer.lyr_group_name) == Nlayers
-        obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = layer_organizer.lyr_group_name;
-      else
-        obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
-      end
-      if isfield(layer_organizer,'lyr_order') && length(layer_organizer.lyr_order) == Nlayers
-        obj.layer_organizer.lyr_order(end+(1:Nlayers)) = layer_organizer.lyr_order;
-      else
-        if isempty(obj.layer_organizer.lyr_order)
-          new_orders = 1:Nlayers;
+      old_layer_organizer = obj.layer_organizer;
+      try
+        Nlayers = length(layer_organizer.lyr_name);
+        if isempty(obj.layer_organizer.lyr_id)
+          ids = 1:Nlayers;
         else
-          new_orders = max(obj.layer_organizer.lyr_order) + (1:Nlayers);
+          ids = max(obj.layer_organizer.lyr_id) + (1:Nlayers);
         end
-        obj.layer_organizer.lyr_order(end+(1:Nlayers)) = new_orders;
+        obj.layer_organizer.lyr_id(end+(1:Nlayers)) = ids;
+        obj.layer_organizer.lyr_name(end+(1:Nlayers)) = layer_organizer.lyr_name;
+        
+        if isfield(layer_organizer,'lyr_age') && length(layer_organizer.lyr_age) == Nlayers
+          obj.layer_organizer.lyr_age(end+(1:Nlayers)) = layer_organizer.lyr_age;
+        else
+          obj.layer_organizer.lyr_age(end+(1:Nlayers)) = NaN;
+        end
+        if isfield(layer_organizer,'lyr_age_source') && length(layer_organizer.lyr_age_source) == Nlayers
+          obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = layer_organizer.lyr_age_source;
+        else
+          obj.layer_organizer.lyr_age_source(end+(1:Nlayers)) = cellfun(@struct,cell(1,Nlayers),'UniformOutput',false);
+        end
+        if isfield(layer_organizer,'lyr_desc') && length(layer_organizer.lyr_desc) == Nlayers
+          obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = layer_organizer.lyr_desc;
+        else
+          obj.layer_organizer.lyr_desc(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
+        end
+        if isfield(layer_organizer,'lyr_group_name') && length(layer_organizer.lyr_group_name) == Nlayers
+          obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = layer_organizer.lyr_group_name;
+        else
+          obj.layer_organizer.lyr_group_name(end+(1:Nlayers)) = cellfun(@char,cell(1,Nlayers),'UniformOutput',false);
+        end
+        if isfield(layer_organizer,'lyr_order') && length(layer_organizer.lyr_order) == Nlayers
+          obj.layer_organizer.lyr_order(end+(1:Nlayers)) = layer_organizer.lyr_order;
+        else
+          if isempty(obj.layer_organizer.lyr_order)
+            new_orders = 1:Nlayers;
+          else
+            new_orders = max(obj.layer_organizer.lyr_order) + (1:Nlayers);
+          end
+          obj.layer_organizer.lyr_order(end+(1:Nlayers)) = new_orders;
+        end
+        obj.fix_layer_organizer();
+      catch ME
+        warning('insert_layers failed, reverting to the original layer_organizer. Error: %s: ', ME.getReport);
+        obj.layer_oranizer = old_layer_organizer;
       end
-      obj.fix_layer_organizer();
       obj.layer_organizer_modified = true;
     end
     
@@ -1111,6 +1160,30 @@ classdef layerdata < handle
           obj.layer_modified(frm) = false;
         end
       end
+    end
+    
+    %% set_age: set age for a layer
+    function set_age(obj,id,age)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_age(match_idx) = age;
+      obj.layer_organizer_modified = true;
+    end
+    
+    %% set_age_source: set age_source for a layer
+    function set_age_source(obj,id,age_source)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_age_source{match_idx} = age_source;
+      obj.layer_organizer_modified = true;
+    end
+    
+    %% set_desc: set desc for a layer
+    function set_desc(obj,id,desc)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_desc{match_idx} = desc;
+      obj.layer_organizer_modified = true;
     end
     
     %% update_gps: update gps for a frame
@@ -1197,8 +1270,55 @@ classdef layerdata < handle
     
   end
   
-  %% Static Methods
+  %% Static Methods ==========
   methods(Static)
+    %% interp: interpolate layer data from opsLoadLayers to a common GPS time
+    % Input:
+    %   layers.twtt, layers.quality, layers.type
+    %   layers.gps_time, layers.lat, layers.lon, and layers.elev
+    % Output:
+    %   layers.twtt_ref, layers.type_ref, layers.quality_ref
+    % 
+    % 
+    % param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
+    % layers = opsLoadLayers(param,struct('name','surface'));
+    % mdata = echo_load(param,'standard',1);
+    % layers = layerdata.interp(mdata,layers);
+    function layers = interp(mdata,layers)
+      master = [];
+      if isfield(mdata,'gps_time')
+        master.GPS_time = mdata.gps_time;
+      else
+        master.GPS_time = mdata.GPS_time;
+      end
+      if isfield(mdata,'lat')
+        master.Latitude = mdata.lat;
+      else
+        master.Latitude = mdata.Latitude;
+      end
+      if isfield(mdata,'lon')
+        master.Longitude = mdata.lon;
+      else
+        master.Longitude = mdata.Longitude;
+      end
+      if isfield(mdata,'elev')
+        master.Elevation = mdata.elev;
+      else
+        master.Elevation = mdata.Elevation;
+      end
+      for lay_idx = length(layers)
+        ops_layer = [];
+        ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+        ops_layer{1}.type = layers(lay_idx).type;
+        ops_layer{1}.quality = layers(lay_idx).quality;
+        ops_layer{1}.twtt = layers(lay_idx).twtt;
+        ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+        ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+        lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+        layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+      end
+    end
+    
     %% load_layers: load list of layers
     % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
     % mdata = load(fn);

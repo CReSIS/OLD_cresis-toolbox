@@ -24,10 +24,10 @@ classdef picktool_convert < imb.picktool
       % Any code, including access to object
       obj.parent = parent;
       obj.h_fig = h_fig;
-      obj.tool_name = '(c)onvert';
-      obj.tool_name_title = 'convert';
+      obj.tool_name = '(c)opy';
+      obj.tool_name_title = 'copy';
       obj.tool_shortcut = 'c';
-      obj.help_string = sprintf('Left click: No function\nLeft click and drag: Convert selected layers to match the layer specified in the param window (p)\n\n');
+      obj.help_string = sprintf('Left click: No function\nLeft click and drag: Convert selected layers to match the layer specified in the tool param window (p)\n\n');
       obj.w = 190; 
       obj.h = 170;
       

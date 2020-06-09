@@ -23,7 +23,7 @@ track.profile = profile_str;
 
 %% Default track settings
 track.data_noise_en = false;
-track.detrend = 0;
+track.detrend = [];
 track.en = true;
 track.init = [];
 track.init.method = 'max';
@@ -54,6 +54,81 @@ track.threshold_noise_rng = [0 -inf -1];
 if strcmpi(profile_str,'default')
   %% Default profile
   
+elseif strcmpi(profile_str,'ACCUM')
+  %% ACCUM profile
+  track.debug_time_guard = 2e-6;
+  track.filter	= [3 3];
+  track.filter_trim = [0 3];
+  track.init.method	= 'medfilt';
+  track.init.medfilt	= 11;
+  track.init.max_diff = 1e-6;%0.5e-6;
+  track.max_rng	= [0 3];
+  track.max_rng_units = 'bins';
+  track.medfilt = 3;%11;
+  track.medfilt_threshold = 10;%30;
+  track.method = 'threshold';
+  track.min_bin = 0;%1.6e-6;
+  track.threshold = 5;%10;
+  track.threshold_noise_rng = [0 -1e-6 -0.3e-6];
+  track.threshold_rel_max = -9;
+  track.threshold_rng = 5;
+  
+elseif strcmpi(profile_str,'KABAND')
+  %% KABAND profile
+  track.debug_time_guard = 50e-9;
+  track.min_bin = 0.1e-6;
+  track.prefilter_trim = [0 0];
+  track.filter = [5 3];
+  track.filter_trim = [10 10];
+  track.init.method	= 'medfilt';
+  track.init.medfilt	= 51;
+  track.init.max_diff = 0.3e-6;
+  track.max_rng	= [0 9];
+  track.max_rng_units = 'bins';
+  track.medfilt = 11;
+  track.medfilt_threshold = 100;
+  track.method = 'threshold';
+  track.threshold = 8;
+  track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
+  track.threshold_rel_max = -9;
+  
+elseif strcmpi(profile_str,'KUBAND')
+  %% KUBAND profile
+  track.debug_time_guard = 50e-9;
+  track.min_bin = 0.1e-6;
+  track.prefilter_trim = [0 0];
+  track.filter = [5 3];
+  track.filter_trim = [10 10];
+  track.init.method	= 'medfilt';
+  track.init.medfilt	= 51;
+  track.init.max_diff = 0.3e-6;
+  track.max_rng	= [0 9];
+  track.max_rng_units = 'bins';
+  track.medfilt = 11;
+  track.medfilt_threshold = 100;
+  track.method = 'threshold';
+  track.threshold = 8;
+  track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
+  track.threshold_rel_max = -9;
+  
+elseif strcmpi(profile_str,'RDS')
+  %% RDS profile
+  track.debug_time_guard = 2e-6;
+  track.filter	= [1 5];
+  track.init.method	= 'medfilt';
+  track.init.medfilt	= 11;
+  track.init.max_diff = 0.5e-6;
+  track.max_rng	= [0 1];
+  track.max_rng_units = 'bins';
+  track.medfilt = 11;
+  track.medfilt_threshold = 30;
+  track.method = 'threshold';
+  track.min_bin = 1.6e-6;
+  track.threshold = 10;
+  track.threshold_noise_rng = [0 -2e-6 -0.2e-6];
+  track.threshold_rel_max = -9;
+  track.threshold_rng = 5;
+  
 elseif strcmpi(profile_str,'RDS_OIB')
   %% RDS_OIB profile
   track.debug_time_guard = 2e-6;
@@ -72,24 +147,24 @@ elseif strcmpi(profile_str,'RDS_OIB')
   track.threshold_rel_max = -9;
   track.threshold_rng = 5;
   
-elseif strcmpi(profile_str,'ACCUM')
-  %% ACCUM profile
-  track.debug_time_guard = 2e-6;
-  track.filter	= [3 7];%[3 3];
-  track.filter_trim = [0 3];%[3 3];
+elseif strcmpi(profile_str,'SNOW')
+  %% SNOW profile
+  track.debug_time_guard = 50e-9;
+  track.min_bin = 0.1e-6;
+  track.prefilter_trim = [0 0];
+  track.filter = [5 3];
+  track.filter_trim = [10 10];
   track.init.method	= 'medfilt';
-  track.init.medfilt	= 11;
-  track.init.max_diff = 1e-6;%0.5e-6;
-  track.max_rng	= [0 1];%[0 2];
+  track.init.medfilt	= 51;
+  track.init.max_diff = 0.3e-6;
+  track.max_rng	= [0 2];
   track.max_rng_units = 'bins';
-  track.medfilt = 3;%11;
-  track.medfilt_threshold = 10;%30;
+  track.medfilt = 11;
+  track.medfilt_threshold = 100;
   track.method = 'threshold';
-  track.min_bin = 0;%1.6e-6;
-  track.threshold = 5;%10;
-  track.threshold_noise_rng = [0 -1e-6 -0.3e-6];
+  track.threshold = 8;
+  track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
   track.threshold_rel_max = -9;
-  track.threshold_rng = 5;
   
 elseif strcmpi(profile_str,'SNOW_AWI')
   %% SNOW_AWI profile

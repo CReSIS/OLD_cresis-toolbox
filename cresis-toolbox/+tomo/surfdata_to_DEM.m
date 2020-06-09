@@ -146,7 +146,7 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Convert top from range bins to twtt (the top is needed with each
   % surface to handle refraction)
-  ice_top = interp1(1:length(mdata.Time), mdata.Time, sd.surf(ice_top_idx).y);
+  ice_top = sd.surf(ice_top_idx).y;
   % If no top defined, then assume top is a zero time (i.e.
   %   ground based radar operation with antenna at surface)
   if all(all(isnan(ice_top)))
@@ -169,7 +169,7 @@ for frm_idx = 1:length(param.cmd.frms)
     sd.surf(surface_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y) = sd.surf(ice_top_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y);
     
     % Convert surface from range bins to twtt
-    surface_twtt = interp1(1:length(mdata.Time), mdata.Time, sd.surf(surface_idx).y);
+    surface_twtt = sd.surf(surface_idx).y;
     % Apply spatial filtering
     if isfield(param.dem,'med_filt') && ~isempty(param.dem.med_filt)
       surface_twtt = medfilt2(surface_twtt,param.dem.med_filt);
@@ -177,14 +177,48 @@ for frm_idx = 1:length(param.cmd.frms)
       surface_twtt(:,end-floor(param.dem.med_filt(2)/2)+1:end) = NaN;
     end
     
-    % Convert from doa,twtt to radar FCS
+  %%%%%%%%%%% This section accomodates ground-based data collection
+    if ~isfield(param.dem,'ground_based_flag')
+      er_surf = 1;
+    else
+      if param.dem.ground_based_flag == true;      
+        if isfield(param.dem,'er_z') 
+          % er_z is an Nx2 matrix containing depths, and
+          % associated complex permittivities. For ground data,
+          % the real permittivity at the surface is used for
+          % down-going refraction
+          
+          % Identify the surface index.
+          [~,s_ind] = min(abs(param.dem.er_z(:,1)));
+          
+          % Then extract the permittivity at that depth
+          er_surf = real(param.dem.er_z(s_ind,2)); 
+        else
+          er_surf = 1;
+        end
+        
+        % For files that have erroneous steering vectors (that
+        % assume the medium containing the antenna is air, when
+        % it is not), the resulting theta matrix is adjusted
+        % here.
+        if isfield(param.dem,'theta_adjust')
+          if param.dem.theta_adjust == true
+            theta = asin(sin(theta)*1/sqrt(er_surf));
+          end
+        end
+        
+      else
+        er_surf = 1;
+      end      
+    end
+    
     if ~doa_method_flag
       [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
         theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
-        3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
+        er_surf,3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
     else
       [y_active,z_active] = tomo.twtt_doa_to_yz(theta, ...
-        [],ice_top,3.15,surface_twtt,doa_method_flag,doa_limits);
+        [],ice_top,er_surf,3.15,surface_twtt,doa_method_flag,doa_limits);
     end
     
     % Convert from radar FCS to ECEF
@@ -367,7 +401,7 @@ for frm_idx = 1:length(param.cmd.frms)
         DEM = F(xmesh,ymesh);
         
         % Interpolate to find gridded 3D image
-        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
+        img_3D_idxs = round(interp1(mdata.Time, 1:length(mdata.Time), sd.surf(surface_idx).y(:))) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
         img_3D = NaN*zeros(size(img_3D_idxs));
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
@@ -506,7 +540,7 @@ for frm_idx = 1:length(param.cmd.frms)
       % Interpolate to find gridded 3D image
       if ~doa_method_flag
         % Beamforming method
-        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
+        img_3D_idxs = round(interp1(mdata.Time, 1:length(mdata.Time), sd.surf(surface_idx).y(:))) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
         img_3D = NaN(size(img_3D_idxs));
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
@@ -625,7 +659,7 @@ for frm_idx = 1:length(param.cmd.frms)
       
       hA2 = axes;
       %hC = contourf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),12);
-      hC = sd.surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM)*0+25,double(DEM));
+      hC = surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM)*0+25,double(DEM));
       set(hC(1),'EdgeAlpha',0); grid off;
       %axis([2 38 0 10 zlims]);
       set(hA2,'Box','off');
@@ -641,7 +675,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(get(hc,'YLabel'),'String','Bed height (m)');
       
       hA = axes;
-      hS = sd.surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),double(1*DEM));
+      hS = surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),double(1*DEM));
       hA = gca; grid off;
       %axis([2 38 0 10 zlims]);
       set(hA,'Box','off');
@@ -677,7 +711,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(3,'Position',[50 50 500 500]);
       set(3,'Color',[1 1 1]);
       
-      hS = sd.surf((xaxis-xaxis(1))/1e3-2,(yaxis-yaxis(1))/1e3-1,double(DEM),double(DEM));
+      hS = surf((xaxis-xaxis(1))/1e3-2,(yaxis-yaxis(1))/1e3-1,double(DEM),double(DEM));
       hA = gca; grid off;
       %axis([0 36 0 10 zlims]);
       set(hA,'Box','off');

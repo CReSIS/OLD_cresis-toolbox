@@ -16,9 +16,9 @@ param_override = [];
 %   2. For GPS update, GPS time offsets are pulled from the parameter sheet
 params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20191231');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20200108');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20191231');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20200108');
 
 %% Automated section
 % =========================================================================

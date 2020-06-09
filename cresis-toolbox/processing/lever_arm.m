@@ -78,6 +78,12 @@ radar_name = ct_output_dir(param.radar_name);
 % For the full simulator, remove 'sim' at the end($) of param.season_name
 param.season_name = regexprep(param.season_name,'sim$','','ignorecase');
 
+if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU'}))
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
 %     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
@@ -96,7 +102,6 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_sourc
 end
 
 if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
-%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %
   gps.x = 0;
@@ -1315,14 +1320,16 @@ end
 if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(radar_name,'rds'))
   % Sled antennas
   % Center elements left to right
-  LArx = [0	-64.4623	10.5
-    0	-46.0371	10.5
-    0 -27.6119	10.5
-    0 -9.1867	10.5
-    0 9.2337	10.5
-    0 27.6637	10.5
-    0 46.0889	10.5
-    0 64.5141	10.5].' * 2.54/100;
+  
+  % GPS Antenna to Antenna ports (top side of antenna glass to bottom center of GPS antenna)
+  LArx = [-18.475	-119.94 14.596
+    -18.475	-101.57   14.596
+    -18.475 -83.24	 14.596
+    -18.475 -64.87  14.596
+    -18.475 -46.54  14.596
+    -18.475 -28.17  14.596
+    -18.475 -9.84 14.596
+    -18.475 8.53 14.596].' * 2.54/100;
   
   LAtx = LArx(:,[1 7 2 8]);
   
@@ -1959,6 +1966,24 @@ end
 % =========================================================================
 %% Snow Radar
 % =========================================================================
+
+if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU'})) ...
+    && strcmpi(radar_name,'snow')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx = [0.3827 -1.2155 -0.9425].';
+
+  LAtx = [0.3771 1.7367 -0.9409].';
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) ...
     && strcmpi(radar_name,'snow')

@@ -1,48 +1,6 @@
-function [ctrl_chain,param] = layer_tracker_2D(param,param_override)
-% [ctrl_chain,param] = layer_tracker_2D(param,param_override)
+% script layer_tracker_input_check
 %
-% Check input parameters and create tasks for layer_tracker.
-% layer_tracker_task does the actual tracking.
-% 
-% Outputs stored in:
-% /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_test/20140313_08/
-%
-% Comparing four different methods:
-%   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-%   layer_tracker_001/t002_mcmc.mat, ..., layer_tracker_00N/t002_mcmc.mat
-%   layer_tracker_001/t003_stereo.mat, ..., layer_tracker_00N/t003_stereo.mat
-%   layer_tracker_001/t004_viterbi.mat, ..., layer_tracker_00N/t004_viterbi.mat
-% Layers in the files (all combined into one file during combine):
-%   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
-%   t002_mcmc_surface, t002_mcmc_bottom
-%   t003_stereo_surface, t003_stereo_bottom
-%   t004_viterbi_bottom
-%
-% Comparing the same method with four different sets of parameters:
-%   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-%   layer_tracker_001/t002_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-%   layer_tracker_001/t003_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-%   layer_tracker_001/t004_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
-% Layers in the files (all combined into one file during combine):
-%   t001_lsm_surface_001, ..., t001_lsm_surface_016, t001_lsm_bottom_001, ..., t001_lsm_bottom_016
-%   t002_lsm_surface_001, ..., t002_lsm_surface_016, t002_lsm_bottom_001, ..., t002_lsm_bottom_016
-%   t003_lsm_surface_001, ..., t003_lsm_surface_016, t003_lsm_bottom_001, ..., t003_lsm_bottom_016
-%   t004_lsm_surface_001, ..., t004_lsm_surface_016, t004_lsm_bottom_001, ..., t004_lsm_bottom_016
-
-%% General Setup
-% =====================================================================
-param = merge_structs(param, param_override);
-
-fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
-fprintf('=====================================================================\n');
-
-%% Input Checks: cmd
-% =====================================================================
-
-% Remove frames that do not exist from param.cmd.frms list
-frames = frames_load(param);
-param.cmd.frms = frames_param_cmd_frms(param,frames);
+% Support function for layer_tracker.m
 
 %% Input Checks: layer_tracker
 % =====================================================================
@@ -53,6 +11,13 @@ physical_constants;
 if ~isfield(param,'layer_tracker') || isempty(param.layer_tracker)
   param.layer_tracker = [];
 end
+
+%  .block_size_frms: Number of data frames to load and process at a time.
+%  Default is 1 frame at a time.
+if ~isfield(param.layer_tracker,'block_size_frms') || isempty(param.layer_tracker.block_size_frms)
+  param.layer_tracker.block_size_frms = 1;
+end
+param.layer_tracker.block_size_frms = min(length(param.cmd.frms), param.layer_tracker.block_size_frms);
 
 %  .copy_param: Final output opsCopyLayer parameter struct
 if ~isfield(param.layer_tracker,'copy_param') || isempty(param.layer_tracker.copy_param)
@@ -121,9 +86,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   track = merge_structs(param.qlook.surf,param.layer_tracker.track{track_idx});
   
-  % profile: default is no profile, otherwise loads preset configuration
+  % profile: default is the profile named after the system (e.g. accum,
+  % kaband, kuband, rds, or snow), otherwise loads preset configuration
   if ~isfield(track,'profile') || isempty(track.profile)
-    track.profile = '';
+    track.profile = ct_output_dir(param.radar_name);
   end
   
   track = merge_structs(layer_tracker_profile(param,track.profile), track);
@@ -247,6 +213,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   if ~isfield(track,'max_bin') || isempty(track.max_bin)
     track.max_bin = inf;
+  elseif isstruct(track.max_bin)
+    if ~isfield(track.max_bin,'existence_check')
+      track.max_bin.existence_check = false;
+    end
   end
   
   if ~isfield(track,'max_rng') || isempty(track.max_rng)
@@ -276,9 +246,13 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   if ~isfield(track,'min_bin') || isempty(track.min_bin)
     track.min_bin = 0;
+  elseif isstruct(track.min_bin)
+    if ~isfield(track.min_bin,'existence_check')
+      track.min_bin.existence_check = false;
+    end
   end
   
-    %  .mult_suppress: struct controlling surface multiple suppression
+  %  .mult_suppress: struct controlling surface multiple suppression
   if ~isfield(track,'mult_suppress') || isempty(track.mult_suppress)
     track.mult_suppress = [];
   end
@@ -322,179 +296,3 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   param.layer_tracker.track{track_idx} = track;
 end
-
-%% Set up Cluster
-% ===================================================================
-
-ctrl = cluster_new_batch(param);
-%cluster_compile({'layer_tracker_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
-cluster_compile({'layer_tracker_task','layer_tracker_combine_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
-ctrl_chain = {};
-
-%% layer_tracker
-% =========================================================================
-% =========================================================================
-
-% Cluster setup
-% -------------------------------------------------------------------------
-
-sparam.argsin{1} = param;
-sparam.task_function = 'layer_tracker_task';
-sparam.num_args_out = 1;
-sparam.argsin{1}.load.echogram_img = param.layer_tracker.echogram_img;
-sparam.cpu_time = 60;
-sparam.mem = 500e6;
-sparam.notes = '';
-
-cpu_time_mult = zeros(size(param.layer_tracker.track));
-mem_mult = zeros(size(param.layer_tracker.track));
-for track_idx = 1:length(param.layer_tracker.track)
-  switch param.layer_tracker.track{track_idx}.method
-    case 'viterbi'
-      cpu_time_mult(track_idx) = 11e-6;
-      mem_mult(track_idx) = 64;
-      
-    case 'lsm'
-      cpu_time_mult(track_idx) = 5.5e-7*max(param.layer_tracker.track{track_idx}.lsm.storeIter);
-      mem_mult(track_idx) = 80;
-      
-    otherwise
-      cpu_time_mult(track_idx) = 11e-6;
-      mem_mult(track_idx) = 64;
-  end
-end
-
-%% layer_tracker: Loop to create tasks
-% -------------------------------------------------------------------------
-in_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
-if strcmp(param.layer_tracker.layer_params.source,'ops')
-  tmp_out_fn_dir_dir = ct_filename_out(param,'ops','layer_tracker_tmp');
-  param.layer_tracker.layer_params.layerdata_source = 'ops'; % Only used for stdout
-else
-  tmp_out_fn_dir_dir = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp');
-end
-mem_combine = 0;
-cputime_combine = 0;
-frm_idx = 1;
-while frm_idx <= length(param.cmd.frms)
-  Nx = 0;
-  Nt = 0;
-  
-  start_frm_idx = frm_idx;
-  frms = [];
-  for subblock_idx = 1:param.layer_tracker.block_size_frms
-    if frm_idx > param.cmd.frms
-      break;
-    end
-    frm = param.cmd.frms(frm_idx);
-    if ~any(frm == param.cmd.frms)
-      break;
-    end
-    % Add frame to this block
-    frm_idx = frm_idx + 1;
-    frms(end+1) = frm;
-    
-    % Compute matrix size
-    % ---------------------------------------------------------------------
-    data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-    mdata = load(data_fn, 'GPS_time','Time');
-    if (subblock_idx==1)
-      max_time = mdata.Time(end);
-      min_time = mdata.Time(1);
-    else
-      if(max_time <= mdata.Time(end))
-        max_time = mdata.Time(end);
-      end
-      if(min_time >= mdata.Time(1))
-        min_time = mdata.Time(1);
-      end
-    end
-    Nx = Nx + length(mdata.GPS_time);
-  end
-  dt = mdata.Time(2) - mdata.Time(1);
-  Nt = 1 + (max_time-min_time)/dt;
-  
-  for track_idx = 1:param.layer_tracker.track_per_task:length(param.layer_tracker.track)
-    dparam = [];
-    dparam.file_success = {};
-    dparam.argsin{1}.layer_tracker.frms = frms;
-    
-    tracks_in_task = track_idx:min(track_idx-1+param.layer_tracker.track_per_task,length(param.layer_tracker.track)); 
-    
-    dparam.argsin{1}.layer_tracker.tracks_in_task = tracks_in_task;
-
-    % File Success
-    % ---------------------------------------------------------------------
-    for track_idx = tracks_in_task
-      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method);
-      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
-      dparam.file_success{end+1} = tmp_out_fn;
-      if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
-        delete(tmp_out_fn);
-      end
-    end
-    
-    % Rerun only check
-    % ---------------------------------------------------------------------
-    if ~ctrl.cluster.rerun_only
-      if ~cluster_file_success(dparam.file_success)
-        fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
-          dparam.notes, datestr(now));
-        continue;
-      end
-    end
-    
-    % CPU time and memory
-    % ---------------------------------------------------------------------
-    dparam.cpu_time = sum(cpu_time_mult(tracks_in_task)) * Nx * Nt;
-    dparam.mem = 800e6 + max(mem_mult(tracks_in_task)) * Nx * Nt;
-    mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
-    cputime_combine = cputime_combine + 1e-1*Nx*length(tracks_in_task);
-    
-    % Notes
-    % ---------------------------------------------------------------------
-    dparam.notes = sprintf('%s %s:%s:%s %s %s:%d-%d %s %d-%d (%d of %d)', ...
-      sparam.task_function, param.radar_name, param.season_name, ...
-      param.layer_tracker.echogram_source, param.layer_tracker.layer_params.layerdata_source, ...
-      param.layer_tracker.track{tracks_in_task(1)}.method, tracks_in_task([1 end]), param.day_seg, ...
-      dparam.argsin{1}.layer_tracker.frms([1 end]), start_frm_idx, length(param.cmd.frms));
-    
-    % Create task
-    % ---------------------------------------------------------------------
-    ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
-  end
-end
-
-ctrl = cluster_save_dparam(ctrl);
-ctrl_chain{end+1} = ctrl;
-fprintf('Done %s\n',datestr(now));
-
-%% layer_tracker_combine
-% =========================================================================
-% =========================================================================
-ctrl = cluster_new_batch(param);
-
-sparam = [];
-sparam.argsin{1} = param;
-sparam.task_function = 'layer_tracker_combine_task';
-sparam.num_args_out = 1;
-
-sparam.cpu_time = 30 + cputime_combine;
-sparam.mem = 300e6 + mem_combine;
-sparam.notes = '';
-
-if strcmp(param.layer_tracker.layer_params.source,'ops')
-  sparam.file_success = {};
-else
-  sparam.file_success = {};
-  out_fn_dir = ct_filename_out(param,'',param.layer_tracker.layer_params.layerdata_source);
-  for frm = param.cmd.frms
-    out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-    sparam.file_success{end+1} = out_fn;
-  end
-end
-
-ctrl = cluster_new_task(ctrl,sparam,[]);
-ctrl_chain{end+1} = ctrl;
-fprintf('Done %s\n',datestr(now));
-

@@ -161,7 +161,10 @@ fprintf('Loading layer data (%s)\n', datestr(now));
 tmp_param = param; tmp_param.cmd.frms = []; % Get layer information for all frames
 layers = [];
 if param.post.layers_en
-  layers = opsLoadLayers(tmp_param, param.post.layers);
+  % Load layers to output
+  [layers,param.post.layers] = opsLoadLayers(tmp_param, param.post.layers);
+  % Setup output layerdata class
+  out_layers = layerdata(param, fullfile(post_path,'CSARP_layer'));
 end
 surface_layer = {opsLoadLayers(tmp_param, param.post.surface_source)};
 
@@ -550,14 +553,33 @@ for frm_idx = 1:length(param.cmd.frms)
   
   %% Post Loop: Create layer files
   if param.post.layers_en
-    % Copy layer file
-    layer_out_fn_dir = fullfile(post_path,sprintf('CSARP_layerData'),param.day_seg);
-    if ~exist(layer_out_fn_dir,'dir')
-      mkdir(layer_out_fn_dir)
+    % NEW FILE FORMAT
+    for layer_idx = 1:length(layers_to_post)
+      id = out_layers.get_id(layers_to_post{layer_idx}.name);
+      if isempty(id)
+        layer_organizer = [];
+        layer_organizer.age = layers_to_post{layer_idx}.age;
+        layer_organizer.age_source = {layers_to_post{layer_idx}.age_source};
+        layer_organizer.lyr_desc = {layers_to_post{layer_idx}.desc};
+        layer_organizer.lyr_group_name = {layers_to_post{layer_idx}.group_name};
+        layer_organizer.lyr_name = {layers_to_post{layer_idx}.name};
+        id = out_layers.insert_layers(layer_organizer);
+      end
+      out_layers.update_layer(frm, id, layers_to_post{layer_idx}.gps_time, ...
+        layers_to_post{layer_idx}.twtt,layers_to_post{layer_idx}.quality,layers_to_post{layer_idx}.type);
     end
-    layer_out_fn = fullfile(layer_out_fn_dir,sprintf('Data_%s.mat',frm_id));
-    
-    save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
+    if 1
+      % OLD FILE FORMAT
+      
+      % Copy layer file
+      layer_out_fn_dir = fullfile(post_path,sprintf('CSARP_layerData'),param.day_seg);
+      if ~exist(layer_out_fn_dir,'dir')
+        mkdir(layer_out_fn_dir)
+      end
+      layer_out_fn = fullfile(layer_out_fn_dir,sprintf('Data_%s.mat',frm_id));
+      
+      save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
+    end
   end
   
   %% Post Loop: Copy data files
@@ -611,6 +633,11 @@ for frm_idx = 1:length(param.cmd.frms)
   end
 end
 
+% Save layer files
+% =======================================================================
+if param.post.layers_en
+  out_layers.save();
+end
 
 % =======================================================================
 %% Create segment CSV/KML files

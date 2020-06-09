@@ -198,6 +198,8 @@ classdef (HandleCompatible = true) echowin < handle
     % x_label: string containing x-axis label
     % y_label: string containing x-axis label
     % y_order: string containing "normal" or "reverse" for obj.h_axes
+    % detrend: detrend properties structure
+    % multiple_suppression: surface multiple suppression properties structure
     %
     % layers
     %   show_manual_pts % Logical scalar, Show manual points in layer plots
@@ -344,8 +346,9 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.data = []; % original Nt by Nx single data matrix (a copy must be kept in case operations are done on the matrix)
       obj.eg.gps_time = []; % GPS time of data matrix, represents seconds since Jan 1, 1970 (ANSI-C standard), 1 by Nx double vector
       obj.eg.elev = []; % Elevation of data matrix in meters, 1 by Nx double vector
-      obj.eg.lat = []; % Latitude of data matrix, 1 by Nx double vector
-      obj.eg.lon = []; % Longitude of data matrix, 1 by Nx double vector
+      obj.eg.lat = []; % Latitude of data matrix, 1 by Nx double vector, degrees N
+      obj.eg.lon = []; % Longitude of data matrix, 1 by Nx double vector, degrees E
+      obj.eg.roll = []; % Roll of data matrix, 1 by Nx double vector, radians right wing tip down from level
       obj.eg.surf_twtt = []; % Surface of data matrix, 1 by Nx double vector
       obj.eg.time = []; % Fast time of data matrix, Nt by 1 double vector
       
@@ -356,6 +359,9 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.x_label = ''; % string containing x-axis label
       obj.eg.y_label = ''; % string containing x-axis label
       obj.eg.y_order = ''; % string containing "normal" or "reverse" for obj.h_axes
+      obj.eg.detrend.top = 1; % index or name to top layer
+      obj.eg.detrend.bottom = 2; % index or name to bottom layer
+      obj.eg.detrend.order = 7; % order of detrend polynomial
       
       obj.eg.layers = [];
       obj.eg.layers.show_manual_pts = true; % Logical scalar, Show manual points in layer plots
@@ -487,7 +493,6 @@ classdef (HandleCompatible = true) echowin < handle
     xaxisPM_callback(obj,hObj,event);
     yaxisPM_callback(obj,hObj,event);
     
-    idx = crossovers_closest(obj,gps_time,twtt);
     open_crossover(obj,source,event);
     cursor_crossover(obj,source,event);
     cur_frame = get_crossover(pbj);

@@ -2,16 +2,29 @@ function success = layer_tracker_task(param)
 % success = layer_tracker_task(param)
 %
 % layer_tracker_task is used to load and prepare the data and metadata and
-% run the tracker. See layer_tracker_2D.m.
+% run the tracker. See layer_tracker.m.
 %
 % param: parameter structure from parameter spreadsheet
+%   param.layer_tracker.echogram_source: The normal cluster mode is for
+%   this to be a ct_filename_out compatible string. The normal
+%   qlook_combine_task mode is for this to be a structure and this function
+%   returns the tracked surface and does not save the result.
 %
-% success: logical scalar, true when task completes successfully
+% success:
+%   In cluster mode: logical scalar, true when task completes successfully
+%   In qlook_combine_task mode: surface twtt corresponding to the
+%   param.layer_tracker.echogram_source.GPS_time.
 
 %% Input Checks: track field
 % =====================================================================
 
 physical_constants('c');
+
+if isstruct(param.layer_tracker.echogram_source)
+  % echogram_source is the data structure
+  param.layer_tracker.track = {param.qlook.surf};
+  layer_tracker_input_check;
+end
 
 tracked_images_en = any(strcmp('tracked_images',param.layer_tracker.debug_plots));
 visible_en = any(strcmp('visible',param.layer_tracker.debug_plots));
@@ -19,8 +32,7 @@ if tracked_images_en
   h_fig = get_figures(1,visible_en);
 end
 
-%% Create input and output directory paths
-in_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
+%% Create output directory paths
 if strcmp(param.layer_tracker.layer_params.source,'ops')
   tmp_out_fn_dir_dir = ct_filename_out(param,'ops','layer_tracker_tmp');
   param.layer_tracker.layer_params.layerdata_source = 'ops'; % Only used for stdout
@@ -29,47 +41,59 @@ else
 end
 
 %% Load echogram data
-mdata = [];
-mdata.GPS_time = [];
-mdata.Data = [];
-mdata.Time = [];
-mdata.Elevation=[];
-mdata.Latitude = [];
-mdata.Longitude = [];
-mdata.Roll = [];
-% Keep track of start/stop index for each frame
-frm_start = zeros(size(param.layer_tracker.frms));
-frm_stop = zeros(size(param.layer_tracker.frms));
-frm_str = cell(size(param.layer_tracker.frms));
-for frm_idx = 1:length(param.layer_tracker.frms)
-  frm = param.layer_tracker.frms(frm_idx);
+if isstruct(param.layer_tracker.echogram_source)
+  % echogram_source is the data structure
+  mdata = param.layer_tracker.echogram_source;
+  frm_str = {sprintf('%s_%03d',param.day_seg,param.cmd.frms)};
+  frm_start = 1;
+  frm_stop = length(mdata.GPS_time);
+  param.layer_tracker.tracks_in_task = 1;
   
-  % Load the current frame
-  frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-  data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
-  if frm_idx == 1
-    mdata = load(data_fn);
-    frm_start(frm_idx) = 1;
-    frm_stop(frm_idx) = length(mdata.GPS_time);
+else
+  % Create input directory paths
+  in_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
+  
+  mdata = [];
+  mdata.GPS_time = [];
+  mdata.Data = [];
+  mdata.Time = [];
+  mdata.Elevation=[];
+  mdata.Latitude = [];
+  mdata.Longitude = [];
+  mdata.Roll = [];
+  % Keep track of start/stop index for each frame
+  frm_start = zeros(size(param.layer_tracker.frms));
+  frm_stop = zeros(size(param.layer_tracker.frms));
+  frm_str = cell(size(param.layer_tracker.frms));
+  for frm_idx = 1:length(param.layer_tracker.frms)
+    frm = param.layer_tracker.frms(frm_idx);
     
-  else
-    tmp_data=load(data_fn);
-    
-    Nx = length(tmp_data.GPS_time);
-    frm_start(frm_idx) = length(mdata.GPS_time)+1;
-    frm_stop(frm_idx) = length(mdata.GPS_time)+Nx;
-    
-    mdata.GPS_time(1,end+(1:Nx)) = tmp_data.GPS_time;
-    mdata.Elevation(1,end+(1:Nx)) = tmp_data.Elevation;
-    mdata.Latitude(1,end+(1:Nx)) = tmp_data.Latitude;
-    mdata.Longitude(1,end+(1:Nx)) = tmp_data.Longitude;
-    mdata.Roll(1,end+(1:Nx)) = tmp_data.Roll;
-    mdata.Surface(1,end+(1:Nx)) = tmp_data.Surface;
-
-    
-    % Handle time axis that changes from one frame to the next
-    mdata.Time = tmp_data.Time;
-    mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
+    % Load the current frame
+    frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
+    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if frm_idx == 1
+      mdata = load(data_fn);
+      frm_start(frm_idx) = 1;
+      frm_stop(frm_idx) = length(mdata.GPS_time);
+      
+    else
+      tmp_data=load(data_fn);
+      
+      Nx = length(tmp_data.GPS_time);
+      frm_start(frm_idx) = length(mdata.GPS_time)+1;
+      frm_stop(frm_idx) = length(mdata.GPS_time)+Nx;
+      
+      mdata.GPS_time(1,end+(1:Nx)) = tmp_data.GPS_time;
+      mdata.Elevation(1,end+(1:Nx)) = tmp_data.Elevation;
+      mdata.Latitude(1,end+(1:Nx)) = tmp_data.Latitude;
+      mdata.Longitude(1,end+(1:Nx)) = tmp_data.Longitude;
+      mdata.Roll(1,end+(1:Nx)) = tmp_data.Roll;
+      mdata.Surface(1,end+(1:Nx)) = tmp_data.Surface;
+      
+      % Handle time axis that changes from one frame to the next
+      mdata.Time = tmp_data.Time;
+      mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
+    end
   end
 end
 Nx = size(mdata.Data,2);
@@ -88,7 +112,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     
     % Ensure that layer gps times are monotonically increasing
     lay_idx = 1;
-    layers_fieldnames = fieldnames(layers(lay_idx));
+    layers_fieldnames = {'gps_time','twtt','elev','lat','lon','type','quality','frm'};
     [~,unique_idxs] = unique(layers(lay_idx).gps_time);
     for field_idx = 1:length(layers_fieldnames)-1
       if ~isempty(layers(lay_idx).(layers_fieldnames{field_idx}))
@@ -311,9 +335,42 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: min_bin/max_bin + time to bins conversions
-  % Convert from two way travel time to bins
-  track.min_bin = find(mdata.Time >= orig_track.min_bin, 1);
-  track.max_bin = find(mdata.Time <= orig_track.max_bin, 1, 'last');
+  if isnumeric(track.min_bin)
+    % Convert from two way travel time to bins
+    track.min_bin = ones(1,Nx) * find(mdata.Time >= orig_track.min_bin, 1);
+  elseif isstruct(track.min_bin)
+    % Load layer
+    track.min_bin = opsLoadLayers(param, orig_track.min_bin);
+    % Interpolate min_bin_layer onto echogram GPS times
+    track.min_bin = layerdata.interp(mdata,track.min_bin);
+    track.min_bin = interp1(mdata.Time,1:length(mdata.Time),track.min_bin.twtt_ref);
+  end
+  
+  if isnumeric(track.max_bin)
+    % Convert from two way travel time to bins
+    track.max_bin = find(mdata.Time >= orig_track.max_bin, 1);
+    if isempty(track.max_bin)
+      track.max_bin = ones(1,Nx) * length(mdata.Time);
+    else
+      track.max_bin = ones(1,Nx) * track.max_bin;
+    end
+    
+  elseif isstruct(track.max_bin)
+    % Load layer
+    track.max_bin = opsLoadLayers(param, orig_track.max_bin);
+    % Interpolate max_bin_layer onto echogram GPS times
+    track.max_bin = layerdata.interp(mdata,track.max_bin);
+    track.max_bin = interp1(mdata.Time,1:length(mdata.Time),track.max_bin.twtt_ref);
+  end
+  
+  % Fix invalid min_bin and max_bin by setting to the midpoint
+  invalid_min_max = track.max_bin < track.min_bin;
+  track.min_bin(invalid_min_max) = round((track.max_bin(invalid_min_max) + track.min_bin(invalid_min_max))/2);
+  track.max_bin(invalid_min_max) = track.min_bin(invalid_min_max);
+  
+  min_min_bin = round(max(1,min(track.min_bin)));
+  max_max_bin = round(min(size(mdata.Data,1),max(track.max_bin)));
+  
   dt = mdata.Time(2) - mdata.Time(1);
   track.init.max_diff = orig_track.init.max_diff/dt;
   if strcmpi(track.max_rng_units,'bins')
@@ -321,16 +378,16 @@ for track_idx = param.layer_tracker.tracks_in_task
   else
     track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
   end
-  data = data(track.min_bin:track.max_bin,:);
+  data = data(min_min_bin:max_max_bin,:);
   if track.data_noise_en
-    data_noise = data_noise(track.min_bin:track.max_bin,:);
+    data_noise = data_noise(min_min_bin:max_max_bin,:);
   end
-  track.zero_bin = floor(-mdata.Time(1)/dt + 1);
+  track.zero_bin = floor(-mdata.Time(min_min_bin)/dt + 1);
   
   %% Track: Create Initial Surface
   if strcmpi(track.init.method,'dem')
     % Correct for min_bin removal
-    track.dem = track.dem - track.min_bin + 1;
+    track.dem = track.dem - min_min_bin + 1;
   elseif strcmp(track.init.method,'snake')
     track.init.search_rng = round(orig_track.init.snake_rng(1)/dt) : round(orig_track.init.snake_rng(2)/dt);
     track.dem = tracker_snake_simple(data,track.init);
@@ -444,7 +501,7 @@ for track_idx = param.layer_tracker.tracks_in_task
       end
     end
     %% Track: Convert bins to twtt
-    new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1,'linear','extrap');
+    new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + min_min_bin - 1,'linear','extrap');
     % Some layer sources may not be "double", but we require that layers be double type:
     new_layer = double(new_layer);
     
@@ -460,11 +517,11 @@ for track_idx = param.layer_tracker.tracks_in_task
       plot(h_axes(1),find(new_quality==1),new_layer(new_quality==1),'g');
       plot(h_axes(1),find(new_quality==3),new_layer(new_quality==3),'r');
       if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
-        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
+        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+min_min_bin-1),'m--')
         plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
-          track.dem+track.min_bin-1-track.init.max_diff),'r--')
+          track.dem+min_min_bin-1-track.init.max_diff),'r--')
         plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
-          track.dem+track.min_bin-1+track.init.max_diff),'b--')
+          track.dem+min_min_bin-1+track.init.max_diff),'b--')
       end
       hold(h_axes(1),'off');
       if ~isempty(mdata.Time)
@@ -494,26 +551,35 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: Save
-  for frm_idx = 1:length(param.layer_tracker.frms)
-    frm = param.layer_tracker.frms(frm_idx);
+  if isstruct(param.layer_tracker.echogram_source)
+    % Qlook mode
     
-    % Get just the current frames layer data
-    gps_time = mdata.GPS_time(frm_start(frm_idx):frm_stop(frm_idx));
-    twtt = new_layers(:, frm_start(frm_idx):frm_stop(frm_idx));
-    param_layer_tracker = param;
-    file_version = '1';
-    file_type = 'layer_tracker';
+    % Return twtt in "success" variable
+    success = new_layers(:, frm_start(1):frm_stop(1));
     
-    tmp_out_fn_name = sprintf('t%03d_%s.mat', track_idx, track.method);
-    tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
-    fprintf('  Saving %s (%s)\n', tmp_out_fn, datestr(now));
-    tmp_out_fn_dir = fileparts(tmp_out_fn);
-    if ~exist(tmp_out_fn_dir,'dir')
-      mkdir(tmp_out_fn_dir);
+  else
+    % Cluster Mode
+    for frm_idx = 1:length(param.layer_tracker.frms)
+      frm = param.layer_tracker.frms(frm_idx);
+      
+      % Get just the current frames layer data
+      gps_time = mdata.GPS_time(frm_start(frm_idx):frm_stop(frm_idx));
+      twtt = new_layers(:, frm_start(frm_idx):frm_stop(frm_idx));
+      param_layer_tracker = param;
+      file_version = '1';
+      file_type = 'layer_tracker';
+      
+      tmp_out_fn_name = sprintf('t%03d_%s.mat', track_idx, track.method);
+      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
+      fprintf('  Saving %s (%s)\n', tmp_out_fn, datestr(now));
+      tmp_out_fn_dir = fileparts(tmp_out_fn);
+      if ~exist(tmp_out_fn_dir,'dir')
+        mkdir(tmp_out_fn_dir);
+      end
+      ct_save(tmp_out_fn,'twtt','gps_time','param_layer_tracker','file_type','file_version');
     end
-    ct_save(tmp_out_fn,'twtt','gps_time','param_layer_tracker','file_type','file_version');
+    success = true;
   end
 end
 
 fprintf('Done %s\n',datestr(now));
-success = true;

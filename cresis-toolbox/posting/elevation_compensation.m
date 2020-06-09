@@ -1,11 +1,14 @@
 function [mdata,depth_axis] = elevation_compensation(mdata,param)
 % function [mdata,depth_axis] = elevation_compensation(mdata,param)
 %
+% Inputs
+% =========================================================================
 % mdata = L1B data structure from load_L1B.m. Requires
 %   .Data is Nt x Nx matrix
 %   .Time is Nt x 1 vector
 %   .Elevation is 1 x Nx vector
 %   .Surface is 1 x Nx vector
+%   .Bottom is 1 x Nx vector (optional)
 % param = structure controlling compensation
 %  .update_surf = logical, default false, if true the function uses
 %    threshold and sidelobe fields to track the surface again
@@ -33,7 +36,9 @@ function [mdata,depth_axis] = elevation_compensation(mdata,param)
 %     DEFAULT: '[-inf inf]';
 %     EXAMPLE: '[min(Surface_Elev)-600 max(Surface_Elev)+20]';
 %     EXAMPLE: '[1200 1800]';
-
+%
+% Outputs
+% =========================================================================
 % mdata = updated data structure
 %  .Data = updated to be gridded on constant WGS-84 axes
 %  .Elevation, .Surface_Elev = updated to account for compensation
@@ -218,7 +223,9 @@ elseif param.elev_comp == 3
     mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
     mdata.Surface(rline) = mdata.Surface(rline) + dtime(rline);
-    %mdata.Bottom(rline) = mdata.Bottom(rline) + dtime(rline);
+    if isfield(mdata,'Bottom')
+      mdata.Bottom(rline) = mdata.Bottom(rline) + dtime(rline);
+    end
   end
   warning on
   
@@ -226,12 +233,13 @@ elseif param.elev_comp == 3
   DSurface = mdata.Elevation - mdata.Surface*c/2;
   Surface_Elev = DSurface;
   mdata.Surface_Elev = DSurface;
-  % Example: param.depth = '[min(Surface_Elev) - 15 max(Surface_Elev)+3]';
+  if isfield(mdata,'Bottom')
+    mdata.Bottom_Elev = DSurface - (mdata.Bottom - mdata.Surface) * (c/2/sqrt(param.er_ice));
+  end
+  % Example: param.depth = '[min(Surface_Elev)-15 max(Surface_Elev)+3]';
   % Example: param.depth = '[100 120]';
   depth_range = eval(param.depth);
   depth_axis = find(elev_axis >= depth_range(1) & elev_axis <= depth_range(end));
 else
   error('Not supported');
 end
-
-return;

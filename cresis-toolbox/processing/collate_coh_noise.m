@@ -57,13 +57,6 @@ if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debu
 end
 debug_out_dir = param.(mfilename).debug_out_dir;
 
-if isfield(param.collate_coh_noise,'dft_corr_length')
-  error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time.');
-end
-if ~isfield(param.collate_coh_noise,'dft_corr_time') || isempty(param.collate_coh_noise.dft_corr_time)
-  param.collate_coh_noise.dft_corr_time = inf;
-end
-
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
   for img = param.collate_coh_noise.imgs
     param.collate_coh_noise.firdec_fs{img} = 0;
@@ -84,6 +77,22 @@ if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise
   for img = param.collate_coh_noise.imgs
     param.collate_coh_noise.method{img} = 'dft';
   end
+end
+if ~iscell(param.collate_coh_noise.method)
+  error('param.collate_coh_noise.method is not a cell array. It must be a cell array of strings containing the method for each image to be processed.');
+end
+if length(param.collate_coh_noise.method) < max(param.collate_coh_noise.imgs)
+  error('In param.collate_coh_noise.method cell array of strings, a collate coh noise method must be specified for each image. For example {''dft'',''dft''} for images 1 and 2.');
+end
+
+if isfield(param.collate_coh_noise,'dft_corr_length')
+  error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time and specify an entry for each image to be processed.');
+end
+if ~isfield(param.collate_coh_noise,'dft_corr_time')
+  param.collate_coh_noise.dft_corr_time = [];
+end
+for img = param.collate_coh_noise.imgs
+  param.collate_coh_noise.dft_corr_time(img) = inf;
 end
 
 if ~isfield(param.collate_coh_noise,'out_path') || isempty(param.collate_coh_noise.out_path)
@@ -147,7 +156,7 @@ for img = param.collate_coh_noise.imgs
         fprintf('Loading %s\n', reuse_fn);
         load(reuse_fn, 'param_collate_coh_noise');
         if strcmpi( param_collate_coh_noise.method{img}, param.collate_coh_noise.method{img} ) ...
-            && param_collate_coh_noise.dft_corr_time == param.collate_coh_noise.dft_corr_time ...
+            && param_collate_coh_noise.dft_corr_time(img) == param.collate_coh_noise.dft_corr_time(img) ...
             && param_collate_coh_noise.firdec_fs{img} == param.collate_coh_noise.firdec_fs{img} ...
             && strcmpi( func2str(param_collate_coh_noise.firdec_fcutoff{img}), func2str(param.collate_coh_noise.firdec_fcutoff{img}) )...
             && param_collate_coh_noise.threshold_en == param.collate_coh_noise.threshold_en ...
@@ -203,7 +212,7 @@ for img = param.collate_coh_noise.imgs
       Nx = length(noise.gps_time);
       recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
       
-      Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time);
+      Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time(img));
       if Nx_dft<1
         Nx_dft = 1;
       end

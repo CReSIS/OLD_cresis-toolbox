@@ -15,7 +15,7 @@ function data = echo_detrend(mdata, param)
 %  .method: string indicating the method. The methods each have their own
 %  parameters
 %
-%   'file':
+%   'file': NOT SUPPORTED
 %
 %   'local': takes a local mean to determine the trend
 %     .filt_len: 2 element vector of positive integers indicating the size of
@@ -29,11 +29,22 @@ function data = echo_detrend(mdata, param)
 %   'mean': takes the mean in the along-track and averages this in the
 %   cross-track. This is the default method.
 %
-%   'polynomial': polynomial fit to data between two layers, outside of the
-%   region between the two layers uses nearest neighborhood interpolation
-%     .layer_bottom: bottom layer
-%     .layer_top: top layer
-%     .order: nonnegative integer scalar indicating polynomial order
+%   'polynomial': polynomial fit to mean power of data between two layers,
+%   outside of the region between the two layers, the trend is found using
+%   nearest neighborhood interpolation to this polynomial clipped to the
+%   two layers.
+%
+%     .layer_bottom: 1 by Nx vector of bottom layer twtt or range bins (see
+%     "units" field)
+%
+%     .layer_top: 1 by Nx vector of top layer twtt or range bins (see
+%     "units" field)
+%
+%     .order: nonnegative integer scalar indicating polynomial order.
+%     Default is 7
+%     .units: scalar char, either "s" for seconds or "b" for bins. If
+%     any(layer_bottom < 1) then "s" is default, otherwise "b". The same
+%     check is done for layer_top.
 %
 %   'tonemap': uses Matlab's tonemap command
 %
@@ -145,7 +156,7 @@ switch param.method
     
     
     if ~isfield(param,'order') || isempty(param.order)
-      param.order = 2;
+      param.order = 7;
     end
     if all(isnan(param.layer_bottom))
       param.layer_bottom(:) = Nt;

@@ -4,15 +4,57 @@ function plot_echogram(obj,x_min,x_max,y_min,y_max)
 % Plot echogram data from echogram files
 
 physical_constants;
+
+%% Apply optional multiple suppression
 % ======================================================================
+
+state = get(obj.left_panel.layerCM_multiple,'Checked');
+if strcmp(state,'on')
+  try
+    mult_param = struct('window_units','b');
+    pdata.Data = obj.eg.data;
+    pdata.Time = obj.eg.time;
+    pdata.Roll = obj.eg.roll;
+    pdata = echo_mult_suppress(pdata, obj.eg.surf_twtt, mult_param);
+    
+  catch ME
+    warning('Multiple suppression failed, multiple supppression properties may be incorrect. Error:\n%s', ME.getReport);
+    pdata = obj.eg.data;
+  end
+else
+  pdata = obj.eg.data;
+end
+
+%% Apply optional detrending
+% ======================================================================
+
+state = get(obj.left_panel.layerCM_detrend,'Checked');
+if strcmp(state,'on')
+  try
+    detrend_param = struct('method','polynomial','units','b');
+    detrend_param.layer_top = round(interp1(obj.eg.time,...
+      1:length(obj.eg.time),...
+      obj.eg.layers.y{obj.eg.detrend.top},'linear','extrap'));
+    detrend_param.layer_bottom = round(interp1(obj.eg.time,...
+      1:length(obj.eg.time),...
+      obj.eg.layers.y{obj.eg.detrend.bottom},'linear','extrap'));
+    detrend_param.order = obj.eg.detrend.order;
+    pdata = 10.^(echo_detrend(10*log10(pdata),detrend_param)/10);
+  catch ME
+    warning('Detrend failed, detrend properties may be incorrect. Error:\n%s', ME.getReport);
+    pdata = obj.eg.data;
+  end
+end
+
 %% Convert the data along the x-axis according to the units
+% ======================================================================
 xaxis_choice = get(obj.left_panel.xaxisPM,'Value');
 if xaxis_choice == 1 % rangeline
   % update image_xaxis and image_gps_time
   obj.eg.image_xaxis = 1:length(obj.eg.gps_time);
   obj.eg.image_gps_time = obj.eg.gps_time;
   % update image_data according to xaxis_gpstime
-  obj.eg.image_data = obj.eg.data;
+  obj.eg.image_data = pdata;
   % update x label
   obj.eg.x_label = 'Range Line';
   
@@ -27,7 +69,7 @@ elseif xaxis_choice == 2 % Along track
     along_track_uniform,'linear');
   % update image_data according to image_gps_time
   obj.eg.image_data = interp1(obj.eg.gps_time,...
-    obj.eg.data.',obj.eg.image_gps_time,'linear').';
+    pdata.',obj.eg.image_gps_time,'linear').';
   % update x label
   obj.eg.x_label = 'Along track (km)';
   
@@ -41,7 +83,7 @@ elseif xaxis_choice == 3 % GPS time
   obj.eg.image_xaxis = gps_time_uniform;
   % update display_data according to xaxis_gpstime
   obj.eg.image_data = interp1(obj.eg.gps_time,...
-    obj.eg.data.',obj.eg.image_gps_time,'linear').';
+    pdata.',obj.eg.image_gps_time,'linear').';
   % update x label
   obj.eg.x_label = 'GPS time';
 end
