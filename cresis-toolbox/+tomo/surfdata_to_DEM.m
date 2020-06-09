@@ -177,14 +177,48 @@ for frm_idx = 1:length(param.cmd.frms)
       surface_twtt(:,end-floor(param.dem.med_filt(2)/2)+1:end) = NaN;
     end
     
-    % Convert from doa,twtt to radar FCS
+  %%%%%%%%%%% This section accomodates ground-based data collection
+    if ~isfield(param.dem,'ground_based_flag')
+      er_surf = 1;
+    else
+      if param.dem.ground_based_flag == true;      
+        if isfield(param.dem,'er_z') 
+          % er_z is an Nx2 matrix containing depths, and
+          % associated complex permittivities. For ground data,
+          % the real permittivity at the surface is used for
+          % down-going refraction
+          
+          % Identify the surface index.
+          [~,s_ind] = min(abs(param.dem.er_z(:,1)));
+          
+          % Then extract the permittivity at that depth
+          er_surf = real(param.dem.er_z(s_ind,2)); 
+        else
+          er_surf = 1;
+        end
+        
+        % For files that have erroneous steering vectors (that
+        % assume the medium containing the antenna is air, when
+        % it is not), the resulting theta matrix is adjusted
+        % here.
+        if isfield(param.dem,'theta_adjust')
+          if param.dem.theta_adjust == true
+            theta = asin(sin(theta)*1/sqrt(er_surf));
+          end
+        end
+        
+      else
+        er_surf = 1;
+      end      
+    end
+    
     if ~doa_method_flag
       [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
         theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
-        3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
+        er_surf,3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
     else
       [y_active,z_active] = tomo.twtt_doa_to_yz(theta, ...
-        [],ice_top,3.15,surface_twtt,doa_method_flag,doa_limits);
+        [],ice_top,er_surf,3.15,surface_twtt,doa_method_flag,doa_limits);
     end
     
     % Convert from radar FCS to ECEF

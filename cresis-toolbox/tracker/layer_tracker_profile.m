@@ -157,7 +157,7 @@ elseif strcmpi(profile_str,'SNOW')
   track.init.method	= 'medfilt';
   track.init.medfilt	= 51;
   track.init.max_diff = 0.3e-6;
-  track.max_rng	= [0 9];
+  track.max_rng	= [0 2];
   track.max_rng_units = 'bins';
   track.medfilt = 11;
   track.medfilt_threshold = 100;
