@@ -174,6 +174,11 @@ while frm_idx <= length(param.cmd.frms)
     % ---------------------------------------------------------------------
     dparam.cpu_time = sum(cpu_time_mult(tracks_in_task)) * Nx * Nt;
     dparam.mem = 800e6 + max(mem_mult(tracks_in_task)) * Nx * Nt;
+    if strcmp(track.init.method,'dem')
+      % Add extra time and memory for DEM
+      dparam.cpu_time = dparam.cpu_time + 120;
+      dparam.mem = dparam.mem + 2e9;
+    end
     mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
     cputime_combine = cputime_combine + 1e-1*Nx*length(tracks_in_task);
     
@@ -206,7 +211,7 @@ sparam.task_function = 'layer_tracker_combine_task';
 sparam.num_args_out = 1;
 
 sparam.cpu_time = 30 + cputime_combine;
-sparam.mem = 300e6 + mem_combine;
+sparam.mem = 500e6 + mem_combine;
 sparam.notes = '';
 
 if strcmp(param.layer_tracker.layer_params.source,'ops')

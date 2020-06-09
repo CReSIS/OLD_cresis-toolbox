@@ -10,33 +10,23 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %   layers to grids and point clouds
 % * Use runOpsCopyLayers to copy layers from one radar to another
 %
-% param = param spreadsheet structure
-% layer_params = N element struct array indicating which layers are to be loaded
-%   and which source to use for each layer
-%  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
-%    is "surface"
-%  .source: string
-%    'records': Loads layer data from records file
-%    'echogram': Loads layer data from echogram files
-%    'layerdata': Loads layer data from layer data files (default)
-%    'lidar': Loads (ATM, AWI, or DTU) lidar data
-%    'ops': Loads layer data from Open Polar Server
-%  .echogram_source = string containing ct_filename_out argument if using
-%    'echogram' source
-%    (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
-%  .layerdata_source = string containing ct_filename_out argument of where
-%    the layerdata is (default is "layer")
-%    (e.g. 'layer', 'CSARP_post/layer')
-%  .lidar_source = string containing 'atm', 'awi', or 'dtu' if using lidar source
-%  .existence_check = boolean, default is true and causes an error to be
-%    thrown if the layer does not exist. If false, no data points are
-%    returned when the layer does not exist and only a warning is given.
-%  .fix_broken_layerdata: logical, default is false and causes any layerdata
-%    errors to be fixed while loading by setting the layer for the
-%    particular data frame that has the error to the default values (NaN
-%    for twtt, quality 1, and type 2). If true, an error is thrown if
-%    layerdata errors exist.
-%  .debug = default is false
+% Inputs
+% =========================================================================
+%
+% param: param spreadsheet structure
+%
+% layer_params: N element struct array indicating which layers are to be
+% loaded and which source to use for each layer. Fields:
+%
+%  .age: used when creating a nonexistent layerdata layer
+%
+%  .age_source: used when creating a nonexistent layerdata layer
+%
+%  .desc: used when creating a nonexistent layerdata layer
+%
+%  .echogram_source: string containing ct_filename_out argument if using
+%  'echogram' source (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
+%
 %  .eval: Optional structure for performing operations on the layer
 %    .cmd: Command string that will be passed to eval
 %    .$(custom): Custom fields to be accessed in cmd as es.$(custom)
@@ -53,10 +43,36 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %        '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
 %        'source = source + 0.1;' % Apply a twtt shift
 %        'source = source*2;' % Surface multiple
-%  .frms: This field overrides the param.cmd.frms field, but must be the
-%    same for all elements of the layer_params struct array since only the
-%    first element will be used.
 %
+%  .existence_check: boolean, default is true and causes an error to be
+%  thrown if the layer does not exist. If false, no data points are
+%  returned when the layer does not exist and only a warning is given.
+%
+%  .fix_broken_layerdata: logical, default is false and causes any
+%  layerdata errors to be fixed while loading by setting the layer for the
+%  particular data frame that has the error to the default values (NaN for
+%  twtt, quality 1, and type 2). If true, an error is thrown if layerdata
+%  errors exist.
+%
+%  .group_name: used when creating a nonexistent layerdata layer
+%
+%  .layerdata_source: string containing ct_filename_out argument of where
+%  the layerdata is (default is "layer") (e.g. 'layer', 'CSARP_post/layer')
+%
+%  .lidar_source: string containing 'atm', 'awi', or 'dtu' if using lidar source
+%
+%  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
+%  is "surface"
+%
+%  .source: string
+%    'records': Loads layer data from records file
+%    'echogram': Loads layer data from echogram files
+%    'layerdata': Loads layer data from layer data files (default)
+%    'lidar': Loads (ATM, AWI, or DTU) lidar data
+%    'ops': Loads layer data from Open Polar Server
+%
+% Outputs
+% =========================================================================
 % layers: N element struct array with layer information
 %  .gps_time
 %  .lat

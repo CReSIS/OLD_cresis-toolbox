@@ -35,6 +35,7 @@ function update_surface_twtt_delta(param,param_override)
 % Author: John Paden
 
 %% Setup
+param = merge_structs(param, param_override);
 
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));

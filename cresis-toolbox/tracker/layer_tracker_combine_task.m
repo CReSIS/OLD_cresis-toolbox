@@ -79,10 +79,12 @@ for track_idx = 1:length(param.layer_tracker.track)
   end
   
 end
-   copy_param.layer_source.gps_time = layer_source.gps_time;
-   copy_param.layer_source.twtt = layer_source.twtt;
-   copy_param.layer_dest.name = layer_dest.name;
-   fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
-   opsCopyLayers(param,copy_param);
+
+copy_param.layer_source.gps_time = layer_source.gps_time;
+copy_param.layer_source.twtt = layer_source.twtt;
+copy_param.layer_dest.name = layer_dest.name;
+fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
+opsCopyLayers(param,copy_param);
+
 fprintf('Done (%s)\n', datestr(now));
 success = true;
