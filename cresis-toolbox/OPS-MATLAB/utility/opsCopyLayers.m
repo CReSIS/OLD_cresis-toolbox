@@ -159,12 +159,6 @@ if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.laye
   copy_param.layer_dest.layerdata_source = 'layer';
 end
 
-% Force copy_param.layer_dest.name to be a cell array even if there is just
-% one name. The source code below loops over the list of names.
-if ischar(copy_param.layer_dest.name)
-  copy_param.layer_dest.name = {copy_param.layer_dest.name};
-end
-
 % For the opsLoadLayers to write the files if they do not already exist
 copy_param.layer_dest.read_only = false;
 
@@ -349,15 +343,15 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     all_points(layer_idx).twtt = zeros(size(ops_data.properties.id));
     
     for point_idx = 1:length(all_points(layer_idx).ids)
-      match_idx = find(all_points(layer_idx).ids(point_idx) == layer_dest.point_path_id);
+      match_idx = find(all_points(layer_idx).ids(point_idx) == layer_dest(layer_idx).point_path_id);
       if isempty(match_idx)
         all_points(layer_idx).twtt(point_idx) = NaN;
         all_points(layer_idx).quality(point_idx) = 1;
         all_points(layer_idx).type(point_idx) = 2;
       else
-        all_points(layer_idx).twtt(point_idx) = layer_dest.twtt(match_idx);
-        all_points(layer_idx).quality(point_idx) = layer_dest.quality(match_idx);
-        all_points(layer_idx).type(point_idx) = layer_dest.type(match_idx);
+        all_points(layer_idx).twtt(point_idx) = layer_dest(layer_idx).twtt(match_idx);
+        all_points(layer_idx).quality(point_idx) = layer_dest(layer_idx).quality(match_idx);
+        all_points(layer_idx).type(point_idx) = layer_dest(layer_idx).type(match_idx);
       end
     end
   end
@@ -557,13 +551,13 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   % Check to see if layer exists
   % -----------------------------------------------------------------------
   [status,data] = opsGetLayers(sys);
-  for layer_idx = 1:length(copy_param.layer_dest.name)
-    if ~any(strcmpi(data.properties.lyr_name,copy_param.layer_dest.name))
+  for layer_idx = 1:length(layer_dest)
+    if ~any(strcmpi(data.properties.lyr_name,layer_dest(layer_idx).name))
       % Create the layer if it does not exist
       ops_param = [];
-      ops_param.properties.lyr_name = copy_param.layer_dest.name;
-      ops_param.properties.lyr_group_name = copy_param.layer_dest.group;
-      ops_param.properties.lyr_description = copy_param.layer_dest.description;
+      ops_param.properties.lyr_name = layer_dest(layer_idx).name;
+      ops_param.properties.lyr_group_name = layer_dest(layer_idx).group_name;
+      ops_param.properties.lyr_description = layer_dest(layer_idx).desc;
       ops_param.properties.public = true;
       
       [status,ops_data] = opsCreateLayer(sys,ops_param);
@@ -576,7 +570,7 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     ops_param.properties.twtt = all_points(layer_idx).twtt_final(update_mask);
     ops_param.properties.type = all_points(layer_idx).type_final(update_mask);
     ops_param.properties.quality = all_points(layer_idx).quality_final(update_mask);
-    ops_param.properties.lyr_name = copy_param.layer_dest.name;
+    ops_param.properties.lyr_name = layer_dest(layer_idx).name;
     
     % Update these points
     % -----------------------------------------------------------------------
@@ -586,34 +580,34 @@ if strcmpi(copy_param.layer_dest.source,'ops')
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
   %% Save layerdata
   layers = layerdata(param, copy_param.layer_dest.layerdata_source);
-  for layer_idx = 1:length(copy_param.layer_dest.name)
-    id = layers.get_id(copy_param.layer_dest.name{layer_idx});
+  for layer_idx = 1:length(layer_dest)
+    id = layers.get_id(layer_dest(layer_idx).name);
     if isempty(id)
       if copy_param.layer_dest.existence_check
-        error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', copy_param.layer_dest.name{layer_idx}, layers.layer_organizer_fn());
+        error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', layer_dest(layer_idx).name, layers.layer_organizer_fn());
       else
         layer_organizer = [];
         if ~isempty(layer_source(layer_idx).group_name)
           layer_organizer.lyr_group_name = {layer_source(layer_idx).group_name};
         else
-          layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name};
+          layer_organizer.lyr_group_name = {layer_dest(layer_idx).group_name};
         end
-        layer_organizer.lyr_name = {copy_param.layer_dest.name{layer_idx}};
+        layer_organizer.lyr_name = {layer_dest(layer_idx).name};
         id = layers.insert_layers(layer_organizer);
       end
     end
     % Update layer information
-    if ~isempty(layer_source.age)
+    if ~isempty(layer_source(layer_idx).age)
       layers.set_age(id,layer_source(layer_idx).age);
     elseif isfield(copy_param.layer_dest,'age')
       layers.set_age(id,copy_param.layer_dest.age);
     end
-    if ~isempty(layer_source.age_source)
+    if ~isempty(layer_source(layer_idx).age_source)
       layers.set_age_source(id,layer_source(layer_idx).age_source);
     elseif isfield(copy_param.layer_dest,'age_source')
       layers.set_age_source(id,copy_param.layer_dest.age_source);
     end
-    if ~isempty(layer_source.desc)
+    if ~isempty(layer_source(layer_idx).desc)
       layers.set_desc(id,layer_source(layer_idx).desc);
     elseif isfield(copy_param.layer_dest,'desc')
       layers.set_desc(id,copy_param.layer_dest.desc);
