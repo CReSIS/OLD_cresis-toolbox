@@ -185,7 +185,7 @@ switch param.method
       bins = top_bin:bottom_bin;
       
       if length(bins) >= 2
-        mask(bins,rline) = true;
+        mask(bins,rline) = isfinite(data(bins,rline));
         x_axis(bins,rline) = (bins - param.layer_top(rline)) / (param.layer_bottom(rline) - param.layer_top(rline));
       end
     end
