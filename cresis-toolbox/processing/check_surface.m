@@ -181,17 +181,6 @@ radar_idx = 2; % Make the radar the master "slow" time axis
 % lidar)
 layers = opsLoadLayers(param,layer_params);
 
-% Ensure that layer gps times are monotonically increasing
-for lay_idx = 1:length(layers)
-  layers_fieldnames = fieldnames(layers(lay_idx));
-  [~,unique_idxs] = unique(layers(lay_idx).gps_time);
-  for field_idx = 1:length(layers_fieldnames)-1
-    if ~isempty(layers(lay_idx).(layers_fieldnames{field_idx}))
-      layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
-    end
-  end
-end
-
 % Throw out low quality radar data
 layers(radar_idx).twtt(layers(radar_idx).quality==3) = NaN;
 
