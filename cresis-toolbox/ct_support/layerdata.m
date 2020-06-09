@@ -641,6 +641,21 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
       
+      % Check that GPS times are monotonically increasing (it should never
+      % not be monotonic, but in case files were corrupted or old files
+      % with problems)
+      [new_gps_time,new_idx] = unique(obj.layer{frm}.gps_time);
+      if ~isequal(new_gps_time,obj.layer{frm}.gps_time)
+        obj.layer_modified(frm) = true;
+        obj.layer{frm}.gps_time = new_gps_time;
+        obj.layer{frm}.lat = obj.layer{frm}.lat(new_idx);
+        obj.layer{frm}.lon = obj.layer{frm}.lon(new_idx);
+        obj.layer{frm}.elev = obj.layer{frm}.elev(new_idx);
+        obj.layer{frm}.quality = obj.layer{frm}.quality(:,new_idx);
+        obj.layer{frm}.twtt = obj.layer{frm}.twtt(:,new_idx);
+        obj.layer{frm}.type = obj.layer{frm}.type(:,new_idx);
+      end
+      
       % Ensure alphabetical ordering so that fields can be concatenated efficiently
       obj.layer{frm} = orderfields(obj.layer{frm});
       

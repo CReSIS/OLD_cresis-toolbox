@@ -102,7 +102,7 @@ end
 
 if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
   param.check_surface.radar_layer_params.name = 'surface';
-  param.check_surface.radar_layer_params.source = 'layerdata';
+  param.check_surface.radar_layer_params.source = 'layer';
 end
 
 if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)
@@ -152,8 +152,7 @@ end
 records = records_load(param);
 
 % Load frames file
-frames_fn = ct_filename_support(param,'','frames');
-frames = load(frames_fn);
+frames = frames_load(param);
 
 % =========================================================================
 %% Load in ocean mask, land DEM, and sea surface DEM
@@ -181,17 +180,6 @@ radar_idx = 2; % Make the radar the master "slow" time axis
 % Load radar surface (default layerdata) and reference surface (default ATM
 % lidar)
 layers = opsLoadLayers(param,layer_params);
-
-% Ensure that layer gps times are monotonically increasing
-for lay_idx = 1:length(layers)
-  layers_fieldnames = fieldnames(layers(lay_idx));
-  [~,unique_idxs] = unique(layers(lay_idx).gps_time);
-  for field_idx = 1:length(layers_fieldnames)-1
-    if ~isempty(layers(lay_idx).(layers_fieldnames{field_idx}))
-      layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
-    end
-  end
-end
 
 % Throw out low quality radar data
 layers(radar_idx).twtt(layers(radar_idx).quality==3) = NaN;
