@@ -102,7 +102,7 @@ end
 
 if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
   param.check_surface.radar_layer_params.name = 'surface';
-  param.check_surface.radar_layer_params.source = 'layerdata';
+  param.check_surface.radar_layer_params.source = 'layer';
 end
 
 if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)
@@ -152,8 +152,7 @@ end
 records = records_load(param);
 
 % Load frames file
-frames_fn = ct_filename_support(param,'','frames');
-frames = load(frames_fn);
+frames = frames_load(param);
 
 % =========================================================================
 %% Load in ocean mask, land DEM, and sea surface DEM
