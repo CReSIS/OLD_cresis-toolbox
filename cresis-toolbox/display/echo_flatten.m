@@ -37,7 +37,7 @@ function [mdata] = echo_flatten(mdata,layer_params)
 % param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
 % mdata = echo_load(param,'standard',1);
 %
-% Author: John Paden
+% Author: John Paden, Reece Mathews
 %
 % See also: echo_detrend, echo_filt, echo_mult_suppress, echo_noise,
 % echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
@@ -69,6 +69,3 @@ for c = 1:Nx
 end
 
 mdata = interp_finite(mdata);
-
-
-
