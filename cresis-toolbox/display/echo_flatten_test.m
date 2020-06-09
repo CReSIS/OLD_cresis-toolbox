@@ -12,7 +12,7 @@ for i = 1:cols
   matrix(floor(abs(sin(i)/flatness)*rows+1 - shift_matrix*(i/rows)*down_shift) + down_shift, i) = 30; % Layer
 end
 
-elevation = (down_shift - (rows:-1:1) + 1) * shift_elev;
+elevation = ((down_shift - (rows:-1:1) + 1) * shift_elev + 5) ./ 1;
 
 flattened = echo_flatten(matrix, elevation);
 
@@ -28,5 +28,3 @@ clf;
 hold on;
 imagesc(flattened);
 colormap(1-gray);
-base_elevation = round(median(elevation));
-plot(ones(1, size(matrix, 2))*base_elevation + base_elevation-min(elevation));

@@ -52,28 +52,23 @@ end
 Nx = size(data, 2);
 
 if ~exist('layer_params','var') || isempty(layer_params)
-  layer_params = [];
+  clear layer_params;
   elevation = zeros(1, Nx);
 else
   elevation = layer_params;
 end
 
-base_elevation = round(median(elevation));
-bottom = base_elevation - min(elevation);
-top = max(elevation) - base_elevation;
+elevation = elevation - min(elevation);
+elevation = interp1(0:length(elevation), 0:length(elevation), elevation, 'nearest');
+elevation = interp_finite(elevation);
 
-mdata = [zeros(top, Nx); zeros(size(data, 1), Nx); zeros(bottom, Nx)];
+mdata = nan(size(data, 1) + max(elevation), Nx);
 
 for c = 1:Nx
-   for r = 1:size(data, 1)
-      mdata(elevation(c)+r, c) = data(r, c);
-   end
+  mdata((1:size(data, 1)) + elevation(c), c) = data(:, c);
 end
 
-% nearest neighbor interp and then interp_finite
-% don't use zero padding -- use the nearest neighbor interp or NaN at the
-% very least. Allow NaNs as an option (perhaps let pass a default).
-
+mdata = interp_finite(mdata);
 
 
 
