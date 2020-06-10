@@ -375,7 +375,15 @@ for img = 1:length(param.analysis.imgs)
       
     switch cmd.method
       case {'burst_noise'}
-        %
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_segment_fn_dir,sprintf('burst_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          combine_file_success{end+1} = out_fn;
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+        end
         
       case {'coh_noise'}
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
@@ -509,7 +517,20 @@ for break_idx = 1:length(breaks)
       % Process commands
       switch cmd.method
         case {'burst_noise'}
-          %
+          for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+            wf = param.analysis.imgs{img}(wf_adc,1);
+            adc = param.analysis.imgs{img}(wf_adc,2);
+            out_fn = fullfile(tmp_out_fn_dir,sprintf('burst_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            dparam.file_success{end+1} = out_fn;
+            if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+              delete(out_fn);
+            end
+            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isempty(cmd_method_str)
+              cmd_method_str = '_burst_noise';
+            end
+          end
 
         case {'coh_noise'}
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
@@ -669,7 +690,11 @@ for img = 1:length(param.analysis.imgs)
   
     switch cmd.method
       case {'burst_noise'}
-        %
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          num_sam_hint = 1;
+          sparam.cpu_time = sparam.cpu_time + Nx*num_sam_hint*log2(Nx)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx*num_sam_hint*mem_mult);
+        end
         
       case {'coh_noise'}
         Nx_cmd = Nx / cmd.block_ave;
@@ -722,5 +747,3 @@ ctrl = cluster_new_task(ctrl,sparam,[]);
 ctrl_chain{end+1} = ctrl;
     
 fprintf('Done %s\n', datestr(now));
-
-return
