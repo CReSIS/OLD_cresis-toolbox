@@ -58,14 +58,17 @@ else
   elevation = layer_params;
 end
 
-elevation = elevation - min(elevation);
-elevation = interp1(0:length(elevation), 0:length(elevation), elevation, 'nearest');
-elevation = interp_finite(elevation);
+% TODO[reece]: Convert elevation to bins
 
-mdata = nan(size(data, 1) + max(elevation), Nx);
+elev_range = elevation - min(elevation);
+elev_range = interp_finite(elev_range);
+
+mdata = nan(size(data, 1) + floor(max(elev_range)), Nx);
 
 for c = 1:Nx
-  mdata((1:size(data, 1)) + elevation(c), c) = data(:, c);
+  mdata(:, c) = interp1(1:size(data, 1), data(:, c), (1:size(data, 1) + max(elev_range)) - elev_range(c));
 end
 
-mdata = interp_finite(mdata);
+% TODO[reece]: Why does the nearest neighbor seem to sometimes come from the other end
+% of the previous column??
+mdata = interp_finite(mdata, nan, 'nearest');
