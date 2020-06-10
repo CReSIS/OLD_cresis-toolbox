@@ -365,6 +365,61 @@ for img = 1:length(store_param.load.imgs)
       end
       
       
+    elseif strcmpi(cmd.method,{'burst_noise'})
+      %% Burst Noise
+      % ===================================================================
+      % ===================================================================
+      
+      for wf_adc = cmd.wf_adcs{cmd_img}(:).'
+        wf = param.load.imgs{img}(wf_adc,1);
+        adc = param.load.imgs{img}(wf_adc,2);
+        
+        cmd.threshold = 17;
+        cmd.noise_filt = [11 101];
+        cmd.signal_filt = [11 1];
+        cmd.valid_bins{img} = [501 inf];
+        cmd.max_bad_waveforms = 100;
+        
+        data_pow = abs(raw_data{1}(:,:,wf_adc).').^2;
+        
+        data_smooth = fir_dec(data_pow,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
+        data_smooth = fir_dec(data_smooth,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+        data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
+        data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
+        
+        bad_samples = lp(data_pow) > lp(data_smooth) + cmd.threshold;
+        bad_idxs = find(bad_samples);
+        Nt = size(raw_data{1},1);
+        bad_bins = mod(bad_idxs-1,Nt)+1;
+        bad_recs = floor((bad_idxs-1)/Nt)+1;
+        valid_mask = bad_bins >= cmd.valid_bins{img}(1) & bad_bins <= cmd.valid_bins{img}(2);
+        bad_bins = bad_bins(valid_mask);
+        bad_recs = bad_recs(valid_mask);
+        bad_recs_unique = unique(bad_recs);
+        bad_waveforms = raw_data{1}(:,bad_recs_unique(1:min(end,cmd.max_bad_waveforms)),wf_adc);
+        
+        if 0
+          % Debug plots
+          figure(1); clf;
+          plot(bad_recs, bad_bins, 'x')
+          figure(2); clf;
+          imagesc(lp(data_pow))
+          link_figures([2 1],'xy');
+        end
+        out_fn = fullfile(tmp_out_fn_dir, ...
+          sprintf('burst_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
+        param_analysis = tmp_param;
+        fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
+        file_type = 'analysis_noise_tmp';
+        ct_save(out_fn, 'bad_recs', 'bad_bins', 'bad_waveforms', 'param_analysis', 'param_records','file_type','file_version');
+      end
+      
+      
     elseif strcmpi(cmd.method,{'coh_noise'})
       %% Coh Noise
       % ===================================================================

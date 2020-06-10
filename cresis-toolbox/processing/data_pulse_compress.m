@@ -233,6 +233,25 @@ for img = 1:length(param.load.imgs)
       % when the coherent noise was loaded and estimated.
       coh_noise = coh_noise * 10.^((noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc)-wfs(wf).adc_gains_dB(adc))/20);
       
+      % Adjust coherent noise for changes in system_dB
+      if length(wfs(wf).system_dB) == 1
+        system_dB = wfs(wf).system_dB;
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+      else
+        % A number is provided for each receiver path for system_dB
+        system_dB = wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
+      end
+      if length(noise.param_analysis.radar.wfs(wf).system_dB) == 1
+        system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB;
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+      else
+        % A number is provided for each receiver path for system_dB
+        system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
+      end
+      coh_noise = coh_noise * 10.^((system_dB_noise-system_dB)/20);
+      
       % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
       % changes relative to when the coherent noise was loaded and
       % estimated.

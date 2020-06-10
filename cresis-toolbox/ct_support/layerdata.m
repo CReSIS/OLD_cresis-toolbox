@@ -295,7 +295,8 @@ classdef layerdata < handle
     
       if ~isfield(obj.layer{frm},'file_version')
         % Old file format
-        warning('Old layer file format frame %d\n', frm);
+        layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+        warning('Old layer file format frame %d: %s\n', frm, layer_fn);
         lay = obj.layer{frm};
         obj.check_records();
         obj.layer_modified(frm) = true;
