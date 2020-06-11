@@ -57,7 +57,9 @@ fprintf('=====================================================================\n
 % =====================================================================
 
 if ~isfield(param.load_data,'bit_mask') || isempty(param.load_data.bit_mask)
-  param.load_data.bit_mask = 1; % Only skip records marked as bad in records.bit_mask
+  % Remove bad records (bit_mask==1), leave stationary records
+  % (bit_mask==2), and remove bad records (bit_mask==4)
+  param.load_data.bit_mask = 1 + 4;
 end
 
 if ~isfield(param.load_data,'combine_rx') || isempty(param.load_data.combine_rx)
