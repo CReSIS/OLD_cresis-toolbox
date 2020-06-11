@@ -47,8 +47,6 @@ physical_constants;
 
 if isstruct(mdata)
   data = mdata.Data;
-  
-  % TODO[reece]: Elevation should be passed in as layer_param
 else
   data = mdata;
 end
@@ -56,18 +54,23 @@ end
 Nx = size(data, 2);
 
 if ~exist('layer_params','var') || isempty(layer_params)
-    % TODO[reece]: Default to surface
+    if ~isstruct(mdata)
+        error('If no layer params are passed, mdata must be struct so that Surface can be used by default.');
+    end
+
+    surf_bins = interp1(mdata.Time, 1:length(mdata.Time), mdata.Surface);
+    slope = surf_bins;
+    
 elseif isa(layer_params, 'double')
     slope = layer_params;
 else
+    
     % TODO[reece]: When single layer given, shift bins to flatten layer
     % TODO[reece]: When multiple layers are given, shift bins to flatten
     %              all layers (nearest neighbor above and below top and
     %              bottom)
     % TODO[reece]: Slope field shifts bins left to right?
 end
-
-% TODO[reece]: Convert elevation to bins
 
 slope_range = slope - min(slope);
 

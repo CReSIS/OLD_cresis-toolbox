@@ -1,9 +1,10 @@
-generate = false;
+GENERATE = false;
+USE_ELEVATION = false;
 
 physical_constants;
 vel_air = c/2;
 
-if ~generate
+if ~GENERATE
     param = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140516_01');
     mdata = echo_load(param,'CSARP_post/standard',31);
     
@@ -13,17 +14,23 @@ if ~generate
     mean_val = mean(mean(mdata.Data));
     min_val = min(min(mdata.Data));
     
-    surface = mdata.Surface;
-    elevation = mdata.Elevation;
-    time = mdata.Time;
+    if USE_ELEVATION
+        slope_type = 'Elevation';
+        elevation = mdata.Elevation;
+        time = mdata.Time;
 
-    dt = time(2) - time(1);
-    drange = dt * vel_air;
-    elev = elevation / drange;
+        dt = time(2) - time(1);
+        drange = dt * vel_air;
+        bins = elevation / drange;
+    else
+        slope_type = 'Surface';
+        bins = interp1(mdata.Time, 1:length(mdata.Time), mdata.Surface);
+    end
     
+
     % Insert test layer which mirrors elevation
-    for i = 1:length(elev)
-        mdata.Data(round(max(elev) - elev(i) + min(elev)), i) = max_val;
+    for i = 1:length(bins)
+        mdata.Data(round(max(bins) - bins(i) + min(bins)), i) = max_val;
     end
     
     figure(1);
@@ -31,25 +38,29 @@ if ~generate
     hold on;
     imagesc(mdata.Data);
     colormap(1-gray);
-    plot(elev);
+    plot(bins);
+    legend({slope_type});
     title('Echo before shift');
+    axis ij;
     
-    flattened = echo_flatten(mdata, elev);
+    flattened = echo_flatten(mdata, bins);
     
     figure(2);
     clf;
     hold on;
     imagesc(flattened);
     colormap(1-gray);
-    plot(elev);
+    plot(bins);
+    legend({sprintf('Original %s', slope_type)});
     title('Echo after shift');
+    axis ij;
     
 else
     rows = 20;
     cols = 20;
     shift_matrix = .5;
     shift_elev = .5;
-    flatness = 10;
+    flatness = 100;
     layer_start = 0;
     down_shift = rows;
 
