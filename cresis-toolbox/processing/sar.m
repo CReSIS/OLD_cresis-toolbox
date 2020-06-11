@@ -49,8 +49,9 @@ if length(valid_frms) ~= length(param.cmd.frms)
 end
 
 if ~isfield(param.sar,'bit_mask') || isempty(param.sar.bit_mask)
-  % Remove bad records (bit_mask==1) and stationary records (bit_mask==2)
-  param.sar.bit_mask = 3;
+  % Remove bad records (bit_mask==1), remove stationary records
+  % (bit_mask==2), and remove bad records (bit_mask==4)
+  param.sar.bit_mask = 1 + 2 + 4;
 end
 
 if ~isfield(param.sar,'combine_rx') || isempty(param.sar.combine_rx)
