@@ -1,5 +1,5 @@
 GENERATE = true;
-USE_ELEVATION = true;
+USE_ELEVATION = false;
 
 physical_constants;
 vel_air = c/2;

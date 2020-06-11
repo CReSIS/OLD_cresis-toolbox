@@ -94,14 +94,29 @@ slope_range = slope - slope(1);  % Use first column as baseline
 if mirror
     slope_range = -slope_range;
 end
-new_size = size(data, 1) + floor(range(slope_range));
-new_range = (1:new_size);
+
+top_bins = min(slope_range);
+if top_bins < 0
+    top_bins = ceil(abs(top_bins));
+else
+    % Slope never shifts upward so add no bins on top
+    top_bins = 0;
+end
+bottom_bins = max(slope_range);
+if bottom_bins > 0
+    bottom_bins = ceil(bottom_bins);
+else
+    % Slope never shifts downward so add no bins on bottom
+    bottom_bins = 0;
+end
+
+cushioned_data = [nan(bottom_bins, Nx); data; nan(top_bins, Nx)];
+new_size = size(cushioned_data, 1);
+new_range = 1:new_size;
 mdata.Data = nan(new_size, Nx);
 
-cushioned_data = [nan(abs(ceil(min(slope_range))), Nx); data; nan(ceil(max(slope_range)), Nx)];
-
 for c = 1:Nx
-  mdata.Data(:, c) = interp1(1:size(cushioned_data, 1), cushioned_data(:, c), new_range + slope_range(c) - 1);
+  mdata.Data(:, c) = interp1(1:size(cushioned_data, 1), cushioned_data(:, c), new_range + slope_range(c));
   new_idxs = find(~isnan(mdata.Data(:, c)));
   mdata.Vertical_Bounds([1 2], c) = [min(new_idxs), max(new_idxs)];
 end
