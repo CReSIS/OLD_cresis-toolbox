@@ -8,7 +8,7 @@ function [mdata] = echo_flatten(mdata,layer_params)
 % given, then bins are adjusted according to a piecewise linear polynomial
 % between each of the layers and nearest neighbor for extrapolating above
 % and below the top and bottom layers respectively. If a slope field is
-% given, then the bin shifts are made from left to right Interpolation is
+% given, then the bin shifts are made from left to right. Interpolation is
 % used for the shifts, so oversampling (e.g. 2x) in the fast-time domain is
 % recommended for best results when the shifts are non-integer. To
 % compensate for elevation, just pass in a custom layer_params similar to
@@ -43,8 +43,12 @@ function [mdata] = echo_flatten(mdata,layer_params)
 % echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
 % echo_xcorr_profile
 
+physical_constants;
+
 if isstruct(mdata)
   data = mdata.Data;
+  
+  % TODO[reece]: Elevation should be passed in as layer_param
 else
   data = mdata;
 end
@@ -52,23 +56,29 @@ end
 Nx = size(data, 2);
 
 if ~exist('layer_params','var') || isempty(layer_params)
-  clear layer_params;
-  elevation = zeros(1, Nx);
+    % TODO[reece]: Default to surface
+elseif isa(layer_params, 'double')
+    slope = layer_params;
 else
-  elevation = layer_params;
+    % TODO[reece]: When single layer given, shift bins to flatten layer
+    % TODO[reece]: When multiple layers are given, shift bins to flatten
+    %              all layers (nearest neighbor above and below top and
+    %              bottom)
+    % TODO[reece]: Slope field shifts bins left to right?
 end
 
 % TODO[reece]: Convert elevation to bins
 
-elev_range = elevation - min(elevation);
-elev_range = interp_finite(elev_range);
+slope_range = slope - min(slope);
 
-mdata = nan(size(data, 1) + floor(max(elev_range)), Nx);
+mdata = nan(size(data, 1) + floor(max(slope_range)), Nx);
 
 for c = 1:Nx
-  mdata(:, c) = interp1(1:size(data, 1), data(:, c), (1:size(data, 1) + max(elev_range)) - elev_range(c));
+  mdata(:, c) = interp1(1:size(data, 1), data(:, c), (1:size(data, 1) + max(slope_range)) - slope_range(c));
 end
 
-% TODO[reece]: Why does the nearest neighbor seem to sometimes come from the other end
-% of the previous column??
+% TODO[reece]: Why does the nearest neighbor seem to sometimes come from
+%              the other end of the previous column?
+% TODO[reece]: Allow user to choose to interp finite or pass a default
+%              value
 mdata = interp_finite(mdata, nan, 'nearest');
