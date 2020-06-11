@@ -22,6 +22,9 @@ function [mdata] = echo_flatten(mdata,layer_params,fill_value)
 % layer_params: struct array controlling how the flattening is done if a
 % character, then assumes it is a slope field file path (ct_filename_out
 % will be used to determine filepath)
+% Should have a 'slope' field containing layer_bins to flatten.
+% Mirror of layer is flattened when 'mirror' field is present and true (as for elevation).
+% When double, assumed to be layer_bins.
 %
 % fill_value: value with which to fill extraneous pixels that are 
 % introduced above and below the shifted matrix. If a string, passed to
@@ -53,48 +56,67 @@ if isstruct(mdata)
   data = mdata.Data;
 else
   data = mdata;
+  mdata = struct();
+  mdata.Data = data;
 end
 
 Nx = size(data, 2);
+mirror = false;
 
 if ~exist('layer_params','var') || isempty(layer_params)
-    if ~isstruct(mdata)
-        error('If no layer params are passed, mdata must be struct so that Surface can be used by default.');
+    if ~isstruct(mdata) || ~isfield(mdata,'Surface') || isempty(mdata.Surface)
+        error('If no layer params are passed, mdata must be struct with Surface field so that Surface can be flattened by default.');
     end
 
     surf_bins = interp1(mdata.Time, 1:length(mdata.Time), mdata.Surface);
     slope = surf_bins;
     
 elseif isa(layer_params, 'double')
+    % Passed layer_bins directly
     slope = layer_params;
-else
     
-    % TODO[reece]: When single layer given, shift bins to flatten layer
+elseif isstruct(layer_params)
+    if isfield(layer_params, 'mirror') && layer_params.mirror
+       mirror = true;
+    end
+    if ~isfield(layer_params, 'slope') || isempty(layer_params.slope)
+        error('Slope field must be present on layer_params struct.');
+    end
+    slope = layer_params.slope;
+    
     % TODO[reece]: When multiple layers are given, shift bins to flatten
     %              all layers (nearest neighbor above and below top and
     %              bottom)
-    % TODO[reece]: Slope field shifts bins left to right?
+    % TODO[reece]: Allow passing slope field files
 end
 
-slope_range = slope - min(slope);
+slope_range = slope - slope(1);  % Use first column as baseline
+if mirror
+    slope_range = -slope_range;
+end
+new_size = size(data, 1) + floor(range(slope_range));
+new_range = (1:new_size);
+mdata.Data = nan(new_size, Nx);
 
-mdata = nan(size(data, 1) + floor(max(slope_range)), Nx);
+cushioned_data = [nan(abs(ceil(min(slope_range))), Nx); data; nan(ceil(max(slope_range)), Nx)];
 
 for c = 1:Nx
-  mdata(:, c) = interp1(1:size(data, 1), data(:, c), (1:size(data, 1) + max(slope_range)) - slope_range(c));
+  mdata.Data(:, c) = interp1(1:size(cushioned_data, 1), cushioned_data(:, c), new_range + slope_range(c) - 1);
+  new_idxs = find(~isnan(mdata.Data(:, c)));
+  mdata.Vertical_Bounds([1 2], c) = [min(new_idxs), max(new_idxs)];
 end
 
 % TODO[reece]: Why does the nearest neighbor seem to sometimes come from
 %              the other end of the previous column?
-% TODO[reece]: Allow user to choose to interp finite or pass a default
-%              value
+% TODO[reece]: What is the interp_method arg and interpft
+% TODO[reece]: Update echogram's Time to reflect shifts
 
 if ~exist('fill_value','var') || isempty(fill_value)
    fill_value = 'nearest'; 
 end
 
 if isa(fill_value, 'char') || isa(fill_value, 'string')
-   mdata = interp_finite(mdata, nan, fill_value);
+  mdata.Data = interp_finite(mdata.Data, nan, fill_value);
 else
-   mdata(isnan(mdata)) = fill_value;
+  mdata.Data(isnan(mdata.Data)) = fill_value;
 end
