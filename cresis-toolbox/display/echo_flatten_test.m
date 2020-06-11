@@ -11,8 +11,6 @@ if ~GENERATE
     mdata.Data = real(10*log10(mdata.Data));
     
     max_val = max(max(mdata.Data));
-    mean_val = mean(mean(mdata.Data));
-    min_val = min(min(mdata.Data));
     
     if USE_ELEVATION
         slope_type = 'Elevation';
@@ -27,7 +25,6 @@ if ~GENERATE
         bins = interp1(mdata.Time, 1:length(mdata.Time), mdata.Surface);
     end
     
-
     % Insert test layer which mirrors elevation
     for i = 1:length(bins)
         mdata.Data(round(max(bins) - bins(i) + min(bins)), i) = max_val;

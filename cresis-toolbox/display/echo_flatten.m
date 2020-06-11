@@ -1,4 +1,4 @@
-function [mdata] = echo_flatten(mdata,layer_params)
+function [mdata] = echo_flatten(mdata,layer_params,fill_value)
 % [mdata] = echo_flatten(mdata,layer_params)
 %
 % Shifts columns up/down in echogram in order to flatten one or more 1D
@@ -23,11 +23,15 @@ function [mdata] = echo_flatten(mdata,layer_params)
 % character, then assumes it is a slope field file path (ct_filename_out
 % will be used to determine filepath)
 %
+% fill_value: value with which to fill extraneous pixels that are 
+% introduced above and below the shifted matrix. If a string, passed to
+% interp_finite as the interp_method.
+%
 % interp_method: string containing 'linear' or 'interpft' (default is
 % 'linear'). interpft is not recommended unless the data are Nyquist
 % sampled (usually this means 2x interpolation in the fast-time before
 % power detection occurs).
-%
+% 
 % OUTPUTS:
 %
 % mdata: echogram structure (t0 and dt fields added)
@@ -84,4 +88,13 @@ end
 %              the other end of the previous column?
 % TODO[reece]: Allow user to choose to interp finite or pass a default
 %              value
-mdata = interp_finite(mdata, nan, 'nearest');
+
+if ~exist('fill_value','var') || isempty(fill_value)
+   fill_value = 'nearest'; 
+end
+
+if isa(fill_value, 'char') || isa(fill_value, 'string')
+   mdata = interp_finite(mdata, nan, fill_value);
+else
+   mdata(isnan(mdata)) = fill_value;
+end
