@@ -428,9 +428,6 @@ for file_idx = 1:length(in_fns)
     ins.roll = interp1(ins.gps_time,ins.roll,new_gps_time);
     ins.pitch = interp1(ins.gps_time,ins.pitch,new_gps_time);
     ins.heading = interp1(ins.gps_time,ins.heading,new_gps_time);
-    if any(gps.lon >180)                 % 2018_Antarctica_DC8 ATM trajectory files
-        gps.lon(gps.lon>180) = gps.lon(gps.lon>180) -360;
-    end
     interp_idxs = find(ins.gps_time >= gps.gps_time(1) & ins.gps_time <= gps.gps_time(end));
     ins.lat(interp_idxs) = interp1(gps.gps_time,gps.lat,ins.gps_time(interp_idxs));
     ins.lon(interp_idxs) = interp1(gps.gps_time,gps.lon,ins.gps_time(interp_idxs));
@@ -439,6 +436,9 @@ for file_idx = 1:length(in_fns)
     ins.lon = interp1(ins.gps_time,ins.lon,new_gps_time);
     ins.elev = interp1(ins.gps_time,ins.elev,new_gps_time);
     ins.gps_time = new_gps_time;
+    if any(ins.lon >180)                 % 2018_Antarctica_DC8 ATM trajectory files
+      gps.lon(ins.lon>180) = ins.lon(ins.lon>180) -360;
+    end
     gps = ins;
     
     %% Remove records with NaN

@@ -19,9 +19,7 @@ if run_example == 1
   param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181014_02');
   
   % Determine which records you want to load:
-  frames_fn = '';
-  frames_fn = ct_filename_support(param,frames_fn,'frames');
-  load(frames_fn);
+  frames = frames_load(param);
   frm = 1;
   param.load_data.recs = frames.frame_idxs(frm) + 0 + [0 0];
   
@@ -30,7 +28,7 @@ if run_example == 1
   param.load_data.imgs                  = {[2 5]};
   param.load_data.pulse_comp            = false;
   param.load_data.raw_data              = false;
-  param.load_data.ft_wind               = @hanning;
+  %param.load_data.ft_wind               = @hanning;
   param.load_data.combine_rx            = false;
   
   % Load data
@@ -84,9 +82,7 @@ elseif run_example == 2
   param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160413_04');
   
   % Determine which records you want to load:
-  frames_fn = '';
-  frames_fn = ct_filename_support(param,frames_fn,'frames');
-  load(frames_fn);
+  frames = frames_load(param);
   frm = 1;
   param.load_data.recs = frames.frame_idxs(frm) - 1 + [10000 10250];
   
@@ -175,9 +171,7 @@ elseif run_example == 3
   param = read_param_xls(param_fn,'20100324_01');
   
   % Determine which records you want to load:
-  frames_fn = '';
-  frames_fn = ct_filename_support(param,frames_fn,'frames');
-  load(frames_fn);
+  frames = frames_load(param);
   frm = 10;
   param.load_data.recs = frames.frame_idxs(frm) - 1 + [4001 8000];
   
@@ -239,9 +233,7 @@ elseif run_example == 4
   param = read_param_xls(param_fn,'20110317_01');
   
   % Determine which records you want to load:
-  frames_fn = '';
-  frames_fn = ct_filename_support(param,frames_fn,'frames');
-  load(frames_fn);
+  frames = frames_load(param);
   frm = 2;
   param.load_data.recs = frames.frame_idxs(frm) - 1 + [5000 17000];
   
@@ -457,9 +449,7 @@ elseif run_example == 5
       fprintf('Processing segment %s (%i of %i)\n', param.day_seg, idx, length(params));
       
       % Determine which records you want to load:
-      frames_fn = '';
-      frames_fn = ct_filename_support(param,frames_fn,'frames');
-      load(frames_fn); % GET NUMBER OF FRAMES HERE (look at variable named "frames")
+      frames = frames_load(param);
       
       if isempty(param.cmd.frms)
         frms = 1:length(frames.frame_idxs);
