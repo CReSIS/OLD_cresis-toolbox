@@ -223,6 +223,10 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.max_rng = [0 0];
   end
   
+  if ~isfield(track,'max_rng_filter') || isempty(track.max_rng_filter)
+    track.max_rng_filter = track.filter;
+  end
+  
   if ~isfield(track,'max_rng_units') || isempty(track.max_rng_units)
     track.max_rng_units = 'time';
   end

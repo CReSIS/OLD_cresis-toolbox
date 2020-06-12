@@ -1,5 +1,6 @@
 function layerLB_str(obj)
 
+set(obj.left_panel.layerLB,'Value',[]);
 LB_strings = cell(1,length(obj.eg.layers.lyr_name));
 for idx = 1:length(obj.eg.layers.lyr_name)
   name = sprintf(obj.eg.layers.lyr_name{idx},idx);

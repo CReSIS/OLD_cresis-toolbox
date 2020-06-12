@@ -72,12 +72,12 @@ else
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
     data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
     if frm_idx == 1
-      mdata = load(data_fn);
+      mdata = load_L1B(data_fn);
       frm_start(frm_idx) = 1;
       frm_stop(frm_idx) = length(mdata.GPS_time);
       
     else
-      tmp_data=load(data_fn);
+      tmp_data = load_L1B(data_fn);
       
       Nx = length(tmp_data.GPS_time);
       frm_start(frm_idx) = length(mdata.GPS_time)+1;
@@ -298,6 +298,14 @@ for track_idx = param.layer_tracker.tracks_in_task
     data(mask) = NaN;
   end
   
+  %% Track: Max Range Filter
+  if ~isequal(track.max_rng_filter,track.filter)
+    % Multilooking in cross-track/fast-time
+    data_max_rng = lp(nan_fir_dec(10.^(data/10).',ones(1,track.max_rng_filter(1))/track.max_rng_filter(1),1,[],[],[],[],2.0).');
+    % Multilooking in along-track
+    data_max_rng = lp(nan_fir_dec(10.^(data_max_rng/10),ones(1,track.max_rng_filter(2))/track.max_rng_filter(2),1,[],[],[],[],2.0));
+  end
+  
   %% Track: Filter
   if track.filter(1) ~= 1
     % Multilooking in cross-track/fast-time
@@ -323,6 +331,9 @@ for track_idx = param.layer_tracker.tracks_in_task
       if track.data_noise_en
         data_noise(start_bin:stop_bin,rline) = NaN;
       end
+      if ~isequal(track.max_rng_filter,track.filter)
+        data_max_rng(start_bin:stop_bin,rline) = NaN;
+      end
     end
     stop_bin = find(isfinite(data(:,rline)),1,'last');
     if ~isempty(stop_bin)
@@ -330,6 +341,9 @@ for track_idx = param.layer_tracker.tracks_in_task
       data(start_bin:stop_bin,rline) = NaN;
       if track.data_noise_en
         data_noise(start_bin:stop_bin,rline) = NaN;
+      end
+      if ~isequal(track.max_rng_filter,track.filter)
+        data_max_rng(start_bin:stop_bin,rline) = NaN;
       end
     end
   end
@@ -382,6 +396,9 @@ for track_idx = param.layer_tracker.tracks_in_task
   if track.data_noise_en
     data_noise = data_noise(min_min_bin:max_max_bin,:);
   end
+  if ~isequal(track.max_rng_filter,track.filter)
+    data_max_rng = data_max_rng(min_min_bin:max_max_bin,:);
+  end
   track.zero_bin = floor(-mdata.Time(min_min_bin)/dt + 1);
   
   %% Track: Create Initial Surface
@@ -424,7 +441,6 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: Tracking
-  
   if strcmpi(track.method,'threshold')
     track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
     if track.data_noise_en
@@ -494,12 +510,17 @@ for track_idx = param.layer_tracker.tracks_in_task
       for rline = 1:Nx
         search_bins = round(new_layer(rline)) + track.max_rng;
         search_bins = search_bins(find(search_bins >= 1 & search_bins <= size(data,1)));
-        [~,offset] = max(data(search_bins,rline));
+        if ~isequal(track.max_rng_filter,track.filter)
+          [~,offset] = max(data_max_rng(search_bins,rline));
+        else
+          [~,offset] = max(data(search_bins,rline));
+        end
         if ~isempty(offset)
           new_layer(rline) = search_bins(offset);
         end
       end
     end
+    
     %% Track: Convert bins to twtt
     new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + min_min_bin - 1,'linear','extrap');
     % Some layer sources may not be "double", but we require that layers be double type:

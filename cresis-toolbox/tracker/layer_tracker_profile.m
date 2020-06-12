@@ -166,6 +166,26 @@ elseif strcmpi(profile_str,'SNOW')
   track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
   track.threshold_rel_max = -9;
   
+elseif strcmpi(profile_str,'SNOW_ROBUST')
+  %% SNOW ROBUST profile
+  track.debug_time_guard = 50e-9;
+  track.min_bin = 0.1e-6;
+  track.prefilter_trim = [0 0];
+  track.filter = [5 7]; % Use longer filter 
+  track.filter_trim = [10 10];
+  track.init.method	= 'medfilt';
+  track.init.medfilt	= 51;
+  track.init.max_diff = 0.3e-6;
+  track.max_rng	= [0 9]; % Look deeper after tracking
+  track.max_rng_units = 'bins';
+  track.medfilt = 11;
+  track.medfilt_threshold = 15; % Median filter more tightly
+  track.method = 'threshold';
+  track.threshold = 8;
+  track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
+  track.threshold_rel_max = -21; % Allow for bright shallow layers
+  track.max_rng_filter = [5 3]; % During max_rng, use less filtered data to track the surface more closely
+  
 elseif strcmpi(profile_str,'SNOW_AWI')
   %% SNOW_AWI profile
   track.debug_time_guard = 50e-9;
