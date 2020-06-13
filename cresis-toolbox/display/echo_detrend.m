@@ -256,13 +256,18 @@ switch param.method
         min_loc = min_loc + top_bin;
         
         trend(min_loc:end) = min(trend(bins));
-%         trend(top_bin:min_loc) = trend(top_bin:min_loc) - roll_comp(rline); 
+        
+        % Check if offset is to be applied
+        if param.roll_comp_en
+          trend(top_bin:min_loc) = trend(top_bin:min_loc) - roll_comp(rline);
+        end
+        
         trend = trend -param.offset;
         trend( trend < min_val) = min_val;   
       end      
         
       
-      if 1 
+      if 0 
         %% Debug plots
         figure(1); clf;
         plot(data(:,rline));
