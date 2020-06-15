@@ -197,7 +197,7 @@ for frm = param.cmd.frms
           dBins = round(dRange / (c/2) / dt);
         end
         zero_pad_len = max(abs(dBins));
-        tmp.Data = cat(1,tmp.Data,zeros(zero_pad_len,size(tmp.Data,2)));
+        tmp.Data = cat(1,tmp.Data,nan(zero_pad_len,size(tmp.Data,2)));
         if ~isempty(tmp.Time)
           tmp.Time = tmp.Time(1) + dt * (0:size(tmp.Data,1)-1).';
         end
@@ -240,9 +240,9 @@ for frm = param.cmd.frms
         % Truncating data adds four variables
         % 1)Truncate_Bins
         tmp.Truncate_Bins = good_bins;
-        tmp.Truncate_Median = NaN*zeros(1,size(tmp.Data,2));
-        tmp.Truncate_Mean = NaN*zeros(1,size(tmp.Data,2));
-        tmp.Truncate_Std_Dev = NaN*zeros(1,size(tmp.Data,2));
+        tmp.Truncate_Median = nan(1,size(tmp.Data,2));
+        tmp.Truncate_Mean = nan(1,size(tmp.Data,2));
+        tmp.Truncate_Std_Dev = nan(1,size(tmp.Data,2));
         % 2) Truncate_Median, Truncate_Mean, Truncate_Std_Dev
         %    These will have a NaN for a range line when no valid bins were
         %    truncated for that range line.  Zero padded bins from elevation

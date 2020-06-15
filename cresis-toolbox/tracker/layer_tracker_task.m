@@ -91,10 +91,85 @@ else
       mdata.Surface(1,end+(1:Nx)) = tmp_data.Surface;
       
       % Handle time axis that changes from one frame to the next
-      mdata.Time = tmp_data.Time;
+      dt = mdata.Time(2) - mdata.Time(1);
+      min_time = min(tmp_data.Time(1),mdata.Time(1));
+      Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
+        : dt : max(tmp_data.Time(end),mdata.Time(end));
+      % Interpolate data to new time axes
+      warning off;
+      mdata.Data = interp1(mdata.Time,mdata.Data,Time);
+      tmp_data.Data = interp1(tmp_data.Time,tmp_data.Data,Time);
+      warning on;
+      mdata.Time = Time;
       mdata.Data(:,end+(1:Nx)) = tmp_data.Data;
     end
   end
+  
+  overlap = [0 0];
+  if param.layer_tracker.frms(1) > 1 && param.layer_tracker.overlap > 0
+    frm = param.layer_tracker.frms(1)-1;
+    
+    % Load the previous frame
+    frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
+    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if exist(data_fn,'file')
+      tmp_data = load_L1B(data_fn);
+      
+      overlap(1) = min(param.layer_tracker.overlap,length(tmp_data.GPS_time));
+      mdata.GPS_time = [tmp_data.GPS_time(end-overlap(1)+1:end) mdata.GPS_time];
+      mdata.Elevation = [tmp_data.Elevation(end-overlap(1)+1:end) mdata.Elevation];
+      mdata.Latitude = [tmp_data.Latitude(end-overlap(1)+1:end) mdata.Latitude];
+      mdata.Longitude = [tmp_data.Longitude(end-overlap(1)+1:end) mdata.Longitude];
+      mdata.Roll = [tmp_data.Roll(end-overlap(1)+1:end) mdata.Roll];
+      mdata.Surface = [tmp_data.Surface(end-overlap(1)+1:end) mdata.Surface];
+      
+      % Handle time axis that changes from one frame to the next
+      dt = mdata.Time(2) - mdata.Time(1);
+      min_time = min(tmp_data.Time(1),mdata.Time(1));
+      Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
+        : dt : max(tmp_data.Time(end),mdata.Time(end));
+      % Interpolate data to new time axes
+      warning off;
+      mdata.Data = interp1(mdata.Time,mdata.Data,Time);
+      tmp_data.Data = interp1(tmp_data.Time,tmp_data.Data(:,end-overlap(1)+1:end),Time);
+      warning on;
+      mdata.Time = Time;
+      mdata.Data = [tmp_data.Data mdata.Data];
+    end
+  end
+  frames = frames_load(param);
+  if param.layer_tracker.frms(end) <= length(frames.frame_idxs) && param.layer_tracker.overlap > 0
+    frm = param.layer_tracker.frms(end)+1;
+    
+    % Load the next frame
+    frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
+    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if exist(data_fn,'file')
+      tmp_data = load_L1B(data_fn);
+      
+      overlap(2) = min(param.layer_tracker.overlap,length(tmp_data.GPS_time));
+      mdata.GPS_time(1,end+(1:overlap(2))) = tmp_data.GPS_time(1:overlap(2));
+      mdata.Elevation(1,end+(1:overlap(2))) = tmp_data.Elevation(1:overlap(2));
+      mdata.Latitude(1,end+(1:overlap(2))) = tmp_data.Latitude(1:overlap(2));
+      mdata.Longitude(1,end+(1:overlap(2))) = tmp_data.Longitude(1:overlap(2));
+      mdata.Roll(1,end+(1:overlap(2))) = tmp_data.Roll(1:overlap(2));
+      mdata.Surface(1,end+(1:overlap(2))) = tmp_data.Surface(1:overlap(2));
+      
+      % Handle time axis that changes from one frame to the next
+      dt = mdata.Time(2) - mdata.Time(1);
+      min_time = min(tmp_data.Time(1),mdata.Time(1));
+      Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
+        : dt : max(tmp_data.Time(end),mdata.Time(end));
+      % Interpolate data to new time axes
+      warning off;
+      mdata.Data = interp1(mdata.Time,mdata.Data,Time);
+      tmp_data.Data = interp1(tmp_data.Time,tmp_data.Data(:,(1:overlap(2))),Time);
+      warning on;
+      mdata.Time = Time;
+      mdata.Data(:,end+(1:overlap(2))) = tmp_data.Data;
+    end
+  end
+
 end
 Nx = size(mdata.Data,2);
 data = lp(mdata.Data);
@@ -105,7 +180,7 @@ for track_idx = param.layer_tracker.tracks_in_task
   track = param.layer_tracker.track{track_idx};
   orig_track = track;
   
-  %% Load reference surface
+  %% Track: Load reference surface
   if isfield(track,'init') && isfield(track.init,'dem_layer') ...
       && ~isempty(track.init.dem_layer)
     layers = opsLoadLayers(param,track.init.dem_layer);
@@ -122,7 +197,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time));
   end
   
-  %% Load in ocean mask, land DEM, and sea surface DEM
+  %% Track: Load ocean mask, land DEM, sea surface DEM
   if isfield(track,'init') && strcmpi(track.init.method,'dem')
     global gdem;
     if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
@@ -150,7 +225,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     track.dem = interp_finite(track.dem,1);
   end
   
-  %% Ice mask calculation
+  %% Track: Ice mask calculation
   if track.ice_mask.en
     if strcmp(track.ice_mask.type,'bin')
       mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
@@ -176,7 +251,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     track.ice_mask = ones(1,Nx);
   end
 
-  %% Crossover loading
+  %% Track: Crossover loading
   if track.crossover.en
     sys = ct_output_dir(param.radar_name);
     ops_param = [];
@@ -504,6 +579,7 @@ for track_idx = param.layer_tracker.tracks_in_task
         end
       end
     end
+    
     %% Track: Max search
     if (length(track.max_rng) > 1 || track.max_rng ~= 0)
       % Find the next peak after the threshold
@@ -519,6 +595,28 @@ for track_idx = param.layer_tracker.tracks_in_task
           new_layer(rline) = search_bins(offset);
         end
       end
+    end
+    
+    %% Track: Smooth sgolayfilt
+    track.sgolayfilt = {3,11};
+    if ~isempty(track.sgolayfilt)
+      % This smooth filter is for smoothing the layer output
+      new_layer = sgolayfilt(new_layer,track.sgolayfilt{:});
+    end
+    
+    %% Track: Remove overlap
+    if any(overlap) > 0
+      rlines = 1+overlap(1) : Nx-overlap(2);
+      Nx = length(rlines);
+      new_layer = new_layer(rlines);
+      new_quality = new_quality(rlines);
+      mdata.Data = mdata.Data(:,rlines);
+      mdata.GPS_time = mdata.GPS_time(:,rlines);
+      mdata.Elevation = mdata.Elevation(:,rlines);
+      mdata.Latitude = mdata.Latitude(:,rlines);
+      mdata.Longitude = mdata.Longitude(:,rlines);
+      mdata.Roll = mdata.Roll(:,rlines);
+      mdata.Surface = mdata.Surface(:,rlines);
     end
     
     %% Track: Convert bins to twtt

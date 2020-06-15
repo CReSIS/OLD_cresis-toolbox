@@ -1519,7 +1519,7 @@ for img = 1:length(param.load.imgs)
   
   if param.load.pulse_comp == 1
     % Check if any good records, skip truncation if not
-    if any(~hdr.bad_rec{img}(1,:,wf_adc))
+    if any(~hdr.bad_rec{img}(1,:))
       data{img} = data{img}(1:wfs(wf).Nt,:,:);
     end
   end
