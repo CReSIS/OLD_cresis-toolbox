@@ -605,18 +605,20 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
     
     %% Track: Remove overlap
+    overlap_rlines = 1+overlap(1) : Nx-overlap(2);
     if any(overlap) > 0
-      rlines = 1+overlap(1) : Nx-overlap(2);
-      Nx = length(rlines);
-      new_layer = new_layer(rlines);
-      new_quality = new_quality(rlines);
-      mdata.Data = mdata.Data(:,rlines);
-      mdata.GPS_time = mdata.GPS_time(:,rlines);
-      mdata.Elevation = mdata.Elevation(:,rlines);
-      mdata.Latitude = mdata.Latitude(:,rlines);
-      mdata.Longitude = mdata.Longitude(:,rlines);
-      mdata.Roll = mdata.Roll(:,rlines);
-      mdata.Surface = mdata.Surface(:,rlines);
+      new_layer = new_layer(overlap_rlines);
+      new_quality = new_quality(overlap_rlines);
+      mdata.Data = mdata.Data(:,overlap_rlines);
+      mdata.GPS_time = mdata.GPS_time(:,overlap_rlines);
+      mdata.Elevation = mdata.Elevation(:,overlap_rlines);
+      mdata.Latitude = mdata.Latitude(:,overlap_rlines);
+      mdata.Longitude = mdata.Longitude(:,overlap_rlines);
+      mdata.Roll = mdata.Roll(:,overlap_rlines);
+      mdata.Surface = mdata.Surface(:,overlap_rlines);
+      track.dem = track.dem(overlap_rlines);
+      track.min_bin = track.min_bin(overlap_rlines);
+      track.max_bin = track.max_bin(overlap_rlines);
     end
     
     %% Track: Convert bins to twtt
@@ -666,8 +668,9 @@ for track_idx = param.layer_tracker.tracks_in_task
       ct_saveas(h_fig(1),fig_fn);
     end
     
-    new_layers(layer_idx,:) = new_layer;
+    new_layers(layer_idx,overlap_rlines) = new_layer;
   end
+  new_layers = new_layers(:,overlap_rlines);
   
   %% Track: Save
   if isstruct(param.layer_tracker.echogram_source)

@@ -1,5 +1,5 @@
-function [mdata,fn_echo] = echo_load(param,echogram_source,frm)
-% [mdata,fn_echo] = echo_load(param,echogram_source,frm)
+function [mdata,fn_echo] = echo_load(param,echogram_source,frm,img)
+% [mdata,fn_echo] = echo_load(param,echogram_source,frm,img)
 %
 % The trend of the data is estimated using various methods and this trend
 % is removed from the data.
@@ -39,6 +39,12 @@ elseif isstruct(param)
     echogram_source = 'standard';
   end
   
+  % Override default img if third argument defined
+  if ~exist('img','var') || isempty(img)
+    % img == 0 is combined
+    img = 0;
+  end
+  
   % Override frames field if third argument defined
   if exist('frm','var') && ~isempty(frm)
     param.cmd.frms = frm;
@@ -48,7 +54,13 @@ elseif isstruct(param)
     param.cmd.frms = param.cmd.frms(1);
   end
   
-  fn_echo = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_%s_%03d.mat',param.day_seg,param.cmd.frms));
+  if img == 0
+    % Combined file
+    fn_echo = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_%s_%03d.mat',param.day_seg,param.cmd.frms));
+  else
+    % Image "_img_II" file
+    fn_echo = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_img_%02d_%s_%03d.mat',img, param.day_seg,param.cmd.frms));
+  end
   
 end
 mdata = load_L1B(fn_echo);

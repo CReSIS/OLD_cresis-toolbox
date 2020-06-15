@@ -1,48 +1,85 @@
-function [mdata] = echo_flatten(mdata,layer_params,fill_value)
-% [mdata] = echo_flatten(mdata,layer_params)
+function [data,resample_field] = echo_flatten(mdata,resample_field,interp_method,inverse_flag,ref_col)
+% [data,resample_field] = echo_flatten(mdata,resample_field,interp_method,inverse_flag,ref_col)
 %
-% Shifts columns up/down in echogram in order to flatten one or more 1D
-% layers in the data. Defaults to flattening the surface stored in
-% CSARP_layer if no layer_params given. If a single layer is given, all
-% bins are shifted up and down the same amount. If more than one layer is
-% given, then bins are adjusted according to a piecewise linear polynomial
-% between each of the layers and nearest neighbor for extrapolating above
-% and below the top and bottom layers respectively. If a slope field is
-% given, then the bin shifts are made from left to right. Interpolation is
-% used for the shifts, so oversampling (e.g. 2x) in the fast-time domain is
-% recommended for best results when the shifts are non-integer. To
-% compensate for elevation, just pass in a custom layer_params similar to
-% opsCopyLayers and set the twtt = elev*c/2.
+% Shifts columns up/down in echogram using interpolation in order to
+% flatten one or more 1D layers in the data or to flatten a 2D slope field.
+% Defaults to flattening the surface stored in CSARP_layer if no
+% resample_field given.
+%
+% There are two interpolations done by echo_flatten: the first ons is to
+% interpolate to find the shift at each point in the data matrix. The
+% second interpolation is used to apply the shift to the data and linear or
+% Fourier based interpolation may be used.
+%
+% For layers provided by the user, interp_finite is used to fill in any
+% gaps.
+%
+% For the shift field, spline is use on the interior points and linear
+% exterpolation is used.
+%
+% Since interpolation is used for the shifts, oversampling (e.g. 2x) in the
+% fast-time domain is recommended for best results when the shifts are
+% non-integer.
+%
+% The shift can also be inverted so that a flattened echogram can be
+% unflattened.
+%
+% The reference column is used as the reference that all shifts are made
+% relative to and is left unchanged except for padding at the start or end.
+% The reference column defaults to column 1, but the reference column may
+% be specified.
+%
+% To compensate for aircraft elevation, just pass in a custom resample_field
+% similar to opsCopyLayers and set the twtt = elev*c/2.
 %
 % INPUTS:
 %
 % mdata: echogram structure from an echogram file (e.g. returned from
-% echo_load)
+% echo_load) or a data matrix. If a data matrix, then resample_field must be
+% a numeric matrix.
 %
-% layer_params: struct array controlling how the flattening is done if a
-% character, then assumes it is a slope field file path (ct_filename_out
-% will be used to determine filepath)
-% Should have a 'slope' field containing layer_bins to flatten.
-% Mirror of layer is flattened when 'mirror' field is present and true (as for elevation).
-% When double, assumed to be layer_bins.
+% resample_field: input resample field; several types are supported:
 %
-% fill_value: value with which to fill extraneous pixels that are 
-% introduced above and below the shifted matrix. If a string, passed to
-% interp_finite as the interp_method.
+%  opsLoadLayers struct array or empty matrix: an array of opsLoadLayers to
+%  layers that will be flattened. When an empty matrix, default layer is
+%  "surface".
 %
-% interp_method: string containing 'linear' or 'interpft' (default is
+%  string: slope field file path (ct_filename_out will be used to determine
+%  filepath) Should have a 'resample_field' field containing layer_bins to
+%  flatten. If an empty string, then set to "slope" for CSARP_slope.
+% 
+%  numeric array: double, assumed to be layer_bins.
+%
+% interp_method: string containing 'circ', 'linear' or 'sinc' (default is
 % 'linear'). interpft is not recommended unless the data are Nyquist
 % sampled (usually this means 2x interpolation in the fast-time before
 % power detection occurs).
-% 
+%
+% inverse_flag: logical scalar, default is false. If true, the shift will be
+% inverted (undoes the flattening operation).
+%
+% ref_col: scalar positive integer indicating the column to use as a
+% reference
+%
 % OUTPUTS:
 %
-% mdata: echogram structure (t0 and dt fields added)
+% data: flattened data matrix
+%
+% resample_field: resampling matrix that was used (can be used to undo the
+% resampling using the inverse_flag and to interpret layers in the
+% flattened domain)
 %
 % Examples:
 %
-% param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
-% mdata = echo_load(param,'standard',1);
+% param = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'20120330_04');
+% mdata = echo_load(param,'CSARP_post/qlook',3);
+% mdata = echo_flatten(mdata); % Flatten to surface in layerdata-CSARP_layer-surface
+% physical_constants; mdata = echo_flatten(mdata, interp1(mdata.Time,...
+%   1:length(mdata.Time), mdata.Elevation*c/2)); % Flatten elevation
+% mdata = echo_flatten(mdata, 'slope'); % Flatten to slope-field in CSARP_slope
+%
+% % Load "layer_param" with a list of opsLoadLayers layer_param structures
+% mdata = echo_flatten(mdata, resample_field); % Flatten to surface in layerdata-CSARP_layer-surface
 %
 % Author: John Paden, Reece Mathews
 %
@@ -50,88 +87,116 @@ function [mdata] = echo_flatten(mdata,layer_params,fill_value)
 % echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
 % echo_xcorr_profile
 
-physical_constants;
+%% Input checks
 
-if isstruct(mdata)
-  data = mdata.Data;
+if ~exist('resample_field','var') || isempty(resample_field)
+  if ischar(resample_field)
+    % slope file path
+    resample_field = 'slope';
+  else
+    % opsLoadLayers structure
+    resample_field.name = 'surface';
+  end
+end
+
+if ~exist('interp_method','var') || isempty(interp_method)
+  interp_method = 'linear';
+end
+
+if ~exist('inverse_flag','var') || isempty(inverse_flag)
+  inverse_flag = false;
+end
+
+if ~exist('ref_col','var') || isempty(ref_col)
+  ref_col = 1;
+end
+
+if isnumeric(mdata)
+  mdata = struct('Data',mdata);
+end
+param = echo_param(mdata);
+
+Nx = size(mdata.Data, 2);
+
+%% Load resample_field
+if isstruct(resample_field)
+  %% Load resample_field: opsLoadLayers layer_params
+  
+  % Check inputs
+  if ~isfield(mdata,'Time')
+    error('When opsLoadLayers resample_field are passed in, mdata.Time must be defined.');
+  end
+  if ~isfield(mdata,'GPS_time')
+    error('When opsLoadLayers resample_field are passed in, mdata.GPS_time must be defined.');
+  end
+  
+  % Load layers
+  param.cmd.frms = mdata.param_qlook.load.frm + [-1 0 1];
+  layers = opsLoadLayers(param, resample_field);
+  
+  % Interpolate layers onto mdata.GPS_time and convert from twtt to
+  % range-bins (rows)
+  resample_field = nan(length(layers), Nx);
+  for lay_idx = length(layers)
+    resample_field(lay_idx,:) = interp1(mdata.Time, 1:length(mdata.Time), ...
+      interp_finite(interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, mdata.GPS_time)));
+  end
+  
+elseif isnumeric(resample_field)
+  %% Load resample_field: passed in directly
+  % Passed layer in units of range-bins (rows)
+  
+elseif ischar(resample_field)
+  %% Load resample_field: along-track slope file
+  
+  % Check inputs
+  if ~isfield(mdata,'Time')
+    error('When opsLoadLayers resample_field are passed in, mdata.Time must be defined.');
+  end
+  dt = mdata.Time(2)-mdata.Time(1);
+  if ~isfield(mdata,'GPS_time')
+    error('When opsLoadLayers resample_field are passed in, mdata.GPS_time must be defined.');
+  end
+  
+  % Interpolate layers onto mdata.GPS_time
+  slope_fn = fullfile(ct_filename_out(param,'',resample_field), ...
+    sprintf('slope_%s_%03d.mat', param.day_seg, mdata.param_qlook.load.frm));
+  resample_field = load(slope_fn, 'gps_time', 'resample_field');
+  resample_field = interp_finite(interp1(gps_time, resample_field.', mdata.GPS_time)).'/dt;
+  
 else
-  data = mdata;
-  mdata = struct();
-  mdata.Data = data;
+  error('resample_field must be a struct or numeric matrix.');
 end
 
-Nx = size(data, 2);
-mirror = false;
+%% Interpolate resample_field
 
-if ~exist('layer_params','var') || isempty(layer_params)
-    if ~isstruct(mdata) || ~isfield(mdata,'Surface') || isempty(mdata.Surface)
-        error('If no layer params are passed, mdata must be struct with Surface field so that Surface can be flattened by default.');
-    end
+% Find relative shifts to the reference (fixed, master) column
+ref_axis = resample_field(:,ref_col);
+resample_field = bsxfun(@minus,resample_field,ref_axis);
+Nt = size(mdata.Data,1);
+Nt_resample_init = size(resample_field,1);
 
-    surf_bins = interp1(mdata.Time, 1:length(mdata.Time), mdata.Surface);
-    slope = surf_bins;
-    
-elseif isa(layer_params, 'double')
-    % Passed layer_bins directly
-    slope = layer_params;
-    
-elseif isstruct(layer_params)
-    if isfield(layer_params, 'mirror') && layer_params.mirror
-       mirror = true;
-    end
-    if ~isfield(layer_params, 'slope') || isempty(layer_params.slope)
-        error('Slope field must be present on layer_params struct.');
-    end
-    slope = layer_params.slope;
-    
-    % TODO[reece]: When multiple layers are given, shift bins to flatten
-    %              all layers (nearest neighbor above and below top and
-    %              bottom)
-    % TODO[reece]: Allow passing slope field files
+resample_axis = (1-round(min(resample_field(:))) : Nt + round(max(resample_field(:)))).';
+Nt_resample = length(resample_axis);
+
+for col = 1:Nx
+  if Nt_resample_init == 1
+    resample_field(1:Nt_resample,col) = resample_field(1,col);
+  else
+    resample_field(1:Nt_resample,col) = interp1(resample_axis,(1:Nt_resample_init).',resample_field(1:Nt_resample_init,col),'spline');
+  end
 end
+resample_field = bsxfun(@plus,interp_finite(resample_field),resample_axis);
 
-slope_range = slope - slope(1);  % Use first column as baseline
-if mirror
-    slope_range = -slope_range;
-end
+%% Interpolate mdata.Data
 
-top_bins = min(slope_range);
-if top_bins < 0
-    top_bins = ceil(abs(top_bins));
+if strcmpi(interp_method,'linear')
+  data = zeros(Nt_resample,Nx);
+  for col = 1:Nx
+    data(:, col) = interp1(1:Nt, mdata.Data(1:Nt, col), resample_field(:,col), 'linear');
+  end
+elseif strcmpi(interp_method,'sinc')
+  error('interp_method = sinc not supported.');
 else
-    % Slope never shifts upward so add no bins on top
-    top_bins = 0;
-end
-bottom_bins = max(slope_range);
-if bottom_bins > 0
-    bottom_bins = ceil(bottom_bins);
-else
-    % Slope never shifts downward so add no bins on bottom
-    bottom_bins = 0;
-end
-
-cushioned_data = [nan(bottom_bins, Nx); data; nan(top_bins, Nx)];
-new_size = size(cushioned_data, 1);
-new_range = 1:new_size;
-mdata.Data = nan(new_size, Nx);
-
-for c = 1:Nx
-  mdata.Data(:, c) = interp1(1:size(cushioned_data, 1), cushioned_data(:, c), new_range + slope_range(c));
-  new_idxs = find(~isnan(mdata.Data(:, c)));
-  mdata.Vertical_Bounds([1 2], c) = [min(new_idxs), max(new_idxs)];
-end
-
-% TODO[reece]: Why does the nearest neighbor seem to sometimes come from
-%              the other end of the previous column?
-% TODO[reece]: What is the interp_method arg and interpft
-% TODO[reece]: Update echogram's Time to reflect shifts
-
-if ~exist('fill_value','var') || isempty(fill_value)
-   fill_value = 'nearest'; 
-end
-
-if isa(fill_value, 'char') || isa(fill_value, 'string')
-  mdata.Data = interp_finite(mdata.Data, nan, fill_value);
-else
-  mdata.Data(isnan(mdata.Data)) = fill_value;
+  error('resample_field must be a struct or numeric matrix.');
 end

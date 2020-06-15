@@ -65,8 +65,9 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %  is "surface"
 %
 %  .source: string
-%    'records': Loads layer data from records file
+%    'custom': Custom layer source similar to opsCopyLayers
 %    'echogram': Loads layer data from echogram files
+%    'records': Loads layer data from records file
 %    'layerdata': Loads layer data from layer data files (default)
 %    'lidar': Loads (ATM, AWI, or DTU) lidar data
 %    'ops': Loads layer data from Open Polar Server
