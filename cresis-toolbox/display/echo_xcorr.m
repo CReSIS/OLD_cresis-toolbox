@@ -64,4 +64,3 @@ data = filter(param.h_filt,1,data);
 data = circshift(data,[param.h_filt_offset 0]);
 data(1:length(param.h_filt),:) = NaN;
 data(end-length(param.h_filt)+1:end,:) = NaN;
-data = interp_finite(data,0);

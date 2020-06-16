@@ -3,6 +3,16 @@ function plot_echogram(obj,x_min,x_max,y_min,y_max)
 %
 % Plot echogram data from echogram files
 
+if ~obj.busy_mode
+  set_busy_mode = true;
+  obj.busy_mode = true;
+  set(obj.h_fig,'Pointer','watch');
+  obj.status_text_set(sprintf('(%s) Plotting echogram...', datestr(now,'HH:MM:SS')),'replace');
+  drawnow;
+else
+  set_busy_mode = false;
+end
+
 physical_constants;
 
 %% Apply optional multiple suppression
@@ -212,14 +222,16 @@ elseif yaxis_choice == 5 % Surface flat
   depth_uniform = (depth_min:d_depth:depth_max).'; % depth axis we will interpolate onto
   % update image_data
   Nt = size(obj.eg.image_data,1);
-  obj.eg.image_data = [obj.eg.image_data;...
-    zeros(length(depth_uniform)-Nt,size(obj.eg.image_data,2))];
+  % HACK: Not sure why, but using new_img instead of obj.eg.image_data speeds
+  % this code up in some situations
+  new_img = zeros(length(depth_uniform), size(obj.eg.image_data,2));
   for idx = 1:length(surface)
     depth = min(0,time-surface(idx)) * vel_air ...
       + max(0,time-surface(idx)) * vel_ice;
-    obj.eg.image_data(:,idx) = interp1(depth,...
-      obj.eg.image_data(1:Nt,idx),depth_uniform,'linear');
+    new_img(:,idx) = interp1(depth,...
+      obj.eg.image_data(:,idx),depth_uniform,'linear');
   end
+  obj.eg.image_data = new_img;
   % update image_yaxis
   obj.eg.image_yaxis = depth_uniform;
   % update y label
@@ -270,6 +282,18 @@ end
 ylim(obj.h_axes,sort([y_min y_max]))
 
 %% Apply the display mode
-obj.left_panel.imagewin.set_cdata(obj.eg.image_data);
+% obj.left_panel.imagewin.set_cdata(obj.eg.image_data); % <-- This might be
+% needed: If so, document the need better when it is uncommented because
+% this is the second call to set_cdata.
+
+if set_busy_mode
+  obj.busy_mode = false;
+  if obj.zoom_mode
+    set(obj.h_fig,'Pointer','custom');
+  else
+    set(obj.h_fig,'Pointer','Arrow');
+  end
+  obj.status_text_set(sprintf(' done. (%s)', datestr(now,'HH:MM:SS')),'append');
+end
 
 end

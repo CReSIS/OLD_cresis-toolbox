@@ -138,7 +138,7 @@ set(obj.left_panel.frameLB,'String',obj.eg.frm_strs);
 obj.eg.layers.selected_layers = false(size(obj.eg.layers.lyr_id));
 obj.eg.layers.visible_layers = true(size(obj.eg.layers.lyr_id));
 
-obj.layerLB_str();
+obj.layerLB_str(false);
 
 
 %% Load flightlines, layers, crossovers and place the cursor
