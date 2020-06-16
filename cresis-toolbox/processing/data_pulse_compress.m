@@ -1319,7 +1319,7 @@ for img = 1:length(param.load.imgs)
     if strcmpi(radar_type,'deramp')
       
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        if wfs(wf).coh_noise_arg.DC_remove_en
+        if isfield(wfs(wf).coh_noise_arg,'DC_remove_en') && wfs(wf).coh_noise_arg.DC_remove_en
           data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
             mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
         end
