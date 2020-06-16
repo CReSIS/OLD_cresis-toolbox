@@ -149,7 +149,7 @@ if isstruct(resample_field)
   resample_field = nan(length(layers), Nx);
   for lay_idx = length(layers)
     resample_field(lay_idx,:) = interp1(mdata.Time, 1:length(mdata.Time), ...
-      interp_finite(interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, mdata.GPS_time)));
+      interp_finite(interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, mdata.GPS_time),0),'linear','extrap');
   end
   
 elseif isnumeric(resample_field)
@@ -212,9 +212,9 @@ for col = 1:Nx
   end
 end
 if inverse_flag
-  resample_field = bsxfun(@plus,-interp_finite(resample_field),resample_axis);
+  resample_field = bsxfun(@plus,-interp_finite(resample_field,0),resample_axis);
 else
-  resample_field = bsxfun(@plus,interp_finite(resample_field),resample_axis);
+  resample_field = bsxfun(@plus,interp_finite(resample_field,0),resample_axis);
 end
 
 %% Interpolate mdata.Data
