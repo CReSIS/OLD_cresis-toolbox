@@ -44,10 +44,11 @@ end
 if isstruct(param.layer_tracker.echogram_source)
   % echogram_source is the data structure
   mdata = param.layer_tracker.echogram_source;
-  frm_str = {sprintf('%s_%03d',param.day_seg,param.cmd.frms)};
+  frm_str = {sprintf('%s_%03d',param.day_seg,param.layer_tracker.frms)};
   frm_start = 1;
   frm_stop = length(mdata.GPS_time);
   param.layer_tracker.tracks_in_task = 1;
+  dt = mdata.Time(2) - mdata.Time(1);
   
 else
   % Create input directory paths
@@ -75,6 +76,7 @@ else
       mdata = load_L1B(data_fn);
       frm_start(frm_idx) = 1;
       frm_stop(frm_idx) = length(mdata.GPS_time);
+      dt = mdata.Time(2) - mdata.Time(1);
       
     else
       tmp_data = load_L1B(data_fn);
@@ -91,7 +93,6 @@ else
       mdata.Surface(1,end+(1:Nx)) = tmp_data.Surface;
       
       % Handle time axis that changes from one frame to the next
-      dt = mdata.Time(2) - mdata.Time(1);
       min_time = min(tmp_data.Time(1),mdata.Time(1));
       Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
         : dt : max(tmp_data.Time(end),mdata.Time(end));
@@ -124,7 +125,6 @@ else
       mdata.Surface = [tmp_data.Surface(end-overlap(1)+1:end) mdata.Surface];
       
       % Handle time axis that changes from one frame to the next
-      dt = mdata.Time(2) - mdata.Time(1);
       min_time = min(tmp_data.Time(1),mdata.Time(1));
       Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
         : dt : max(tmp_data.Time(end),mdata.Time(end));
@@ -156,7 +156,6 @@ else
       mdata.Surface(1,end+(1:overlap(2))) = tmp_data.Surface(1:overlap(2));
       
       % Handle time axis that changes from one frame to the next
-      dt = mdata.Time(2) - mdata.Time(1);
       min_time = min(tmp_data.Time(1),mdata.Time(1));
       Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
         : dt : max(tmp_data.Time(end),mdata.Time(end));
@@ -179,11 +178,13 @@ data = lp(mdata.Data);
 for track_idx = param.layer_tracker.tracks_in_task
   track = param.layer_tracker.track{track_idx};
   orig_track = track;
+  ops_param = param;
+  ops_param.cmd.frms = [param.layer_tracker.frms(1)-1 param.layer_tracker.frms param.layer_tracker.frms(end)+1];
   
   %% Track: Load reference surface
   if isfield(track,'init') && isfield(track.init,'dem_layer') ...
       && ~isempty(track.init.dem_layer)
-    layers = opsLoadLayers(param,track.init.dem_layer);
+    layers = opsLoadLayers(ops_param,track.init.dem_layer);
     
     % Ensure that layer gps times are monotonically increasing
     lay_idx = 1;
@@ -218,7 +219,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
     
     % Merge land surface and sea surface DEMs
-    track.dem = land_dem;
+    track.dem = double(land_dem);
     track.dem(ocean_mask) = msl(ocean_mask);
     track.dem = (mdata.Elevation - track.dem) / (c/2);
     track.dem = interp1(mdata.Time,1:length(mdata.Time),track.dem + track.init.dem_offset,'linear','extrap');
@@ -373,6 +374,27 @@ for track_idx = param.layer_tracker.tracks_in_task
     data(mask) = NaN;
   end
   
+  %% Track: Flatten
+  if isfield(track,'flatten') && ~isempty(track.flatten)
+    mdata_flatten = [];
+    mdata_flatten.param = param;
+    mdata_flatten.param.load.frm = param.layer_tracker.frms;
+    mdata_flatten.Data = data;
+    mdata_flatten.Time = mdata.Time;
+    mdata_flatten.GPS_time = mdata.GPS_time;
+    [data,resample_field] = echo_flatten(mdata_flatten,track.flatten);
+    % Debug to convert to twtt: resample_field = mdata.Time(1) + (resample_field-1)*dt;
+    % Flatten supporting fields
+    if strcmpi(track.init.method,'dem')
+      for rline = 1:Nx
+        track.dem(rline) = interp1(resample_field(:,rline),1:size(resample_field,1),track.dem(rline),'linear','extrap');
+      end
+      for idx = 1:size(track.crossovers,2)
+        track.crossovers(2,idx) = interp1(resample_field(:,track.crossovers(1,idx)),1:size(resample_field,1),track.crossovers(2,idx),'linear','extrap');
+      end
+    end
+  end
+  
   %% Track: Max Range Filter
   if ~isequal(track.max_rng_filter,track.filter)
     % Multilooking in cross-track/fast-time
@@ -429,7 +451,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     track.min_bin = ones(1,Nx) * find(mdata.Time >= orig_track.min_bin, 1);
   elseif isstruct(track.min_bin)
     % Load layer
-    track.min_bin = opsLoadLayers(param, orig_track.min_bin);
+    track.min_bin = opsLoadLayers(ops_param, orig_track.min_bin);
     % Interpolate min_bin_layer onto echogram GPS times
     track.min_bin = layerdata.interp(mdata,track.min_bin);
     track.min_bin = interp1(mdata.Time,1:length(mdata.Time),track.min_bin.twtt_ref);
@@ -446,11 +468,21 @@ for track_idx = param.layer_tracker.tracks_in_task
     
   elseif isstruct(track.max_bin)
     % Load layer
-    track.max_bin = opsLoadLayers(param, orig_track.max_bin);
+    track.max_bin = opsLoadLayers(ops_param, orig_track.max_bin);
     % Interpolate max_bin_layer onto echogram GPS times
     track.max_bin = layerdata.interp(mdata,track.max_bin);
     track.max_bin = interp1(mdata.Time,1:length(mdata.Time),track.max_bin.twtt_ref);
   end
+  
+  if isfield(track,'flatten') && ~isempty(track.flatten)
+    % Flatten supporting fields
+    for rline = 1:Nx
+      track.min_bin(rline) = interp1(resample_field(:,rline),1:size(resample_field,1),track.min_bin(rline),'linear','extrap');
+      track.max_bin(rline) = interp1(resample_field(:,rline),1:size(resample_field,1),track.max_bin(rline),'linear','extrap');
+    end
+  end
+  track.min_bin(~isfinite(track.min_bin)) = 1;
+  track.max_bin(~isfinite(track.max_bin)) = size(data,1);
   
   % Fix invalid min_bin and max_bin by setting to the midpoint
   invalid_min_max = track.max_bin < track.min_bin;
@@ -458,9 +490,8 @@ for track_idx = param.layer_tracker.tracks_in_task
   track.max_bin(invalid_min_max) = track.min_bin(invalid_min_max);
   
   min_min_bin = round(max(1,min(track.min_bin)));
-  max_max_bin = round(min(size(mdata.Data,1),max(track.max_bin)));
+  max_max_bin = round(min(size(data,1),max(track.max_bin)));
   
-  dt = mdata.Time(2) - mdata.Time(1);
   track.init.max_diff = orig_track.init.max_diff/dt;
   if strcmpi(track.max_rng_units,'bins')
     track.max_rng = orig_track.max_rng(1) : orig_track.max_rng(end);
@@ -507,6 +538,12 @@ for track_idx = param.layer_tracker.tracks_in_task
     lay = opsInterpLayersToMasterGPSTime(mdata,ops_layer,ref_interp_gaps_dist);
     dem_layer = lay.layerData{1}.value{2}.data;
     dem_layer = interp1(mdata.Time,1:length(mdata.Time),dem_layer);
+    if isfield(track,'flatten') && ~isempty(track.flatten)
+      % Flatten supporting fields
+      for rline = 1:Nx
+        dem_layer(rline) = interp1(resample_field(:,rline),1:size(resample_field,1),dem_layer(rline)-min_min_bin+1,'linear','extrap');
+      end
+    end
     track.dem = merge_vectors(dem_layer, track.dem);
   end
   
@@ -598,33 +635,34 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
     
     %% Track: Smooth sgolayfilt
-    track.sgolayfilt = {3,11};
-    if ~isempty(track.sgolayfilt)
+    if ~isempty(track.smooth_sgolayfilt)
       % This smooth filter is for smoothing the layer output
-      new_layer = sgolayfilt(new_layer,track.sgolayfilt{:});
+      new_layer = sgolayfilt(new_layer,track.smooth_sgolayfilt{:});
     end
     
+    %% Track: Convert bins to twtt
+    if isfield(track,'flatten') && ~isempty(track.flatten)
+      % Unflatten layers
+      for rline = 1:Nx
+        new_layer(rline) = interp1(1:size(resample_field,1),resample_field(:,rline),new_layer(rline)+min_min_bin-1,'linear','extrap');
+      end
+      for rline = 1:Nx
+        track_dem(rline) = interp1(1:size(resample_field,1),resample_field(:,rline),track.dem(rline)+min_min_bin-1,'linear','extrap');
+      end
+      new_layer = mdata.Time(1) + (new_layer-1)*dt;
+      track_dem = mdata.Time(1) + (track_dem-1)*dt;
+    else
+      % Some layer sources may not be "double", but we require that layers be double type:
+      new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + min_min_bin - 1,'linear','extrap');
+      track_dem = interp1(1:length(mdata.Time), mdata.Time, track.dem + min_min_bin - 1,'linear','extrap');
+    end
+
     %% Track: Remove overlap
     overlap_rlines = 1+overlap(1) : Nx-overlap(2);
     if any(overlap) > 0
       new_layer = new_layer(overlap_rlines);
       new_quality = new_quality(overlap_rlines);
-      mdata.Data = mdata.Data(:,overlap_rlines);
-      mdata.GPS_time = mdata.GPS_time(:,overlap_rlines);
-      mdata.Elevation = mdata.Elevation(:,overlap_rlines);
-      mdata.Latitude = mdata.Latitude(:,overlap_rlines);
-      mdata.Longitude = mdata.Longitude(:,overlap_rlines);
-      mdata.Roll = mdata.Roll(:,overlap_rlines);
-      mdata.Surface = mdata.Surface(:,overlap_rlines);
-      track.dem = track.dem(overlap_rlines);
-      track.min_bin = track.min_bin(overlap_rlines);
-      track.max_bin = track.max_bin(overlap_rlines);
     end
-    
-    %% Track: Convert bins to twtt
-    new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + min_min_bin - 1,'linear','extrap');
-    % Some layer sources may not be "double", but we require that layers be double type:
-    new_layer = double(new_layer);
     
     %% Track: Debug plot
     if tracked_images_en
@@ -632,17 +670,15 @@ for track_idx = param.layer_tracker.tracks_in_task
       figure_name = sprintf('layer_tracker %s %d-%d layer %d',param.day_seg, param.layer_tracker.frms([1 end]), layer_idx);
       set(h_fig(1),'name',figure_name);
       h_axes(1) = axes('parent',h_fig(1));
-      imagesc([],mdata.Time,lp(mdata.Data), 'parent', h_axes(1));
+      imagesc([],mdata.Time,lp(mdata.Data(:,overlap_rlines)), 'parent', h_axes(1));
       colormap(h_axes(1), 1-gray(256));
       hold(h_axes(1),'on');
       plot(h_axes(1),find(new_quality==1),new_layer(new_quality==1),'g');
       plot(h_axes(1),find(new_quality==3),new_layer(new_quality==3),'r');
       if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
-        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+min_min_bin-1),'m--')
-        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
-          track.dem+min_min_bin-1-track.init.max_diff),'r--')
-        plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
-          track.dem+min_min_bin-1+track.init.max_diff),'b--')
+        plot(h_axes(1),track_dem(:,overlap_rlines),'m--');
+        plot(h_axes(1),track_dem(:,overlap_rlines)-orig_track.init.max_diff,'r--');
+        plot(h_axes(1),track_dem(:,overlap_rlines)+orig_track.init.max_diff,'b--');
       end
       hold(h_axes(1),'off');
       if ~isempty(mdata.Time)
@@ -685,7 +721,7 @@ for track_idx = param.layer_tracker.tracks_in_task
       frm = param.layer_tracker.frms(frm_idx);
       
       % Get just the current frames layer data
-      gps_time = mdata.GPS_time(frm_start(frm_idx):frm_stop(frm_idx));
+      gps_time = mdata.GPS_time(frm_start(frm_idx)+overlap(1):frm_stop(frm_idx)+overlap(1));
       twtt = new_layers(:, frm_start(frm_idx):frm_stop(frm_idx));
       param_layer_tracker = param;
       file_version = '1';
