@@ -32,7 +32,7 @@ task_recs = param.load.recs; % Store this for later when creating output fn
 load_recs_ps(1) = floor((param.load.recs(1)-1)/param.analysis.presums)+1;
 load_recs_ps(2) = floor(param.load.recs(2)/param.analysis.presums);
 
-records = read_records_aux_files(records_fn,param.load.recs);
+records = records_aux_files_read(records_fn,param.load.recs);
 
 % Store the parameters that were used to create the records file
 param_records = records.param_records;
@@ -45,8 +45,8 @@ param_records.gps_source = records.gps_source;
 
 %% Load surface layer
 % =========================================================================
-frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(param);
+
 tmp_param = param;
 % Determine which frames have the records that are needed
 frms = find(task_recs(1) >= frames.frame_idxs,1,'last') : find(task_recs(2) >= frames.frame_idxs,1,'last');
@@ -68,6 +68,7 @@ for img = 1:length(store_param.load.imgs)
   param = store_param;
   param.load.raw_data = false;
   param.load.presums = param.analysis.presums;
+  param.load.bit_mask = param.analysis.bit_mask; % Skip bad records marked in records.bit_mask
   param.load.imgs = param.load.imgs(img);
   cmd_img = img;
   img = 1;
@@ -148,8 +149,9 @@ for img = 1:length(store_param.load.imgs)
       else
         file_version = '1';
       end
-      ct_save(out_fn,'-v7.3', 'max_rline', 'max_waveform', 'gps_time',...
-        'max_val_gps_time', 'max_val_gps_time_adc', 'file_version');
+      file_type = 'analysis_saturation_tmp';
+      ct_save(out_fn,'max_rline', 'max_waveform', 'gps_time',...
+        'max_val_gps_time', 'max_val_gps_time_adc', 'file_type', 'file_version');
       
       
     elseif strcmpi(cmd.method,{'specular'})
@@ -357,9 +359,10 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        ct_save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
+        file_type = 'analysis_spec_tmp';
+        ct_save(out_fn, 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
           'deconv_forced','peakiness', 'deconv_fc', 'deconv_t0', 'dt', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records','file_version');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records','file_type','file_version');
       end
       
       
@@ -392,6 +395,11 @@ for img = 1:length(store_param.load.imgs)
         roll = [];
         pitch = [];
         heading = [];
+        bad_rec = [];
+        DDC_dec = [];
+        raw_or_DDC = [];
+        DDC_freq_min = [];
+        DDC_freq_max = [];
         
         % Pulse compression
         tmp_param.radar.wfs(wf).coh_noise_method = '';
@@ -453,10 +461,17 @@ for img = 1:length(store_param.load.imgs)
           % Regular method for collecting good_samples
           % ===============================================================
           % threshold may be a scalar or a vector so bsxfun is used
-          if cmd.threshold_removeDC
-            good_samples = bsxfun(@lt, lp(bsxfun(@minus,data(:,rlines),mu)), threshold);
+          if size(data,1) == 0
+            % All records contained bad data, so fast time dimension has
+            % length of zero. This breaks bsxfun, so we handle this case
+            % separately.
+            good_samples = zeros(0,length(rlines));
           else
-            good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+            if cmd.threshold_removeDC
+              good_samples = bsxfun(@lt, lp(bsxfun(@minus,data(:,rlines),mu)), threshold);
+            else
+              good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+            end
           end
           
           %% Coh Noise: Debug coh_ave.threshold
@@ -479,9 +494,9 @@ for img = 1:length(store_param.load.imgs)
           
           %% Coh Noise: Concatenate Info
           coh_ave_samples(:,rline0_idx) = sum(good_samples,2);
-          coh_ave(:,rline0_idx) = sum(data(:,rlines) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          coh_ave(:,rline0_idx) = nansum(data(:,rlines) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
           if cmd.mag_en
-            coh_ave_mag(:,rline0_idx) = sum(abs(data(:,rlines)) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+            coh_ave_mag(:,rline0_idx) = nansum(abs(data(:,rlines)) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
           else
             coh_ave_mag = [];
           end          
@@ -508,6 +523,18 @@ for img = 1:length(store_param.load.imgs)
           roll(rline0_idx) = mean(hdr.records{img,wf_adc}.roll(rlines));
           pitch(rline0_idx) = mean(hdr.records{img,wf_adc}.pitch(rlines));
           heading(rline0_idx) = mean(hdr.records{img,wf_adc}.heading(rlines));
+          
+          bad_rec(rline0_idx) = mean(hdr.bad_rec{1}(rlines));
+          tmp_DDC_dec = unique(hdr.DDC_dec{1}(rlines));
+          if length(tmp_DDC_dec) == 1
+            DDC_dec(rline0_idx) = tmp_DDC_dec;
+          else
+            DDC_dec(rline0_idx) = NaN;
+          end
+          DDC_freq_min(rline0_idx) = min(hdr.DDC_freq{1}(rlines));
+          DDC_freq_max(rline0_idx) = max(hdr.DDC_freq{1}(rlines));
+          raw_or_DDC(rline0_idx) = DDC_dec(rline0_idx)==1;
+          
         end
         
         %% Coh Noise: Save results
@@ -525,8 +552,9 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        ct_save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_version');
+        file_type = 'analysis_noise_tmp';
+        ct_save(out_fn, 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_type','file_version', 'bad_rec', 'DDC_dec', 'DDC_freq_min', 'DDC_freq_max', 'raw_or_DDC');
       end
       
     elseif strcmpi(cmd.method,{'waveform'})
@@ -632,8 +660,9 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        ct_save(out_fn,'-v7.3', 'wf_data','time_rng', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'dt', 'fc', 'param_analysis', 'param_records','file_version');
+        file_type = 'analysis_waveform_tmp';
+        ct_save(out_fn, 'wf_data','time_rng', 'gps_time', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'dt', 'fc', 'param_analysis', 'param_records','file_type','file_version');
       end
       
       
@@ -820,8 +849,9 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
+        file_type = 'analysis_stats_tmp';
         ct_save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','file_version');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','file_type','file_version');
       end
       
     end

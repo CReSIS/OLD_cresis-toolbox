@@ -126,7 +126,7 @@ if insertPathCmd
       recordsFn = ct_filename_support(param,'','records');
       framesFn = ct_filename_support(param,'','frames');
       
-      load(framesFn); % LOAD FRAMES FILE
+      frames = load(framesFn); % LOAD FRAMES FILE
       records = load(recordsFn); % LOAD RECORDS FILE
       if isfield(records,'records')
         records = records.records; % SUPPORT OLD RECORDS FORMAT

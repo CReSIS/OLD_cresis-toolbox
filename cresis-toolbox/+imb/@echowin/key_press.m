@@ -16,6 +16,7 @@ function key_press(obj,src,event)
 %   Control: none
 % -----------------------------------------------------------------------
 
+current_object = gco;
 modifiers = get(event.Source,'CurrentModifier');
 obj.shift_pressed = ismember('shift',   modifiers);  % true/false
 obj.control_pressed  = ismember('control', modifiers);  % true/false
@@ -31,12 +32,12 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
   if length(event.Key) == 1 && event.Key >= '0' && event.Key <= '9'
     cur_time = now;
     done = false;
-    if cur_time - obj.switch_layers.old_time < 1/86400
+    if cur_time - obj.switch_layers.time < 1/86400
       % Accumulate event characters
       obj.switch_layers.accumulated_event_characters ...
         = [obj.switch_layers.accumulated_event_characters event.Key];
       desired_layer_num = str2double(obj.switch_layers.accumulated_event_characters);
-      if desired_layer_num > 0 && desired_layer_num <= length(obj.left_panel.layer_panel.layer_names)
+      if desired_layer_num > 0 && desired_layer_num <= length(obj.eg.layers.lyr_id)
         done = true;
       end
     end
@@ -45,16 +46,20 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % in the last 0.5 seconds, then we start over.
       obj.switch_layers.accumulated_event_characters = event.Key;
       desired_layer_num = str2double(obj.switch_layers.accumulated_event_characters);
-      if desired_layer_num > 0 && desired_layer_num <= length(obj.left_panel.layer_panel.selected_layers)
+      if desired_layer_num > 0 && desired_layer_num <= length(obj.eg.layers.selected_layers)
         done = true;
       end
     end
     if done
       % If the number was valid, we update the selection
-      obj.layerLB_sync('sel',desired_layer_num);
+      if ~obj.shift_pressed
+        obj.eg.layers.selected_layers(:)=false;
+      end
+      obj.eg.layers.selected_layers(desired_layer_num)=true;
+      set(obj.left_panel.layerLB,'Value',find(obj.eg.layers.selected_layers));
       obj.set_visibility();
     end
-    obj.switch_layers.old_time = cur_time;
+    obj.switch_layers.time = cur_time;
   end
   
   
@@ -154,69 +159,71 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       
     case 'backquote' % Toggle display of manual points
       if any(strcmp('shift',event.Modifier))
-        obj.show_manual_pts = ~obj.show_manual_pts;
+        obj.eg.layers.show_manual_pts = ~obj.eg.layers.show_manual_pts;
         obj.status_text_set(sprintf('Toggling manual point visibility'),'replace');
         obj.set_visibility();
       else
-        obj.show_dots_only = ~obj.show_dots_only;
+        obj.eg.layers.show_dots_only = ~obj.eg.layers.show_dots_only;
         obj.status_text_set(sprintf('Toggling dots/lines and dots'),'replace');
         obj.set_visibility();
       end
       
     case 'a'
-      if ~isnan(obj.left_panel.layer_panel.surface) && ~isnan(obj.left_panel.layer_panel.bottom)
-        obj.layerLB_sync('sel',[obj.left_panel.layer_panel.surface obj.left_panel.layer_panel.bottom]);
-        obj.set_visibility();
-      else
-        obj.status_text_set(sprintf('Surface and bottom layers do not both exist'),'replace');
-      end
+      obj.eg.layers.selected_layers = obj.eg.layers.visible_layers;
+      set(obj.left_panel.layerLB,'Value',find(obj.eg.layers.selected_layers));
+      obj.set_visibility();
       
     case 'b'
       set(obj.left_panel.toolPM,'Value',4);
-      tmp = obj.tool_list{4}; obj.left_click = @tmp.left_click;
-      tmp = obj.tool_list{4}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-      tmp = obj.tool_list{4}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+      tmp = obj.tool.list{4}; obj.tool.left_click_fh = @tmp.left_click;
+      tmp = obj.tool.list{4}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{4}; obj.tool.right_click_fh = @tmp.right_click;
+      tmp = obj.tool.list{4}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();      
       
     case 'c'
       if any(strcmp('control',event.Modifier))
         obj.status_text_copy_callback();
       elseif any(strcmp('shift',event.Modifier))
-        if ~obj.crossovers_en
-          obj.crossovers_en = true;
+        if ~obj.crossovers.en && strcmp(obj.eg.layers.source,'OPS')
+          % Cross overs can only be enabled when using OPS layer data
+          obj.crossovers.en = true;
           obj.load_crossovers();
         end
         % enable or disable crossovers
-        obj.eg.crossovers.gui.visibility_toggle();
+        obj.crossovers.gui.visibility_toggle();
       else
         % convert layer tool hotkey
         set(obj.left_panel.toolPM,'Value',5);
-        tmp = obj.tool_list{5}; obj.left_click = @tmp.left_click;
-        tmp = obj.tool_list{5}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-        tmp = obj.tool_list{5}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+        tmp = obj.tool.list{5}; obj.tool.left_click_fh = @tmp.left_click;
+        tmp = obj.tool.list{5}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{5}; obj.tool.right_click_fh = @tmp.right_click;
+        tmp = obj.tool.list{5}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();      
       end
       
     case 'e'
       set(obj.left_panel.toolPM,'Value',1);
-      tmp = obj.tool_list{1}; obj.left_click = @tmp.left_click;
-      tmp = obj.tool_list{1}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-      tmp = obj.tool_list{1}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+      tmp = obj.tool.list{1}; obj.tool.left_click_fh = @tmp.left_click;
+      tmp = obj.tool.list{1}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{1}; obj.tool.right_click_fh = @tmp.right_click;
+      tmp = obj.tool.list{1}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();      
       
     case 'f'
       %% Flip the horizontal axis
-      if strcmpi(get(obj.right_panel.axes.handle,'XDir'),'normal')
-        set(obj.right_panel.axes.handle,'XDir','reverse');
+      if strcmpi(get(obj.h_axes,'XDir'),'normal')
+        set(obj.h_axes,'XDir','reverse');
       else
-        set(obj.right_panel.axes.handle,'XDir','normal');
+        set(obj.h_axes,'XDir','normal');
       end
       
     case 'i'
       set(obj.left_panel.toolPM,'Value',1);
-      tmp = obj.tool_list{1}; obj.left_click = @tmp.left_click;
-      tmp = obj.tool_list{1}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-      tmp = obj.tool_list{1}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+      tmp = obj.tool.list{1}; obj.tool.left_click_fh = @tmp.left_click;
+      tmp = obj.tool.list{1}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{1}; obj.tool.right_click_fh = @tmp.right_click;
+      tmp = obj.tool.list{1}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();
       
     case 'p'
@@ -226,10 +233,11 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
     case 'q'
       if isempty(event.Modifier)
         set(obj.left_panel.toolPM,'Value',2);
-        tmp = obj.tool_list{2}; obj.left_click = @tmp.left_click;
-        tmp = obj.tool_list{2}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-        tmp = obj.tool_list{2}; obj.right_click_and_drag = @tmp.right_click_and_drag;
-        obj.toolPM_callback();        
+        tmp = obj.tool.list{2}; obj.tool.left_click_fh = @tmp.left_click;
+        tmp = obj.tool.list{2}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{2}; obj.tool.right_click_fh = @tmp.right_click;
+        tmp = obj.tool.list{2}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
+        obj.toolPM_callback();
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         new_quality = 1+mod(get(obj.left_panel.qualityPM,'Value'), ...
           length(get(obj.left_panel.qualityPM,'String')));
@@ -243,9 +251,10 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
     case 's'
       if isempty(event.Modifier)
         set(obj.left_panel.toolPM,'Value',3);
-        tmp = obj.tool_list{3}; obj.left_click = @tmp.left_click;
-        tmp = obj.tool_list{3}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-        tmp = obj.tool_list{3}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+        tmp = obj.tool.list{3}; obj.tool.left_click_fh = @tmp.left_click;
+        tmp = obj.tool.list{3}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{3}; obj.tool.right_click_fh = @tmp.right_click;
+        tmp = obj.tool.list{3}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();        
       elseif ~obj.shift_pressed && ~obj.alt_pressed && obj.control_pressed
         %% Save screenshot of current echowin
@@ -259,10 +268,11 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
           gRadar.path_override,datestr(now,'yyyymmdd_HHMMSS'),...
           obj.eg.cur_sel.radar_name,...
           obj.eg.cur_sel.season_name,obj.eg.cur_sel.day_seg,...
-          num2str([obj.eg.frame_idxs(1) obj.eg.frame_idxs(end)],'%d-%d'));
-        obj.status_text_set(sprintf('Saving screenshot %s...',fn),'replace');
+          num2str([obj.eg.frms(1) obj.eg.frms(end)],'%d-%d'));
+        obj.status_text_set(sprintf('Saving screenshot %s',fn),'replace');
+        fprintf('Saving screenshot %s\n',fn);
         set(obj.h_fig,'paperpositionmode','auto');
-        print('-dpng',sprintf('-f%d',obj.h_fig),fn);
+        print('-dpng',sprintf('-f%d',obj.h_fig.Number),fn);
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         %% Save current layers
         obj.savePB_callback();
@@ -271,9 +281,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
     case 'v'
       if isempty(event.Modifier)
         set(obj.left_panel.toolPM,'Value',6);
-        tmp = obj.tool_list{3}; obj.left_click = @tmp.left_click;
-        tmp = obj.tool_list{3}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-        tmp = obj.tool_list{3}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+        tmp = obj.tool.list{3}; obj.tool.left_click_fh = @tmp.left_click;
+        tmp = obj.tool.list{3}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{3}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();
       end
       
@@ -300,125 +310,127 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % Space bar cycles between "currently visible layers on" and "all
       %   layers off"
       % Shift-space bar cycles between quality and regular coloring
-      %   Toggles obj.tool.quality_en
+      %   Toggles obj.eg.layers.quality_en
       % Ctrl-Space bar cycles between "currently visible layers on" and "all
       %   layers on"
       if obj.shift_pressed
         % Toggle visibility of quality layers
-        obj.tool.quality_en = ~obj.tool.quality_en;
+        obj.eg.layers.quality_en = ~obj.eg.layers.quality_en;
       elseif obj.control_pressed
         % Toggle visibility between "currently visible layers on" and "all
         % layers on"
-        if ~all(obj.left_panel.layer_panel.visible_layers)
+        if ~all(obj.eg.layers.visible_layers)
           % Save this visibility state for later
-          obj.tool.old_visibility = obj.left_panel.layer_panel.visible_layers;
+          obj.tool.old_visibility = obj.eg.layers.visible_layers;
           % Since not all layers are on, turn them all on
-          obj.left_panel.layer_panel.visible_layers(:) = 1;
+          obj.eg.layers.visible_layers(:) = 1;
         else
           if isfield(obj.tool,'old_visibility') ...
-              && length(obj.tool.old_visibility) == length(obj.left_panel.layer_panel.visible_layers)
+              && length(obj.tool.old_visibility) == length(obj.eg.layers.visible_layers)
             % If an old state exists, then just turn these layers on
-            obj.left_panel.layer_panel.visible_layers = obj.tool.old_visibility;
+            obj.eg.layers.visible_layers = obj.tool.old_visibility;
           else
             % Otherwise... just turn them all off
-            obj.left_panel.layer_panel.visible_layers(:) = 0;
+            obj.eg.layers.visible_layers(:) = 0;
           end
         end
-        obj.layerLB_sync('vis',[]);
       else
         % Toggle visibility between "currently visible layers on" and "all
         % layers off"
-        if any(obj.left_panel.layer_panel.visible_layers)
+        if any(obj.eg.layers.visible_layers)
           % Save this visibility state for later
-          obj.tool.old_visibility = obj.left_panel.layer_panel.visible_layers;
+          obj.tool.old_visibility = obj.eg.layers.visible_layers;
           % Since some layers are on, turn them all off
-          obj.left_panel.layer_panel.visible_layers(:) = 0;
+          obj.eg.layers.visible_layers(:) = 0;
         else
           if isfield(obj.tool,'old_visibility') ...
-              && length(obj.tool.old_visibility) == length(obj.left_panel.layer_panel.visible_layers)
+              && length(obj.tool.old_visibility) == length(obj.eg.layers.visible_layers)
             % If an old state exists, then just turn these layers on
-            obj.left_panel.layer_panel.visible_layers = obj.tool.old_visibility;
+            obj.eg.layers.visible_layers = obj.tool.old_visibility;
           else
             % Otherwise... just turn them all back on
-            obj.left_panel.layer_panel.visible_layers(:) = 1;
+            obj.eg.layers.visible_layers(:) = 1;
           end
         end
-        obj.layerLB_sync('vis',[]);
       end
+      obj.layerLB_str();
       obj.set_visibility();
       
     case 'downarrow' % Down-arrow: Move Echogram Down
-      % check if echogram is selected
-      cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
-        get(obj.right_panel.axes.handle,'YLim')];
-      % Only redraw if not already at limit
-      if (strcmp(obj.eg.y_order,'reverse') && cur_axis(4) < max(obj.eg.image_yaxis([1 end]))) ...
-          || (strcmp(obj.eg.y_order,'normal') && cur_axis(3) > min(obj.eg.image_yaxis([1 end])))
-        y_extent = cur_axis(4) - cur_axis(3);
-        if strcmp(obj.eg.y_order,'reverse')
-          cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
-        elseif strcmp(obj.eg.y_order,'normal')
-          cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
-        end
-        
-        % Convert x_min, x_max to GPS time
-        xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
-        
-        % Draw data with new axis, but do not allow new data to be loaded (i.e.
-        % clip new axis to limits of loaded data
-        obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true));
+      if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
+        return
       end
+      % check if echogram is selected
+      cur_axis = [get(obj.h_axes,'Xlim') ...
+        get(obj.h_axes,'YLim')];
+      y_extent = cur_axis(4) - cur_axis(3);
+      if strcmp(obj.eg.y_order,'reverse')
+        cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
+      elseif strcmp(obj.eg.y_order,'normal')
+        cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
+      end
+      
+      % Convert x_min, x_max to GPS time
+      xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      
+      % Draw data with new axis, but do not allow new data to be loaded (i.e.
+      % clip new axis to limits of loaded data
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
     case 'uparrow' % Up-arrow: Move Echogram Up
+      if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
+        return
+      end
       % check if echogram is selected
-      cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
-        get(obj.right_panel.axes.handle,'YLim')];
-      % Only redraw if not already at limit
-      if (strcmp(obj.eg.y_order,'reverse') && cur_axis(3) > min(obj.eg.image_yaxis([1 end]))) ...
-          || (strcmp(obj.eg.y_order,'normal') && cur_axis(4) < max(obj.eg.image_yaxis([1 end])))
-        y_extent = cur_axis(4) - cur_axis(3);
-        if strcmp(obj.eg.y_order,'reverse')
-          cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
-        elseif strcmp(obj.eg.y_order,'normal')
-          cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
-        end
-        
-        % Convert x_min, x_max to GPS time
-        xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
-        
-        % Draw data with new axis, but do not allow new data to be loaded (i.e.
-        % clip new axis to limits of loaded data
-        obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true));
+      cur_axis = [get(obj.h_axes,'Xlim') ...
+        get(obj.h_axes,'YLim')];
+      y_extent = cur_axis(4) - cur_axis(3);
+      if strcmp(obj.eg.y_order,'reverse')
+        cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
+      elseif strcmp(obj.eg.y_order,'normal')
+        cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
       end
       
-    case 'rightarrow' % Right arrow
-      cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
-        get(obj.right_panel.axes.handle,'YLim')];
+      % Convert x_min, x_max to GPS time
+      xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       
+      % Draw data with new axis, but do not allow new data to be loaded (i.e.
+      % clip new axis to limits of loaded data
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
+      
+    case 'rightarrow' % Right arrow
+      cur_axis = [get(obj.h_axes,'Xlim') ...
+        get(obj.h_axes,'YLim')];
+      
+      xlims_orig = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       x_extent = cur_axis(2) - cur_axis(1);
       cur_axis(1:2) = cur_axis(1:2) + x_extent*0.25;
       
       % Convert x_min, x_max to GPS time
       xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      if xlims(2) > obj.eg.stop_gps_time(end)
+        xlims = obj.eg.stop_gps_time(end) + [-diff(xlims_orig) 0];
+      end
       
       % Draw data with new axis
-      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false));
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
       
     case 'leftarrow' % Left arrow
-      cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
-        get(obj.right_panel.axes.handle,'YLim')];
+      cur_axis = [get(obj.h_axes,'Xlim') ...
+        get(obj.h_axes,'YLim')];
       
       x_extent = cur_axis(2) - cur_axis(1);
-      cur_axis(1:2) = cur_axis(1:2) - x_extent*0.25;
+      xlims_orig = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       
+      cur_axis(1:2) = cur_axis(1:2) - x_extent*0.25;
       % Convert x_min, x_max to GPS time
       xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      if xlims(1) < obj.eg.start_gps_time(1)
+        xlims = obj.eg.start_gps_time(1) + [0 diff(xlims_orig)];
+      end
       
       % Draw data with new axis
-      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false));
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
       
   end
-  obj.shift_pressed = false;
-  obj.control_pressed = false;
-  obj.alt_pressed = false;
 end

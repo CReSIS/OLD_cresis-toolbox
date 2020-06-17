@@ -3,15 +3,15 @@ function load_crossovers(obj,source,event)
 %
 % Load crossover information from database and update crossover plot handles
 
-if obj.crossovers_en
+if obj.crossovers.en
   fprintf(' Loading crossovers from database (%s)\n', datestr(now,'HH:MM:SS'));
   %% Crossover management
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;
-  ops_param.properties.lyr_name = obj.eg.layer.layer_names;
-  ops_param.properties.frame = obj.eg.frame_names(obj.eg.frame_idxs);
+  ops_param.properties.lyr_name = obj.eg.layers.lyr_name;
+  ops_param.properties.frame = obj.eg.frm_strs(obj.eg.frms);
   ops_param.properties.segment_id = ones(size(ops_param.properties.frame)) ...
-    *double(obj.eg.cur_sel.segment_id);
+    *double(obj.eg.cur_sel.seg_id);
   
   [status,data] = opsGetCrossovers(obj.eg.system,ops_param);
   
@@ -34,7 +34,7 @@ else
   data.properties.source_elev = [];
   data.properties.cross_elev = [];
   data.properties.layer_id = [];
-  data.properties.frame_name = [];
+  data.properties.frm_str = [];
   data.properties.twtt = [];
   data.properties.angle = [];
   data.properties.abs_error = [];
@@ -43,7 +43,7 @@ else
 end
 
 % Sort results (group cross overs together)
-obj.eg.crossovers.gui.set_crossovers(data.properties);
+obj.crossovers.gui.set_crossovers(data.properties);
 
 % Merge structs to add these fields to crossover:
 % source_point_path_id = integer array
@@ -51,11 +51,11 @@ obj.eg.crossovers.gui.set_crossovers(data.properties);
 % source_elev = double array
 % cross_elev = double array
 % layer_id = integer array
-% frame_name = integer array
+% frm_str = integer array
 % properties.twtt = double array
 % properties.angle = double array
 % properties.abs_error = double array
-obj.eg.crossovers = merge_structs(obj.eg.crossovers,data.properties);
+obj.crossovers = merge_structs(obj.crossovers,data.properties);
 
 obj.plot_crossovers();
 

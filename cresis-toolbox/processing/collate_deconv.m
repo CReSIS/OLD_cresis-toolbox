@@ -857,7 +857,9 @@ if param.collate_deconv.stage_one_en
         deconv.fc = deconv.fc(good_mask);
         deconv.twtt = deconv.twtt(good_mask);
       end
-      ct_save(out_fn,'-v7.3','-struct','deconv');
+      deconv.file_version = '1';
+      deconv.file_type = 'deconv_lib';
+      ct_save(out_fn,'-struct','deconv');
       
     end
   end
@@ -1183,7 +1185,9 @@ if param.collate_deconv.stage_two_en
       out_fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
       ct_file_lock_check(out_fn,2);
-      ct_save(out_fn,'-v7.3','-struct','final');
+      final.file_version = '1';
+      final.file_type = 'deconv';
+      ct_save(out_fn,'-struct','final');
       
     end
   end

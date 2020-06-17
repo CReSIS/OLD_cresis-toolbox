@@ -47,13 +47,11 @@ function gps = read_gps_arena(fn, param)
 %   plot(gps.lon,gps.lat);
 %   datestr(epoch_to_datenum(gps.gps_time(1)));
 %   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
-%   plot_gps(gps)
+%   gps_plot(gps)
 %
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 if ~exist('param','var') || isempty(param)
   error('Year, month, day must be specified in param struct');
@@ -85,7 +83,6 @@ nmea_idx = 1;
 relTimeCntrTmp = NaN;
 profileCntrTmp = NaN;
 ppsCntrTmp = NaN;
-gps_date_tmp = NaN;
 heading_tmp = NaN;
 line_num = 0;
 while ~feof(fid)
@@ -127,13 +124,12 @@ while ~feof(fid)
           relTimeCntr(nmea_idx) = relTimeCntrTmp;
           profileCntr(nmea_idx) = profileCntrTmp;
           ppsCntr(nmea_idx) = ppsCntrTmp;
-          gps_date(nmea_idx) = gps_date_tmp;
           heading(nmea_idx) = heading_tmp;
+          gps_date(nmea_idx) = NaN;
           nmea_idx = nmea_idx + 1;
           relTimeCntrTmp = NaN;
           profileCntrTmp = NaN;
           ppsCntrTmp = NaN;
-          gps_date_tmp = NaN;
           heading_tmp = NaN;
         else
           fprintf(2, '    BAD LINE %d: %s\n', line_num, GPGGA_str(GPGGA_str ~= 10));
@@ -143,6 +139,19 @@ while ~feof(fid)
       C = textscan(remain(2:end),format_str_GPRMC,'delimiter',', ','emptyvalue',NaN);
       [tag,UTC_time_file_tmp,nav_rx_warning,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,speed,heading_tmp,...
         gps_date_tmp,mag_Var,mag_var_E_W,checksum] = deal(C{:});
+      if nmea_idx > 1
+        % We __think__ that the GPRMC string always comes after the
+        % corresponding GPGGA string with the same time stamp. Therefore,
+        % this string is just updating fields that the GPGGA string already
+        % provided. The most important field is the gps_date which the
+        % GPGGA does not provide. We __think__ that all the other fields
+        % should be the same as what were in the GPGGA string.
+        if UTC_time_file(nmea_idx-1) == UTC_time_file_tmp
+          gps_date(nmea_idx-1) = gps_date_tmp;
+        else
+          fprintf(2, '    GPRMC WITH DIFFERENT TIME THAN LAST GPGGA LINE %d: %.14g  ~= %.14g\n', line_num, UTC_time_file_tmp, UTC_time_file(nmea_idx-1));
+        end
+      end
     end
   elseif strcmpi(token,'relTimeCntr')
     relTimeCntrTmp = str2double(remain(2:end));

@@ -1,9 +1,39 @@
 %% User Settings
 passes = struct('frm',{},'wf_adc',{},'param_fn',{});
-master_pass = struct('frm','20140429_01_067','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
+% master_pass = struct('frm','20140429_01_067','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
+master_pass = struct('frm','20140502_01_041','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
 
 if 1
-  %% OIB P3 Greenland: North Line
+  %% Summit Camp: 2012-2014
+
+    pass_name = sprintf('summit_2012_2014_wf2');
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  wf = 2;
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140502_01_041','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  param_fn = 'rds_param_2012_Greenland_P3.xls';
+  wf = 1;
+  for adc = 2:16
+    passes(end+1) = struct('frm','20120330_03_008','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  passes(end+1) = master_pass;
+
+%   % Start:
+%   20120330_03_008: 72.646053 N, -37.898030 E, X:234.152 km, Y:-1879.297 km, 2012-03-30 15:10:28.01, 3264.13 Elevation, 0.00 Depth
+%   20140502_01_041: 72.646347 N, -37.897234 E, X:234.171 km, Y:-1879.267 km, 2014-05-02 15:18:08.68, 3270.24 Elevation, 0.00 Depth
+%   % Stop:
+%   20120330_03_008: 72.791389 N, -38.461623 E, X:213.822 km, Y:-1865.521 km, 2012-03-30 15:13:28.49, 3239.21 Elevation, 0.00 Depth
+%   20140502_01_041: 72.791530 N, -38.461307 E, X:213.828 km, Y:-1865.510 km, 2014-05-02 15:21:13.16, 3243.05 Elevation, 0.00 Depth
+
+  %Found using check_region
+  start = struct('lat', 72.646,'lon', -37.898);
+  stop = struct('lat', 72.791, 'lon', -38.461);
+  %Set dist min
+  dist_min = 300;
+  
+elseif 0
+  %% OIB P3 Greenland: 2011-2014
 
 %   pass_name = sprintf('rds_thule_2011_2014_wf1');
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
@@ -41,6 +71,7 @@ if 1
 %     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
+  %% OIB P3 Greenland: 2012-2014
 %   pass_name = sprintf('rds_thule_2012_2014_wf1');
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
 %   wf = 1;
@@ -77,6 +108,7 @@ if 1
 %     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 %   
+  %% OIB P3 Greenland: 2013-2014
 %   pass_name = sprintf('rds_thule_2013_2014_wf1');
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
 %   wf = 1;
@@ -113,6 +145,7 @@ if 1
 %     passes(end+1) = struct('frm','20130419_01_004','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
+  %% OIB P3 Greenland: 2011
 %   param_fn = 'rds_param_2011_Greenland_P3.xls';
 %   wf = 1;
 %   pass_name = sprintf('rds_thule_20110502_02_032_wf%d',wf);
@@ -142,6 +175,7 @@ if 1
 %     passes(end+1) = struct('frm','20110509_02_034','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
+  %% OIB P3 Greenland: 2012
 %   param_fn = 'rds_param_2012_Greenland_P3.xls';
 %   wf = 1;
 %   pass_name = sprintf('rds_thule_20120503_03_067_wf%d',wf);
@@ -156,6 +190,7 @@ if 1
 %     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
+  %% OIB P3 Greenland: 2013
 %   param_fn = 'rds_param_2013_Greenland_P3.xls';
 %   wf = 1;
 %   pass_name = sprintf('rds_thule_20130419_01_004_wf%d',wf);
@@ -171,19 +206,7 @@ if 1
 %   end
 %   passes(end+1) = master_pass;
 
-%   param_fn = 'rds_param_2014_Greenland_P3.xls';
-%   wf = 2;
-%   pass_name = sprintf('rds_thule_20140429_01_067_wf%d',wf);
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-  
-%   param_fn = 'rds_param_2014_Greenland_P3.xls';
-%   wf = 2;
-%   pass_name = sprintf('rds_thule_20140429_01_005_wf%d',wf);
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
+  %% OIB P3 Greenland: 2014
 
   param_fn = 'rds_param_2014_Greenland_P3.xls';
   wf = 2;
@@ -217,6 +240,20 @@ if 1
 %   %   frms{end+1} = '20140502_01_060'; %High altitude flight
 %   %   frms{end+1} = '20140507_01_068'; %outside of window
 %   %   frms{end+1} = '20140521_01_003'; %Lots of random noise
+
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
+%   pass_name = sprintf('rds_thule_20140429_01_067_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+  
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
+%   pass_name = sprintf('rds_thule_20140429_01_005_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
 
   %Found using check_region
   start = struct('lat', 77.10,'lon', -62.3);

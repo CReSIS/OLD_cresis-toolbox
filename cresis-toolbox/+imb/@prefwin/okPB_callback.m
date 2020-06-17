@@ -20,7 +20,11 @@ obj.default_params.system = systems{get(obj.h_gui.systemsLB,'Value')};
 layer_source = get(obj.h_gui.layerSourcePM,'String');
 obj.default_params.layer_source = layer_source{get(obj.h_gui.layerSourcePM,'Value')};
 layer_data_source = get(obj.h_gui.layerDataSourcePM,'String');
-obj.default_params.layer_data_source = layer_data_source{get(obj.h_gui.layerDataSourcePM,'Value')};
+if isempty(layer_data_source)
+  obj.default_params.layer_data_source = 'layer';
+else
+  obj.default_params.layer_data_source = layer_data_source{get(obj.h_gui.layerDataSourcePM,'Value')};
+end
 %
 obj.default_params.season_names = obj.h_gui.h_seasons.get_selected_strings();
 obj.default_params.layer_names = obj.h_gui.h_layers.get_selected_strings();
@@ -55,19 +59,17 @@ for idx = 1:length(selected_seasons)
 end
 
 %% Filter layers
-  selected_layer_names = obj.h_gui.h_layers.get_selected_strings().';
+selected_layer_names = obj.h_gui.h_layers.get_selected_strings().';
 selected_layers.lyr_name = {};
 selected_layers.lyr_group_name = {};
 selected_layers.lyr_id = [];
-if ~isempty(system_name) && ~strcmpi(system_name,'layerdata')
-  for idx = 1:length(obj.ops.layers.lyr_name)
-    layer_name = sprintf('%s:%s', obj.ops.layers.lyr_group_name{idx}, obj.ops.layers.lyr_name{idx});
-    match_idx = strmatch(layer_name,selected_layer_names,'exact');
-    if ~isempty(match_idx)
-      selected_layers.lyr_name{end+1} = obj.ops.layers.lyr_name{idx};
-      selected_layers.lyr_group_name{end+1} = obj.ops.layers.lyr_group_name{idx};
-      selected_layers.lyr_id(end+1) = obj.ops.layers.lyr_id(idx);
-    end
+for idx = 1:length(obj.ops.layers.lyr_name)
+  layer_name = sprintf('%s:%s', obj.ops.layers.lyr_group_name{idx}, obj.ops.layers.lyr_name{idx});
+  match_idx = strmatch(layer_name,selected_layer_names,'exact');
+  if ~isempty(match_idx)
+    selected_layers.lyr_name{end+1} = obj.ops.layers.lyr_name{idx};
+    selected_layers.lyr_group_name{end+1} = obj.ops.layers.lyr_group_name{idx};
+    selected_layers.lyr_id(end+1) = obj.ops.layers.lyr_id(idx);
   end
 end
 
@@ -98,7 +100,11 @@ layer_sources = get(obj.h_gui.layerSourcePM,'String');
 obj.settings.layer_source = layer_sources{get(obj.h_gui.layerSourcePM,'Value')};
 
 layer_data_sources = get(obj.h_gui.layerDataSourcePM,'String');
-obj.settings.layer_data_source = layer_data_sources{get(obj.h_gui.layerDataSourcePM,'Value')};
+if isempty(layer_data_sources)
+  obj.settings.layer_data_source = 'layer';
+else
+  obj.settings.layer_data_source = layer_data_sources{get(obj.h_gui.layerDataSourcePM,'Value')};
+end
 
 obj.settings.layers = selected_layers;
 obj.settings.seasons = selected_seasons;

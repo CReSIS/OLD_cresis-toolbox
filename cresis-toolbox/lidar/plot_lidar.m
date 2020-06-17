@@ -25,9 +25,7 @@ function plot_lidar(fn, record_fn, plot_color)
 %
 % Author: John Paden
 % 
-% See also read_gps_applanix.m, read_gps_reveal.m,
-%   make_gps_2009_antarctica_DC8_DGPSwINS.m,
-%   make_gps_2009_antarctica_DC8_GPS.m
+% See also plot_lidar.m, read_lidar_*.m
 
 if ~exist('record_fn','var')
   record_fn = [];

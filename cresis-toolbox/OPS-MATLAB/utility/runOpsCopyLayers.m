@@ -10,9 +10,9 @@
 % =====================================================================
 
 % Load the parameter spreadsheet 
-params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20110317_03');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20191230_01');
 params = ct_set_params(params,'cmd.frms',[1]);
 
 % Set the operation to run (just choose one operation)
@@ -32,13 +32,13 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   copy_param.layer_dest.existence_check = false;
 
   % Set the layer name for the source (e.g. 'surface', 'bottom')
-  copy_param.layer_source.name = 'bottom';
+  copy_param.layer_source.name = 'surface';
   
   % Set the layer name for the destination (e.g. 'surface', 'bottom')
-  copy_param.layer_dest.name = 'bottom';
+  copy_param.layer_dest.name = 'surface';
 
   % Set the source (choose one)
-  if 1
+  if 0
     copy_param.layer_source.source = 'ops';
   elseif 0
     copy_param.layer_source.source = 'records';
@@ -52,9 +52,9 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
     else
       copy_param.layer_source.echogram_source = 'standard';
     end
-  elseif 0
+  elseif 1
     copy_param.layer_source.source = 'layerdata';
-    copy_param.layer_source.layerdata_source = 'layerData';
+    copy_param.layer_source.layerdata_source = 'layer';
   else
     copy_param.layer_source.source = 'lidar';
     copy_param.layer_source.lidar_source = 'awi';
@@ -76,7 +76,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   end
   
   % Set the twtt offset (for positive offset layer shifts down)
-  twtt_offset = 0;
+  twtt_offset = 0e-6;
   
   % Set the GPS time offset (for positive offset layer shifts right)
   gps_time_offset = 0;
@@ -113,8 +113,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
     end
   elseif 1
     copy_param.layer_dest.source = 'layerdata';
-    copy_param.layer_dest.layerdata_source = 'layerData';
-    copy_param.layer_dest.echogram_source = 'standard'; % Only required if layerData files do not exist and need to be created
+    copy_param.layer_dest.layerdata_source = 'layer';
   end
   
 end

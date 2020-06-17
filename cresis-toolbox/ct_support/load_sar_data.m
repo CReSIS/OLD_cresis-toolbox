@@ -1,18 +1,12 @@
 function [data,metadata] = load_sar_data(param)
 % [data,metadata] = load_sar_data(param)
 %
-% Loads and concatenates sar data. Currently requires all data
-% to be in the same directory. Returns data, position, and header
+% Loads and concatenates sar data from a single frame. Currently requires
+% all data to be in the same directory. Returns data, position, and header
 % information associated with the sar data.
-% Known Issue: Does not remove overlapping parts of chunks
 %
-% Options for:
-%   combine_channels (0 = returns 3D matrix)
-%   incoherent = takes abs()^2
-%   combine_waveforms = combines waveforms
-%   local detrending
-%   * no data decimation is done except when combining
-%   * does not support multiple tx channels yet
+% param.load_sar_data: parameter structure controlling how data are loaded.
+% See input arguments section for details
 %
 % Author: John Paden, Logan Smith
 %
@@ -21,71 +15,120 @@ function [data,metadata] = load_sar_data(param)
 %
 % Also used in: run_load_sar_data.m
 
-% Path to the input data
-year = str2double(param.day_seg(1:4));
-month = str2double(param.day_seg(5:6));
-day = str2double(param.day_seg(7:8));
-seg = str2double(param.day_seg(10:11));
-
 %% Check input arguments
-% =====================================================================
-if ~isfield(param.load_sar_data,'debug_level')
+% =========================================================================
+
+%% Input: sar param
+% subap: list of subapertures to load (array of integers, default is 1)
+if ~isfield(param.sar,'sub_aperture_steering') || isempty(param.sar.sub_aperture_steering)
+  % Single aperture which points broadside to SAR is default
+  param.sar.sub_aperture_steering = [0];
+end
+
+%% Input: load_sar_data param
+% combine_channels: sum wf-adc pairs together in each image
+if ~isfield(param.load_sar_data,'combine_channels') || isempty(param.load_sar_data.combine_channels)
+  param.load_sar_data.combine_channels = false;
+end
+
+% combine_imgs: combine images together
+if ~isfield(param.load_sar_data,'combine_imgs') || isempty(param.load_sar_data.combine_imgs)
+  param.load_sar_data.combine_imgs = false;
+end
+
+% chunk: two element vector specifying the start and stop chunk to load
+% (minimum value is 1 and maximum value is the number of chunks in the
+% frame). If the stop chunk is specified, then the stop chunk is set to the
+% number of chunks. The default is to load all chunks which is [1 inf].
+if ~isfield(param.load_sar_data,'chunk') || isempty(param.load_sar_data.chunk)
+  param.load_sar_data.chunk = [1 inf];
+end
+
+% debug_level
+if ~isfield(param.load_sar_data,'debug_level') || isempty(param.load_sar_data.debug_level)
   param.load_sar_data.debug_level = 1;
 end
-if ~isfield(param.load_sar_data,'combine_channels')
-  param.load_sar_data.combine_channels = 1;
+
+% detrend: structure controlling detrending. Arguments are passed into
+% local_detrend.m. Detrend is disabled by default (detrend.cmd == 0).
+% Detrending only runs if combine_channels == true and incoherent == true.
+if ~isfield(param.load_sar_data,'detrend') || isempty(param.load_sar_data.detrend)
+  param.load_sar_data.detrend.cmd = [];
 end
-if ~isfield(param.load_sar_data,'incoherent')
-  param.load_sar_data.incoherent = 1;
-end
-if ~isfield(param.load_sar_data,'combine_waveforms')
-  param.load_sar_data.combine_waveforms = 1;
-end
-if ~isfield(param.load_sar_data,'detrend') || ~isfield(param.load_sar_data.detrend,'cmd')
-  param.load_sar_data.detrend.cmd = 3;
-end
-if ~isfield(param.load_sar_data.detrend,'B_noise')
+if ~isfield(param.load_sar_data.detrend,'B_noise') || isempty(param.load_sar_data.detrend.B_noise)
   param.load_sar_data.detrend.B_noise = [100 200];
 end
-if ~isfield(param.load_sar_data.detrend,'B_sig')
+if ~isfield(param.load_sar_data.detrend,'B_sig') || isempty(param.load_sar_data.detrend.B_sig)
   param.load_sar_data.detrend.B_sig = [10 20];
 end
+if ~isfield(param.load_sar_data.detrend,'cmd') || isempty(param.load_sar_data.detrend.cmd)
+  param.load_sar_data.detrend.cmd = 0;
+end
+if ~isfield(param.load_sar_data.detrend,'minVal') || isempty(param.load_sar_data.detrend.minVal)
+  param.load_sar_data.detrend.minVal = -inf;
+end
+
+% fn: Data directory. Default is "sar" which loads from "CSARP_sar".
 if ~isfield(param.load_sar_data,'fn') || isempty(param.load_sar_data.fn)
   param.load_sar_data.fn = 'sar';
 end
-% The base path for all the data
-base_path = ct_filename_out(param,param.load_sar_data.fn,'');
-if ~isfield(param.load_sar_data.detrend,'minVal')
-  param.load_sar_data.detrend.minVal = -inf;
+
+% frm: Data frame to load
+if ~isfield(param.load_sar_data,'frm') || isempty(param.load_sar_data.frm)
+  warning('The param.load_sar_data.frm field must be set to an integer indicating which frame to load. Defaulting to param.load_sar_data.frm = 1.');
+  param.load_sar_data.frm = 1;
 end
-if ~isfield(param.load_sar_data,'wf_comb')
-  param.load_sar_data.wf_comb           = 10e-6;
+
+% imgs: cell array of images to load. Each cell array contains a 2 by N
+% waveform-adc pair list where N is the number of wf-adc pairs to load.
+% Default is {[1 1]} which loads one image and this image is pulled from
+% waveform = 1, adc = 1.
+if ~isfield(param.load_sar_data,'imgs') || isempty(param.load_sar_data.imgs)
+  param.load_sar_data.imgs = {[1 1]};
+end
+
+% incoherent: logical scalar, default is false, if true, the data will be
+% power detected on load with abs()^2. Incoherent only runs if
+% combine_channels == true.
+if ~isfield(param.load_sar_data,'incoherent') || isempty(param.load_sar_data.incoherent)
+  param.load_sar_data.incoherent = false;
+end
+
+% sar_type: 'fk' or 'tdbp'. Default is 'fk'.
+if ~isfield(param.load_sar_data,'sar_type') || isempty(param.load_sar_data.sar_type)
+  param.load_sar_data.sar_type = 'fk';
+end
+
+% subap: list of subapertures to load (array of integers, default is all
+% subapertures specified in param.sar.sub_aperture_steering)
+if ~isfield(param.load_sar_data,'subap') || isempty(param.load_sar_data.subap)
+  param.load_sar_data.subap = 1:length(param.sar.sub_aperture_steering);
 end
 
 physical_constants;
 
-%% Initialize memory for outputs
+%% Load subapertures
+% =========================================================================
+
+% The base path for all the data
+base_path = ct_filename_out(param,param.load_sar_data.fn,'');
+
+% Initialize memory for outputs
 data     = cell(length(param.load_sar_data.imgs),1);
 metadata = [];
 
 for subap_idx = 1:length(param.load_sar_data.subap)
   subap = param.load_sar_data.subap(subap_idx);
-
   
-  if param.load_sar_data.sar_type(1) == 'f'
-    % F-k data
-    in_path = fullfile(base_path, ...
-      sprintf('%s_data_%03d_%02d_01/','fk',param.load_sar_data.frame, subap));
-  else
-    error('Not supported');
-  end
+  in_path = fullfile(base_path, ...
+    sprintf('%s_data_%03d_%02d_01/',param.load_sar_data.sar_type,param.load_sar_data.frm, subap));
   
-  %% Get the list of files for this subaperture set to determine what chunks are available
+  %% Determine which chunks are available for this subaperture
   img = 1;
   wf_adc_list = param.load_sar_data.imgs{img};
-  wf_adc_idx = 1;
-  wf = wf_adc_list(wf_adc_idx,1);
-  adc = wf_adc_list(wf_adc_idx,2);
+  wf_adc = 1;
+  wf = wf_adc_list(wf_adc,1);
+  adc = wf_adc_list(wf_adc,2);
   fns = get_filenames(in_path,sprintf('wf_%02.0f_adc_%02.0f_chk_',wf,adc),'','.mat');
   valid_chks = [];
   for fns_idx = 1:length(fns)
@@ -95,7 +138,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
   param.load_sar_data.chunk(param.load_sar_data.chunk==inf) = max(valid_chks);
   chks_to_load = param.load_sar_data.chunk(1):param.load_sar_data.chunk(end);
   
-  %% Remove chunks that do not exist from chunks_to_load list
+  % Remove chunks that do not exist from chunks_to_load list
   [valid_chks,keep_idxs] = intersect(chks_to_load, valid_chks);
   if length(valid_chks) ~= length(chks_to_load)
     bad_mask = ones(size(chks_to_load));
@@ -105,6 +148,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
     chks_to_load = valid_chks;
   end
   
+  %% Subapertures: Load chunks (blocks) of SAR data
   cur_rline = 0;
   for chunk = chks_to_load
     
@@ -121,9 +165,9 @@ for subap_idx = 1:length(param.load_sar_data.subap)
       
       % -------------------------------------------------------------------
       % Load data
-      for wf_adc_idx = 1:size(wf_adc_list,1)
-        wf = wf_adc_list(wf_adc_idx,1);
-        adc = wf_adc_list(wf_adc_idx,2);
+      for wf_adc = 1:size(wf_adc_list,1)
+        wf = wf_adc_list(wf_adc,1);
+        adc = wf_adc_list(wf_adc,2);
         
         sar_fn = fullfile(in_path,sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f.mat',wf,adc,chunk));
         if param.load_sar_data.debug_level >= 2
@@ -131,18 +175,20 @@ for subap_idx = 1:length(param.load_sar_data.subap)
         end
         sar_data = load(sar_fn);
 
-        % Only add in non-overlapping part of SAR image
-        if img == 1 && wf_adc_idx == 1
+        % Only add in non-overlapping part of SAR image (this is to support
+        % legacy SAR data format since current format does not have
+        % overlap)
+        if img == 1 && wf_adc == 1
           if chunk == param.load_sar_data.chunk(1)
             new_idxs = 1:length(sar_data.fcs.gps_time);
           else
             % 1e-3 added to avoid rounding errors... this is a hack
-            new_idxs = find(sar_data.fcs.gps_time > fcs{img}{wf_adc_idx}.gps_time(end)+1e-3);
+            new_idxs = find(sar_data.fcs.gps_time > fcs{img}{wf_adc}.gps_time(end)+1e-3);
           end
         end
         
         % Get output image positions (not phase centers)
-        if img == 1 && wf_adc_idx == 1 && subap_idx == 1
+        if img == 1 && wf_adc == 1 && subap_idx == 1
           if chunk == param.load_sar_data.chunk(1)
             metadata.lat = sar_data.lat;
             metadata.lon = sar_data.lon;
@@ -156,47 +202,46 @@ for subap_idx = 1:length(param.load_sar_data.subap)
         
         if subap_idx == 1
           if chunk == param.load_sar_data.chunk(1)
-            fcs{img}{wf_adc_idx} = sar_data.fcs;
+            fcs{img}{wf_adc} = sar_data.fcs;
             
           else
-            
-            fcs{img}{wf_adc_idx}.gps_time = cat(2,fcs{img}{wf_adc_idx}.gps_time, ...
+            fcs{img}{wf_adc}.gps_time = cat(2,fcs{img}{wf_adc}.gps_time, ...
               sar_data.fcs.gps_time(new_idxs));
-            fcs{img}{wf_adc_idx}.x = cat(2,fcs{img}{wf_adc_idx}.x, ...
+            fcs{img}{wf_adc}.x = cat(2,fcs{img}{wf_adc}.x, ...
               sar_data.fcs.x(:,new_idxs));
-            fcs{img}{wf_adc_idx}.y = cat(2,fcs{img}{wf_adc_idx}.y, ...
+            fcs{img}{wf_adc}.y = cat(2,fcs{img}{wf_adc}.y, ...
               sar_data.fcs.y(:,new_idxs));
-            fcs{img}{wf_adc_idx}.z = cat(2,fcs{img}{wf_adc_idx}.z, ...
+            fcs{img}{wf_adc}.z = cat(2,fcs{img}{wf_adc}.z, ...
               sar_data.fcs.z(:,new_idxs));
-            fcs{img}{wf_adc_idx}.origin = cat(2,fcs{img}{wf_adc_idx}.origin, ...
+            fcs{img}{wf_adc}.origin = cat(2,fcs{img}{wf_adc}.origin, ...
               sar_data.fcs.origin(:,new_idxs));
-            fcs{img}{wf_adc_idx}.pos = cat(2,fcs{img}{wf_adc_idx}.pos, ...
+            fcs{img}{wf_adc}.pos = cat(2,fcs{img}{wf_adc}.pos, ...
               sar_data.fcs.pos(:,new_idxs));
-            fcs{img}{wf_adc_idx}.roll = cat(2,fcs{img}{wf_adc_idx}.roll, ...
+            fcs{img}{wf_adc}.roll = cat(2,fcs{img}{wf_adc}.roll, ...
               sar_data.fcs.roll(new_idxs));
-            fcs{img}{wf_adc_idx}.pitch = cat(2,fcs{img}{wf_adc_idx}.pitch, ...
+            fcs{img}{wf_adc}.pitch = cat(2,fcs{img}{wf_adc}.pitch, ...
               sar_data.fcs.pitch(new_idxs));
-            fcs{img}{wf_adc_idx}.heading = cat(2,fcs{img}{wf_adc_idx}.heading, ...
+            fcs{img}{wf_adc}.heading = cat(2,fcs{img}{wf_adc}.heading, ...
               sar_data.fcs.heading(new_idxs));
-            fcs{img}{wf_adc_idx}.surface = cat(2,fcs{img}{wf_adc_idx}.surface, ...
+            fcs{img}{wf_adc}.surface = cat(2,fcs{img}{wf_adc}.surface, ...
               sar_data.fcs.surface(new_idxs));
-            fcs{img}{wf_adc_idx}.bottom = cat(2,fcs{img}{wf_adc_idx}.bottom, ...
+            fcs{img}{wf_adc}.bottom = cat(2,fcs{img}{wf_adc}.bottom, ...
               sar_data.fcs.bottom(new_idxs));
           end
         end
         
         Nt = size(sar_data.fk_data,1);
         if ~param.load_sar_data.combine_channels
-          if subap_idx == 1 && wf_adc_idx == 1
+          if subap_idx == 1 && wf_adc == 1
             % Allocate memory in a special way when loading 3D data
             data{img}(size(sar_data.fk_data,1), ...
               size(data{img},2)+length(new_idxs),size(wf_adc_list,1),length(param.load_sar_data.subap)) = single(0);
           end
-          data{img}(:,cur_rline + (1:length(new_idxs)),wf_adc_idx,subap_idx) = sar_data.fk_data(:,new_idxs);
+          data{img}(:,cur_rline + (1:length(new_idxs)),wf_adc,subap_idx) = sar_data.fk_data(:,new_idxs);
         else
           % When combining channels, take the mean of the data as it
           % is loaded in to reduce peak memory consumption.
-          if wf_adc_idx == 1
+          if wf_adc == 1
             sar_data_data = sar_data.fk_data(:,new_idxs) / size(wf_adc_list,1);
           else
             sar_data_data = sar_data_data + sar_data.fk_data(:,new_idxs) / size(wf_adc_list,1);
@@ -218,64 +263,33 @@ for subap_idx = 1:length(param.load_sar_data.subap)
   end
 end
 
+% Create lat/lon fields in FCS for convenience
 for img = 1:length(fcs)
-  for wf_adc_idx = 1:length(fcs{img})
-    [fcs{img}{wf_adc_idx}.lat,fcs{img}{wf_adc_idx}.lon,fcs{img}{wf_adc_idx}.elev] ...
-      = ecef2geodetic(fcs{img}{wf_adc_idx}.origin(1,:) + sum(fcs{img}{wf_adc_idx}.x.*fcs{img}{wf_adc_idx}.pos), ...
-      fcs{img}{wf_adc_idx}.origin(2,:) + sum(fcs{img}{wf_adc_idx}.y.*fcs{img}{wf_adc_idx}.pos), ...
-      fcs{img}{wf_adc_idx}.origin(3,:) + sum(fcs{img}{wf_adc_idx}.z.*fcs{img}{wf_adc_idx}.pos), ...
+  for wf_adc = 1:length(fcs{img})
+    [fcs{img}{wf_adc}.lat,fcs{img}{wf_adc}.lon,fcs{img}{wf_adc}.elev] ...
+      = ecef2geodetic(fcs{img}{wf_adc}.origin(1,:) + sum(fcs{img}{wf_adc}.x.*fcs{img}{wf_adc}.pos), ...
+      fcs{img}{wf_adc}.origin(2,:) + sum(fcs{img}{wf_adc}.y.*fcs{img}{wf_adc}.pos), ...
+      fcs{img}{wf_adc}.origin(3,:) + sum(fcs{img}{wf_adc}.z.*fcs{img}{wf_adc}.pos), ...
       WGS84.ellipsoid);
-    fcs{img}{wf_adc_idx}.lat = fcs{img}{wf_adc_idx}.lat * 180/pi;
-    fcs{img}{wf_adc_idx}.lon = fcs{img}{wf_adc_idx}.lon * 180/pi;
+    fcs{img}{wf_adc}.lat = fcs{img}{wf_adc}.lat * 180/pi;
+    fcs{img}{wf_adc}.lon = fcs{img}{wf_adc}.lon * 180/pi;
   end
 end
 
-% We assume these fields are statics and don't change with each loaded file
-% so we just copy them once.
 metadata.fcs = fcs;
 metadata.wfs = sar_data.wfs;
 metadata.param_records = sar_data.param_records;
 metadata.param_sar = sar_data.param_sar;
 
-if param.load_sar_data.combine_channels && param.load_sar_data.incoherent ...
-    && param.load_sar_data.combine_waveforms
-  img1.Time = sar_data.wfs(param.load_sar_data.imgs{1}(1,1)).time;
-  img2.Time = sar_data.wfs(param.load_sar_data.imgs{2}(1,1)).time;
-  img1.Data = data{1};
-  img2.Data = data{2};
-  
-  % ==============================================================
-  % Following is copied from combine_wf_chan (except param.wf_comb):
-  dt = img1.Time(2)-img1.Time(1);
-  Time = img1.Time(1) : dt : img2.Time(end);
-  Depth = Time * c/2;
-  img2.Data= interp1(img2.Time,img2.Data,Time,'linear',0);
-  
-  img_bins(1) = find(Time > param.wf_comb, 1);
-  img_bins(2) = img_bins(1) + 10;
-  img_bin_comp = img_bins(1) + (30:40);
-  
-  % Combine waveforms
-  difference = mean(mean(img1.Data(img_bin_comp,:))) ...
-    ./ mean(mean(img2.Data(img_bin_comp,:)));
-  
-  trans_bins = img_bins(1)+1:img_bins(2);
-  weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-  data = [img1.Data(1:img_bins(1),:); ...
-    repmat(weights,[1 size(img1.Data,2)]).*img1.Data(trans_bins,:) ...
-    + difference*repmat(1-weights,[1 size(img2.Data,2)]).*img2.Data(trans_bins,:); ...
-    difference*img2.Data(img_bins(2)+1:end,:)];
-  % ==============================================================
-  
-  data_param.time = Time;
+if param.load_sar_data.combine_channels && param.load_sar_data.combine_imgs
   
 end
 
 if param.load_sar_data.combine_channels && param.load_sar_data.incoherent ...
-    && param.load_sar_data.detrend.cmd ~= 5
+    && param.load_sar_data.detrend.cmd
   % Detrend data
   detrend = param.load_sar_data.detrend;
-  if param.load_sar_data.combine_waveforms
+  if param.load_sar_data.combine_imgs
     data = local_detrend(data, detrend.B_noise, ...
       detrend.B_sig, detrend.cmd, detrend.minVal);
   else
@@ -285,6 +299,3 @@ if param.load_sar_data.combine_channels && param.load_sar_data.incoherent ...
     end
   end
 end
-
-return;
-

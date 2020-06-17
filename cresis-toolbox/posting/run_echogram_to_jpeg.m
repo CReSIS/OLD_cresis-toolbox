@@ -24,7 +24,7 @@
 %
 % Author: John Paden
 %
-% See also: run_create_posting.m, create_posting.m, run_echogram_to_jpeg.m,
+% See also: run_post.m, post.m, run_echogram_to_jpeg.m,
 %  echogram_to_jpeg.m
 
 %% User Setup

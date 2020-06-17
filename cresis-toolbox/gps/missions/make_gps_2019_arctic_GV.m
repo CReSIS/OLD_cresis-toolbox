@@ -35,9 +35,9 @@ in_base_path = fullfile(data_support_path,'2019_Arctic_GV');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
-gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'ATM-field';
-% gps_source_to_use = 'ATM';
+gps_source_to_use = 'ATM';
 
 if strcmpi(gps_source_to_use,'NMEA')
 %% NMEA
@@ -158,7 +158,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
   %     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
   %   end
   
- ATM_fns = get_filenames(in_base_path,'','','PPPK*.out');
+ ATM_fns = get_filenames(in_base_path,'','','PPRTX*.out');
   fn_dates = [];
   for idx = 1:length(ATM_fns)
     fn = ATM_fns{idx};
@@ -171,7 +171,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
     [year,month,day] = datevec(fn_dates(idx));
     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
     file_idx = file_idx + 1;
-    in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
+    in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPRTX*.out');
     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
     file_type{file_idx} = 'applanix';
     params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
@@ -185,7 +185,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});

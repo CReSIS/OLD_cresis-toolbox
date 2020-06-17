@@ -51,7 +51,7 @@ Nc     = length(sv_params.src.y_pc(:,1));
 % est_errors is an Nc*6 matrix, where each row represents the errors
 % associated with one sensor AND each column represents one error type for
 % all the sensors.
-est_errors = reshape(est_errors,[Nc, length(est_errors)/Nc])
+est_errors = reshape(est_errors,[Nc, length(est_errors)/Nc]);
 % est_errors_for_display = est_errors;
 % est_errors_for_display(:,[3 5]) = est_errors_for_display(:,[3 5])*180/pi
 

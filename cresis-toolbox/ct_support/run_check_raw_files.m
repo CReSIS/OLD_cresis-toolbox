@@ -4,8 +4,8 @@
 %
 % Authors: John Paden
 %
-% See also: run_master.m, master.m, run_create_records.m, create_records.m,
-%   run_create_records_sync.m, check_records.m
+% See also: run_master.m, master.m, run_records_create.m, records_create.m,
+%   run_records_create.m, records_check.m
 
 %% User Setup
 % =====================================================================

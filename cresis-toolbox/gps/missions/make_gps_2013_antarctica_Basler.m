@@ -241,7 +241,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 hack1_idx = cell2mat(strfind(out_fns,'gps_20130829.mat'));
 if ~isempty(hack1_idx)

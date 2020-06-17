@@ -48,28 +48,34 @@ if ~exist('value','var')
 end
 
 period_idx = find(new_field == '.',1);
+end_name_idx = find(new_field == '.' | new_field == '{',1);
+if isempty(end_name_idx)
+  new_field_name = new_field;
+else
+  new_field_name = new_field(1:end_name_idx-1);
+end
 
 added = current;
 if ~isempty(period_idx)
-  if force_overwrite  || isempty(added) || ~isfield(added,new_field(1:period_idx-1))
-    added(1).(new_field(1:period_idx-1)) = struct([]);
+  if force_overwrite  || isempty(added) || ~isfield(added,new_field_name)
+    added(1).(new_field_name) = struct([]);
   end
-  added(1).(new_field(1:period_idx-1)) = struct_add_field(added(1).(new_field(1:period_idx-1)), ...
+  added(1).(new_field_name) = struct_add_field(added(1).(new_field_name), ...
     new_field(period_idx+1:end),value,force_overwrite,no_size_change);
 else
   if no_size_change
     % Trick to add a new field to the struct and keep the struct empty
     if ~isstruct(added) || isempty(fieldnames(added))
-      added = struct(new_field,{});
-    elseif force_overwrite || ~isfield(added,new_field)
-      [added.(new_field)] = deal([]);
+      added = struct(new_field_name,{});
+    elseif force_overwrite || ~isfield(added,new_field_name)
+      [added.(new_field_name)] = deal([]);
     end
   else
-    if force_overwrite || ~isfield(added,new_field)
+    if force_overwrite || ~isfield(added,new_field_name)
       if isempty(added)
-        added = struct(new_field,value);
+        added = struct(new_field_name,value);
       else
-        [added.(new_field)] = deal(value{:});
+        [added.(new_field_name)] = deal(value{:});
       end
     end
   end

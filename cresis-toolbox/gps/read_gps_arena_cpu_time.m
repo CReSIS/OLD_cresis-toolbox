@@ -20,10 +20,10 @@ function gps = read_gps_arena_cpu_time(fn, param)
 %     absolute time (GGA NMEA files just give the time of day)
 %     .time_reference: 'gps' or 'utc' (CPU time is usually utc)
 %     .clk: clock for radar_time counter, defaults to 10e6
-%     .cpu_time_fn: filename to CSV file with GPS_TIME,CPU_TIME. See
-%       read_cpu_time.m for more details. Note that both the GPS_TIME and
-%       CPU_TIME need to be in the same reference (e.g. both should be in
-%       UTC-time or both should be in GPS-atomic-time).
+%     .cpu_time_correction: struct with fields to determine cpu time offset
+%     from gps time. See example in read_cpu_time.m
+%       .pp: polyfit polynomial coefficients
+%       .gps_time_origin: gps_time origin used in polyfit
 %
 % Output Args:
 % gps: output structure with fields
@@ -46,12 +46,15 @@ function gps = read_gps_arena_cpu_time(fn, param)
 %
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 if ~isfield(param,'clk') || isempty(param.clk)
   param.clk = 10e6;
+end
+
+if ~isfield(param,'cpu_time_correction') || isempty(param.cpu_time_correction) ...
+    || ~isfield(param.cpu_time_correction,'pp') || ~isfield(param.cpu_time_correction,'gps_time_origin')
+  error('param.cpu_time_correction not defined or not defined with all fields.');
 end
 
 [fid,msg] = fopen(fn,'rb');
@@ -125,18 +128,14 @@ if strcmpi(param.time_reference,'utc')
 else
   gps.gps_time = gps.radar_time;
 end
-if isfield(param,'cpu_time_fn') && ~isempty(param.cpu_time_fn)
-  if ~exist(param.cpu_time_fn,'file')
-    error('Missing CPU time file %s', param.cpu_time_fn);
-  end
-  % Apply a correction to the GPS time
-  [gps_time,cpu_time] = read_cpu_time(param.cpu_time_fn);
-  if length(cpu_time) == 1
-    gps.gps_time = gps.gps_time + gps_time - cpu_time;
-  else
-    gps.gps_time = gps.gps_time + interp1(cpu_time, gps_time - cpu_time, gps.gps_time, 'linear', 'extrap');
-  end
-end
+
+% Apply a correction to the GPS time
+% - Use 
+correction = polyval(param.cpu_time_correction.pp, gps.gps_time - param.cpu_time_correction.gps_time_origin);
+% - Use nearest neighbor for extrapolation
+correction(gps.gps_time < param.cpu_time_correction.gps_time_min) = polyval(param.cpu_time_correction.pp, param.cpu_time_correction.gps_time_min - param.cpu_time_correction.gps_time_origin);
+correction(gps.gps_time > param.cpu_time_correction.gps_time_max) = polyval(param.cpu_time_correction.pp, param.cpu_time_correction.gps_time_max - param.cpu_time_correction.gps_time_origin);
+gps.gps_time = gps.gps_time + correction;
 
 % Fill in remaining fields with nan
 gps.lat = nan(size(gps.radar_time));

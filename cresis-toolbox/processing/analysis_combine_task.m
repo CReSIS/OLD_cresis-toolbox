@@ -101,10 +101,16 @@ for cmd_idx = 1:length(param.analysis.cmd)
         satur.gps_time = gps_time;
         satur.max_val_gps_time = max_val_gps_time;
         satur.max_val_gps_time_adc = max_val_gps_time_adc;
+        if param.ct_file_lock
+          satur.file_version = '1L';
+        else
+          satur.file_version = '1';
+        end
+        satur.file_type = 'analysis_saturation';
         
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('saturation_%s_img_%02d.mat', param.day_seg, img));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','satur');
+        ct_save(out_segment_fn,'-struct','satur');
       end
     end
     
@@ -190,9 +196,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           spec.file_version = '1';
         end
+        spec.file_type = 'analysis_spec';
+        
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','spec');
+        ct_save(out_segment_fn,'-struct','spec');
       end
     end
     
@@ -220,6 +228,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         heading = [];
         surface = [];
         nyquist_zone = [];
+        bad_rec = [];
+        DDC_dec = [];
+        raw_or_DDC = [];
+        DDC_freq_min = [];
+        DDC_freq_max = [];
+        
         coh_ave = {};
         coh_ave_mag = {};
         coh_ave_samples = {};
@@ -256,6 +270,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
           heading(end+(1:length(noise.heading))) = noise.heading;
           surface(end+(1:length(noise.surface))) = noise.surface;
           nyquist_zone(end+(1:length(noise.nyquist_zone))) = noise.nyquist_zone;
+          bad_rec(end+(1:length(noise.bad_rec))) = noise.bad_rec;
+          DDC_dec(end+(1:length(noise.DDC_dec))) = noise.DDC_dec;
+          raw_or_DDC(end+(1:length(noise.raw_or_DDC))) = noise.raw_or_DDC;
+          DDC_freq_min(end+(1:length(noise.DDC_freq_min))) = noise.DDC_freq_min;
+          DDC_freq_max(end+(1:length(noise.DDC_freq_max))) = noise.DDC_freq_max;
           
           % coh_ave and coh_ave_samples may be different lengths, so we
           % just concatenate in cell arrays
@@ -293,6 +312,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.heading = heading;
         noise.surface = surface;
         noise.nyquist_zone = nyquist_zone;
+        noise.bad_rec = bad_rec;
+        noise.DDC_dec = DDC_dec;
+        noise.raw_or_DDC = raw_or_DDC;
+        noise.DDC_freq_min = DDC_freq_min;
+        noise.DDC_freq_max = DDC_freq_max;
         
         noise.coh_ave = coh_ave;
         noise.coh_ave_mag = coh_ave_mag;
@@ -305,10 +329,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           noise.file_version = '1';
         end
+        noise.file_type = 'analysis_noise';
         
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
+        ct_save(out_segment_fn,'-struct','noise'); % Use HDF because of the large file size
       end
     end
     
@@ -376,9 +401,16 @@ for cmd_idx = 1:length(param.analysis.cmd)
         waveform.wf_data = wf_data;
         waveform.time_rng = time_rng;
         
+        if param.ct_file_lock
+          waveform.file_version = '1L';
+        else
+          waveform.file_version = '1';
+        end
+        waveform.file_type = 'analysis_waveform';
+        
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','waveform'); % Use HDF because of the large file size
+        ct_save(out_segment_fn,'-struct','waveform'); % Use HDF because of the large file size
       end
     end
     
@@ -468,10 +500,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           stats.file_version = '1';
         end
+        stats.file_type = 'analysis_stats';
         
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','stats'); % Use HDF because of the large file size
+        ct_save(out_segment_fn,'-struct','stats'); % Use HDF because of the large file size
       end
     end
     

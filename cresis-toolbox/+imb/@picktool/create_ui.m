@@ -2,6 +2,7 @@ function create_ui(obj)
 
 set(obj.h_fig,'DockControls','off')
 set(obj.h_fig,'NumberTitle','off');
+set(obj.h_fig,'Units','Normalized');
 if strcmpi(class(obj.h_fig),'double')
   set(obj.h_fig,'Name',sprintf('%d: %s tool parameters', obj.h_fig, obj.tool_name_title));
 else

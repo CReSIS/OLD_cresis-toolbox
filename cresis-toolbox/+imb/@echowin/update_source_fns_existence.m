@@ -6,7 +6,7 @@ function update_source_fns_existence(obj)
 % obj.eg.source_fns_existence: 3D logical matrix indicating which files
 % exist for each source, frame, and image
 %   Frames, Sources, Images 
-obj.eg.source_fns_existence = logical(zeros(length(obj.eg.frame_names),length(obj.eg.sources),1));
+obj.eg.source_fns_existence = logical(zeros(length(obj.eg.frm_strs),length(obj.eg.sources),1));
 
 found_at_least_one_good_file = false;
 for source_idx = 1:length(obj.eg.sources)
@@ -25,7 +25,7 @@ for source_idx = 1:length(obj.eg.sources)
     
     % For each file, determine the frame index
     frm = str2double(fn_name(end-2:end));
-    if isnan(frm) || frm <= 0 || frm > length(obj.eg.frame_names)
+    if isnan(frm) || frm <= 0 || frm > length(obj.eg.frm_strs)
       warning('Bad file %s found in source directory', fns{fn_idx});
       continue;
     end

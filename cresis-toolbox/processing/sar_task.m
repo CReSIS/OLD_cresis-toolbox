@@ -180,7 +180,7 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 % =========================================================================
 recs = [(param.load.recs(1)-1)*param.sar.presums+1, ...
         param.load.recs(2)*param.sar.presums];
-records = read_records_aux_files(records_fn,recs);
+records = records_aux_files_read(records_fn,recs);
 % Decimate records according to presums
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -201,8 +201,7 @@ param_records.gps_source = records.gps_source;
 
 %% Load surface layer
 % =========================================================================
-frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(param);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 layer_params = [];
@@ -253,6 +252,7 @@ end
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.sar.presums;
+param.load.bit_mask = param.sar.bit_mask; % Skip stationary records and bad records marked in records.bit_mask
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
@@ -270,7 +270,8 @@ param.load.combine_rx = param.sar.combine_rx;
 ecef = zeros(3,size(hdr.ref.lat,2));
 [ecef(1,:) ecef(2,:) ecef(3,:)] = geodetic2ecef(hdr.ref.lat/180*pi, hdr.ref.lon/180*pi, hdr.ref.elev, WGS84.ellipsoid);
 % 2. Resample based on input and output along track
-ecef = interp1(along_track,ecef.',output_along_track,'linear','extrap').';
+mono_idxs = monotonic_indexes(along_track,true);
+ecef = interp1(along_track(mono_idxs),ecef(:,mono_idxs).',output_along_track,'linear','extrap').';
 % 3. Convert ecef to geodetic
 [lat,lon,elev] = ecef2geodetic(ecef(1,:), ecef(2,:), ecef(3,:), WGS84.ellipsoid);
 clear ecef;
@@ -353,8 +354,13 @@ for img = 1:length(param.load.imgs)
       
       good_mask = ~hdr.bad_rec{img}(1,:,wf_adc);
 
-      % To save memory, shift the data out one wf_adc at a time
-      fk_data = data{img}(time_bins,:,1);
+      % To conserve memory, shift the data out one wf_adc at a time
+      if isempty(data{img})
+        % All records were bad so data is an empty matrix
+        fk_data = wfs(wf).bad_value * ones(length(time_bins),size(data{img},2));
+      else
+        fk_data = data{img}(time_bins,:,1);
+      end
       data{img} = data{img}(:,:,2:end);
 
       fk_data(~isfinite(fk_data)) = 0;
@@ -420,7 +426,7 @@ for img = 1:length(param.load.imgs)
       %% Uniform resampling and subaperture selection for fk migration
       if param.sar.mocomp.uniform_en
         % Uniformly resample data in slow-time onto output along-track
-        if param.sar.mocomp.uniform_mask_en
+        if param.sar.mocomp.uniform_mask_en && any(good_mask)
           % Mask
           fk_data = arbitrary_resample(fk_data(:,good_mask), ...
             along_track_mc(good_mask),proc_along_track, struct('filt_len', ...
@@ -535,6 +541,7 @@ for img = 1:length(param.load.imgs)
         else
           file_version = '1';
         end
+        file_type = 'sar';
         if param.sar.combine_rx
           out_fn = fullfile(out_fn_dir,sprintf('img_%02d_chk_%03d.mat', img, param.load.chunk_idx));
         else
@@ -544,7 +551,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
         wfs(wf).time = time;
         wfs(wf).freq = freq;
-        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
+        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version','file_type');
       end
       
     elseif strcmpi(param.sar.sar_type,'tdbp_old')

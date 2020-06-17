@@ -177,9 +177,11 @@ for img = 1:length(param.analysis.imgs)
     end
 
     if ~param_analysis.radar.wfs(wf).gain_en
-      save( fullfile(out_dir,sprintf('gain_wf_%d_adc_%d',wf,adc)), '-v7.3', ...
+      file_version = '1';
+      file_type = 'gain';
+      ct_save( fullfile(out_dir,sprintf('gain_wf_%d_adc_%d',wf,adc)), '-v7.3', ...
         'Gain', 'Time', 'low_Tlim', 'upper_Tlim', 'low_idxs', 'upper_idxs',...
-        'param_ftg', 'param_analysis', 'param_records', 'Gain_raw', 'time_axis');
+        'param_ftg', 'param_analysis', 'param_records', 'Gain_raw', 'time_axis', 'file_type', 'file_version');
     else
       fprintf('Data was compensated for ftg. Therefore, new ftg datafile is not saved for wf-adc %d-%d\n',wf,adc);
     end

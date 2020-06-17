@@ -482,7 +482,7 @@ end
 % ======================================================================
 % Read and translate files according to user settings
 % ======================================================================
-make_gps;
+gps_make;
 
 % Hand corrections to GPS files go here so that everything is automated
 

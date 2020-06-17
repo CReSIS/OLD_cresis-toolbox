@@ -12,6 +12,7 @@ wfs = param.radar.wfs;
 total_rec = param.load.recs(end)-param.load.recs(1)+1;
 Nx = floor(total_rec/param.load.presums);
 data = cell(size(param.load.imgs));
+data_complex_hack = false(size(param.load.imgs));
 hdr = [];
 hdr.bad_rec = cell(size(param.load.imgs));
 for img = 1:length(param.load.imgs)
@@ -143,7 +144,9 @@ for state_idx = 1:length(states)
     %% Load in a file
     if param.records.file.version == 414
       file_idx = file_idxs(rec);
-    elseif records.offset(board_idx,rec) ~= -2^31
+    elseif records.offset(board_idx,rec) == -2^31 || bitand(param.load.bit_mask, records.bit_mask(board_idx,rec))
+      file_idx = -1;
+    else
       % Determine which file has the current record
       file_idx = file_idxs(rec);
       if ~isempty(file_data_last_file)
@@ -182,13 +185,12 @@ for state_idx = 1:length(states)
       % Load the rest of the file into memory
       file_data = [file_data_last_file(:); fread(fid,inf,'uint8=>uint8')];
       fclose(fid);
-    else
-      file_idx = -1;
     end
     
     %% Pull out records from this file
     while rec <= total_rec
-      if param.records.file.version == 414
+      if records.offset(board_idx,rec) == -2^31 || bitand(param.load.bit_mask, records.bit_mask(board_idx,rec))
+      elseif param.records.file.version == 414
         % If the current record is in the next file, break out of loop
         if file_idxs(rec) > file_idx
           % Force the file to be loaded when the next record is loaded
@@ -276,7 +278,7 @@ for state_idx = 1:length(states)
           end
         end
         
-      elseif records.offset(board_idx,rec) ~= -2^31
+      else
         if records.offset(board_idx,rec) < 0
           if isempty(file_data_last_file)
             % Record offset is negative and so represents a record that
@@ -330,7 +332,7 @@ for state_idx = 1:length(states)
           end
           
           % Read in headers for this record
-          if any(param.records.file.version == [2 3 5 7 8 11])
+          if any(param.records.file.version == [2 3 4 5 7 8 11])
             
             % Jump through the record one waveform at a time until we get
             % to the waveform we need to load.
@@ -352,6 +354,7 @@ for state_idx = 1:length(states)
                   stop_idx = param.radar.fs/param.records.file.clk*double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
                 Nt{img}(num_accum(ai)+1) = stop_idx - start_idx;
+                raw_or_DDC = 1; % Raw or real data/not complex
               else
                 if swap_bytes_en
                   start_idx = double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
@@ -360,7 +363,7 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                if any(param.records.file.version == [2])
+                if any(param.records.file.version == [2 4])
                   DDC_dec{img}(num_accum(ai)+1) = 1;
                   Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
                   wfs(wf).complex = false;
@@ -368,13 +371,16 @@ for state_idx = 1:length(states)
                 else
                   if param.records.file.version == 3
                     DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+2);
-                  else
+                  else % param.records.file.version == [5 7]
                     DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
                   end
                   raw_or_DDC = file_data(wf_hdr_offset + 48); % 1 means "raw", 0 means "DDC/complex"
                   if raw_or_DDC
                     Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
                     wfs(wf).complex = false;
+                    % Raw mode, so DDC_dec is one even if header field says
+                    % otherwise
+                    DDC_dec{img}(num_accum(ai)+1) = 1;
                   else
                     Nt{img}(num_accum(ai)+1) = floor((stop_idx - start_idx) / DDC_dec{img}(num_accum(ai)+1));
                     wfs(wf).complex = true;
@@ -391,7 +397,11 @@ for state_idx = 1:length(states)
             Nt{img}(num_accum(ai)+1) = Nt{img}(num_accum(ai)+1) - sum(wfs(wf).time_raw_trim);
             
             % Number of fast-time samples Nt, and start time t0
-            if all(param.records.file.version ~= [2 8])
+            if any(param.records.file.version == [3 5 7]) && raw_or_DDC
+              % Raw mode, so DDC_freq is zero even if header field says
+              % otherwise
+              DDC_freq{img}(num_accum(ai)+1) = 0;
+            elseif all(param.records.file.version ~= [2 4 8 11])
               % NCO frequency
               if swap_bytes_en
                 DDC_freq{img}(num_accum(ai)+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
@@ -399,7 +409,7 @@ for state_idx = 1:length(states)
                 DDC_freq{img}(num_accum(ai)+1) = double(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16'));
               end
               if param.records.file.version == 3
-                DDC_freq{img}(num_accum(ai)+1) = DDC_freq{img}(num_accum(ai)+1) / 2^15 * wfs(wf).fs_raw * 2 - 62.5e6;
+                DDC_freq{img}(num_accum(ai)+1) = DDC_freq{img}(num_accum(ai)+1) / 2^15 * wfs(wf).fs_raw * 2;
               elseif any(param.records.file.version == [5 7])
                 DDC_freq{img}(num_accum(ai)+1) = DDC_freq{img}(num_accum(ai)+1) / 2^15 * wfs(wf).fs_raw * 2;
               end
@@ -515,10 +525,20 @@ for state_idx = 1:length(states)
                 if swap_bytes_en
                   radar_header_type = mod(swapbytes(typecast(file_data(total_offset+(9:12)),'uint32')),2^31); % Ignore MSB
                   radar_header_len = double(swapbytes(typecast(file_data(total_offset+(13:16)),'uint32')));
+                  if radar_header_len ~= 48
+                    % Bad header length, skip this record
+                    missed_wf_adc = true;
+                    break;
+                  end
                   radar_profile_length = double(swapbytes(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32')));
                 else
                   radar_header_type = mod(typecast(file_data(total_offset+(9:12)),'uint32'),2^31); % Ignore MSB
                   radar_header_len = double(typecast(file_data(total_offset+(13:16)),'uint32'));
+                  if radar_header_len ~= 48
+                    % Bad header length, skip this record
+                    missed_wf_adc = true;
+                    break;
+                  end
                   radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
                 end
                 if any(radar_header_type == [5 16 23])
@@ -638,6 +658,15 @@ for state_idx = 1:length(states)
               % Force data output to grow to the current record size
               data{img}(end+1:Nt{img}(1),:,:) = wfs(wf).bad_value;
             end
+            if ~isreal(data{img}) && ~data_complex_hack(img) && size(data{img},1) > 0
+              data_complex_hack(img) = true;
+              % Temporarily add an imaginary part to the first value in the
+              % matrix so that Matlab will know right away that this matrix
+              % is complex and won't have to search through the entire
+              % matrix to find this out. We remove this value at the end of
+              % the loop.
+              data{img}(1) = data{img}(1) + 1i;
+            end
             data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
               data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
             data{img}(Nt{img}(1)+1:end,out_rec,wf_adc) = wfs(wf).bad_value;
@@ -670,6 +699,11 @@ for state_idx = 1:length(states)
     end
   end
 end
+for img = 1:length(param.load.imgs)
+  if data_complex_hack(img)
+    data{img}(1) = data{img}(1) - 1i;
+  end
+end
 
 if ~param.load.raw_data
   for img = 1:length(param.load.imgs)
@@ -689,7 +723,7 @@ if ~param.load.raw_data
       %    to the maximum receiver gain and use the wfs(wf).gain parameter
       %    to vary the gain relative to that.
       % - IMPORTANT: Only works for radars with constant length records.
-      % Apply fast-time varying gain if enabled      
+      % Apply fast-time varying gain if enabled
       if wfs(wf).gain_en
         gain_fn = fullfile(param.radar.gain_dir,sprintf('gain_wf_%d_adc_%d.mat',wf,adc));
         if exist(gain_fn, 'file')

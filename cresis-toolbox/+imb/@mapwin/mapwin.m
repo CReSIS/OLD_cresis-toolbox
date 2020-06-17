@@ -6,12 +6,20 @@ classdef (HandleCompatible = true) mapwin < handle
     map_pref          % Preference window
     echowin_list      % Vector of imb.echowin class windows
     undo_stack_list   % Vector of imb.undo_stack class objects (one per segment that is modified)
+    map_ascope        % Ascope window
 
     % GUI handles and UI related objects
     h_fig             % Figure handle
     table             % Figure's top level table
     top_panel         % Top panel and handles
     map_panel         % Axes panel and handles
+    % map_panel.handle
+    % map_panel.h_axes
+    % map_panel.h_image
+    % map_panel.h_flightline
+    % map_panel.h_cur_sel
+    % map_panel.h_ascopes_selected
+    % map_panel.h_ascopes
     status_panel      % Bottom panel and status bar handles
     echowin_maps      % Struct vector of echowin map graphics:
                       % flightlines (h_line), labels (h_text), and cursors (h_cursor)
@@ -19,6 +27,7 @@ classdef (HandleCompatible = true) mapwin < handle
     % Status information for mouse/key board callbacks
     control_pressed
     shift_pressed
+    alt_pressed
     click_x
     click_y
     zoom_mode
@@ -29,6 +38,18 @@ classdef (HandleCompatible = true) mapwin < handle
     
     % Map properties
     cur_map_pref_settings % Struct containing currently loaded preference window settings (set in get_map)
+    % cur_map_pref_settings.layer_source: string, either 'layerdata' or 'ops'
+    % cur_map_pref_settings.layer_data_source: string, layerdata directory to use if 'layerdata' layer data selected 
+    % cur_map_pref_settings.layers: struct array of all selected layers if 'ops'layer data selected
+    % cur_map_pref_settings.layers.lyr_name: string, OPS layer name
+    % cur_map_pref_settings.layers.lyr_group_name: string, OPS group name
+    % cur_map_pref_settings.layers.lyr_id: OPS layer ID
+    % cur_map_pref_settings.seasons: cell array of strings containing seasons loaded (layerdata flightlines include system in the season name)
+    % cur_map_pref_settings.system: string, system name if OPS flight lines, otherwise 'layerdata'
+    % cur_map_pref_settings.sources: echogram sources to load
+    % cur_map_pref_settings.map_zone: string, 'antarctic' or 'arctic'
+    % cur_map_pref_settings.map_name: string, name of map
+    % cur_map_pref_settings.flightlines: string containing flight line type selection
     
     map
     % map.source % 0 for OPS map, 1 for blank, 2 for Google
@@ -39,10 +60,11 @@ classdef (HandleCompatible = true) mapwin < handle
     % map.yaxis_default % Current yaxis default bounds
     % map.xaxis % Current xaxis
     % map.yaxis % Current yaxis
-    % map.sel % map selection (red line): .frame_name, .season_name, .segment_id
-    % map.sel.frame_name
+    % map.sel % map selection (red line): .frm_str, .season_name, .segment_id
+    % map.sel.frm_str
+    % map.sel.radar_name
     % map.sel.season_name
-    % map.sel.segment_id
+    % map.sel.seg_id
     % map.CoordRefSysCode % string containing EPSG:3413, EPSG:3031, or EPSG:3857
     
     % OPS
@@ -60,13 +82,16 @@ classdef (HandleCompatible = true) mapwin < handle
     layerdata
     % layerdata.x
     % layerdata.y
-    % layerdata.frms
+    % layerdata.frm_id
     % layerdata.season_idx
+    % layerdata.frm_info().frm_id
+    % layerdata.frm_info().start_gps_time
+    % layerdata.frm_info().stop_gps_time
+
     
   end
   
   properties (SetAccess = private, GetAccess = private)
-    priv_prop1
   end
   
   events
@@ -114,9 +139,10 @@ classdef (HandleCompatible = true) mapwin < handle
       obj.map.source = []; % 0 for OPS, 1 for Google
       obj.map.scale = []; % 1e3 (km to meters for OPS), 1 for Google
       % Currently selected flight line information
-      obj.map.sel.frame_name = ''; % Current frame name
-      obj.map.sel.segment_id = []; % Current segment ID
+      obj.map.sel.frm_str = ''; % Current frame name
+      obj.map.sel.seg_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
       obj.map.sel.season_name = ''; % Current season name
+      obj.map.sel.radar_name = ''; % Current radar name
       obj.map.xaxis = [];
       obj.map.yaxis = [];
       obj.map.xaxis_default = [];
@@ -139,11 +165,15 @@ classdef (HandleCompatible = true) mapwin < handle
       % layerdata properties
       % -------------------------------------------------------------------
       obj.layerdata = [];
-      obj.layerdata.x = []; % Flightlines in world coordinates
-      obj.layerdata.y = []; % Flightlines in world coordinates
-      obj.layerdata.frms = []; % Flightline frame ids (as double)
-      obj.layerdata.season_idx = []; % Flightline season index vector
-      
+      obj.layerdata.x = []; % Nx length vector of flightlines in local map coordinates
+      obj.layerdata.y = []; % Nx length vector of flightlines in local map coordinates
+      obj.layerdata.frm_id = []; % Nx length vector of frame ids (as numeric)
+      obj.layerdata.season_idx = []; % Nx length vector of season indices into obj.cur_map_pref_settings.seasons
+      obj.layerdata.frm_info = []; % Frame information struct array (one struct per entry in obj.cur_map_pref_settings.seasons)
+      obj.layerdata.frm_info.frm_id = []; % Nf length vector of frames, frame id (numeric)
+      obj.layerdata.frm_info.start_gps_time = []; % Nf length vector, start GPS time of frame (ANSI-C seconds since Jan 1, 1970)
+      obj.layerdata.frm_info.stop_gps_time = []; % Nf length vector, stop GPS time of frame (ANSI-C seconds since Jan 1, 1970)
+
       % Set default parameters
       % -------------------------------------------------------------------
       if ~exist('param','var')
@@ -161,6 +191,9 @@ classdef (HandleCompatible = true) mapwin < handle
         obj.map_pref = imb.prefwin([],obj.default_params.prefwin);
         obj.cur_map_pref_settings = obj.map_pref.settings;
         addlistener(obj.map_pref,'StateChange',@obj.get_map);
+        obj.map_ascope = imb.ascopewin([]);
+        addlistener(obj.map_ascope,'StateChange',@obj.update_ascopewin_cursors);
+
       catch ME
         delete(obj);
         rethrow(ME);
@@ -172,6 +205,11 @@ classdef (HandleCompatible = true) mapwin < handle
       try
         % Delete the map preferences window
         delete(obj.map_pref);
+      end
+      
+      try
+        % Delete the map ascope window
+        delete(obj.map_ascope);
       end
       
       try
@@ -224,6 +262,7 @@ classdef (HandleCompatible = true) mapwin < handle
     update_echowin_flightlines(obj,src,event); % Called when echowin x-axis (i.e. flightline position) changes, updates the map
     update_echowin_cursors(obj,src,event); % Called when a echowin cursor position changes, causes all echowin cursors to be updated
     update_map_selection_echowin(obj,src,event); % Updates the currect flight line selection (from echowin frame selection)
+    ascope_memory(obj,h_obj,event); % Handles echowin/picktool_browse ascope_memory event
   end
   
 end

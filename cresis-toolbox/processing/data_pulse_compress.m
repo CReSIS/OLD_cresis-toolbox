@@ -202,11 +202,11 @@ for img = 1:length(param.load.imgs)
       noise.Nx = length(noise.gps_time);
       
       if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
-        coh_noise = noise.dft;
-        noise = rmfield(noise,'dft');
+        coh_noise = noise.dft_noise;
+        noise = rmfield(noise,'dft_noise');
       elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
-        coh_noise = noise.coh_noise;
-        noise = rmfield(noise,'coh_noise');
+        coh_noise = noise.firdec_noise;
+        noise = rmfield(noise,'firdec_noise');
       end
       
       % Nt by Nx_dft matrix
@@ -325,17 +325,17 @@ for img = 1:length(param.load.imgs)
           end
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           % Interpolate coherent noise onto current data's gps time
-          if all(hdr.gps_time>noise.coh_noise_gps_time(end))
+          if all(hdr.gps_time>noise.fir_dec_gps_time(end))
             % All current data's gps time is after the coherent noise
             % estimates gps time
             cn.data = -repmat(coh_noise(:,end),[1 length(hdr.gps_time)]);
-          elseif all(hdr.gps_time<noise.coh_noise_gps_time(1))
+          elseif all(hdr.gps_time<noise.fir_dec_gps_time(1))
             % All current data's gps time is before the coherent noise
             % estimates gps time
-            cn.data = -repmat(coh_noise(:,1).',[1 length(hdr.gps_time)]);
+            cn.data = -repmat(coh_noise(:,1),[1 length(hdr.gps_time)]);
           else
             % Current data gps time overlaps with coherent noise estimates
-            cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+            cn.data = -interp_finite(interp1(noise.fir_dec_gps_time, coh_noise.', hdr.gps_time)).';
           end
         end
         clear coh_noise;
@@ -356,23 +356,27 @@ for img = 1:length(param.load.imgs)
           fprintf('%d:%d %g\n', img, wf_adc, 10*log10(mean(mean(abs(data{img}(end+[-600:-401],:,wf_adc)).^2))));
         end
         
-        blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
-        for block = 1:length(blocks)-1
-          rlines = blocks(block) : blocks(block+1)-1;
           
-          % Digital down conversion
-          data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc) = bsxfun(@times,data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc), ...
-            exp(-1i*2*pi*(wfs(wf).fc-wfs(wf).DDC_freq)*wfs(wf).time_raw));
-          
-          % Pulse compression
-          %   Apply matched filter and transform back to time domain
-          tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
-          tmp_data(~isfinite(tmp_data)) = 0;
-          tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
-          
-          % Decimation
-          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
-          
+        % Check if any good records, skip processing if not
+        if any(~hdr.bad_rec{img}(1,:,wf_adc))
+          blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+          for block = 1:length(blocks)-1
+            rlines = blocks(block) : blocks(block+1)-1;
+            
+            % Digital down conversion
+            data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc) = bsxfun(@times,data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc), ...
+              exp(-1i*2*pi*(wfs(wf).fc-wfs(wf).DDC_freq)*wfs(wf).time_raw));
+            
+            % Pulse compression
+            %   Apply matched filter and transform back to time domain
+            tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
+            tmp_data(~isfinite(tmp_data)) = 0;
+            tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
+            
+            % Decimation
+            data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
+            
+          end
         end
         
         if 0
@@ -580,7 +584,9 @@ for img = 1:length(param.load.imgs)
           
           Nt_raw_trim = fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
           if abs(Nt_raw_trim/2 - round(Nt_raw_trim/2)) > 1e-6
-            error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+            BW_window_step_size = 2*wfs(wf).chirp_rate / (wfs(wf).fs_raw/max(hdr.DDC_dec{img}));
+            BW_window_new = round(wfs(wf).BW_window/BW_window_step_size)*BW_window_step_size;
+            error('Bandwidth indicated by wfs(%d).BW_window must be an integer multiple of two times the chirp rate (wfs(%d).chirp_rate=%.14f) divided by the sampling frequency (wfs(%d).fs_raw/max(hdr.DDC_dec{%d})=%.14f). The maximum should be taken over the DDC_dec setting for every record in the segment; what is printed here is just the currently loaded block of data. Recommend [%.14f %.14f].', wf, wf, wfs(wf).chirp_rate, wf, img, BW_window_step_size, BW_window_new);
           end
           % Remove rounding errors
           Nt_raw_trim = round(Nt_raw_trim);
@@ -1016,9 +1022,9 @@ for img = 1:length(param.load.imgs)
             tmp = tmp(cn.unique_idxs);
             tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
             if wfs(wf).f0 > wfs(wf).f1
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
             else
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
             end
             tmp = tmp .* cn.time_correction_freq;
             tmp = ifft(tmp);
@@ -1228,8 +1234,8 @@ for img = 1:length(param.load.imgs)
             end
             
             reD(cur_idx_start : cur_idx_stop,rec) = reD(1:hdr.Nt{img}(rlines(rec)),rec);
-            reD(1:cur_idx_start-1,rec) = NaN;
-            reD(cur_idx_stop+1 : wfs(wf).Nt,rec) = NaN;
+            reD(1:cur_idx_start-1,rec) = wfs(wf).bad_value;
+            reD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
           for rec = 1:length(rlines)
             if isnan(hdr.t0{img}(rlines(rec)))
@@ -1242,8 +1248,8 @@ for img = 1:length(param.load.imgs)
             end
             
             imD(cur_idx_start : cur_idx_stop,rec) = imD(1:hdr.Nt{img}(rlines(rec)),rec);
-            imD(1:cur_idx_start-1,rec) = NaN;
-            imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = NaN;
+            imD(1:cur_idx_start-1,rec) = wfs(wf).bad_value;
+            imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
         end
@@ -1317,8 +1323,8 @@ for img = 1:length(param.load.imgs)
           
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
-          rel_gps_time = single(noise.coh_noise_gps_time - noise.coh_noise_gps_time(1));
-          rel_gps_time_interp = single(hdr.gps_time - noise.coh_noise_gps_time(1));
+          rel_gps_time = single(noise.fir_dec_gps_time - noise.fir_dec_gps_time(1));
+          rel_gps_time_interp = single(hdr.gps_time - noise.fir_dec_gps_time(1));
           for block = 1:length(blocks)-1
             rlines = blocks(block) : blocks(block+1)-1;
             
@@ -1475,6 +1481,9 @@ for img = 1:length(param.load.imgs)
   end
   
   if param.load.pulse_comp == 1
-    data{img} = data{img}(1:wfs(wf).Nt,:,:);
+    % Check if any good records, skip truncation if not
+    if any(~hdr.bad_rec{img}(1,:,wf_adc))
+      data{img} = data{img}(1:wfs(wf).Nt,:,:);
+    end
   end
 end

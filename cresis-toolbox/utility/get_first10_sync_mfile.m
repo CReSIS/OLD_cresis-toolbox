@@ -16,7 +16,7 @@ function sync_offsets = get_first10_sync_mfile(data_fn, first_byte, param)
 % Authors: John Paden
 %
 % See also: frame_sync_info.m, get_first10_sync.cpp,
-%   create_records_mcords_task.m
+%   records_create_mcords_task.m
 
 % ==================================================================
 % Check user arguments

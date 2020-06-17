@@ -1,7 +1,7 @@
 function success = qlook_combine_task(param)
 % success = qlook_combine_task(param)
 %
-% Task for combining get heights temporary outputs into images and running
+% Task for combining qlook temporary outputs into images and running
 % surface tracking.
 %
 % param = struct with processing parameters
@@ -18,7 +18,7 @@ function success = qlook_combine_task(param)
 %% Setup Processing
 % =====================================================================
 
-load(ct_filename_support(param,'','frames')); % Load "frames" variable
+frames = frames_load(param);
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
@@ -182,7 +182,14 @@ for frm_idx = 1:length(param.cmd.frms);
         Data = [[zeros(start_time_diff,size(Data,2)); Data; zeros(end_time_diff,size(Data,2))], ...
           [zeros(-start_time_diff,size(tmp.Data,2)); tmp.Data; zeros(-end_time_diff,size(tmp.Data,2))]];
       else
-        Data = [Data tmp.Data];
+        if size(tmp.Data,1) == 0
+          % Check for no good records which results in size of fast-time
+          % (first) dimension being zero. Handle this, but filling with
+          % NaN.
+          Data = [Data nan(size(Data,1),size(tmp.Data,2))];
+        else
+          Data = [Data tmp.Data];
+        end
       end
     end
     
@@ -235,15 +242,16 @@ for frm_idx = 1:length(param.cmd.frms);
     else
       file_version = '1';
     end
+    file_type = 'qlook';
     Data = single(Data);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version');
+        'param_qlook','param_records','file_version','file_type');
     else
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-        'param_qlook','param_records','file_version','custom');
+        'param_qlook','param_records','file_version','file_type','custom');
     end
   end
   

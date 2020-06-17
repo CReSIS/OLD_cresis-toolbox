@@ -10,10 +10,10 @@
 %% User Settings
 % =====================================================================
 
-params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20161107_03');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
 
 layer_params = [];
 idx = 0;
@@ -28,13 +28,13 @@ if 0
   layer_params(idx).source = 'echogram';
   layer_params(idx).echogram_source = 'qlook';
 
-elseif 0
+elseif 1
   %% Load a single layer from the layerData file
   ref_idx = 1;
   idx = idx + 1;
   layer_params(idx).name = 'surface';
-  layer_params(idx).source = 'layerData';
-  layer_params(idx).layerdata_source = 'layerData';
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
 
 elseif 0
   %% Compare echogram, layerData, and records
@@ -113,9 +113,10 @@ for param_idx = 1:length(params)
   param = merge_structs(param,gRadar);
   
   fprintf('opsLoadLayers %s\n', param.day_seg);
-  layers{end+1} = opsLoadLayers(param,layer_params);
+  [layers{end+1},new_layer_params] = opsLoadLayers(param,layer_params);
   day_seg{end+1} = param.day_seg;
 end
+layer_params = new_layer_params;
 
 % =====================================================================
 %% Example Section
@@ -295,5 +296,3 @@ if 0
   end
   save(layers_fn,'-v7.3','day_seg','layers')
 end
-
-

@@ -32,20 +32,18 @@ function gps = read_gps_csv(in_fn, param)
 %   plot(gps.lon,gps.lat);
 %   datestr(epoch_to_datenum(gps.gps_time(1)));
 %   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
-%   plot_gps(gps)
+%   gps_plot(gps)
 %
 %   fn = 'I:\trimbleGPS\CSRS_PPP\28631210.csv';
 %   gps = read_gps_csv(fn, struct('time_reference','utc','type',2));
 %   plot(gps.lon,gps.lat);
 %   datestr(epoch_to_datenum(gps.gps_time(1)));
 %   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
-%   plot_gps(gps)
+%   gps_plot(gps)
 %
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 debug_level = 1;
 

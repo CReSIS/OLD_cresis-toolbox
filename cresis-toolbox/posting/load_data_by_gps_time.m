@@ -198,7 +198,7 @@ else
   
   % Get list of records and frames files
   %  records_fn = '/cresis/scratch1/mdce/csarp_support/records/mcords/2009_Antarctica_DC8/records_20091016_seg1.mat';
-  %  records = read_records_aux_files(records_fn,[1 4000]);
+  %  records = records_aux_files_read(records_fn,[1 4000]);
   %  check = load(records_fn);
   
   % Get list of records files

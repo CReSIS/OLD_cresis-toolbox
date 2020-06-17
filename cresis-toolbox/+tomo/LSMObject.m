@@ -78,7 +78,8 @@ classdef LSMObject <handle
     end
     
     function showContours(this, k,s)
-      [img, ~, ftype]=readImage(this.imds{k});
+      %[img, ~, ftype]=readImage(this.imds{k});
+      img = double(this.imds{k});
       ce=this.contours{k,s}; %returns the contours for image k
       showImage(img, ftype)  %show the image
       hold on
@@ -97,7 +98,8 @@ classdef LSMObject <handle
       h = figure('Visible', 'off');
 
       % Read the image
-      [img_orig,~,~] = readImage(this.imds{1});
+      %[img_orig,~,~] = readImage(this.imds{1});
+      img_orig = double(this.imds{1});
       img = imresize(img_orig, this.resizeRate);
       
       g=indicateEdge(img);

@@ -32,7 +32,7 @@ debug_level = 1;
 in_base_path = fullfile(data_support_path,'2012_Greenland_P3');
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
-sync_fns = {}; sync_params = {};
+sync_fns = {}; sync_params = {}; sync_file_type = {};
 
 gps_source_to_use = 'ATM';
 
@@ -1334,7 +1334,7 @@ end
 
 %% make_gps
 % ======================================================================
-make_gps;
+gps_make;
 
 % Hand correction of gps_20120317 accum2 sync radar time information
 hand_idx = strmatch('gps_20120317.mat',out_fns);

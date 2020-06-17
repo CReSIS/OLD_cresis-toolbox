@@ -1,6 +1,6 @@
 % script run_get_segment_file_list
 %
-% Runs get_segment_file_list which is usually called from create_records.m
+% Runs get_segment_file_list which is usually called from records_create.m
 % This script shows how all the raw data files for a whole season can be
 % listed.
 %

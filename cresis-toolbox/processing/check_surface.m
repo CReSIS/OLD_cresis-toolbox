@@ -511,7 +511,7 @@ if strcmpi(radar_type,'deramp')
   
   if param.check_surface.save_records_en
     save(records_fn,'-append','-struct','records','settings');
-    create_records_aux_files(records_fn,false);
+    records_aux_files_create(records_fn,false);
   end
   
   clf(h_fig(5));

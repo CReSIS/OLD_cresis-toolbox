@@ -30,13 +30,11 @@ function gps = read_gps_cresis(fn,param)
 % Examples:
 %  fn = 'C:\Users\dangermo\Desktop\GPS\test1.txt';
 %  gps = read_gps_cresis(fn);
-%  plot_gps(gps);
+%  gps_plot(gps);
 %
 % Author: John Paden
 %
-% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
-%   read_gps_txt, plot_gps
+% See also read_gps_*.m, gps_plot.m, gps_make.m
 
 
 [fid,msg] = fopen(fn,'r');
