@@ -208,6 +208,7 @@ for param_idx = 1:length(params)
   
   % Iterate over each frame in the day segment
   for fn_idx = 1 : length(echo_fns)
+
     
     echo_fn = echo_fns{fn_idx};
     [~,fn_name] = fileparts(echo_fn);
@@ -215,7 +216,7 @@ for param_idx = 1:length(params)
     fprintf('  %s\n', echo_fn);
     
     % Load echogram data
-    tmp1 = load(echo_fn);
+    tmp1 = load(echo_fn);    
     
     if 0
       %  View loaded echogram
@@ -299,12 +300,11 @@ for param_idx = 1:length(params)
     
     % Check surface    
     if 0
-      figure(5);clf;
+      figure;clf;
       imagesc([],tmp.Time,lp(tmp.Data)); colormap(1-gray(256))
       hold on; plot( mdata.curr_surf_twtt )
       title(sprintf('Plot of surface on Echogram data %s',fn_name),'Interpreter','none');
-    end
-    
+    end   
     
     
     if surface_flat_en == 0
@@ -333,7 +333,7 @@ for param_idx = 1:length(params)
           warning (sprintf('No surface found for %s: skipping to the next frame',fn_name));
           continue;
         else
-          def_val = surf_index(find(~isnan(surf_index),1));
+          def_val = surf_index(find(~isnan(surf_index),1)); % should I use mean instead?
           surf_index = interp_finite(surf_index,def_val);
         end
         
@@ -550,7 +550,14 @@ for param_idx = 1:length(params)
           end
         end
         
-        dt_bottom = interp1(1:length(mdata.Time),mdata.Time,mdata.layer_rangebin(end,rline:rline_end));
+        
+        % For snow data; bottom should be set to nan so echo_detrend uses data
+        % from surface to Nt
+        if regexp(param.radar_name,'snow')
+          dt_bottom = nan(1,size(data,2));
+        else
+          dt_bottom = interp1(1:length(mdata.Time),mdata.Time,mdata.layer_rangebin(end,rline:rline_end));
+        end
         
         if detrend_en
           detrend_param = block_data.norm_detrend_params;
@@ -763,7 +770,7 @@ for param_idx = 1:length(params)
         
         
         
-        %% Save image as .tiff
+        % Save image as .tiff
         
         out_fn = fullfile(out_dir,'image',sprintf('image_%06d.tiff',block));
         fprintf('    Save %s\n', out_fn);
@@ -822,8 +829,6 @@ for param_idx = 1:length(params)
         left_over = []; % re-initialize
         
       else
-        
-        %         left_over_data = []; left_over_layer =[];% re-initialize
         
         left_over.data = flattened_Data(:,rline:end);
         
