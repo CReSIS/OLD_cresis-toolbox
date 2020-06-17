@@ -38,7 +38,7 @@ param_override.block_data.bottom_pad = 1000; % Number of rows of data used to pa
 
 param_override.block_data.surface_flat_en = 1; % Enable/disable surface flattening. Filtering is autmaticcally disabled when flattening is off
 param_override.block_data.surface_rel_layers_flat_en = 1; % Enable if layers should be relative to the flattened surface.
-param_override.block_data.filter_len = 31; % Typically,some surface filtering must be done if surface_flat is enabled 
+param_override.block_data.filter_len = 7; % Typically,some surface filtering must be done if surface_flat is enabled 
 
 
 param_override.block_data.pre_detrend_filter_en = 0; % Filter entire frame before "blocking"
@@ -56,7 +56,7 @@ param_override.block_data.values.user_min = []; % Set min valid finite value
 
 param_override.block_data.echo_path = 'CSARP_post/qlook'; % snow = 'qlook',rds='CSARP_post/standard'; % Echogram source e.g rds uses 'CSARP\standard' => ct_filename_out(param,'CSARP\standard')
 
-param_override.block_data.out_fn ='new_interp_master_41'; % Specify desired output path i.e fn passed into ct_filename_tmp 
+param_override.block_data.out_fn ='new_layer'; % Specify desired output path i.e fn passed into ct_filename_tmp 
 %param_override.sched.type = 'no scheduler'; % Example to override default cluster settings
 
 %Paramaters of "layer_params" argument of
