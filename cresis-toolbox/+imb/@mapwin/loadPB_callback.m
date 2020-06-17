@@ -130,10 +130,23 @@ param.filename = {};
 param.map = obj.map;
 if strcmpi(param.layer_source,'layerdata')
   % Find this season in the list of seasons
-  season_idx = find(strcmp(system_name_full,obj.cur_map_pref_settings.seasons));
-  % Create a mask that identifies the frames for the selected segment in this season
-  frm_idxs = find(param.cur_sel.seg_id == floor(obj.layerdata.frm_info(season_idx).frm_id/1000));
-  num_frm = length(frm_idxs);
+  if strcmp(obj.cur_map_pref_settings.system,'layerdata')
+    % Season layer files: Load segment information
+    season_idx = find(strcmp(system_name_full,obj.cur_map_pref_settings.seasons));
+    % Create a mask that identifies the frames for the selected segment in this season
+    frm_idxs = find(param.cur_sel.seg_id == floor(obj.layerdata.frm_info(season_idx).frm_id/1000));
+    num_frm = length(frm_idxs);
+  else
+    % OPS: Load segment information
+    ops_param = struct('properties',[]);
+    ops_param.properties.location = param.cur_sel.location;
+    ops_param.properties.segment_id = param.cur_sel.seg_id;
+    [status,data] = opsGetSegmentInfo(param.system,ops_param);
+    num_frm = length(data.properties.frame);
+    % Database may return them out of order
+    param.start_gps_time = sort(double(data.properties.start_gps_time));
+    param.stop_gps_time = sort(double(data.properties.stop_gps_time));
+  end
 
   % Load layer organizer file into param.layers
   %   param.layers.lyr_age % layer_organizer.lyr_age (age of layer or NaN)
@@ -187,8 +200,10 @@ if strcmpi(param.layer_source,'layerdata')
   param.layers.lyr_name = param.layers.lyr_name(new_order);
   param.layers.lyr_order = param.layers.lyr_order(new_order);
   
-  param.start_gps_time = obj.layerdata.frm_info(season_idx).start_gps_time(frm_idxs);
-  param.stop_gps_time = obj.layerdata.frm_info(season_idx).stop_gps_time(frm_idxs);
+  if strcmp(obj.cur_map_pref_settings.system,'layerdata')
+    param.start_gps_time = obj.layerdata.frm_info(season_idx).start_gps_time(frm_idxs);
+    param.stop_gps_time = obj.layerdata.frm_info(season_idx).stop_gps_time(frm_idxs);
+  end
 
 else
   param.layers.lyr_age = nan(size(param.layers.lyr_id)); % layer.age (age of layer or NaN)

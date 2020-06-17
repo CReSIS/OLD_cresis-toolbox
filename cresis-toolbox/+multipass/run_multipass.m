@@ -1,5 +1,17 @@
+% script run_multipass
+%
+% Script for running multipass.m
+%
+% Authors: Cody Barnett, Bailey Miller, John Paden
+%
+% See also: multipass.combine_passes.m, multipass.run_combine_passes.m,
+% multipass.multipass.m, multipass.run_multipass.m
+
 clearvars -except gRadar
 param = [];
+
+%% User Settings
+% =========================================================================
 
 %% Petermann Line 1 2014
 % if ispc

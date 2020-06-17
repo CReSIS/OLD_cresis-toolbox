@@ -161,6 +161,7 @@ for day_idx=13:13 %1:length(days)
       layer_params.source = 'layerdata';
     end
     surf = opsLoadLayers(param,layer_params);
+    surf.twtt = interp_finite(surf.twtt);
     
     %% Process:Segment Filter Surf Data
     surf.twtt_filtered = surf.twtt - surf.elev/(c/2);
