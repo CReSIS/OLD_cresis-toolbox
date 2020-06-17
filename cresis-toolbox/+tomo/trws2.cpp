@@ -48,9 +48,9 @@ public:
   // message_DIRECTION: mNt*mNsv*mNx message matrixes. These are like an inbox:
   // they represent messages sent from other nodes to the node with the
   // corresponding index.
-  float *mMessage_Left; // Message from node to the left
+  float *mMessage_Left; // Message from node to the right
   float *mMessage_Up; // Message from node below
-  float *mMessage_Right; // Message from node to the right
+  float *mMessage_Right; // Message from node to the left
   float *mMessage_Down; // Message from node above
   
   // mAT_Slope: along-track expected slope (should generally compensate for radar platform elevation changes)
@@ -103,11 +103,14 @@ void TRWS::set_result() {
   
   size_t result_idx = 0;
   for (size_t w = 0; w < mNx; w++) {
+    mexPrintf("w %d of mNx %d\n", w, mNx);
     for (size_t h = 0; h < mNsv; h++) {
+      mexPrintf("  h %d of mNsv %d\n", h, mNsv);
       float min_val = INFINITY;
       size_t best_result = mNx;
       
       for (size_t d = mBounds[2*w], message_idx = h*mNt + w*mNsv*mNt+mBounds[2*w]; d <= mBounds[2*w+1]; d++, message_idx++) {
+        mexPrintf("    d %d of mBounds[2*w+1] and message_idx %d of mNsv*mNt*mNx %d\n", d, mBounds[2*w+1], message_idx, mNsv * mNsv * mNx);
         // Unary cost
         float temp = -mImage[message_idx];
         // Binary costs (up,down,left,right)
@@ -161,11 +164,11 @@ void TRWS::solve() {
       mexPrintf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", loop);
       time_t curr_time;
       time(&curr_time);
-      mexPrintf("  loop: %2d of %2d, time per loop: %5.0f seconds\n", loop+1, mMax_Loops, double(curr_time-start_time)/double(loop));
+      // mexPrintf("  loop: %2d of %2d, time per loop: %5.0f seconds\n", loop+1, mMax_Loops, double(curr_time-start_time)/double(loop));
     } else {
-      mexPrintf("  loop: %2d of %2d                              \n", loop+1, mMax_Loops);
+      // mexPrintf("  loop: %2d of %2d                              \n", loop+1, mMax_Loops);
     }
-
+      mexPrintf("loop %d of mMax_Loops %d\n", loop, mMax_Loops);
     // Loop through along-track dimension
     for (size_t w_idx = 0; w_idx < mNx; w_idx++) {
       size_t w;
@@ -176,6 +179,7 @@ void TRWS::solve() {
         // Iterating left to right
         w = w_idx;
       }
+      mexPrintf("  w %d from w_idx %d of mNx %d\n", w, w_idx, mNx);
       //mexPrintf("  w: %5d of %5d\n", w+1, mNx);
       // To allow the Matlab program to continue to take GUI inputs while
       // TRWS in running, call drawnow.
@@ -189,16 +193,21 @@ void TRWS::solve() {
         size_t cur_message_idx = (h + w*mNsv)*mNt;
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
+        mexPrintf("    h %d from h_idx %d of mNsv %d\n", h, h_idx, mNsv);
+        mexPrintf("    cur_message_idx %d of mNsv*mNt*mNx %d in %d:%d\n", h, mNsv * mNsv * mNx, cur_rbin_start, cur_rbin_stop);
         
+
         // Message to node on the left of current
         //   Sum all input messages and create the message for the node on the right
         //   Messages the current node sends that node is called "mMessage_Right" for that node
         //   Messages from the node to the right are stored in this current node's mMessage_Left
         // ----------------------------------------------------------------
         for (size_t d = cur_rbin_start, message_idx = cur_message_idx+cur_rbin_start; d <= cur_rbin_stop; d++, message_idx++) {
+          mexPrintf("      left  d %d and message_idx %d\n", d, message_idx);
           message_sum[d] = mMessage_Up[message_idx] + mMessage_Right[message_idx] + mMessage_Down[message_idx] - mImage[message_idx];
           // message_in for node on the right (w-1) excludes mMessage_Left which came from the node on the right
         }
+        // TODO[reece]: Does normalizing columns of dt independently make sense
         if (w > 0) {
           // Message destination index
           size_t msg_dest_idx = (h + (w-1)*mNsv)*mNt;
@@ -222,6 +231,7 @@ void TRWS::solve() {
         // ----------------------------------------------------------------
         // Input message
         for (size_t d = cur_rbin_start, message_idx = cur_message_idx+cur_rbin_start; d <= cur_rbin_stop; d++, message_idx++) {
+          mexPrintf("      above d %d and message_idx %d\n", d, message_idx);
           // Add in the missing left message
           message_sum[d] = message_sum[d] + mMessage_Left[message_idx];
           // message_in for node above (h-1) the current excludes mMessage_Up
@@ -248,6 +258,7 @@ void TRWS::solve() {
         // Message to node on the right of current
         // ----------------------------------------------------------------
         for (size_t d = cur_rbin_start, message_idx = cur_message_idx+cur_rbin_start; d <= cur_rbin_stop; d++, message_idx++) {
+          mexPrintf("      right d %d and message_idx %d\n", d, message_idx);
           message_in[d] = message_sum[d] - mMessage_Right[message_idx];
         }
         if (w < mNx-1) {
@@ -270,6 +281,7 @@ void TRWS::solve() {
         // Message to node below the current
         // ----------------------------------------------------------------
         for (size_t d = cur_rbin_start, message_idx = cur_message_idx+cur_rbin_start; d <= cur_rbin_stop; d++, message_idx++) {
+          mexPrintf("      below d %d and message_idx %d\n", d, message_idx);
           message_in[d] = message_sum[d] - mMessage_Down[message_idx];
         }
         if (h < mNsv-1) {
@@ -292,7 +304,9 @@ void TRWS::solve() {
       }
     }
   }
+  mexPrintf("DONE Computing\n");
   set_result();
+  mexPrintf("DONE Searching\n");
 }
 
 // MATLAB FUNCTION START
@@ -364,9 +378,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (!mxIsClass(prhs[6],"uint32")) {
     mexErrMsgTxt("usage: bounds must be type unsigned int32");
   }
-  const size_t *dim_bounds = mxGetDimensions(prhs[6]);
-  if (dim_bounds[0] != dim_image[1] || dim_bounds[1] != dim_image[2]) {
-    mexErrMsgTxt("usage: bounds must have size(bounds,1)=size(image,2) and size(bounds,2)=size(image,3)");
+  if (mxGetNumberOfElements(prhs[6]) != 2*dim_image[2]) {
+    mexErrMsgTxt("usage: bounds must have numel equal to 2*size(image,3)");
   }
   unsigned int *bounds = (unsigned int *)mxGetData(prhs[6]);
   
