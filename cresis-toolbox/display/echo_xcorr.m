@@ -22,6 +22,8 @@ function data = echo_xcorr(data, param)
 %
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('peaky')));
 %
+% imagesc(echo_xcorr(mdata,echo_xcorr_profile('snow')));
+%
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('short_unitstep')));
 %
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('long_unitstep')));

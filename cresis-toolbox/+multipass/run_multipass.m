@@ -203,8 +203,4 @@ else
 end
 
 % Run multipass
-for mode_id = 1:length(comp_mode)
-  param.multipass.comp_mode = comp_mode(mode_id);
-  %multipass.multipass(param, param_override);
-  multipass.multipass
-end
+multipass.multipass

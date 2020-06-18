@@ -213,7 +213,7 @@ for day_idx=13:13 %1:length(days)
     copy_param.layer_source.existence_check = false;
     copy_param.layer_source.source = 'custom';
     copy_param.layer_dest.source = 'layerdata';
-    copy_param.layer_dest.layerdata_source = 'layer_koenig2';
+    copy_param.layer_dest.layerdata_source = 'layer_koenig';
     copy_param.layer_dest.existence_check = false;
     
     copy_param.layer_source.gps_time = {};

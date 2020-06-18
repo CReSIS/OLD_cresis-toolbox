@@ -12,7 +12,7 @@
 
 param_override = [];
 param = [];
-passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
+passes = [];
 
 %% Petermann Line 1 2002
 % pass_name = sprintf('Petermann_line1_2002');
@@ -83,6 +83,7 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
 % start = struct('lat',80.499370,'lon',-60.013440);
 % stop = struct('lat',80.964739,'lon',-61.618307);
 % input_type = 'echo';
+% passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % 
 % param_fn = 'rds_param_2011_Greenland_P3.xls';
 % day_seg = '20110507_02';
@@ -231,6 +232,7 @@ stop = struct('lat', 72.791, 'lon', -38.461);
 dist_min = 300;
 master_pass_idx = 8;
 input_type = 'sar';
+passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
 
 param_fn = 'rds_param_2014_Greenland_P3.xls';
 for adc = 2:16
