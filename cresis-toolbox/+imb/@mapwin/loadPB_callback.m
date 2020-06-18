@@ -206,6 +206,16 @@ if strcmpi(param.layer_source,'layerdata')
   end
 
 else
+  % OPS: Load segment information
+  ops_param = struct('properties',[]);
+  ops_param.properties.location = param.cur_sel.location;
+  ops_param.properties.segment_id = param.cur_sel.seg_id;
+  [status,data] = opsGetSegmentInfo(param.system,ops_param);
+  num_frm = length(data.properties.frame);
+  % Database may return them out of order
+  param.start_gps_time = sort(double(data.properties.start_gps_time));
+  param.stop_gps_time = sort(double(data.properties.stop_gps_time));
+
   param.layers.lyr_age = nan(size(param.layers.lyr_id)); % layer.age (age of layer or NaN)
   param.layers.lyr_age_source = cell(size(param.layers.lyr_id)); % layer.age_source (struct vector of age sources)
   param.layers.lyr_desc = cellfun(@char,cell(size(param.layers.lyr_id)),'UniformOutput',false); % layer.desc (layer description string)
