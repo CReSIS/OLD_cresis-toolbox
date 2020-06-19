@@ -2,19 +2,25 @@ param = [];
 vel_fn = {};
 vel_mult = [];
 
+if ispc
+  vel_fn_dir = 'Y:\cbarnett\year_greenland_vv\';
+else
+  vel_fn_dir = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/';
+end
+
 %% Petermann Line 1 2011, 2014, 2018
-% if ispc
-%   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018_multipass.mat'));
-% else
-%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018_multipass'));
-% end
-% vel_fn{1}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
-% vel_mult{1} = [3];
-% vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2014_2015_vv_v02.1.tif';
-% vel_fn{2}{2} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2015_2016_vv_v02.1.tif';
-% vel_fn{2}{3} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2016_2017_vv_v02.1.tif';
-% vel_fn{2}{4} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2017_2018_vv_v02.1.tif';
-% vel_mult{2} = [1 1 1 1];
+if ispc
+  fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018_multipass.mat'));
+else
+  fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018_multipass'));
+end
+vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+vel_mult{1} = [3];
+vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
+vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+vel_fn{2}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+vel_mult{2} = [1 1 1 1];
 
 %% Petermann Line 2 2013, 2014
 % if ispc
@@ -22,7 +28,7 @@ vel_mult = [];
 % else
 %   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line2_2013_2014_multipass'));
 % end
-% vel_fn{1}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
+% vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
 % vel_mult{1} = [1];
 
 %% Petermann Line 4 2010, 2011, 2013, 2014
@@ -31,28 +37,28 @@ vel_mult = [];
 % else
 %   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014_multipass'));
 % end
-% vel_fn{1}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
+% vel_fn{1}{1} = fullfile(vel_fn_dir,'petermann','greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
 % vel_mult{1} = [1];
-% vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
+% vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
 % vel_mult{2} = [2];
-% vel_fn{3}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
+% vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
 % vel_mult{3} = [1];
 
 %% 79N Line 1 2010, 2014, 2016, 2018
-if ispc
-  fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018_multipass.mat'));
-else
-  fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018_multipass'));
-end
-
-vel_fn{1}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
-vel_mult{1} = [4];
-% DO NOT USE; MISSING DATA:  vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2014_2015_vv_v02.1.tif';
-vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2015_2016_vv_v02.1.tif';
-vel_mult{2} = [2];
-vel_fn{3}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2016_2017_vv_v02.1.tif';
-vel_fn{3}{2} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2017_2018_vv_v02.1.tif';
-vel_mult{3} = [1 1];
+% if ispc
+%   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018_multipass.mat'));
+% else
+%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018_multipass'));
+% end
+% 
+% vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+% vel_mult{1} = [4];
+% % DO NOT USE; MISSING DATA:  vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif';
+% vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+% vel_mult{2} = [2];
+% vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+% vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+% vel_mult{3} = [1 1];
 
 load(fn);
 
