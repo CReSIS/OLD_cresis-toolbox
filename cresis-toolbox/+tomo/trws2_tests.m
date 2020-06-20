@@ -3,16 +3,20 @@ Nsv = 6;
 Nx  = 7;
 
 
-trws_data = zeros(Nt, Nsv, Nx);
+trws_data = rand(Nt, Nsv, Nx);
 
-trws_data(4, :, :) = 1;
-trws_data(2, 3:4, 2:6) = 1;
+trws_data(4, :, :) = 10;
+trws_data(3, 3:4, 2:6) = 10;
 trws_data(4, 3:4, 2:6) = 0;
+% trws_data(1, :, :) = 9;
+trws_data(1, 4, 4) = 100;
+
+
 
 at_slope  = zeros(1, Nx);
-at_weight = 0;
+at_weight = 1;
 ct_slope  = zeros(Nsv, Nx);
-ct_weight = zeros(1, Nsv);
+ct_weight = ones(1, Nsv);
 
 bounds = zeros(2, Nx);
 bounds(2, :) = Nt - 1;
@@ -28,7 +32,7 @@ clf;
 hold on;
 
 surf(X, Y, correct_surface);
-shading interp
+shading interp;
 colormap(parula);
 
 xlim([1 Nx]);
@@ -47,8 +51,12 @@ for x = 1:Nx
     for y = 1:Nsv
         for z = 1:Nt
             intensity = trws_data(z, y, x);
+            color = 'b';
+            if intensity > 1
+                color = 'r';
+            end
             if intensity > 0
-                plot3(x, y, z, 'r.', 'MarkerSize', intensity*30);
+                plot3(x, y, z, sprintf('%s.', color), 'MarkerSize', intensity);
             end
         end
     end
