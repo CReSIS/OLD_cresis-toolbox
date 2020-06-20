@@ -1171,7 +1171,7 @@ for img = 1:length(param.load.imgs)
               %
               % The frequency reversal and conjugation are fixed by conjugating the
               % signal before the FFT.
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
             end
             
             % Modulate the raw data to adjust the start time to always be a

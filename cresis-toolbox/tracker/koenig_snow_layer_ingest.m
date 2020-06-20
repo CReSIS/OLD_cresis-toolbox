@@ -161,6 +161,7 @@ for day_idx=13:13 %1:length(days)
       layer_params.source = 'layerdata';
     end
     surf = opsLoadLayers(param,layer_params);
+    surf.twtt = interp_finite(surf.twtt);
     
     %% Process:Segment Filter Surf Data
     surf.twtt_filtered = surf.twtt - surf.elev/(c/2);
@@ -212,7 +213,7 @@ for day_idx=13:13 %1:length(days)
     copy_param.layer_source.existence_check = false;
     copy_param.layer_source.source = 'custom';
     copy_param.layer_dest.source = 'layerdata';
-    copy_param.layer_dest.layerdata_source = 'layer_koenig2';
+    copy_param.layer_dest.layerdata_source = 'layer_koenig';
     copy_param.layer_dest.existence_check = false;
     
     copy_param.layer_source.gps_time = {};
