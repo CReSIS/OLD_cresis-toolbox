@@ -1318,13 +1318,6 @@ for img = 1:length(param.load.imgs)
     % ===================================================================
     if strcmpi(radar_type,'deramp')
       
-      if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        if isfield(wfs(wf).coh_noise_arg,'DC_remove_en') && wfs(wf).coh_noise_arg.DC_remove_en
-          data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-            mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
-        end
-      end
-      
       if strcmpi(wfs(wf).coh_noise_method,'estimated')
         % Apply coherent noise methods that require estimates derived now
         
