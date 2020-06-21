@@ -1,5 +1,5 @@
-function [data,resample_field] = echo_flatten(mdata,resample_field,interp_method,inverse_flag,ref_col)
-% [data,resample_field] = echo_flatten(mdata,resample_field,interp_method,inverse_flag,ref_col)
+function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,interp_method,ref_col)
+% [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,interp_method,ref_col)
 %
 % Shifts columns up/down in echogram using interpolation in order to
 % flatten one or more 1D layers in the data or to flatten a 2D slope field.
@@ -73,7 +73,13 @@ function [data,resample_field] = echo_flatten(mdata,resample_field,interp_method
 %
 % param = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'20120330_04');
 % mdata = echo_load(param,'CSARP_post/qlook',3);
-% mdata = echo_flatten(mdata); % Flatten to surface in layerdata-CSARP_layer-surface
+%
+% figure(1); clf; imagesc(lp(mdata.Data));
+% [mdata.Data,resample_field] = echo_flatten(mdata); % Flatten to surface in layerdata-CSARP_layer-surface
+% figure(2); clf; imagesc(lp(mdata.Data));
+% mdata.Data = echo_flatten(mdata,[],true); % Unflatten
+% figure(3); clf; imagesc(lp(mdata.Data));
+% 
 % physical_constants; mdata = echo_flatten(mdata, interp1(mdata.Time,...
 %   1:length(mdata.Time), mdata.Elevation*c/2)); % Flatten elevation
 % mdata = echo_flatten(mdata, 'slope'); % Flatten to slope-field in CSARP_slope
@@ -89,7 +95,10 @@ function [data,resample_field] = echo_flatten(mdata,resample_field,interp_method
 
 %% Input checks
 
-if ~exist('resample_field','var') || isempty(resample_field)
+if ~exist('resample_field','var')
+  resample_field = [];
+end
+if isempty(resample_field)
   if ischar(resample_field)
     % slope file path
     resample_field = 'slope';
@@ -131,15 +140,16 @@ if isstruct(resample_field)
   end
   
   % Load layers
-  param.cmd.frms = mdata.param_qlook.load.frm + [-1 0 1];
-  layers = opsLoadLayers(param, resample_field);
+  ops_param = param;
+  ops_param.cmd.frms = [param.load.frm(1)-1 param.load.frm param.load.frm(end)+1];
+  layers = opsLoadLayers(ops_param, resample_field);
   
   % Interpolate layers onto mdata.GPS_time and convert from twtt to
   % range-bins (rows)
   resample_field = nan(length(layers), Nx);
   for lay_idx = length(layers)
     resample_field(lay_idx,:) = interp1(mdata.Time, 1:length(mdata.Time), ...
-      interp_finite(interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, mdata.GPS_time)));
+      interp_finite(interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, mdata.GPS_time),0),'linear','extrap');
   end
   
 elseif isnumeric(resample_field)
@@ -159,9 +169,20 @@ elseif ischar(resample_field)
   end
   
   % Interpolate layers onto mdata.GPS_time
-  slope_fn = fullfile(ct_filename_out(param,'',resample_field), ...
-    sprintf('slope_%s_%03d.mat', param.day_seg, mdata.param_qlook.load.frm));
-  resample_field = load(slope_fn, 'gps_time', 'resample_field');
+  frms = [param.load.frm(1)-1 param.load.frm param.load.frm(end)+1];
+  for frm_idx = 1:length(frms)
+    frm = frms(frm_idx);
+    slope_fn = fullfile(ct_filename_out(param,'',resample_field), ...
+      sprintf('slope_%s_%03d.mat', param.day_seg, frm));
+    if frm_idx == 1
+      load(slope_fn, 'gps_time', 'resample_field');
+    else
+      error('Combining slope field files across frames not supported since overlap is required to do the interpolation properly.');
+      tmp = load(slope_fn, 'gps_time', 'resample_field');
+      gps_time = [gps_time tmp.gps_time];
+      resample_field = [resample_field tmp.resample_field];
+    end
+  end
   resample_field = interp_finite(interp1(gps_time, resample_field.', mdata.GPS_time)).'/dt;
   
 else
@@ -176,7 +197,11 @@ resample_field = bsxfun(@minus,resample_field,ref_axis);
 Nt = size(mdata.Data,1);
 Nt_resample_init = size(resample_field,1);
 
-resample_axis = (1-round(min(resample_field(:))) : Nt + round(max(resample_field(:)))).';
+if inverse_flag
+  resample_axis = (1-round(max(-resample_field(:))) : Nt - round(min(-resample_field(:)))).';
+else
+  resample_axis = (1-round(max(resample_field(:))) : Nt - round(min(resample_field(:)))).';
+end
 Nt_resample = length(resample_axis);
 
 for col = 1:Nx
@@ -186,7 +211,11 @@ for col = 1:Nx
     resample_field(1:Nt_resample,col) = interp1(resample_axis,(1:Nt_resample_init).',resample_field(1:Nt_resample_init,col),'spline');
   end
 end
-resample_field = bsxfun(@plus,interp_finite(resample_field),resample_axis);
+if inverse_flag
+  resample_field = bsxfun(@plus,-interp_finite(resample_field,0),resample_axis);
+else
+  resample_field = bsxfun(@plus,interp_finite(resample_field,0),resample_axis);
+end
 
 %% Interpolate mdata.Data
 

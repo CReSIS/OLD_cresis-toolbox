@@ -188,7 +188,6 @@ for passes_idx = 1: length(passes)
         metadata{passes_idx}.heading = [];
         metadata{passes_idx}.surface = [];
         metadata{passes_idx}.bottom = [];
-        metadata{passes_idx}.param_array =[];
         metadata{passes_idx}.fcs.origin = [];
         metadata{passes_idx}.fcs.x = [];
         metadata{passes_idx}.fcs.y = [];
@@ -397,6 +396,7 @@ for data_idx = 1:length(data)
       if strcmpi(param.combine_passes.input_type,'echo')
         pass(end).data = data{data_idx}(:,rlines);
         pass(end).wfs.time = metadata{data_idx}.time;
+        pass(end).wfs.fc = metadata{data_idx}.param_array.radar.wfs.fc;
         pass(end).time = metadata{data_idx}.time;
         
         pass(end).gps_time = metadata{data_idx}.gps_time(rlines);

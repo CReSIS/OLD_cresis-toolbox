@@ -86,6 +86,12 @@ if isfield(mdata,'param_csarp')
   mdata.file_version = '0';
 end
 
+if isfield(mdata,'param_combine')
+  mdata.param_array = mdata.param_combine;
+  mdata = rmfield(mdata,'param_combine');
+  mdata.file_version = '0';
+end
+
 if isfield(mdata,'param_combine_wf_chan')
   mdata.param_array.array = mdata.param_combine_wf_chan;
   mdata = rmfield(mdata,'param_combine_wf_chan');

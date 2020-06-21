@@ -1,7 +1,9 @@
 % function multipass(param,param_override)
 % multipass(param,param_override)
 %
-% Combines 
+% Synchronize, register, correct passes from combine_passes and then apply
+% array processing.
+%
 % param.multipass.comp_mode
 % 1 to find equalization coefficients
 %   Motion compensation of FCS z-motion
