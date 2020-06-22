@@ -658,6 +658,9 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
 
     %% Track: Remove overlap
+    if ~exist('overlap','var')
+      overlap = [0 0];
+    end
     overlap_rlines = 1+overlap(1) : Nx-overlap(2);
     if any(overlap) > 0
       new_layer = new_layer(overlap_rlines);

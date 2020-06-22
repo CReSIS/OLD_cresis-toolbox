@@ -88,9 +88,9 @@ param = [];
 % param.multipass.pass_en_mask = [];
 % param.multipass.output_fn_midfix = [];
 % param.multipass.coregistration_time_shift = [1 0 0 -2];
+% param.multipass.comp_mode = 2;
 % param.multipass.time_gate = [2e-6 13e-6];
 % 
-% comp_mode = 2;
 %% 2011 to 2012 Greenland P3
 % radartype = 'rds';
 % passname = 'rds_thule_2011_2012';
@@ -121,6 +121,7 @@ if 0
   param.multipass.pass_en_mask = [];
   param.multipass.output_fn_midfix = [];
   param.multipass.coregistration_time_shift = [];
+  param.multipass.comp_mode = 1:4;
   param.multipass.time_gate = [];
   
   %Load equalization vector (sar specific)
@@ -139,8 +140,6 @@ if 0
   param.multipass.equalization = [equalization1 equalization2];
   
   param.multipass.debug_plots = {'NA'};
-  
-  comp_mode = 1:4;
 end
 
 %% Summit Camp: 2012-2014
@@ -152,14 +151,14 @@ if 1
   param.multipass.rbins = [];
   
   if 0
-    comp_mode = 2;
+    param.multipass.comp_mode = 2;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 8;
     param.multipass.output_fn_midfix = '_2014';
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(1:15) = true;
   elseif 0
-    comp_mode = 3;
+    param.multipass.comp_mode = 3;
     param.multipass.slope_correction_en = true;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 8;
@@ -167,14 +166,14 @@ if 1
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(1:30) = true;
   elseif 1
-    comp_mode = 2;
+    param.multipass.comp_mode = 2;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 15+8;
     param.multipass.output_fn_midfix = '_2012';
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(16:30) = true;
   else 0
-    comp_mode = 2;
+    param.multipass.comp_mode = 2;
     param.multipass.baseline_master_idx = 15+8;
     param.multipass.master_idx = 15+8;
     param.multipass.output_fn_midfix = '_2012master';
@@ -203,4 +202,5 @@ else
 end
 
 % Run multipass
+%multipass.multipass(param, param_override);
 multipass.multipass
