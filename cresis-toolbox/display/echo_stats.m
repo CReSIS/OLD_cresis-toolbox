@@ -1,4 +1,4 @@
-function echo_stats(param,param_override)
+function echo_stats(param,stats_param)
 % echo_stats(param,param_override)
 %
 % Author: John Paden
@@ -9,7 +9,6 @@ function echo_stats(param,param_override)
 
 %% General Setup
 % =====================================================================
-param = merge_structs(param, param_override);
 
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
@@ -18,11 +17,13 @@ fprintf('=====================================================================\n
 %% Input arguments check and setup
 % =========================================================================
 
-echogram_fn_dir = ct_filename_out(param,param.echo_stats.data_type);
+echogram_fn_dir = ct_filename_out(param,stats_param.echo_stats.data_type);
 
 % Load frames associated with this segment
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = load(frames_fn);
+
+param = merge_structs(param, stats_param);
 
 % Load layer information
 layer_params = [];
