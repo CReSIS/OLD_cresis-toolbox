@@ -90,7 +90,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   if twtt_offset ~= 0 || gps_time_offset ~= 0
     warning('You have set a nonzero twtt_offset(%.12g) or gps_time_offset(%.3g). Normally these are both zero. Please verify that this is what you want to do before running "dbcont" to continue.\n', twtt_offset, gps_time_offset);
     keyboard
-    copy_param.eval.cmd = sprintf('source = interp1(gps_time+%.3g,source + %.12g,gps_time);',gps_time_offset,twtt_offset);
+    copy_param.eval.cmd = sprintf('s = interp1(time+%.3g,s + %.12g,time);',gps_time_offset,twtt_offset);
   end
   
   % Set overwrite quality level (e.g. []: do not overwrite, 1: good, 2: medium, 3: bad)

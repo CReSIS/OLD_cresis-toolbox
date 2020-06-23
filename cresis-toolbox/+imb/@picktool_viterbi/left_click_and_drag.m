@@ -42,9 +42,6 @@ for layer_idx = 1:length(cur_layers)
   % Echogram Parameters
   viterbi_data   = image_c;
   
-  %% Detrending
-  viterbi_data = echo_norm(viterbi_data,struct('scale',[-40 90]));
-  
   % Get values from picktool params
   n = cur_layer;  % Used in top/bottom layer eval
   try
@@ -197,6 +194,11 @@ for layer_idx = 1:length(cur_layers)
   upper_bounds(upper_bounds > size(viterbi_data, 1)) = size(viterbi_data, 1);
   lower_bounds(lower_bounds < 1) = 1;
   lower_bounds(~isfinite(lower_bounds) | lower_bounds > size(viterbi_data, 1)) = size(viterbi_data, 1);
+  
+  % Detrending
+  viterbi_data(~isfinite(viterbi_data)) = NaN;
+  viterbi_data = echo_norm(viterbi_data,struct('scale',[-40 90]));
+  viterbi_data(~isfinite(viterbi_data)) = -inf;
 
   viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);

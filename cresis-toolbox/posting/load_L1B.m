@@ -61,18 +61,41 @@ end
 mdata = uncompress_echogram(mdata);
 
 if isfield(mdata,'param_get_heights')
-  mdata.param_qlook.qlook = mdata.param_get_heights;
+  if isequal({'get_heights'},fieldnames(mdata.param_get_heights))
+    % param_get_heights is incomplete structure, supplement with param_records
+    mdata.param_qlook = mdata.param_records;
+    mdata.param_qlook = rmfield(mdata.param_qlook,'get_heights');
+    mdata.param_qlook.qlook = mdata.param_get_heights;
+    mdata.file_version = '0';
+  else
+    % param_get_heights is complete structure, just rename to qlook
+    mdata.param_qlook = mdata.param_get_heights;
+    mdata.param_qlook.qlook = mdata.param_qlook.get_heights;
+    mdata.param_qlook = rmfield(mdata.param_qlook,'get_heights');
+    mdata.file_version = '0';
+  end
   mdata = rmfield(mdata,'param_get_heights');
+  if isfield(mdata.param_qlook,'proc')
+    mdata.param_qlook.load.frm = mdata.param_qlook.proc.frm;
+  end
 end
 
 if isfield(mdata,'param_csarp')
   mdata.param_sar.sar = mdata.param_csarp;
   mdata = rmfield(mdata,'param_csarp');
+  mdata.file_version = '0';
+end
+
+if isfield(mdata,'param_combine')
+  mdata.param_array = mdata.param_combine;
+  mdata = rmfield(mdata,'param_combine');
+  mdata.file_version = '0';
 end
 
 if isfield(mdata,'param_combine_wf_chan')
   mdata.param_array.array = mdata.param_combine_wf_chan;
   mdata = rmfield(mdata,'param_combine_wf_chan');
+  mdata.file_version = '0';
 end
 
 if ~isfield(mdata,'Roll') && isfield(mdata,'GPS_time')

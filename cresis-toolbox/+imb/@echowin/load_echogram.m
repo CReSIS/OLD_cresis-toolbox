@@ -111,6 +111,34 @@ obj.eg.elev = obj.eg.elev(valid_mask);
 obj.eg.roll = obj.eg.roll(valid_mask);
 obj.eg.surf_twtt = obj.eg.surf_twtt(valid_mask);
 
+%% Determine new time axis
+for frame_idx = 1:length(desire_frame_idxs)
+  cur_frame = desire_frame_idxs(frame_idx);
+  
+  % load EG
+  fn = fullfile(ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx},'',0),sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frm_strs{cur_frame}));
+  if ~exist(fn,'file')
+    warning('File %s not found', fn);
+    keyboard
+  end
+  % Load EG data and metadata
+  tmp = load(fn,'Time','Truncate_Bins','Elevation_Correction');
+  tmp = uncompress_echogram(tmp);
+  if frame_idx == 1
+    min_time = tmp.Time(1);
+    max_time = tmp.Time(end);
+  else
+    min_time = min(min_time,tmp.Time(1));
+    max_time = max(max_time,tmp.Time(end));
+  end
+end
+dt = tmp.Time(2) - tmp.Time(1);
+new_time = (dt*round(min_time/dt) : dt : max_time).';
+if ~isempty(obj.eg.data)
+  obj.eg.data = interp1(obj.eg.time, obj.eg.data, new_time);
+end
+obj.eg.time = new_time;
+
 %% Loading new data
 fprintf(' Loading echogram (%s)\n',datestr(now,'HH:MM:SS'));
 physical_constants;

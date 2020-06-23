@@ -32,7 +32,9 @@ if ~exist('mode','var') || isempty(mode)
 end
   
 if mode == 0
-  if isfield(mdata,'param_array')
+  if isfield(mdata,'param')
+    param = mdata.param;
+  elseif isfield(mdata,'param_array')
     param = mdata.param_array;
   elseif isfield(mdata,'param_qlook')
     param = mdata.param_qlook;
@@ -49,7 +51,9 @@ if mode == 0
   param = merge_structs(param,gRadar);
 
 else
-  if isfield(mdata,'param_array')
+  if isfield(mdata,'param')
+    param = 'param';
+  elseif isfield(mdata,'param_array')
     param = 'param_array';
   elseif isfield(mdata,'param_qlook')
     param = 'param_qlook';

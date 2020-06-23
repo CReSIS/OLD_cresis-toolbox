@@ -22,6 +22,8 @@ function data = echo_xcorr(data, param)
 %
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('peaky')));
 %
+% imagesc(echo_xcorr(mdata,echo_xcorr_profile('snow')));
+%
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('short_unitstep')));
 %
 % imagesc(echo_xcorr(mdata,echo_xcorr_profile('long_unitstep')));
@@ -64,4 +66,3 @@ data = filter(param.h_filt,1,data);
 data = circshift(data,[param.h_filt_offset 0]);
 data(1:length(param.h_filt),:) = NaN;
 data(end-length(param.h_filt)+1:end,:) = NaN;
-data = interp_finite(data,0);

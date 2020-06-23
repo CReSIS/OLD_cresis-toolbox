@@ -1,4 +1,4 @@
-function echo_stats(param,stats_param)
+function echo_stats(param,param_override)
 % echo_stats(param,param_override)
 %
 % Author: John Paden
@@ -9,6 +9,7 @@ function echo_stats(param,stats_param)
 
 %% General Setup
 % =====================================================================
+param = merge_structs(param, param_override);
 
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
@@ -17,13 +18,10 @@ fprintf('=====================================================================\n
 %% Input arguments check and setup
 % =========================================================================
 
-echogram_fn_dir = ct_filename_out(param,stats_param.echo_stats.data_type);
+echogram_fn_dir = ct_filename_out(param,param.echo_stats.data_type);
 
 % Load frames associated with this segment
-frames_fn = ct_filename_support(param,'','frames');
-frames = load(frames_fn);
-
-param = merge_structs(param, stats_param);
+frames = frames_load(param);
 
 % Load layer information
 layer_params = [];
@@ -190,7 +188,7 @@ for frm = 1:length(frames.frame_idxs)
 end
 
 %% Save Results
-output_dir = fileparts(ct_filename_ct_tmp(param,'','echogram_stats',''));
+output_dir = fileparts(ct_filename_ct_tmp(param,'','echo_stats',''));
 if ~exist(output_dir,'dir')
   fprintf('Creating directory %s\n', output_dir);
   mkdir(output_dir);
@@ -206,10 +204,10 @@ plot(h_axes, dt*bins*1e6, filtfilt(B,A,interp_finite(min_means)))
 grid(h_axes,'on');
 xlabel(h_axes,'Two way travel time (\mus)');
 ylabel(h_axes,'Relative power (dB)');
-fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','detrend') '.fig'];
+fig_fn = [ct_filename_ct_tmp(param,'','echo_stats','detrend') '.fig'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);
-fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','detrend') '.jpg'];
+fig_fn = [ct_filename_ct_tmp(param,'','echo_stats','detrend') '.jpg'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);
 close(h_fig);
@@ -241,10 +239,10 @@ end
 h_color = colorbar(h_axes);
 set(get(h_color,'ylabel'),'string','SNR (dB)')
 grid(h_axes,'on');
-fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','peak_wfs') '.fig'];
+fig_fn = [ct_filename_ct_tmp(param,'','echo_stats','peak_wfs') '.fig'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);
-fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','peak_wfs') '.jpg'];
+fig_fn = [ct_filename_ct_tmp(param,'','echo_stats','peak_wfs') '.jpg'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);
 close(h_fig);
@@ -284,16 +282,16 @@ xlabel(h_axes,'Frames');
 ylabel(h_axes,'Relative power (dB)');
 grid(h_axes,'on');
 title(sprintf('%s',regexprep(param.day_seg,'_','\\_')));
-fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','SNR') '.fig'];
+fig_fn = [ct_filename_ct_tmp(param,'','echo_stats','SNR') '.fig'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);
-fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','SNR') '.jpg'];
+fig_fn = [ct_filename_ct_tmp(param,'','echo_stats','SNR') '.jpg'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);
 close(h_fig);
 
 % Matlab file
-mat_fn = [ct_filename_ct_tmp(param,'','echogram_stats','stats') '.mat'];
+mat_fn = [ct_filename_ct_tmp(param,'','echo_stats','stats') '.mat'];
 fprintf('Saving %s\n', mat_fn);
 param_echo_stats = param;
 save(mat_fn,'-v7.3','param_echo_stats','dt','gps_time','bins','sums','counts','min_means','all_bins','all_sums','all_counts','signal_max_vals','signal_mean_vals','noise_max_vals','noise_mean_vals','peak_wfs','SNR_wfs','SNR_bins','sidelobe_vals','sidelobe_rows','sidelobe_dB');

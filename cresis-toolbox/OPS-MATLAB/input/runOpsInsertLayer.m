@@ -40,7 +40,7 @@ if 0
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = ref.twtt + source;';
+  insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = points.x;
   insert_param.y = points.y;
   insert_param.data = (points.A_SURF-points.A_BED) / (c/2/sqrt(er_ice));;
@@ -80,7 +80,7 @@ elseif 0
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.eval.cmd = 's = (elev - s)/(c/2);';
   insert_param.x = points.x;
   insert_param.y = points.y;
   insert_param.data = points.elev;
@@ -131,7 +131,7 @@ elseif 0
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = (elev - ref.twtt*c/2)/(c/2/sqrt(er_ice)) - source + ref.twtt;';
+  insert_param.eval.cmd = 's = (elev - ref.twtt*c/2)/(c/2/sqrt(er_ice)) - s + ref.twtt;';
   insert_param.x = points.x;
   insert_param.y = points.y;
   insert_param.data = points.elev/(c/2/sqrt(er_ice));
@@ -178,7 +178,7 @@ elseif 0
   points.y = points.y(good_mask);
   points.elev = points.elev(good_mask);
   
-  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.eval.cmd = 's = (elev - s)/(c/2);';
   insert_param.x = points.x;
   insert_param.y = points.y;
   insert_param.data = points.elev;
@@ -252,7 +252,7 @@ elseif 0
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = ref.twtt + source;';
+  insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = double(ncread(grid_fn,'x'));
   insert_param.y = double(ncread(grid_fn,'y'));
   insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
@@ -306,7 +306,7 @@ elseif 0
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = ref.twtt + source;';
+  insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = x_axis;
   insert_param.y = y_axis;
   insert_param.data = thickness / (c/2/sqrt(er_ice));
@@ -347,7 +347,7 @@ elseif 0
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = (elev - ref.twtt*c/2)/(c/2/sqrt(er_ice)) - source + ref.twtt;';
+  insert_param.eval.cmd = 's = (elev - ref.twtt*c/2)/(c/2/sqrt(er_ice)) - s + ref.twtt;';
   insert_param.x = x_axis;
   insert_param.y = y_axis;
   insert_param.data = bt_elev/(c/2/sqrt(er_ice));
@@ -387,7 +387,7 @@ elseif 0
   
   insert_param.proj = geotiffinfo(grid_fn);
   
-  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.eval.cmd = 's = (elev - s)/(c/2);';
   insert_param.x = x_axis;
   insert_param.y = y_axis;
   insert_param.data = points.elev;
@@ -431,7 +431,7 @@ elseif 0
   
   insert_param.proj = geotiffinfo(grid_fn);
   
-  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.eval.cmd = 's = (elev - s)/(c/2);';
   insert_param.x = x_axis;
   insert_param.y = y_axis;
   insert_param.data = points.elev;
@@ -473,7 +473,7 @@ elseif 1
   
   insert_param.proj = geotiffinfo(grid_fn);
   
-  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.eval.cmd = 's = (elev - s)/(c/2);';
   insert_param.x = x_axis;
   insert_param.y = y_axis;
   insert_param.data = points.elev;

@@ -522,7 +522,7 @@ classdef (HandleCompatible = true) echowin < handle
     set_visibility(obj,varargin); % Layer colors
     change_dynamic_range(obj);
     change_display_c(obj);
-    layerLB_str(obj);
+    layerLB_str(obj,keep_value);
     new_layerPB_OKbutton_callback(obj,hObj,event);
     new_layerPB_close_callback(obj,hObj,event);
     cancel_operation = undo_stack_modified_check(obj,force_save_or_cancel_flag);

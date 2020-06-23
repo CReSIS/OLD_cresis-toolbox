@@ -233,6 +233,25 @@ for img = 1:length(param.load.imgs)
       % when the coherent noise was loaded and estimated.
       coh_noise = coh_noise * 10.^((noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc)-wfs(wf).adc_gains_dB(adc))/20);
       
+      % Adjust coherent noise for changes in system_dB
+      if length(wfs(wf).system_dB) == 1
+        system_dB = wfs(wf).system_dB;
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+      else
+        % A number is provided for each receiver path for system_dB
+        system_dB = wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
+      end
+      if length(noise.param_analysis.radar.wfs(wf).system_dB) == 1
+        system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB;
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+      else
+        % A number is provided for each receiver path for system_dB
+        system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
+      end
+      coh_noise = coh_noise * 10.^((system_dB_noise-system_dB)/20);
+      
       % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
       % changes relative to when the coherent noise was loaded and
       % estimated.
@@ -1040,9 +1059,9 @@ for img = 1:length(param.load.imgs)
             tmp = tmp(cn.unique_idxs);
             tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
             if wfs(wf).f0 > wfs(wf).f1
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*cn.time));
             else
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*cn.time));
             end
             tmp = tmp .* cn.time_correction_freq;
             tmp = ifft(tmp);
@@ -1085,11 +1104,11 @@ for img = 1:length(param.load.imgs)
               % Undo tmp = tmp .* time_correction;
               tmp = tmp ./ cn.time_correction_freq;
               if wfs(wf).f0 > wfs(wf).f1
-                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
-                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-min(freq))*time);
+                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-f_rf(H_idxs(1)))*time);
               else
-                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
-                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-min(freq))*time);
+                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-f_rf(H_idxs(1)))*time);
               end
               % Undo tmp = tmp(unique_idxs);
               tmp = tmp(cn.return_idxs);
@@ -1100,9 +1119,9 @@ for img = 1:length(param.load.imgs)
               tmp = tmp(unique_idxs);
               tmp(conjugate_unique) = conj(tmp(conjugate_unique));
               if wfs(wf).f0 > wfs(wf).f1
-                tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
               else
-                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
               end
               tmp = tmp .* time_correction_freq;
               tmp = ifft(tmp);
@@ -1141,7 +1160,7 @@ for img = 1:length(param.load.imgs)
               %
               % Therefore, only a circular shift is required to complex baseband
               % the data.
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
             else
               % Positive chirp: the initial DFT causes a frequency domain reversal
               % which flips the frqeuency domain so that the RF frequency mapping
@@ -1500,7 +1519,7 @@ for img = 1:length(param.load.imgs)
   
   if param.load.pulse_comp == 1
     % Check if any good records, skip truncation if not
-    if any(~hdr.bad_rec{img}(1,:,wf_adc))
+    if any(~hdr.bad_rec{img}(1,:))
       data{img} = data{img}(1:wfs(wf).Nt,:,:);
     end
   end

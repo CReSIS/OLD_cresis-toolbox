@@ -33,7 +33,6 @@ track.init.dem_offset = 0;
 track.init.dem_layer_offset = 0;
 track.init.max_diff = inf;
 track.init.max_diff_method = 'interp_finite';
-track.filter_mocomp = true;
 track.filter = [1 1];
 track.filter_trim = [0 0];
 track.fixed_value = 0;
@@ -157,7 +156,7 @@ elseif strcmpi(profile_str,'SNOW')
   track.init.method	= 'medfilt';
   track.init.medfilt	= 51;
   track.init.max_diff = 0.3e-6;
-  track.max_rng	= [0 2];
+  track.max_rng	= [0 9];
   track.max_rng_units = 'bins';
   track.medfilt = 11;
   track.medfilt_threshold = 100;
@@ -165,6 +164,60 @@ elseif strcmpi(profile_str,'SNOW')
   track.threshold = 8;
   track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
   track.threshold_rel_max = -9;
+  
+elseif strcmpi(profile_str,'SNOW_FLAT_STEP1')
+  %% SNOW FLAT step 1 of 2 profile
+  % Use param.layer_tracker.overlap == 50 and track.layer_names = {'surface_flatten'}
+  track.layer_names = {'surface_flatten'};
+  track.debug_time_guard = 50e-9;
+  track.min_bin = 0.1e-6;
+  track.prefilter_trim = [0 0];
+  track.filter = [5 7]; % Use longer filter 
+  track.filter_trim = [10 10];
+  track.init.method  = 'dem';
+  track.init.dem_layer.name = 'surface';
+  track.init.dem_layer.source = 'lidar';
+  track.init.dem_layer.lidar_source = 'atm';
+  track.init.dem_layer.lever_arm_en = true;
+  track.init.max_diff_method = 'merge_vectors';
+  track.init.max_diff = 0.3e-6;
+  track.max_rng	= [0 9];
+  track.max_rng_units = 'bins';
+  track.medfilt = 11;
+  track.medfilt_threshold = 0; % Median filter more tightly
+  track.method = 'threshold';
+  track.threshold = 8;
+  track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
+  track.threshold_rel_max = -21; % Allow for bright shallow layers
+  track.max_rng_filter = [5 3]; % During max_rng, use less filtered data to track the surface more closely
+  track.smooth_sgolayfilt = {3,41}; % Smooth layer
+  
+elseif strcmpi(profile_str,'SNOW_FLAT_STEP2')
+  %% SNOW FLAT step 2 of 2 profile
+  track.debug_time_guard = 50e-9;
+  track.min_bin = 0.1e-6;
+  track.prefilter_trim = [0 0];
+  track.min_bin = struct('name','surface_flatten','eval',struct('cmd','s=fir_dec(s,ones(1,41)/41,1)-150e-9;'));
+  track.max_bin = struct('name','surface_flatten','eval',struct('cmd','s=fir_dec(s,ones(1,41)/41,1)+80e-9;'));
+  track.filter = [1 19]; % Use longer filter because of surface flattening
+  track.filter_trim = [10 10];
+  track.flatten  = struct('name','surface_flatten');
+  track.init.method  = 'nan';
+  track.init.dem_layer.name = 'surface_flatten';
+  track.init.dem_layer.source = 'layerdata';
+  track.init.max_diff_method = 'merge_vectors';
+  track.max_rng	= [0 9];
+  track.max_rng_filter = [1 5]; % During max_rng, use less filtered data to track the surface more closely
+  track.max_rng_units = 'bins';
+  if 0
+    track.xcorr = echo_xcorr_profile('snow');
+    track.method = 'viterbi';
+  else
+    track.method = 'threshold';
+    track.threshold = 8;
+    track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
+    track.threshold_rel_max = -21; % Allow for bright shallow layers
+  end
   
 elseif strcmpi(profile_str,'SNOW_AWI')
   %% SNOW_AWI profile
