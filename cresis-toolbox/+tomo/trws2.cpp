@@ -48,10 +48,10 @@ public:
   // message_DIRECTION: mNt*mNsv*mNx message matrixes. These are like an inbox:
   // they represent messages sent from other nodes to the node with the
   // corresponding index.
-  float *mMessage_Left; // Message from node to the left
-  float *mMessage_Up; // Message from node below
-  float *mMessage_Right; // Message from node to the right
-  float *mMessage_Down; // Message from node above
+  float *mMessage_Left; // Message or inbox from node to the left
+  float *mMessage_Up; // Message or inbox from node above
+  float *mMessage_Right; // Message or inbox from node to the right
+  float *mMessage_Down; // Message or inbox from node below
   
   // mAT_Slope: along-track expected slope (should generally compensate for radar platform elevation changes)
   const float *mAT_Slope;

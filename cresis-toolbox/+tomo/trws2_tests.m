@@ -9,7 +9,7 @@ trws_data(4, :, :) = 10;
 trws_data(3, 3:4, 2:6) = 10;
 trws_data(4, 3:4, 2:6) = 0;
 % trws_data(1, :, :) = 9;
-trws_data(1, 4, 4) = 100;
+trws_data(1, 4, 4) = 30;
 
 
 
@@ -36,15 +36,15 @@ shading interp;
 colormap(parula);
 
 xlim([1 Nx]);
-xticks(1:Nx);
+% xticks(1:Nx);
 xlabel('X : Along-Track (Nx)');
 
 ylim([1 Nsv]);
-yticks(1:Nsv);
+% yticks(1:Nsv);
 ylabel('Y : Cross-Track (Nsv)');
 
 zlim([0 Nt]);
-zticks(0:Nt);
+% zticks(0:Nt);
 zlabel('Z : Fast-Time (Nt)');
 
 for x = 1:Nx
