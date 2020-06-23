@@ -7,10 +7,29 @@ function status = block_data(params,block_data_param)
 % block_data_param: Structure which controls the size of each block
 %  .block_size: number of columns in each block
 %  .block_overlap: the percentage of overlap between each block
-%  .top_gap: number of rows of data before the first layer
-%  .bottom_pad : number of rows of data after the first layer
+%  .top_gap: number of rows before the first layer
+%  .bottom_pad : number of rows after the deepest layer
+%  .surface_flat_en:	Enable/Disable surface flattening
+%  .surface_rel_layers_flat_en:	Optional feature when surface filtering is enabled. Enable this feature to flatten the layers relative to the filtered surface.
+%  .surface_filter_len:	Specifies the length of the filter for filtering the surface
+%  .pre_detrend_filter_en:	Enable/Disable filtering before detrending
+%  .post_detrend_filter_en:	Enable/Disable filtering after detrending (before normalization)
+%  .uncompress_en:	Depending on the echogram data product used (e.g qlook, post), the echogram may be compressed. This flag when true uncompresses the compressed data using uncompress_echogram function prior to any processing.
+%  .early_trunc:	Truncate data immediately after surface flattening (before detrending and normalizing)
+%  .late_trunc:	Truncate data after all data manipulation( i.e detrending and normalizing ) is done.
+%  .debug_plot:	Set to true for debug plots.
+%  .detrend_debug:	Set to true for detrend debug plots.
+%  .echo_path:	Path to echogram data, typically an argument of ct_filename_out function e.g 'CSARP\standard' => ct_filename_out(param,'CSARP\standard').
+%  .out_fn:	Path where output blocks and files are saved. Currently, this is passed as an argument to ct_filename_tmp to save the outputs in KU user's scratch
+%  .layers_source:	This specifies where the layer data is loaded from(e.g layerdata, records, lidar, etc). This forms a field of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
+%  .layerdata_source:	When layers_source is layerdata, this string specifies the layerdata (e.g layer_koenig, layer, post) to be loaded. This field is also one of the fields of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
+%  .regexp:	When layers_source is layerdata, all the layers with layer names that match this regular expression pattern are loaded. This field is also one of the fields of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
+
 
 % Authors: Ibikunle ( Adapted from John Paden's koenig_mat_loader )
+
+
+
 physical_constants;
 
 block_data = block_data_param.block_data;
@@ -44,7 +63,6 @@ end
 echo_path = block_data.echo_path;
 
 surface_flat_en = block_data.surface_flat_en;
-top_crop = block_data.top_crop;
 
 detrend_en = block_data.detrend_en;
 filter_echo_en = block_data.filter_echo_en;
@@ -94,6 +112,7 @@ for param_idx = 1:length(params)
     layer_params(idx).layerdata_source = layerdata_source; % This might need to be updated
     
     layers_struct = opsLoadLayers(param,layer_params);
+    
     %     layers_struct = load('layers_cell.mat'); % remove afterwards!
     %     layers_struct = layers_cell.layers_cell;
     
@@ -141,7 +160,7 @@ for param_idx = 1:length(params)
   %   loaded_layers(end,:) =[]; % remove duplicate bottom
   
   % Filter Surface
-  filter_len = block_data.filter_len;
+  filter_len = block_data.surface_filter_len;
   if filter_len ~=1 && surface_flat_en == 1 % Only filter surface if surface flattening is enabled
     
     surf.twtt_filtered = surf.twtt - surf.elev/(c/2);
@@ -208,8 +227,7 @@ for param_idx = 1:length(params)
   
   % Iterate over each frame in the day segment
   for fn_idx = 1 : length(echo_fns)
-
-    
+       
     echo_fn = echo_fns{fn_idx};
     [~,fn_name] = fileparts(echo_fn);
     fprintf('%d of %d (%s)\n', fn_idx, length(echo_fns), datestr(now));
@@ -311,11 +329,11 @@ for param_idx = 1:length(params)
       
       layer_rangebin1 = round(interp1(tmp.Time,1:length(tmp.Time),curr_layers));
       surf_index = layer_rangebin1(1,:);
-      mdata.layer_rangebin = layer_rangebin1 - top_crop* ones(size(layer_rangebin1));
+      mdata.layer_rangebin = layer_rangebin1 - top_gap* ones(size(layer_rangebin1));
       
-      %       Check top_crop value
+      %       Check top_gap value
       if any(mdata.layer_rangebin(1,:)  < 0 )
-        error('Top_crop value is too large');
+        error('top_gap value is too large');
         break;
       end
       
@@ -410,7 +428,7 @@ for param_idx = 1:length(params)
     end
     
     frame_rline = (1:length(surf_index)) + rangeline_offset; % range line index
-    mdata.surf_index = flattened_Data(1,:);
+    mdata.surf_index = surf_index;
     
     
     %% Create layer raster from layer_rangebin
@@ -637,7 +655,7 @@ for param_idx = 1:length(params)
           norm_Data = echo_norm(struct('Time',mdata.Time,'Data',filt_Data),struct('scale',[scale_min scale_max],'window',[dt_bottom+5e-6; inf(size(dt_bottom))]));
         else
           valid_max_range_dB = [0 inf];
-          norm_window = block_data.norm_window;
+          norm_window = block_data.norm_detrend_params.norm_window;
           
           % Estimate noise floor
           nf = echo_noise(struct('Time',mdata.Time,'Data',filt_Data),struct(...
@@ -658,7 +676,7 @@ for param_idx = 1:length(params)
         end
         
         if block_data.late_trunc
-          norm_Data = norm_Data ( top_crop : longest_col+bottom_pad,:); % Truncate after the longest data
+          norm_Data = norm_Data ( top_gap : longest_col+bottom_pad,:); % Truncate after the longest data
         end
         
         if detrend_debug % Again :(
@@ -755,6 +773,7 @@ for param_idx = 1:length(params)
         tmp_block_data.raster = raster;
         tmp_block_data.layer = mdata.layer_rangebin(:,rline:rline_end);
         tmp_block_data.rline = frame_rline(rline);
+        tmp_block_data.rline_end = frame_rline(rline_end);
         
         tmp_block_data.offset_rounding = mdata.offset_rounding(:,rline:rline_end);
         

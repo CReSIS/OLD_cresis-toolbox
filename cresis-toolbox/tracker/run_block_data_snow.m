@@ -38,25 +38,18 @@ param_override.block_data.bottom_pad = 1000; % Number of rows of data used to pa
 
 param_override.block_data.surface_flat_en = 1; % Enable/disable surface flattening. Filtering is autmaticcally disabled when flattening is off
 param_override.block_data.surface_rel_layers_flat_en = 1; % Enable if layers should be relative to the flattened surface.
-param_override.block_data.filter_len = 7; % Typically,some surface filtering must be done if surface_flat is enabled 
+param_override.block_data.surface_filter_len = 7; % Typically,some surface filtering must be done if surface_flat is enabled 
 
 
 param_override.block_data.pre_detrend_filter_en = 0; % Filter entire frame before "blocking"
 param_override.block_data.post_detrend_filter_en = 1; % filter each block 
 
-
-param_override.block_data.top_crop = 150 ; %rds = 70
-
 param_override.block_data.early_trunc = 1; % Truncate data after flattening
 param_override.block_data.late_trunc = 0; % Truncate data after normalizing
 
-
-param_override.block_data.values.user_max = [];  % Set to empty [] to use max finite value from data or set predetermined max values 
-param_override.block_data.values.user_min = []; % Set min valid finite value
-
 param_override.block_data.echo_path = 'CSARP_post/qlook'; % snow = 'qlook',rds='CSARP_post/standard'; % Echogram source e.g rds uses 'CSARP\standard' => ct_filename_out(param,'CSARP\standard')
 
-param_override.block_data.out_fn ='new_layer'; % Specify desired output path i.e fn passed into ct_filename_tmp 
+param_override.block_data.out_fn ='final'; % Specify desired output path i.e fn passed into ct_filename_tmp 
 %param_override.sched.type = 'no scheduler'; % Example to override default cluster settings
 
 %Paramaters of "layer_params" argument of
@@ -64,7 +57,7 @@ param_override.block_data.out_fn ='new_layer'; % Specify desired output path i.e
 
 param_override.block_data.layers_name = 'layers';
 param_override.block_data.layers_source = 'layerdata'; % snow ='layerData_koenig', 'layerData_ver1';
-param_override.block_data.layerdata_source = 'layer_koenig2';% 'layerData_koenig'; %'layerData_ver1';
+param_override.block_data.layerdata_source = 'layer_koenig';% 'layerData_koenig'; %'layerData_ver1';
 param_override.block_data.regexp = 'Koenig'; % 'L' for Macgregor and 'snow' for snow radar
 
 param_override.block_data.uncompress_en = 1;
@@ -80,7 +73,7 @@ param_override.block_data.norm_detrend_params.scale_max = 0.7;
 param_override.block_data.norm_detrend_params.offset = 0;% Offset to be applied to the detrend curve
 
 param_override.block_data.norm_detrend_params.roll_comp_en = 0; % 1  to apply roll compensation
-param_override.block_data.norm_window = [0.9;1];
+param_override.block_data.norm_detrend_params.norm_window = [0.9;1];
 
 
 % param_override.block_data.layers_prefix = 'layers';
@@ -110,4 +103,3 @@ for param_idx = 1:length(params)
   block_data(param,param_override);
 end
 
-% Post process code (only include if necessary)
