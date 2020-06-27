@@ -7,7 +7,7 @@
 //  Basic prior/unary cost, binary cost/weight, John Paden 2020
 //  CT Tracking: Reece Mathews 2020
 //
-// See also: trws2.h
+// See also: trws2_CT.h
 //
 // mex -v -largeArrayDims trws2.cpp
 
@@ -16,7 +16,7 @@
 #include <stddef.h>
 using namespace std;
 #include "mex.h"
-#include "trws2.h"
+#include "trws2_CT.h"
 
 void print_time(void)
 {
@@ -108,7 +108,7 @@ void TRWS::set_result() {
       float min_val = INFINITY;
       size_t best_result = mNx;
       
-      for (size_t h = mBounds[2*w], message_idx = h + (w*mNsv+mBounds[2*w])*mNt; h <= mBounds[2*w+1]; h++, message_idx+=mNt) {
+      for (size_t h = mBounds[2*w], message_idx = d + (h + w*mNsv+mBounds[2*w])*mNt; h <= mBounds[2*w+1]; h++, message_idx+=mNt) {
         // Unary cost
         float temp = -mImage[message_idx];
         // Binary costs (up,down,left,right)
@@ -124,8 +124,8 @@ void TRWS::set_result() {
         }
       }
       
-      mResult[result_idx] = (int)(best_result+1);
-      result_idx = result_idx + 1;
+      mResult[result_idx] = (int)(best_result+1); // Account for Matlab 1-indexing
+      result_idx++;
     }
   }
 }
@@ -204,7 +204,7 @@ void TRWS::solve() {
           int dest_elev_start = mBounds[2*w-2];
           int dest_elev_stop = mBounds[2*w-1];
           // Add binary cost to message being sent to node on the right
-          dt(message_sum, &(mMessage_Right[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, *mAT_Weight, -mAT_Slope[0]);
+          dt(message_sum, &(mMessage_Right[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, *mAT_Weight, -mAT_Slope[0], mNt);
           // Normalize message so smallest message has a cost of zero
           float min_val = INFINITY;
           for (size_t h = dest_elev_start, message_idx = msg_dest_idx+dest_elev_start*mNt; h <= dest_elev_stop; h++, message_idx+=mNt) {
@@ -231,7 +231,7 @@ void TRWS::solve() {
           int dest_elev_start = mBounds[2*w];
           int dest_elev_stop = mBounds[2*w+1];
           // Binary cost
-          dt(message_in, &(mMessage_Down[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, mCT_Weight[0], mCT_Slope[0]);
+          dt(message_in, &(mMessage_Down[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, mCT_Weight[0], mCT_Slope[0], mNt);
           // Normalize message so smallest message has a cost of zero
           float min_val = INFINITY;
           for (size_t h = dest_elev_start, message_idx = msg_dest_idx+dest_elev_start*mNt; h <= dest_elev_stop; h++, message_idx+=mNt) {
@@ -253,7 +253,7 @@ void TRWS::solve() {
           size_t msg_dest_idx = d + (w+1)*mNsv*mNt;
           int dest_elev_start = mBounds[2*w+2];
           int dest_elev_stop = mBounds[2*w+3];
-          dt(message_in, &(mMessage_Left[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, *mAT_Weight, mAT_Slope[0]);
+          dt(message_in, &(mMessage_Left[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, *mAT_Weight, mAT_Slope[0], mNt);
           // Normalize message so smallest message has a cost of zero
           float min_val = INFINITY;
           for (size_t h = dest_elev_start, message_idx = msg_dest_idx+dest_elev_start*mNt; h <= dest_elev_stop; h++, message_idx+=mNt) {
@@ -275,7 +275,7 @@ void TRWS::solve() {
           size_t msg_dest_idx = d+1 + w*mNsv*mNt;
           int dest_elev_start = mBounds[2*w];
           int dest_elev_stop = mBounds[2*w+1];
-          dt(message_in, &(mMessage_Up[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, mCT_Weight[d], -mCT_Slope[0]);
+          dt(message_in, &(mMessage_Up[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, mCT_Weight[0], -mCT_Slope[0], mNt);
           // Normalize message so smallest message has a cost of zero
           float min_val = INFINITY;
           for (size_t h = dest_elev_start, message_idx = msg_dest_idx+dest_elev_start*mNt; h <= dest_elev_stop; h++, message_idx+=mNt) {

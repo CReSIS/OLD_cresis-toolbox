@@ -12,9 +12,12 @@ INDEX_LABEL = 'CT';
 SURFACE = 'CT';
 INDEX_EVEN_LOOP = true;
 
+% Display on this figure
+FIGURE_NUM = 2;
 
 
-trws_data = ones(Nt, Nsv, Nx)/5;
+trws_data = zeros(Nt, Nsv, Nx)/5;
+
 
 
 Z = 1:Nt;
@@ -37,11 +40,11 @@ elseif strcmp(SURFACE, 'CT')
     find_surf = @tomo.trws2_CT;
     
     trws_data(:, 3, :) = 10;
-    trws_data(3:4, 2, 2:6) = 10;
-    trws_data(3:4, 3, 2:6) = 0;
+%     trws_data(3:4, 2, 2:6) = 10;
+%     trws_data(3:4, 3, 2:6) = 0;
     % trws_data(1, :, :) = 9;
 %     trws_data(1, 1, 6) = 30;
-    trws_data(4, 5, 1) = 40;
+%     trws_data(3, 4, 3) = 40;
     
     bounds = zeros(2, Nx);
     bounds(2, :) = Nsv - 1;
@@ -49,6 +52,8 @@ elseif ~strcmp(SURFACE, 'NONE')
     error('Invalid surface selection.');
 end
     
+% trws_data = reshape(1:Nt*Nsv*Nx, Nt, Nsv, Nx);
+
 
 if ~strcmp(SURFACE, 'NONE')
     at_slope  = zeros(1, Nx);
@@ -61,7 +66,7 @@ if ~strcmp(SURFACE, 'NONE')
     correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(max_loops), uint32(bounds));
 end
 
-figure(1);
+figure(FIGURE_NUM);
 clf;
 hold on;
 
@@ -142,11 +147,7 @@ for w_idx = 1:Nx
         for d_idx = 1:Nt
             d = d_idx-1;
             
-            if ~strcmp(INDEX_LABEL, 'CT')
-                intensity = trws_data(d_idx, h_idx, w_idx);
-            else
-                intensity = trws_data(d_idx, h_idx, w_idx);
-            end
+            intensity = trws_data(d_idx, h_idx, w_idx);
             color = 'b';
             if intensity > 1
                 color = 'r';
@@ -181,5 +182,3 @@ for w_idx = 1:Nx
         end
     end
 end
-
-
