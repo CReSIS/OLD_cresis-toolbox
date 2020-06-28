@@ -39,9 +39,9 @@ if strcmp(SURFACE, 'FT')
 elseif strcmp(SURFACE, 'CT')
     find_surf = @tomo.trws2_CT;
     
-    trws_data(:, 3, :) = 10;
-%     trws_data(3:4, 2, 2:6) = 10;
-%     trws_data(3:4, 3, 2:6) = 0;
+    trws_data(3, 3, 3) = 0;
+    trws_data(3:4, 2, 2:6) = 10;
+    trws_data(3:4, 3, 2:6) = 0;
     % trws_data(1, :, :) = 9;
 %     trws_data(1, 1, 6) = 30;
 %     trws_data(3, 4, 3) = 40;
@@ -61,9 +61,9 @@ if ~strcmp(SURFACE, 'NONE')
     ct_slope  = zeros(Nsv, Nx);
     ct_weight = ones(1, Nsv);
 
-    max_loops = 2;
+    max_loops = 3;
 
-    correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(max_loops), uint32(bounds));
+    [correct_surface, debug] = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(max_loops), uint32(bounds));
 end
 
 figure(FIGURE_NUM);
@@ -129,7 +129,7 @@ else
 end
 camva(10);
 shading interp;
-colormap(parula);
+colormap(bone);
 
 
 Nsvs_center = floor(Nsv/2);
@@ -172,13 +172,19 @@ for w_idx = 1:Nx
                 msg_idx = d+w*Nt + 1;
             end
             
-            if ~isnan(msg_idx)
+%             if ~isnan(msg_idx)
                 if ~strcmp(SURFACE, 'CT')
-                    text(w_idx, h_idx, d_idx, sprintf("%d", msg_idx));
+                    text(w_idx, h_idx, d_idx, sprintf("%f", intensity));
                 else
-                    text(w_idx, d_idx, h_idx, sprintf("%d", msg_idx));
+                    value = debug(d_idx, h_idx, w_idx);
+                    text_colormap = parula;
+                    debug_min = min(debug(:));
+                    debug_max = max(debug(:));
+                    text_color = round((value-debug_min)/(debug_max-debug_min)*length(text_colormap));
+                    text_color = ind2rgb(text_color+1,text_colormap);
+                    text(w_idx, d_idx, h_idx, sprintf("%.0f", value), 'color', text_color);
                 end
-            end
+%             end
         end
     end
 end

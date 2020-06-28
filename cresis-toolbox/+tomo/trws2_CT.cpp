@@ -53,6 +53,8 @@ public:
   float *mMessage_Up; // Message or inbox from node above
   float *mMessage_Right; // Message or inbox from node to the right
   float *mMessage_Down; // Message or inbox from node below
+
+  float *mDebug;
   
   // mAT_Slope: along-track expected slope (should generally compensate for radar platform elevation changes)
   const float *mAT_Slope;
@@ -70,9 +72,9 @@ public:
     
   TRWS(const float *image, const size_t *dim_image, const float *at_slope, const float *at_weight,
           const float *ct_slope, const float *ct_weight, const unsigned int max_loops,
-          const unsigned int *bounds, unsigned int *result)
+          const unsigned int *bounds, unsigned int *result, float *debug)
           : mImage(image), mAT_Slope(at_slope), mAT_Weight(at_weight), mCT_Slope(ct_slope), mCT_Weight(ct_weight),
-            mMax_Loops(max_loops), mBounds(bounds), mResult(result) {
+            mMax_Loops(max_loops), mBounds(bounds), mResult(result), mDebug(debug) {
             // Set dimensions
             mNt      = dim_image[0];
             mNsv     = dim_image[1];
@@ -116,6 +118,8 @@ void TRWS::set_result() {
         temp += mMessage_Up[message_idx];
         temp += mMessage_Right[message_idx];
         temp += mMessage_Down[message_idx];
+
+        mDebug[message_idx] = temp;
         
         // Check to see if this d is the minimum
         if (temp < min_val) {
@@ -194,6 +198,20 @@ void TRWS::solve() {
         //   Messages the current node sends that node is called "mMessage_Right" for that node
         //   Messages from the node to the right are stored in this current node's mMessage_Left
         // ----------------------------------------------------------------
+        for (int i = 0; i < mNt*mNsv*mNx; i++) {
+          if (mMessage_Down[i] != 0) {
+            mexPrintf("Down %d is %.0f\n", i, mMessage_Down[i]);
+          }
+          if (mMessage_Up[i] != 0) {
+            mexPrintf("Up %d is %.0f\n", i, mMessage_Up[i]);
+          }
+          if (mMessage_Left[i] != 0) {
+            mexPrintf("Left %d is %.0f\n", i, mMessage_Left[i]);
+          }
+          if (mMessage_Right[i] != 0) {
+            mexPrintf("Right %d is %.0f\n", i, mMessage_Right[i]);
+          }
+        }
         for (size_t h = cur_elev_start, message_idx = cur_message_idx+cur_elev_start*mNt; h <= cur_elev_stop; h++, message_idx+=mNt) {
           message_sum[h] = mMessage_Up[message_idx] + mMessage_Right[message_idx] + mMessage_Down[message_idx] - mImage[message_idx];
           // message_in for node on the right (w-1) excludes mMessage_Left which came from the node on the right
@@ -296,7 +314,7 @@ void TRWS::solve() {
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if (nrhs != 7 || nlhs != 1) {
+  if (nrhs != 7 || nlhs != 2) {
     mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 bounds, uint32 max_loops)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1");
   }
   
@@ -373,9 +391,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // Allocate output
   plhs[0] = mxCreateNumericMatrix(dim_image[0], dim_image[2], mxUINT32_CLASS, mxREAL);
   unsigned int *result = (unsigned int *)mxGetData(plhs[0]);
+  plhs[1] = mxCreateNumericArray(3, dim_image, mxSINGLE_CLASS, mxREAL);
+  float *debug = (float *)mxGetData(plhs[1]);
   
   // Run TRWS algorithm
-  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, *max_loops, bounds, result);
+  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, *max_loops, bounds, result, debug);
   
   obj.solve();
 }
