@@ -22,11 +22,11 @@ void dt(const float *src, float *dst, int s1, int s2,
         int d1, int d2, float scale, int off=0, int step=1) {
     int d = (d1 + d2) >> 1, s = s1; // Find the midpoint of the destination
     for (int p = s1; p <= s2; p++) { // Search through all the sources and find the minimum
-        if (src[s*step] + sqr(s-d-off) * scale > src[p*step] + sqr(s-d-off) * scale) {
+        if (src[s] + sqr(s-d-off) * scale > src[p] + sqr(p-d-off) * scale) {
             s = p;
         }
     }
-    dst[d*step] = src[s*step] + sqr(s-d-off) * scale; // Minimum value to the midpoint
+    dst[d*step] = src[s] + sqr(s-d-off) * scale; // Minimum value to the midpoint
     if(d2 >= d + 1) { // Recursive call, binary search (top half of destinations)
         dt(src, dst, s, s2, d+1, d2, scale, off);
     }
