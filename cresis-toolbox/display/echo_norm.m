@@ -54,9 +54,7 @@ end
 % Estimate the noise
 if isstruct(mdata)
   mdata.Data = 10.^(mdata.Data/10);
-  noise = echo_noise(mdata, param);
-  noise = nanmean(noise(isfinite(noise))); % handles -inf columns of noise
-  noise = 10*log10(noise);
+  noise = 10*log10(mean(echo_noise(mdata, param)));
 else
   noise = 10*log10(mean(echo_noise(10.^(mdata/10), param)));
 end
