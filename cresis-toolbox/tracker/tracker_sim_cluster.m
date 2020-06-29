@@ -27,8 +27,6 @@ sparam.argsin{1} = param;
 sparam.task_function = 'tracker_sim_task';
 
 sparam.num_args_out = 1;
-
-
 sparam.argsin{1}.tracker_sim.num_layers = 10; % Number of layers
 sparam.argsin{1}.tracker_sim.output_dir = 'fixedsnr_randomlayers'; % This should be changed
 
