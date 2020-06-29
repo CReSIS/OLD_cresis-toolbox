@@ -86,15 +86,6 @@ if ~isfield(param,'method') || isempty(param.method)
   param.method = 'mean';
 end
 
-if ~isfield(param,'roll') || isempty(param.roll)
-  error('Please provide the roll for each rangeline...')
-
-elseif all(isnan(param.roll))
-  warning('The roll provided is not finite')
-  
-end
-
-
 switch param.method
   case 'file'
     error('Not supported yet...');
@@ -152,9 +143,7 @@ switch param.method
     
   case 'polynomial'
     Nt = size(data,1);
-    Nx = size(data,2);    
-    
-    
+    Nx = size(data,2);
     if ~isfield(param,'order') || isempty(param.order)
       param.order = 7;
     end
@@ -178,12 +167,7 @@ switch param.method
         error('mdata should be an echogram struct with a "Time" field since layer_top is specific in two way travel time and needs to be converted to range bins.');
       end
     end
-   
-    %% Roll compensation data: This should be modified
     
-    roll_comp_data = load('/cresis/snfs1/scratch/ibikunle/ct_user_tmp/roll_compensation.mat');
-    roll_comp = interp1(roll_comp_data.all_roll,roll_comp_data.all_pwr,param.roll); 
-
     mask = false(size(data));
     x_axis = nan(size(data));
     for rline = 1:Nx
@@ -227,61 +211,34 @@ switch param.method
       
       if top_bin > Nt
         trend(:) = polyval(detrend_poly,0);
-        [min_val,~] = min(trend);
-        trend = trend - roll_comp(rline) ;
-        
       elseif bottom_bin < 1
         trend(:) = polyval(detrend_poly,1);
-        [min_val,~] = min(trend);
-        trend = trend - roll_comp(rline) ;
-        
       elseif top_bin >= bottom_bin
         trend(1:top_bin) = polyval(detrend_poly,0);
         trend(top_bin+1:end) = polyval(detrend_poly,1);
-        [min_val,~] = min(trend (top_bin+1:end) );
-        
-        trend(top_bin+1:end) = trend(top_bin+1:end) - roll_comp(rline) ;
-        
       else
         bins = top_bin:bottom_bin;
         
-        % Section 1: Polynomial fit
+        % Section 1: Constant above surface
+        trend(1:bins(1)-1) = trend(bins(1));
+        
+        % Section 2: Polynomial fit
         trend(bins) = polyval(detrend_poly,x_axis(bins,rline));
         
-        % Section 2: Constant above surface
-        trend(1:bins(1)-1) = trend(bins(1));       
-
         % Section 3: Constant below bottom
-        [min_val,min_loc] = min(trend(bins));
-        min_loc = min_loc + top_bin;
-        
-        trend(min_loc:end) = min(trend(bins));
-        
-        % Check if offset is to be applied
-        if param.roll_comp_en
-          trend(top_bin:min_loc) = trend(top_bin:min_loc) - roll_comp(rline);
-        end
-        
-        trend = trend -param.offset;
-        trend( trend < min_val) = min_val;   
-      end      
-        
+        trend(bins(end):end) = trend(bins(end));
+      end
       
-      if 0 
+      if 0
         %% Debug plots
         figure(1); clf;
         plot(data(:,rline));
-        title( sprintf('%s: Rangeline %d block %d, Roll= %.3f',param.fn_name,rline,param.block,param.roll(rline) ),'Interpreter','none');    
         hold on;
-        plot(trend);    
-        hold on;  plot(data(:,rline) - trend);      
-        grid on; grid minor
-        pause(0.5)        
-      end    
-        
+        plot(trend);
+      end
       data(:,rline) = data(:,rline) - trend;
-      end    
-
+    end
+    
   case 'tonemap'
     tmp = [];
     min_data = min(data(isfinite(data)));
