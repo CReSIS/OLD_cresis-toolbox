@@ -156,8 +156,8 @@ void TRWS::solve() {
   // cross-track and left/right in along-track) and this message is the sum
   // of the mImage/unary cost and all the input messages to this node except
   // the message that came from the direction that the message is going).
-  float message_sum[mNt];
-  float message_in[mNt];
+  float message_sum[mNsv];
+  float message_in[mNsv];
   
   time_t start_time;
   time(&start_time);
@@ -198,20 +198,6 @@ void TRWS::solve() {
         //   Messages the current node sends that node is called "mMessage_Right" for that node
         //   Messages from the node to the right are stored in this current node's mMessage_Left
         // ----------------------------------------------------------------
-        for (int i = 0; i < mNt*mNsv*mNx; i++) {
-          if (mMessage_Down[i] != 0) {
-            mexPrintf("Down %d is %.0f\n", i, mMessage_Down[i]);
-          }
-          if (mMessage_Up[i] != 0) {
-            mexPrintf("Up %d is %.0f\n", i, mMessage_Up[i]);
-          }
-          if (mMessage_Left[i] != 0) {
-            mexPrintf("Left %d is %.0f\n", i, mMessage_Left[i]);
-          }
-          if (mMessage_Right[i] != 0) {
-            mexPrintf("Right %d is %.0f\n", i, mMessage_Right[i]);
-          }
-        }
         for (size_t h = cur_elev_start, message_idx = cur_message_idx+cur_elev_start*mNt; h <= cur_elev_stop; h++, message_idx+=mNt) {
           message_sum[h] = mMessage_Up[message_idx] + mMessage_Right[message_idx] + mMessage_Down[message_idx] - mImage[message_idx];
           // message_in for node on the right (w-1) excludes mMessage_Left which came from the node on the right
@@ -305,7 +291,6 @@ void TRWS::solve() {
             mMessage_Up[message_idx] = mMessage_Up[message_idx]-min_val;
           }
         }
-        
       }
     }
   }
@@ -315,7 +300,7 @@ void TRWS::solve() {
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (nrhs != 7 || nlhs != 2) {
-    mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 bounds, uint32 max_loops)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1");
+    mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1");
   }
   
   // image ================================================================

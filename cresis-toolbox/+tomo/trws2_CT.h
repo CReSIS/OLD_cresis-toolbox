@@ -28,10 +28,10 @@ void dt(const float *src, float *dst, int s1, int s2,
     }
     dst[d*step] = src[s] + sqr(s-d-off) * scale; // Minimum value to the midpoint
     if(d2 >= d + 1) { // Recursive call, binary search (top half of destinations)
-        dt(src, dst, s, s2, d+1, d2, scale, off);
+        dt(src, dst, s, s2, d+1, d2, scale, off, step);
     }
     if(d-1 >= d1) { // Recursive call, binary search (bottom half of destinations)
-        dt(src, dst, s1, s, d1, d-1, scale, off);
+        dt(src, dst, s1, s, d1, d-1, scale, off, step);
     }
 }
 // END CODE FROM DAVID CRANDALL	
