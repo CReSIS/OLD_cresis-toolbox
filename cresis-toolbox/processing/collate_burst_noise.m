@@ -155,7 +155,7 @@ for img = param.collate_burst_noise.imgs
       ct_saveas(h_fig(2),fig_fn);
     end
  
-    if enable_visible_plot & ~isempty(bad_recs_unique)
+    if enable_visible_plot && ~isempty(bad_recs_unique)
       % Bring plots to front
       for h_fig_idx = 1:length(h_fig)
         figure(h_fig(h_fig_idx));

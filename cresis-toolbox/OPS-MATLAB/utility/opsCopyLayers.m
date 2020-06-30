@@ -89,12 +89,12 @@ function layers = opsCopyLayers(param,copy_param)
 %       .$(custom): Custom fields
 %        Variables available are:
 %          physical_constants
-%          "gps_time" (sec)
-%          "along_track" (m)
+%          "time" (ANSI-C GPS time, seconds since Jan 1, 1970)
+%          "at" (along-track, m)
 %          "lat" (deg)
 %          "lon" (deg)
 %          "elev" (m)
-%          "source" (twtt in sec)
+%          "s" (two way travel time, twtt, in sec)
 %          "eval_struct" (the eval structure passed in by the user)
 %        The cmd string should generally update "source" variable. For example:
 %           '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
@@ -386,15 +386,15 @@ end
 %% Apply evaluation operation to source
 if isfield(copy_param,'eval') && ~isempty(copy_param.eval)
   for layer_idx = 1:length(layer_source)
-    source = layer_source(layer_idx).twtt;
-    gps_time = layer_source(layer_idx).gps_time;
+    s = layer_source(layer_idx).twtt;
+    time = layer_source(layer_idx).gps_time;
     lat = layer_source(layer_idx).lat;
     lon = layer_source(layer_idx).lon;
     elev = layer_source(layer_idx).elev;
-    along_track = geodetic_to_along_track(lat,lon,elev);
+    at = geodetic_to_along_track(lat,lon,elev);
     eval_struct = copy_param.eval;
     eval(copy_param.eval.cmd);
-    layer_source(layer_idx).twtt = source;
+    layer_source(layer_idx).twtt = s;
   end
 end
 

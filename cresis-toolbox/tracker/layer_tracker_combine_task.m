@@ -46,7 +46,7 @@ for track_idx = 1:length(param.layer_tracker.track)
     automated_name_en = true;
   else
     automated_name_en = false;
-    copy_param.layer_dest.name = param.layer_tracker.track{track_idx}.layer_names;
+    layer_dest.name = param.layer_tracker.track{track_idx}.layer_names;
   end
   
   %% Track: Copy each layer
