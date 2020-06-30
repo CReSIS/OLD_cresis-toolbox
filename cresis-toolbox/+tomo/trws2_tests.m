@@ -26,11 +26,10 @@ X = 1:Nx;
 if strcmp(SURFACE, 'FT')
     find_surf = @tomo.trws2;
     
-%     trws_data(3, :, :) = 10;
-%     trws_data(2, 3:4, 2:6) = 10;
+    trws_data(3, :, :) = 10;
+    trws_data(2, 3:4, 2:6) = 10;
     trws_data(2, 3, 4) = 10;
-    % trws_data(1, :, :) = 9;
-%     trws_data(1, 4, 4) = 30;
+    trws_data(1, 4, 4) = 30;
     
     bounds = zeros(2, Nx);
     bounds(2, :) = Nt - 1;
@@ -38,15 +37,12 @@ if strcmp(SURFACE, 'FT')
 elseif strcmp(SURFACE, 'CT')
     find_surf = @tomo.trws2_CT;
     
-%     trws_data(3, 3, 3) = 0;
-%     trws_data(3:4, 2, 2:6) = 10;
-    trws_data(2, 3, 4) = 10;
-    % trws_data(1, :, :) = 9;
-%     trws_data(1, 1, 6) = 30;
-%     trws_data(3, 4, 3) = 40;
+    trws_data(:, 2, :) = 10;
+    trws_data(3:4, 3, 2:3) = 20;
+    trws_data(3, 4, 3) = 40;
     
     bounds = zeros(2, Nx);
-    bounds(2, :) = Nsv - 1;
+    bounds(2, :) = 3;
 elseif ~strcmp(SURFACE, 'NONE')
     error('Invalid surface selection.');
 end
@@ -60,7 +56,7 @@ if ~strcmp(SURFACE, 'NONE')
     ct_slope  = zeros(Nsv, Nx);
     ct_weight = ones(1, Nsv);
 
-    [correct_surface, debug] = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(MAX_LOOPS), uint32(bounds));
+    correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(MAX_LOOPS), uint32(bounds - 1));
 end
 
 figure(FIGURE_NUM);
@@ -69,7 +65,7 @@ hold on;
 
 if ~strcmp(SURFACE, 'CT')
     if ~strcmp(SURFACE, 'NONE')
-        surf(X, Y, correct_surface);
+        surf(X, Y, correct_surface, 'FaceAlpha', .2);
         surf(X, Y, repmat(bounds(1, :), Nx-1, 1), 'FaceColor', [86, 135, 214]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
         surf(X, Y, repmat(bounds(2, :), Nx-1, 1), 'FaceColor', [232, 145, 90]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
     end
@@ -170,25 +166,13 @@ for w_idx = 1:Nx
                 msg_idx = d+w*Nt + 1;
             end
             
-%             if ~isnan(msg_idx)
+            if ~isnan(msg_idx)
                 if ~strcmp(SURFACE, 'CT')
-                    value = debug(d_idx, h_idx, w_idx);
-                    text_colormap = parula;
-                    debug_min = min(debug(:));
-                    debug_max = max(debug(:));
-                    text_color = round((value-debug_min)/(debug_max-debug_min)*length(text_colormap));
-                    text_color = ind2rgb(text_color+1,text_colormap);
-                    text(w_idx, h_idx, d_idx, sprintf("%.0f", value), 'color', text_color);
+                    text(w_idx, h_idx, d_idx, sprintf("%.0f", msg_idx));
                 else
-                    value = debug(d_idx, h_idx, w_idx);
-                    text_colormap = parula;
-                    debug_min = min(debug(:));
-                    debug_max = max(debug(:));
-                    text_color = round((value-debug_min)/(debug_max-debug_min)*length(text_colormap));
-                    text_color = ind2rgb(text_color+1,text_colormap);
-                    text(w_idx, d_idx, h_idx, sprintf("%.0f", value), 'color', text_color);
+                    text(w_idx, d_idx, h_idx, sprintf("%.0f", msg_idx));
                 end
-%             end
+            end
         end
     end
 end
