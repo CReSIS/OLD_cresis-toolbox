@@ -6,7 +6,7 @@ MAX_LOOPS = 10;
 % 'ALL' displays index numbers for every cell
 % 'FT' displays traversal order for a fast-time-based search
 % 'CT' displays traversal order for a cross-track-based search
-INDEX_LABEL = 'CT';
+INDEX_LABEL = 'FT';
 % 'NONE' does not plot a surface
 % 'FT' plots a surface normal to the fast-time axis
 % 'CT' plots a surface normal to the cross-track axis
@@ -56,7 +56,12 @@ if ~strcmp(SURFACE, 'NONE')
     ct_slope  = zeros(Nsv, Nx);
     ct_weight = ones(1, Nsv);
 
-    correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(MAX_LOOPS), uint32(bounds - 1));
+    if ~strcmp(SURFACE, 'CT')
+ 
+      correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(MAX_LOOPS), uint32(bounds - 1));
+    else
+      correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight), uint32(MAX_LOOPS), uint32(bounds - 1));
+    end
 end
 
 figure(FIGURE_NUM);
