@@ -152,8 +152,7 @@ classdef layerdata < handle
       
       if ~exist('records','var') || isempty(records)
         % Load records file
-        records_fn = ct_filename_support(obj.param,'','records');
-        obj.records = load(records_fn);
+        obj.records = records_load(obj.param);
       end
       
       % Ensure frames are loaded
