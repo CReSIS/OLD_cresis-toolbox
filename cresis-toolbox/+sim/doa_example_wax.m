@@ -60,11 +60,17 @@ if fig_to_plot == 2
   % One source fixed at 0 deg, another fixed at 20 deg
   % Snapshots fixed at 10
   param.monte.SNR   = repmat(linspace(10,25,16).', [1 2]);
+   if 1
+    param.monte.SNR   = repmat(linspace(10,40,20).', [1 2]);
+  end
   num_tests = size(param.monte.SNR,1);
   param.monte.DOA   = repmat([0 20],[num_tests 1]);
-  param.monte.Nsnap = repmat(11,[num_tests 1]);
+  param.monte.Nsnap = repmat(10,[num_tests 1]);
+  param.monte.Nsnap = repmat(10,[num_tests 1]);
   param.monte.runs  = 1000; 
   param.monte.random_seed_offset = 0;
+ 
+  
  
   %% Fig 2: Run the simulation
   results = sim.doa(param,param_override);
@@ -101,7 +107,7 @@ if fig_to_plot == 2
 end
 
 %% Fig 3 Wax and Ziskind 1988
-% =======================================================================
+% ======================================;=================================
 if fig_to_plot == 3
   %% Fig 3: Setup simulation parameters
   physical_constants;
@@ -135,8 +141,9 @@ if fig_to_plot == 3
   param.monte.Nsnap   = round(logspace(log10(10),log10(1000),21).');
   num_tests = size(param.monte.Nsnap,1);
   param.monte.SNR   = repmat([20 20] - 10*log10(3),[num_tests 1]);
+%   param.monte.SNR   = repmat([20 20],[num_tests 1]);
   param.monte.DOA   = repmat([0 20],[num_tests 1]);
-  param.monte.runs  = 100;
+  param.monte.runs  = 1000;
   param.monte.random_seed_offset = 0;
   
   %% Fig 3: Run the simulation

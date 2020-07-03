@@ -140,8 +140,25 @@ for run_idx = 1:param.monte.runs
   rng(rng_args(run_idx));
   
   %% Test/Run Loop: Create simulated data for each simulation run
-  [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(param);
-  
+  % Hack to test position errors
+%   tmp_param = [];
+%   tmp_param = param;
+%   c = 2.997924580003452e+08; 
+%   lambda = c / param.src.fc;
+%   
+%   sigmay = (0.5)*lambda*0.05; 
+%   er_ypc = sigmay* randn(size(param.src.y_pc));
+%   er_ypc(2) = 0;
+%   sigmaz = sigmay;
+%   er_zpc = sigmaz* randn(size(param.src.z_pc));
+%   er_zpc(2) = 0;
+%   tmp_param.src.y_pc = tmp_param.src.y_pc + er_ypc;
+%   tmp_param.src.z_pc = tmp_param.src.z_pc + er_zpc;
+%  [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(tmp_param);
+%   tmp_param = [];
+
+    [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(param);
+
   %% Test/Run Loop: Set up estimation parameters for each method
   if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
     % For model order estimation simulation.
