@@ -89,12 +89,12 @@ function layers = opsCopyLayers(param,copy_param)
 %       .$(custom): Custom fields
 %        Variables available are:
 %          physical_constants
-%          "gps_time" (sec)
-%          "along_track" (m)
+%          "time" (ANSI-C GPS time, seconds since Jan 1, 1970)
+%          "at" (along-track, m)
 %          "lat" (deg)
 %          "lon" (deg)
 %          "elev" (m)
-%          "source" (twtt in sec)
+%          "s" (two way travel time, twtt, in sec)
 %          "eval_struct" (the eval structure passed in by the user)
 %        The cmd string should generally update "source" variable. For example:
 %           '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
@@ -154,21 +154,13 @@ if ~any(copy_param.quality.value == [1 2 3])
   error('Invalid quality value %d', copy_param.quality.value);
 end
 
-if ~isfield(copy_param.layer_dest,'group_name') || isempty(copy_param.layer_dest.group_name)
-  % Default is no group name
-  copy_param.layer_dest.group_name = '';
-end
-
 if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
   % Default is the CSARP_layer directory
   copy_param.layer_dest.layerdata_source = 'layer';
 end
 
-% Force copy_param.layer_dest.name to be a cell array even if there is just
-% one name. The source code below loops over the list of names.
-if ischar(copy_param.layer_dest.name)
-  copy_param.layer_dest.name = {copy_param.layer_dest.name};
-end
+% For the opsLoadLayers to write the files if they do not already exist
+copy_param.layer_dest.read_only = false;
 
 if ~isfield(copy_param.layer_source,'layerdata_source') || isempty(copy_param.layer_source.layerdata_source)
   % Default is the CSARP_layer directory
@@ -188,9 +180,10 @@ param.cmd.frms = frames_param_cmd_frms(param,frames);
 % Load all frames (for better edge interpolation)
 load_param = param;
 load_param.cmd.frms = max(1,min(param.cmd.frms)-1) : min(length(frames.frame_idxs),max(param.cmd.frms)+1);
+layer_dest = opsLoadLayers(load_param,copy_param.layer_dest);
 if strcmpi(copy_param.layer_source.source,'custom')
   layer_source = [];
-  for layer_idx = 1:length(copy_param.layer_dest)
+  for layer_idx = 1:length(layer_dest)
     % gps_time copy
     if ~iscell(copy_param.layer_source.gps_time)
       copy_param.layer_source.gps_time = {copy_param.layer_source.gps_time};
@@ -221,11 +214,38 @@ if strcmpi(copy_param.layer_source.source,'custom')
     else
       layer_source(layer_idx).quality = ones(size(layer_source(layer_idx).gps_time));
     end
+    % age
+    if isfield(copy_param.layer_source,'age') ...
+        && ~isempty(copy_param.layer_source.age)
+      layer_source(layer_idx).age = copy_param.layer_source.age{layer_idx};
+    else
+      layer_source(layer_idx).age = [];
+    end
+    % age_source
+    if isfield(copy_param.layer_source,'age_source') ...
+        && ~isempty(copy_param.layer_source.age_source)
+      layer_source(layer_idx).age_source = copy_param.layer_source.age_source{layer_idx};
+    else
+      layer_source(layer_idx).age_source = [];
+    end
+    % desc
+    if isfield(copy_param.layer_source,'desc') ...
+        && ~isempty(copy_param.layer_source.desc)
+      layer_source(layer_idx).desc = copy_param.layer_source.desc{layer_idx};
+    else
+      layer_source(layer_idx).desc = [];
+    end
+    % group_name
+    if isfield(copy_param.layer_source,'group_name') ...
+        && ~isempty(copy_param.layer_source.group_name)
+      layer_source(layer_idx).group_name = copy_param.layer_source.group_name{layer_idx};
+    else
+      layer_source(layer_idx).group_name = [];
+    end
   end
 else
   layer_source = opsLoadLayers(load_param,copy_param.layer_source);
 end
-layer_dest = opsLoadLayers(load_param,copy_param.layer_dest);
 
 %% Load framing information (to determine start/stop gps times of each frame)
 if strcmpi(copy_param.layer_dest.source,'ops')
@@ -323,15 +343,15 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     all_points(layer_idx).twtt = zeros(size(ops_data.properties.id));
     
     for point_idx = 1:length(all_points(layer_idx).ids)
-      match_idx = find(all_points(layer_idx).ids(point_idx) == layer_dest.point_path_id);
+      match_idx = find(all_points(layer_idx).ids(point_idx) == layer_dest(layer_idx).point_path_id);
       if isempty(match_idx)
         all_points(layer_idx).twtt(point_idx) = NaN;
         all_points(layer_idx).quality(point_idx) = 1;
         all_points(layer_idx).type(point_idx) = 2;
       else
-        all_points(layer_idx).twtt(point_idx) = layer_dest.twtt(match_idx);
-        all_points(layer_idx).quality(point_idx) = layer_dest.quality(match_idx);
-        all_points(layer_idx).type(point_idx) = layer_dest.type(match_idx);
+        all_points(layer_idx).twtt(point_idx) = layer_dest(layer_idx).twtt(match_idx);
+        all_points(layer_idx).quality(point_idx) = layer_dest(layer_idx).quality(match_idx);
+        all_points(layer_idx).type(point_idx) = layer_dest(layer_idx).type(match_idx);
       end
     end
   end
@@ -366,15 +386,15 @@ end
 %% Apply evaluation operation to source
 if isfield(copy_param,'eval') && ~isempty(copy_param.eval)
   for layer_idx = 1:length(layer_source)
-    source = layer_source(layer_idx).twtt;
-    gps_time = layer_source(layer_idx).gps_time;
+    s = layer_source(layer_idx).twtt;
+    time = layer_source(layer_idx).gps_time;
     lat = layer_source(layer_idx).lat;
     lon = layer_source(layer_idx).lon;
     elev = layer_source(layer_idx).elev;
-    along_track = geodetic_to_along_track(lat,lon,elev);
+    at = geodetic_to_along_track(lat,lon,elev);
     eval_struct = copy_param.eval;
     eval(copy_param.eval.cmd);
-    layer_source(layer_idx).twtt = source;
+    layer_source(layer_idx).twtt = s;
   end
 end
 
@@ -531,13 +551,13 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   % Check to see if layer exists
   % -----------------------------------------------------------------------
   [status,data] = opsGetLayers(sys);
-  for layer_idx = 1:length(copy_param.layer_dest.name)
-    if ~any(strcmpi(data.properties.lyr_name,copy_param.layer_dest.name))
+  for layer_idx = 1:length(layer_dest)
+    if ~any(strcmpi(data.properties.lyr_name,layer_dest(layer_idx).name))
       % Create the layer if it does not exist
       ops_param = [];
-      ops_param.properties.lyr_name = copy_param.layer_dest.name;
-      ops_param.properties.lyr_group_name = copy_param.layer_dest.group;
-      ops_param.properties.lyr_description = copy_param.layer_dest.description;
+      ops_param.properties.lyr_name = layer_dest(layer_idx).name;
+      ops_param.properties.lyr_group_name = layer_dest(layer_idx).group_name;
+      ops_param.properties.lyr_description = layer_dest(layer_idx).desc;
       ops_param.properties.public = true;
       
       [status,ops_data] = opsCreateLayer(sys,ops_param);
@@ -550,7 +570,7 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     ops_param.properties.twtt = all_points(layer_idx).twtt_final(update_mask);
     ops_param.properties.type = all_points(layer_idx).type_final(update_mask);
     ops_param.properties.quality = all_points(layer_idx).quality_final(update_mask);
-    ops_param.properties.lyr_name = copy_param.layer_dest.name;
+    ops_param.properties.lyr_name = layer_dest(layer_idx).name;
     
     % Update these points
     % -----------------------------------------------------------------------
@@ -560,18 +580,40 @@ if strcmpi(copy_param.layer_dest.source,'ops')
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
   %% Save layerdata
   layers = layerdata(param, copy_param.layer_dest.layerdata_source);
-  for layer_idx = 1:length(copy_param.layer_dest.name)
-    id = layers.get_id(copy_param.layer_dest.name{layer_idx});
+  for layer_idx = 1:length(layer_dest)
+    id = layers.get_id(layer_dest(layer_idx).name);
     if isempty(id)
       if copy_param.layer_dest.existence_check
-        error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', copy_param.layer_dest.name{layer_idx}, layers.layer_organizer_fn());
+        error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', layer_dest(layer_idx).name, layers.layer_organizer_fn());
       else
         layer_organizer = [];
-        layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name};
-        layer_organizer.lyr_name = {copy_param.layer_dest.name{layer_idx}};
+        if ~isempty(layer_source(layer_idx).group_name)
+          layer_organizer.lyr_group_name = {layer_source(layer_idx).group_name};
+        else
+          layer_organizer.lyr_group_name = {layer_dest(layer_idx).group_name};
+        end
+        layer_organizer.lyr_name = {layer_dest(layer_idx).name};
         id = layers.insert_layers(layer_organizer);
       end
     end
+    % Update layer information
+    if ~isempty(layer_source(layer_idx).age)
+      layers.set_age(id,layer_source(layer_idx).age);
+    elseif isfield(copy_param.layer_dest,'age')
+      layers.set_age(id,copy_param.layer_dest.age);
+    end
+    if ~isempty(layer_source(layer_idx).age_source)
+      layers.set_age_source(id,layer_source(layer_idx).age_source);
+    elseif isfield(copy_param.layer_dest,'age_source')
+      layers.set_age_source(id,copy_param.layer_dest.age_source);
+    end
+    if ~isempty(layer_source(layer_idx).desc)
+      layers.set_desc(id,layer_source(layer_idx).desc);
+    elseif isfield(copy_param.layer_dest,'desc')
+      layers.set_desc(id,copy_param.layer_dest.desc);
+    end
+    
+    % Update layer vectors
     layers.update_layer(param.cmd.frms, id, all_points(layer_idx).gps_time, ...
       all_points(layer_idx).twtt_final,all_points(layer_idx).quality_final,all_points(layer_idx).type_final);
   end

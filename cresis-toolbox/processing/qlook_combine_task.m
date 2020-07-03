@@ -26,6 +26,9 @@ records = records_load(param);
 out_dir = ct_filename_out(param, param.qlook.out_path);
 tmp_out_dir = ct_filename_out(param, param.qlook.out_path, 'qlook_tmp');
 
+% Radiometric correction (dB)
+radiometric_corr = param.qlook.radiometric_corr_dB;
+
 %% Loop through all the frames: combine and surface track
 % =====================================================================
 [output_dir,radar_type] = ct_output_dir(param.radar_name);
@@ -243,11 +246,11 @@ for frm_idx = 1:length(param.cmd.frms);
     file_type = 'qlook';
     Data = single(Data);
     if isempty(custom)
-      ct_save(out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type');
     else
-      ct_save(out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type','custom');
     end
@@ -263,9 +266,9 @@ for frm_idx = 1:length(param.cmd.frms);
     [Data_Surface, Time_Surface] = img_combine(img_combine_param, 'qlook', surf_layer);
     
     surf_param = param;
-    surf_param.cmd.frms = frm;
-    surf_param.layer_tracker.echogram_source = struct('Data',Data_Surface,'Time',Time_Surface,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation);
-    Surface = layer_tracker(surf_param,[]);
+    surf_param.layer_tracker.frms = frm;
+    surf_param.layer_tracker.echogram_source = struct('Data',Data_Surface,'Time',Time_Surface,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation,'Roll',Roll);
+    Surface = layer_tracker_task(surf_param);
   end
   
   %% Save combined image output
@@ -306,11 +309,11 @@ for frm_idx = 1:length(param.cmd.frms);
     file_type = 'qlook';
     
     if isempty(custom)
-      ct_save(out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type');
     else
-      ct_save(out_fn,'Time','Latitude','Longitude', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type','custom');
     end

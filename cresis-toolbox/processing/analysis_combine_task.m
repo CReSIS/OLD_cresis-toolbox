@@ -204,6 +204,73 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
+  elseif strcmpi(cmd.method,{'burst_noise'})
+    %% Burst Noise
+    % ===================================================================
+    % ===================================================================
+    for img = 1:length(param.analysis.imgs)
+      
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
+        
+        %% Coh Noise: Loop through all the coherent noise tracker files and combine
+        % =====================================================================
+        bad_bins = [];
+        bad_recs = [];
+        bad_waveforms_recs = {};
+        bad_waveforms = {};
+        
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
+          
+          if block_idx == length(blocks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          % Load each block and concatenate
+          % =====================================================================
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(tmp_out_fn_dir, ...
+            sprintf('burst_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          
+          noise = load(out_fn);
+          
+          bad_bins(end+(1:length(noise.bad_bins))) = noise.bad_bins;
+          bad_recs(end+(1:length(noise.bad_recs))) = rec_load_start + noise.bad_recs - 1;
+          bad_recs_unique = unique(noise.bad_recs);
+          bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(noise.bad_waveforms,2)) - 1;
+          bad_waveforms{block_idx} = noise.bad_waveforms;
+        end
+
+        % Constant noise fields carried over from last file loaded:
+        %   param_analysis, param_records
+        
+        % Overwrite concatenated dynamic fields for the whole segment:
+        noise.bad_bins = bad_bins;
+        noise.bad_recs = bad_recs;
+        noise.bad_waveforms_recs = bad_waveforms_recs;
+        noise.bad_waveforms = bad_waveforms;
+        
+        if param.ct_file_lock
+          noise.file_version = '1L';
+        else
+          noise.file_version = '1';
+        end
+        noise.file_type = 'analysis_burst_noise';
+        
+        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('burst_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+        ct_save(out_segment_fn,'-struct','noise'); % Use HDF because of the large file size
+      end
+    end
+    
+    
   elseif strcmpi(cmd.method,{'coh_noise'})
     %% Coh Noise
     % ===================================================================

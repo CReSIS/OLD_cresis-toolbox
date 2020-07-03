@@ -353,7 +353,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
           end
         end
       end
-      obj.layerLB_str();
+      obj.layerLB_str(true);
       obj.set_visibility();
       
     case 'downarrow' % Down-arrow: Move Echogram Down

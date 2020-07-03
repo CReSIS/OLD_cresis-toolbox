@@ -365,6 +365,9 @@ obj.left_panel.layerCM_up = uimenu(obj.left_panel.layerCM, 'Label', '&Up', 'Call
 obj.left_panel.layerCM_down = uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_top = uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_bottom = uimenu(obj.left_panel.layerCM, 'Label', '&Bottom', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_detrend = uimenu(obj.left_panel.layerCM, 'Label', 'Detrend', 'Callback', @obj.layerCM_callback,'Checked','off');
+obj.left_panel.layerCM_multiple = uimenu(obj.left_panel.layerCM, 'Label', 'Surface Multiple Suppression', 'Callback', @obj.layerCM_callback,'Checked','off');
+obj.left_panel.layerCM_properties = uimenu(obj.left_panel.layerCM, 'Label', 'Set properties', 'Callback', @obj.layerCM_callback);
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_merge = uimenu(obj.left_panel.layerCM, 'Label', '&Merge layers', 'Callback', @obj.layerCM_callback);
 obj.left_panel.layerCM_delete = uimenu(obj.left_panel.layerCM, 'Label', 'Delete layer', 'Callback', @obj.layerCM_callback);

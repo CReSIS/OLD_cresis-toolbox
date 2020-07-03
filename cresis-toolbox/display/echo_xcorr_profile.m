@@ -26,6 +26,10 @@ switch (profile_name)
     param.h_filt = fliplr([0.1*ones(1,10) 0.5*ones(1,11)]);
     param.h_filt = param.h_filt-mean(param.h_filt);
     param.h_filt_offset = -8;
+  case 'snow'
+    param.h_filt = fliplr([0.1*ones(1,21) 4*ones(1,5) 0.5*ones(1,21)]);
+    param.h_filt = param.h_filt-mean(param.h_filt);
+    param.h_filt_offset = -20; %-48
   case 'peaky'
     param.h_filt = [0.1 0.1 0.4 0.5 0.4 0.1 0.1];
     param.h_filt = param.h_filt-mean(param.h_filt);

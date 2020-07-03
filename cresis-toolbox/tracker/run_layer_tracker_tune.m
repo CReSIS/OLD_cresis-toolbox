@@ -1,6 +1,6 @@
-% script run_layer_tracker_2D
+% script run_layer_tracker_tune
 %
-% Runs layer_tracker_2D.m
+% Runs layer_tracker.m
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -16,7 +16,8 @@ params = ct_set_params(params,'cmd.frms',[40:48]); % Specify specific frames (or
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
-param_override.layer_tracker.debug_plots = {'tracked_images'};
+param_override.layer_tracker.debug_plots = {};
+% param_override.layer_tracker.debug_plots = {'tracked_images'};
 % param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
@@ -78,14 +79,14 @@ end
 % param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
 % dbstop if error;
-% param_override.cluster.type = 'torque';
+ param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
-% param_override.cluster.cpu_time_mult  = 2;
-% param_override.cluster.mem_mult  = 2;
+param_override.cluster.cpu_time_mult  = 2;
+param_override.cluster.mem_mult  = 2;
 
 %% Automated Section
 % ----------------------------------------------------------------------
@@ -103,7 +104,7 @@ ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
-    [ctrl_chain{end+1},param] = layer_tracker_2D(param,param_override);
+    [ctrl_chain{end+1},param] = layer_tracker(param,param_override);
     % Since we are tuning, save the parameters
     out_param_fn = [ct_filename_ct_tmp(param,'','layer_tracker','') ...
       sprintf('_%s_t%03d_%s.mat',datestr(now,'yyyymmdd_HHMMSS'), ...

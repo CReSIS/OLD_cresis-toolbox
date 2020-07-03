@@ -44,7 +44,7 @@ if param.proj_mtx_update
   theta_eval = theta_eval(:).';   % make theta have the right dimensions
   Nsv2{1} = 'theta';
   Nsv2{2} = theta_eval;
-  [~,SVs] = array_proc_sv(Nsv2,param.fc,param.y_pc,param.z_pc);
+  [~,SVs] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
 %   k     = 4*pi*param.fc/c;
 %   ky    = k*sin(theta_eval).';
 %   kz    = k*cos(theta_eval).';
@@ -61,7 +61,7 @@ else
   M = param.Nsrc;
   Nsv2{1} = 'theta';
   Nsv2{2} = theta;
-  [~,A] = array_proc_sv(Nsv2,param.fc,param.y_pc,param.z_pc);
+  [~,A] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
 %   k = 4*pi*param.fc/c;
 %   A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta) + param.y_pc*sin(theta)));
   Pa  = A * inv(A'*A) * A';

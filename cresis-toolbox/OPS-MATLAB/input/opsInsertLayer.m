@@ -60,12 +60,12 @@ function opsInsertLayer(params,insert_param)
 %    .$(custom): Custom fields available to the eval command.
 %    Variables available are:
 %      physical_constants
-%      "gps_time" (sec)
-%      "along_track" (m)
+%      "time" (ANSI-C GPS time, seconds since Jan 1, 1970)
+%      "at" (along-track, m)
 %      "lat" (deg)
 %      "lon" (deg)
 %      "elev" (m)
-%      "source" (twtt in sec)
+%      "s" (two way travel time, twtt, in sec)
 %      "ref" (reference structure from ref_source)
 %      "eval_struct" (the eval structure passed in by the user)
 %    The cmd string should generally update "source" variable. For example:
@@ -240,12 +240,12 @@ for param_idx = 1:length(params)
     end
 
     %% Prepare variables for eval command
-    source = all_points.twtt;
-    gps_time = all_points.gps_time;
+    s = all_points.twtt;
+    time = all_points.gps_time;
     lat = all_points.lat;
     lon = all_points.lon;
     elev = all_points.elev;
-    along_track = geodetic_to_along_track(lat,lon,elev);
+    at = geodetic_to_along_track(lat,lon,elev);
     eval_struct = insert_param.eval;
     eval(insert_param.eval.cmd);
     all_points.twtt = source;

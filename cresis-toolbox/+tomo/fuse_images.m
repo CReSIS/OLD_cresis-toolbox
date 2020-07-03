@@ -289,6 +289,7 @@ for v_img = 1:length(param.tomo_collate.imgs)
     
     % Second row of img_bins indicates the end of the blend-region
     img_bins(2,:) = img_bins(1,:) + 10;
+    img_bins(2,img_bins(2,:)>length(Time)) = length(Time);
     
     difference = 10^(-0/10);
     

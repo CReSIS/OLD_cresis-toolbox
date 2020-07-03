@@ -33,12 +33,16 @@ function records = records_load(param,varargin)
 % Author: John Paden
 
 if ischar(param)
-  records = load(param,'param_records');
+  records_fn = param;
+  records = load(records_fn,'param_records');
   param = records.param_records;
-end
-records_fn = ct_filename_support(param,'','records');
-if ~exist(records_fn,'file')
-  error('Records file does not exist: %s (%s).', records_fn, datestr(now));
+  global gRadar;
+  param = merge_structs(param,gRadar);
+else
+  records_fn = ct_filename_support(param,'','records');
+  if ~exist(records_fn,'file')
+    error('Records file does not exist: %s (%s).', records_fn, datestr(now));
+  end
 end
 
 %% Correct old files
@@ -92,13 +96,19 @@ elseif nargin == 2 && isnumeric(varargin{1})
   % =======================================================================
 
   recs = varargin{1};
+  % Find the gps_time field in the records file
   match_idx = find(strcmp('gps_time',{mat_vars.name}));
+  % Determine the number of records which is equal to the length of num_recs
   num_recs = mat_vars(match_idx).size(2);
   if recs(2) == inf
     recs(2) = num_recs;
   end
   if recs(2) > num_recs
-    error('Requested records beyond the end of the records file: recs(2)=%d > num_recs=%d. There are %d records in the records file: %s.', recs(2), num_recs, num_recs, records_fn);
+    % Some functions (like qlook_task) will ask for more records than are
+    % available; this is allowed but the number of records returned is
+    % truncated in this case and a warning printed.
+    warning('Requested records beyond the end of the records file: recs(2)=%d > num_recs=%d. There are %d records in the records file: %s.', recs(2), num_recs, num_recs, records_fn);
+    recs(2) = num_recs;
   end
   if recs(2) < recs(1)
     error('Requested records beyond the end of the records file or requested zero records: recs(1)=%d > recs(2)=%d. There are %d records in the records file: %s.', recs(1), recs(2), num_recs, records_fn);

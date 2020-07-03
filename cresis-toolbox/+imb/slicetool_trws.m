@@ -30,6 +30,9 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       %  .slice: current slice in 3D image (third index of .data)
       %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
+      if sb.surf_idx < 1 || sb.surf_idx > length(sb.sd.surf)
+        return
+      end
       control_idx = sb.sd.surf(sb.surf_idx).gt;
       active_idx = sb.sd.surf(sb.surf_idx).active;
       surf_idx = sb.sd.surf(sb.surf_idx).top;
@@ -219,7 +222,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       % -------------------------------------------------------------------
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
-      surf_bins = sb.sd.surf(surf_idx).y(:,slices);
+      surf_bins = round(sb.sd.surf(surf_idx).y(:,slices));
       surf_weight = 20;
       surf_range = 15;
       for idx = 1:Nx

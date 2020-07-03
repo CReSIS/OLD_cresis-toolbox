@@ -295,7 +295,8 @@ classdef layerdata < handle
     
       if ~isfield(obj.layer{frm},'file_version')
         % Old file format
-        warning('Old layer file format frame %d\n', frm);
+        layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
+        warning('Old layer file format frame %d: %s\n', frm, layer_fn);
         lay = obj.layer{frm};
         obj.check_records();
         obj.layer_modified(frm) = true;
@@ -476,7 +477,7 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.twtt,'double')
-        obj.layer{frm}.quality = double(obj.layer{frm}.quality);
+        obj.layer{frm}.twtt = double(obj.layer{frm}.twtt);
         obj.layer_modified(frm) = true;
       end
       if ~isa(obj.layer{frm}.quality,'uint8')
@@ -550,12 +551,21 @@ classdef layerdata < handle
       end
 
       % Ensure all values are valid
-      mask = ~isfinite(obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3);
+      mask = obj.layer{frm}.quality < 1 | obj.layer{frm}.quality > 3;
       if any(mask)
         obj.layer{frm}.quality(mask) = 1;
         obj.layer_modified(frm) = true;
       end
-      mask = ~isfinite(obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4);
+      mask = isinf(obj.layer{frm}.twtt);
+      if any(mask)
+        obj.layer{frm}.twtt(mask) = NaN;
+        obj.layer_modified(frm) = true;
+      end
+      mask = abs(obj.layer{frm}.twtt) > 1;
+      if any(mask)
+        warning('abs(twtt) of some layers is > 1 which is probably incorrect. Manual correction is required if this is an error.');
+      end
+      mask = obj.layer{frm}.type < 1 | obj.layer{frm}.type > 4;
       if any(mask)
         obj.layer{frm}.type(mask) = 2;
         obj.layer_modified(frm) = true;
@@ -630,6 +640,21 @@ classdef layerdata < handle
       if ~isfield(obj.layer{frm}.param.radar,'lever_arm_fh') || isempty(obj.layer{frm}.param.radar.lever_arm_fh)
         obj.layer{frm}.param.radar.lever_arm_fh = obj.param.radar.lever_arm_fh;
         obj.layer_modified(frm) = true;
+      end
+      
+      % Check that GPS times are monotonically increasing (it should never
+      % not be monotonic, but in case files were corrupted or old files
+      % with problems)
+      [new_gps_time,new_idx] = unique(obj.layer{frm}.gps_time);
+      if ~isequal(new_gps_time,obj.layer{frm}.gps_time)
+        obj.layer_modified(frm) = true;
+        obj.layer{frm}.gps_time = new_gps_time;
+        obj.layer{frm}.lat = obj.layer{frm}.lat(new_idx);
+        obj.layer{frm}.lon = obj.layer{frm}.lon(new_idx);
+        obj.layer{frm}.elev = obj.layer{frm}.elev(new_idx);
+        obj.layer{frm}.quality = obj.layer{frm}.quality(:,new_idx);
+        obj.layer{frm}.twtt = obj.layer{frm}.twtt(:,new_idx);
+        obj.layer{frm}.type = obj.layer{frm}.type(:,new_idx);
       end
       
       % Ensure alphabetical ordering so that fields can be concatenated efficiently
@@ -848,11 +873,29 @@ classdef layerdata < handle
       end
     end
     
-    %% get_id: get layer id from layer name
-    function id = get_id(obj,name)
+    %% get_id: get layer id and other layer information from layer id or name
+    function [id,name,group_name,desc,age,age_source] = get_id(obj,name)
       obj.check_layer_organizer();
-      match_idx = find(strcmp(name,obj.layer_organizer.lyr_name));
-      id = obj.layer_organizer.lyr_id(match_idx);
+      if ischar(name)
+        match_idx = find(strcmp(name,obj.layer_organizer.lyr_name),1);
+      else
+        match_idx = find(name == obj.layer_organizer.lyr_id,1);
+      end
+      if isempty(match_idx)
+        id = [];
+        age = [];
+        age_source = [];
+        desc = [];
+        group_name = [];
+        name = [];
+      else
+        id = obj.layer_organizer.lyr_id(match_idx);
+        age = obj.layer_organizer.lyr_age(match_idx);
+        age_source = obj.layer_organizer.lyr_age_source{match_idx};
+        desc = obj.layer_organizer.lyr_desc{match_idx};
+        group_name = obj.layer_organizer.lyr_group_name{match_idx};
+        name = obj.layer_organizer.lyr_name{match_idx};
+      end
     end
     
     %% get_layer: get layer twtt, quality, type
@@ -1117,6 +1160,30 @@ classdef layerdata < handle
           obj.layer_modified(frm) = false;
         end
       end
+    end
+    
+    %% set_age: set age for a layer
+    function set_age(obj,id,age)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_age(match_idx) = age;
+      obj.layer_organizer_modified = true;
+    end
+    
+    %% set_age_source: set age_source for a layer
+    function set_age_source(obj,id,age_source)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_age_source{match_idx} = age_source;
+      obj.layer_organizer_modified = true;
+    end
+    
+    %% set_desc: set desc for a layer
+    function set_desc(obj,id,desc)
+      obj.check_layer_organizer();
+      match_idx = find(id == obj.layer_organizer.lyr_id,1);
+      obj.layer_organizer.lyr_desc{match_idx} = desc;
+      obj.layer_organizer_modified = true;
     end
     
     %% update_gps: update gps for a frame

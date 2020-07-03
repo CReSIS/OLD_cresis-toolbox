@@ -25,7 +25,7 @@ if tool_idx == 1
   for layer_idx = 1:length(cur_layers)
     cur_layer = cur_layers(layer_idx);
     
-    [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,cur_layer);
+    [manual_idxs,auto_idxs,~] = find_matching_pnts(obj,param,cur_layer);
     
     if length(manual_idxs) < 1
       warning('Insufficient points to snake');

@@ -108,7 +108,36 @@ obj.eg.gps_time = obj.eg.gps_time(valid_mask);
 obj.eg.lat = obj.eg.lat(valid_mask);
 obj.eg.lon = obj.eg.lon(valid_mask);
 obj.eg.elev = obj.eg.elev(valid_mask);
+obj.eg.roll = obj.eg.roll(valid_mask);
 obj.eg.surf_twtt = obj.eg.surf_twtt(valid_mask);
+
+%% Determine new time axis
+for frame_idx = 1:length(desire_frame_idxs)
+  cur_frame = desire_frame_idxs(frame_idx);
+  
+  % load EG
+  fn = fullfile(ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx},'',0),sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frm_strs{cur_frame}));
+  if ~exist(fn,'file')
+    warning('File %s not found', fn);
+    keyboard
+  end
+  % Load EG data and metadata
+  tmp = load(fn,'Time','Truncate_Bins','Elevation_Correction');
+  tmp = uncompress_echogram(tmp);
+  if frame_idx == 1
+    min_time = tmp.Time(1);
+    max_time = tmp.Time(end);
+  else
+    min_time = min(min_time,tmp.Time(1));
+    max_time = max(max_time,tmp.Time(end));
+  end
+end
+dt = tmp.Time(2) - tmp.Time(1);
+new_time = (dt*round(min_time/dt) : dt : max_time).';
+if ~isempty(obj.eg.data)
+  obj.eg.data = interp1(obj.eg.time, obj.eg.data, new_time);
+end
+obj.eg.time = new_time;
 
 %% Loading new data
 fprintf(' Loading echogram (%s)\n',datestr(now,'HH:MM:SS'));
@@ -126,6 +155,9 @@ for frame_idx = 1:length(loading_frame_idxs)
   end
   % Load EG data and metadata
   tmp = load(fn);
+  if ~isfield(tmp,'Roll')
+    tmp.Roll = zeros(size(tmp.GPS_time));
+  end
   tmp.Time = reshape(tmp.Time,[length(tmp.Time) 1]); % Fixes a bug in some echograms
   tmp = uncompress_echogram(tmp);
   
@@ -138,6 +170,7 @@ for frame_idx = 1:length(loading_frame_idxs)
   tmp.Latitude = tmp.Latitude(valid_mask);
   tmp.Longitude = tmp.Longitude(valid_mask);
   tmp.Elevation = tmp.Elevation(valid_mask);
+  tmp.Roll = tmp.Roll(valid_mask);
   tmp.GPS_time = tmp.GPS_time(valid_mask);
   if isfield(tmp,'Surface') && ~isempty(tmp.Surface)
     tmp.Surface = tmp.Surface(valid_mask);
@@ -178,6 +211,7 @@ for frame_idx = 1:length(loading_frame_idxs)
     obj.eg.lat = cat(2,obj.eg.lat,tmp.Latitude);
     obj.eg.lon = cat(2,obj.eg.lon,tmp.Longitude);
     obj.eg.elev = cat(2,obj.eg.elev,tmp.Elevation);
+    obj.eg.roll = cat(2,obj.eg.roll,tmp.Roll);
     obj.eg.gps_time = cat(2,obj.eg.gps_time,tmp.GPS_time);
     obj.eg.surf_twtt = cat(2,obj.eg.surf_twtt,tmp.Surface);
     obj.eg.data = cat(2,obj.eg.data,tmp.Data);
@@ -189,6 +223,8 @@ for frame_idx = 1:length(loading_frame_idxs)
       obj.eg.lon(splice_idx:end));
     obj.eg.elev = cat(2,obj.eg.elev(1:splice_idx-1),tmp.Elevation, ...
       obj.eg.elev(splice_idx:end));
+    obj.eg.roll = cat(2,obj.eg.roll(1:splice_idx-1),tmp.Roll, ...
+      obj.eg.roll(splice_idx:end));
     obj.eg.gps_time = cat(2,obj.eg.gps_time(1:splice_idx-1),tmp.GPS_time, ...
       obj.eg.gps_time(splice_idx:end));
     obj.eg.surf_twtt = cat(2,obj.eg.surf_twtt(1:splice_idx-1),tmp.Surface, ...

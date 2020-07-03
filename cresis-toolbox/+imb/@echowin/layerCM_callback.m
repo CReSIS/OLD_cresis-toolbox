@@ -12,7 +12,7 @@ if source == obj.left_panel.layerCM_visible || source == obj.left_panel.layerCM_
   
   obj.eg.layers.visible_layers(val) = source == obj.left_panel.layerCM_visible;
   
-  obj.layerLB_str();
+  obj.layerLB_str(true);
   
   % Update plot based on selection
   obj.set_visibility();
@@ -32,7 +32,7 @@ elseif source == obj.left_panel.layerCM_set_surf
     end
     obj.yaxisPM_callback();
   end
-    
+  
 elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_copy || source == obj.left_panel.layerCM_insert
   %% new
   %% copy
@@ -657,7 +657,7 @@ elseif source == obj.left_panel.layerCM_merge
       fprintf('Merge layers requires that two layers are selected.');
       return;
     end
-      
+    
     cancel_operation = obj.undo_stack_modified_check(true);
     
     if cancel_operation
@@ -689,7 +689,7 @@ elseif source == obj.left_panel.layerCM_merge
         end
       end
     end
-
+    
     % Merge the layers and determine a mask of where changes will be made
     merged_y = nan(size(obj.undo_stack.user_data.frame));
     merged_quality = ones(size(obj.undo_stack.user_data.frame));
@@ -712,7 +712,7 @@ elseif source == obj.left_panel.layerCM_merge
     h_plot(end+(1:length(vals)-1)) = plot(y(2:end,:).'*1e6,'r^','parent',h_axes,'LineWidth',2);
     h_plot(end+1) = plot(find(mask),merged_y(mask)*1e6,'go','parent',h_axes,'LineWidth',2);
     legend(h_plot([1 2 end]),sprintf('Master Layer %d',vals(1)),'Merged Layers','Merged Result');
-
+    
     prompt = questdlg(sprintf('Are you sure you want to merge the %d selected layers? See plot showing the merge operation. All selected layers will be deleted except for layer %d.', ...
       length(vals), vals(1)), ...
       'Merge Layers','Yes','Cancel','Cancel');
@@ -744,7 +744,7 @@ elseif source == obj.left_panel.layerCM_merge
       name = obj.eg.layers.lyr_name{val};
       order = obj.eg.layers.lyr_order(val);
       fprintf('Delete layer %s:%s\n', group_name, name);
-
+      
       % Delete all the points in the layer
       nan_mask = ~isnan(y(val_idx,:));
       cmds(end+1).undo_cmd = 'insert';
@@ -836,4 +836,96 @@ elseif source == obj.left_panel.layerCM_delete
     
   end
   
+elseif source == obj.left_panel.layerCM_detrend
+  %% detrend
+  
+  state = get(obj.left_panel.layerCM_detrend,'Checked');
+  if strcmp(state,'off')
+    set(obj.left_panel.layerCM_detrend,'Checked','on')
+  else
+    set(obj.left_panel.layerCM_detrend,'Checked','off')
+  end
+  
+  % Replot image
+  cur_axis = axis(obj.h_axes);
+  
+  % Convert x_min, x_max to GPS time
+  xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+  
+  % Update echogram with new settings
+  obj.plot_echogram(obj.eg.image_gps_time(1),obj.eg.image_gps_time(end),-inf,inf);
+  
+  % Draw data with new axis
+  obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',3));
+  
+elseif source == obj.left_panel.layerCM_multiple
+  %% multiple suppression
+  state = get(obj.left_panel.layerCM_multiple,'Checked');
+  if strcmp(state,'off')
+    set(obj.left_panel.layerCM_multiple,'Checked','on')
+  else
+    set(obj.left_panel.layerCM_multiple,'Checked','off')
+  end
+  
+  % Replot image
+  cur_axis = axis(obj.h_axes);
+  
+  % Convert x_min, x_max to GPS time
+  xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+  
+  % Update echogram with new settings
+  obj.plot_echogram(obj.eg.image_gps_time(1),obj.eg.image_gps_time(end),-inf,inf);
+  
+  % Draw data with new axis
+  obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',3));
+  
+elseif source == obj.left_panel.layerCM_properties
+  %% properties
+  obj.eg.detrend.top = 1;
+  obj.eg.detrend.bottom = 2;
+  obj.eg.detrend.order = 7;
+  def = {sprintf('%d',obj.eg.detrend.top),sprintf('%d',obj.eg.detrend.bottom),sprintf('%d',obj.eg.detrend.order)};
+  
+  prompt = {'Detrend top layer','Detrend bottom layer','Detrend polynomial order'};
+  answer = inputdlg(prompt,'Detrend properties',1,def);
+  
+  if length(answer) == 3 && ~isempty(answer{3})
+    % detrend top
+    try
+      obj.eg.detrend.top = eval(answer{1});
+    catch
+      obj.eg.detrend.top = 1;
+    end
+    if isempty(obj.eg.detrend.top)
+      obj.eg.detrend.top = 1;
+    end
+    
+    % detrend bottom
+    try
+      obj.eg.detrend.bottom = eval(answer{2});
+    catch
+      obj.eg.detrend.bottom = 2;
+    end
+    if isempty(obj.eg.detrend.bottom)
+      obj.eg.detrend.bottom = 2;
+    end
+    
+    % detrend order
+    try
+      obj.eg.detrend.order = eval(answer{3});
+    catch
+      obj.eg.detrend.order = 7;
+    end
+    if isempty(obj.eg.detrend.order)
+      obj.eg.detrend.order = 7;
+    end
+    
+    detrend_state = get(obj.left_panel.layerCM_detrend,'Checked');
+    mult_state = get(obj.left_panel.layerCM_multiple,'Checked');
+    if strcmp(detrend_state,'on') || strcmp(mult_state,'on')
+      % Replot image
+      obj.plot_echogram(obj.eg.image_gps_time(1),obj.eg.image_gps_time(end),-inf,inf);
+    end
+    
+  end
 end
