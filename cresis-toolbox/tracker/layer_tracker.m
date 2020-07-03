@@ -138,8 +138,11 @@ while frm_idx <= length(param.cmd.frms)
       end
       Nx = Nx + length(mdata.GPS_time);
     catch ME
-      warning('Failed to load %s!!!:\n  %s', data_fn, ME.getReport);
-      keyboard
+      warning('Failed to load %s!!!!!!:\n  %s', data_fn, ME.getReport);
+      mdata.Time = [0 1e-6];
+      min_time = 0;
+      max_time = 0;
+      % keyboard % Uncomment for debugging why file loading failed
     end
   end
   dt = mdata.Time(2) - mdata.Time(1);
