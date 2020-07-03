@@ -35,14 +35,14 @@ if strcmp(SURFACE, 'FT')
     bounds(2, :) = Nt - 1;
 %     bounds(1, 3:5) = 2;
 elseif strcmp(SURFACE, 'CT')
-    find_surf = @tomo.trws2_CT;
+    find_surf = @tomo.trws2_CT_perm;
     
     trws_data(:, 2, :) = 10;
     trws_data(3:4, 3, 2:3) = 20;
     trws_data(3, 4, 3) = 40;
     
     bounds = zeros(2, Nx);
-    bounds(2, :) = 3;
+    bounds(2, :) = Nsv;
 elseif ~strcmp(SURFACE, 'NONE')
     error('Invalid surface selection.');
 end
@@ -56,7 +56,14 @@ if ~strcmp(SURFACE, 'NONE')
     ct_slope  = zeros(Nsv, Nx);
     ct_weight = ones(1, Nsv);
 
-    correct_surface = find_surf(single(trws_data),single(at_slope),single(at_weight),single(ct_slope),single(ct_weight), uint32(MAX_LOOPS), uint32(bounds - 1));
+    if strcmp(SURFACE, 'FT')
+        correct_surface = find_surf(single(trws_data),single(at_slope), ...
+          single(at_weight),single(ct_slope),single(ct_weight), ...
+          uint32(MAX_LOOPS), uint32(bounds - 1));
+    else
+        correct_surface = find_surf(single(trws_data),single(at_slope), ...
+          single(at_weight), uint32(MAX_LOOPS), uint32(bounds - 1));
+    end
 end
 
 figure(FIGURE_NUM);
@@ -70,19 +77,19 @@ if ~strcmp(SURFACE, 'CT')
         surf(X, Y, repmat(bounds(2, :), Nx-1, 1), 'FaceColor', [232, 145, 90]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
     end
     xlim([1 Nx]);
-    xticks(1:Nx);
+%     xticks(1:Nx);
     xlabel('X : Along-Track (Nx, DIM 2)');
     set(gca, 'XColor', 'b');
     set(gca, 'xdir', 'reverse');
 
     ylim([1 Nsv]);
-    yticks(1:Nsv);
+%     yticks(1:Nsv);
     ylabel('Y : Cross-Track (Nsv. DIM 1)');
     set(gca, 'YColor', 'g');
     set(gca, 'ydir', 'reverse');
 
     zlim([0 Nt]);
-    zticks(0:Nt);
+%     zticks(0:Nt);
     zlabel('Z : Fast-Time (Nt, DIM 0)');
     set(gca, 'ZColor', 'r');
     set(gca, 'zdir', 'reverse');
@@ -100,18 +107,18 @@ else
         surf(X, Z, repmat(bounds(2, :), Nsv-1, 1), 'FaceColor', orange, 'LineStyle', 'none', 'FaceAlpha', 0.1);
     end
     xlim([1 Nx]);
-    xticks(1:Nx);
+%     xticks(1:Nx);
     xlabel('X : Along-Track (Nx, DIM 2)');
     set(gca, 'XColor', 'b');
     set(gca, 'xdir', 'reverse');
 
     zlim([0 Nsv]);
-    zticks(0:Nsv);
+%     zticks(0:Nsv);
     zlabel('Z : Cross-Track (Nsv. DIM 1)');
     set(gca, 'ZColor', 'g');
     
     ylim([1 Nt]);
-    yticks(1:Nt);
+%     yticks(1:Nt);
     ylabel('Y : Fast-Time (Nt, DIM 0)');
     set(gca, 'YColor', 'r');
     set(gca, 'ydir', 'reverse');
@@ -168,9 +175,9 @@ for w_idx = 1:Nx
             
             if ~isnan(msg_idx)
                 if ~strcmp(SURFACE, 'CT')
-                    text(w_idx, h_idx, d_idx, sprintf("%.0f", msg_idx));
+                    text(w_idx, h_idx, d_idx, sprintf('%d', msg_idx));
                 else
-                    text(w_idx, d_idx, h_idx, sprintf("%.0f", msg_idx));
+                    text(w_idx, d_idx, h_idx, sprintf('%d', msg_idx));
                 end
             end
         end
