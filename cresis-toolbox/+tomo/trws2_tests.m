@@ -11,6 +11,7 @@ INDEX_LABEL = 'FT';
 % 'FT' plots a surface normal to the fast-time axis
 % 'CT' plots a surface normal to the cross-track axis
 SURFACE = INDEX_LABEL;
+% Display traversal order for even loops of TRWS
 INDEX_EVEN_LOOP = true;
 
 % Display on this figure
@@ -73,8 +74,8 @@ hold on;
 if ~strcmp(SURFACE, 'CT')
     if ~strcmp(SURFACE, 'NONE')
         surf(X, Y, correct_surface, 'FaceAlpha', .2);
-        surf(X, Y, repmat(bounds(1, :), Nx-1, 1), 'FaceColor', [86, 135, 214]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
-        surf(X, Y, repmat(bounds(2, :), Nx-1, 1), 'FaceColor', [232, 145, 90]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
+        surf(X, Y, repmat(bounds(1, :), Nt-1, 1), 'FaceColor', [86, 135, 214]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
+        surf(X, Y, repmat(bounds(2, :), Nt-1, 1), 'FaceColor', [232, 145, 90]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
     end
     xlim([1 Nx]);
 %     xticks(1:Nx);
