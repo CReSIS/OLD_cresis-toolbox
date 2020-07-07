@@ -58,20 +58,15 @@ public:
   const float *mAT_Slope;
   // mAT_Weight: along-track binary/transition/slope weight
   const float *mAT_Weight;
-  // mCT_Slope: cross-track binary/transition/slope coefficients (first row: range, second row: theta)
-  const float *mCT_Slope;
-  // mCT_Weight: cross-track binary/transition/slope weight
-  const float *mCT_Weight;
   // mBounds: cross-track dimension bounds
   const unsigned int *mBounds;
   
   // Result
   unsigned int *mResult;
     
-  TRWS(const float *image, const size_t *dim_image, const float *at_slope, const float *at_weight,
-          const float *ct_slope, const float *ct_weight, const unsigned int max_loops,
-          const unsigned int *bounds, unsigned int *result)
-          : mImage(image), mAT_Slope(at_slope), mAT_Weight(at_weight), mCT_Slope(ct_slope), mCT_Weight(ct_weight),
+  TRWS(const float *image, const size_t *dim_image, const float *at_slope, const float *at_weight, 
+          const unsigned int max_loops, const unsigned int *bounds, unsigned int *result)
+          : mImage(image), mAT_Slope(at_slope), mAT_Weight(at_weight), 
             mMax_Loops(max_loops), mBounds(bounds), mResult(result) {
             // Set dimensions
             mNt      = dim_image[0];
@@ -231,7 +226,7 @@ void TRWS::solve() {
           int dest_elev_start = mBounds[2*w];
           int dest_elev_stop = mBounds[2*w+1];
           // Binary cost
-          dt(message_in, &(mMessage_Down[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, mCT_Weight[0], mCT_Slope[0], mNt);
+          dt(message_in, &(mMessage_Down[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, 1, 0, mNt);
           // Normalize message so smallest message has a cost of zero
           float min_val = INFINITY;
           for (size_t h = dest_elev_start, message_idx = msg_dest_idx+dest_elev_start*mNt; h <= dest_elev_stop; h++, message_idx+=mNt) {
@@ -275,7 +270,7 @@ void TRWS::solve() {
           size_t msg_dest_idx = d+1 + w*mNsv*mNt;
           int dest_elev_start = mBounds[2*w];
           int dest_elev_stop = mBounds[2*w+1];
-          dt(message_in, &(mMessage_Up[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, mCT_Weight[0], -mCT_Slope[0], mNt);
+          dt(message_in, &(mMessage_Up[msg_dest_idx]), cur_elev_start, cur_elev_stop, dest_elev_start, dest_elev_stop, 1, 0, mNt);
           // Normalize message so smallest message has a cost of zero
           float min_val = INFINITY;
           for (size_t h = dest_elev_start, message_idx = msg_dest_idx+dest_elev_start*mNt; h <= dest_elev_stop; h++, message_idx+=mNt) {
@@ -295,77 +290,65 @@ void TRWS::solve() {
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if (nrhs != 7 || nlhs != 1) {
-    mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1");
+  if (nrhs != 5 || nlhs != 1) {
+    mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, uint32 max_loops, uint32 bounds)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  numel(max_loops) is 1");
   }
   
+  int arg = -1;
+
+  arg++;
   // image ================================================================
-  if (!mxIsSingle(prhs[0])) {
+  if (!mxIsSingle(prhs[arg])) {
     mexErrMsgTxt("usage: image must be type single");
   }
-  if (mxGetNumberOfDimensions(prhs[0]) != 3) {
+  if (mxGetNumberOfDimensions(prhs[arg]) != 3) {
     mexErrMsgTxt("usage: image must be a 3D matrix [rows=Nt, columns=Ndoa, slices=Nx]");
   }
-  const size_t *dim_image = mxGetDimensions(prhs[0]);
-  float *image = (float *)mxGetData(prhs[0]);
+  const size_t *dim_image = mxGetDimensions(prhs[arg]);
+  float *image = (float *)mxGetData(prhs[arg]);
   // dim_image[0]: Nt rows of one slice (fast-time: the hidden state we are trying to estimate)
   // dim_image[1]: Nsv cols of one slice (cross-track dimension)
   // dim_image[2]: Nx number of slices (along-track dimension)
   
+  arg++;
   // at_slope =============================================================
-  if (!mxIsSingle(prhs[1])) {
+  if (!mxIsSingle(prhs[arg])) {
     mexErrMsgTxt("usage: at_slope must be type single (float32)");
   }
-  if (mxGetNumberOfElements(prhs[1]) != dim_image[2]) {
+  if (mxGetNumberOfElements(prhs[arg]) != dim_image[2]) {
     mexErrMsgTxt("usage: at_slope must have numel equal to size(image,3)");
   }
-  float *at_slope = (float *)mxGetData(prhs[1]);
+  float *at_slope = (float *)mxGetData(prhs[arg]);
   
+  arg++;
   // at_weight ============================================================
-  if (!mxIsSingle(prhs[2])) {
+  if (!mxIsSingle(prhs[arg])) {
     mexErrMsgTxt("usage: at_weight must be type single (float32)");
   }
-  if (mxGetNumberOfElements(prhs[2]) != 1) {
+  if (mxGetNumberOfElements(prhs[arg]) != 1) {
     mexErrMsgTxt("usage: at_weight must have numel equal to 1");
   }
-  float *at_weight = (float *)mxGetData(prhs[2]);
+  float *at_weight = (float *)mxGetData(prhs[arg]);
   
-  // ct_slope =============================================================
-  if (!mxIsSingle(prhs[3])) {
-    mexErrMsgTxt("usage: ct_slope must be type single (float32)");
-  }
-  const size_t *dim_ct_slope = mxGetDimensions(prhs[3]);
-  if (dim_ct_slope[0] != dim_image[1] || dim_ct_slope[1] != dim_image[2]) {
-    mexErrMsgTxt("usage: ct_slope must have size(ct_slope,1)=size(image,2) and size(ct_slope,2)=size(image,3)");
-  }
-  float *ct_slope = (float *)mxGetData(prhs[3]);
-  
-  // ct_weight ============================================================
-  if (!mxIsSingle(prhs[4])) {
-    mexErrMsgTxt("usage: ct_weight must be type single (float32)");
-  }
-  if (mxGetNumberOfElements(prhs[4]) != dim_image[1]) {
-    mexErrMsgTxt("usage: ct_weight must have numel equal to size(image,2)");
-  }
-  float *ct_weight = (float *)mxGetData(prhs[4]);
-  
+  arg++;
   // max_loops ===========================================================
-  if (!mxIsClass(prhs[5],"uint32")) {
+  if (!mxIsClass(prhs[arg],"uint32")) {
     mexErrMsgTxt("usage: max_loops must be type unsigned int32");
   }
-  if (mxGetNumberOfElements(prhs[5]) != 1) {
+  if (mxGetNumberOfElements(prhs[arg]) != 1) {
     mexErrMsgTxt("usage: max_loops must have numel equal to 1");
   }
-  unsigned int *max_loops = (unsigned int *)mxGetData(prhs[5]);
+  unsigned int *max_loops = (unsigned int *)mxGetData(prhs[arg]);
   
+  arg++;
   // bounds ===============================================================
-  if (!mxIsClass(prhs[6],"uint32")) {
+  if (!mxIsClass(prhs[arg],"uint32")) {
     mexErrMsgTxt("usage: bounds must be type unsigned int32");
   }
-  if (mxGetNumberOfElements(prhs[6]) != 2*dim_image[2]) {
+  if (mxGetNumberOfElements(prhs[arg]) != 2*dim_image[2]) {
     mexErrMsgTxt("usage: bounds must have numel equal to 2*size(image,3)");
   }
-  unsigned int *bounds = (unsigned int *)mxGetData(prhs[6]);
+  unsigned int *bounds = (unsigned int *)mxGetData(prhs[arg]);
   
   // ====================================================================
   
@@ -374,7 +357,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   unsigned int *result = (unsigned int *)mxGetData(plhs[0]);
   
   // Run TRWS algorithm
-  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, *max_loops, bounds, result);
+  TRWS obj(image, dim_image, at_slope, at_weight, *max_loops, bounds, result);
   
   obj.solve();
 }

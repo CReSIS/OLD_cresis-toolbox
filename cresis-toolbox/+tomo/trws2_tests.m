@@ -6,7 +6,7 @@ MAX_LOOPS = 10;
 % 'ALL' displays index numbers for every cell
 % 'FT' displays traversal order for a fast-time-based search
 % 'CT' displays traversal order for a cross-track-based search
-INDEX_LABEL = 'CT';
+INDEX_LABEL = 'FT';
 % 'NONE' does not plot a surface
 % 'FT' plots a surface normal to the fast-time axis
 % 'CT' plots a surface normal to the cross-track axis
