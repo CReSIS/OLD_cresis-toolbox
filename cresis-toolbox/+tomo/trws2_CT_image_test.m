@@ -1,24 +1,20 @@
 FIGURE_NUM = 1;
+SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/';
 
 % Start index
-St = 1;
+St  = 1;
 Ssv = 1;
-Sx = 1;
+Sx  = 1;
 
 % End index
-Et  = 3503;
-Esv = 64;
-Ex  = 5073;
+Et  = NaN;
+Esv = NaN;
+Ex  = NaN;
 
 % Num sampled points
 Nt  = 100;
-Nsv = 64;
+Nsv = 100;
 Nx  = 100;
-
-% Step size
-Tt = round((Et-St)/Nt);
-Tsv = round((Esv-Ssv)/Nsv);
-Tx = round((Ex-Sx)/Nx);
 
 MAX_LOOPS = 2;
 INDEX_EVEN_LOOP = true;
@@ -26,26 +22,74 @@ PLOT_POINTS = false;
 PLOT_INDICES = false;
 PLOT_THRESHOLD = 7;
 
-
 param.radar_name = 'rds';
-param.season_name = '2019_Antarctica_Ground';
-out_type = 'music3D_paden';
 surfdata_source = 'surfData_paden';
-param.day_seg = '20200107_01';
-frm = 1;
-geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
-ice_mask_fn = '';
-bounds_relative = [0 0 0 0];
 
-echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-if ~exist('mdata')
+if 0
+    param.season_name = '2019_Antarctica_Ground';
+    param.day_seg = '20200107_01';
+    out_type = 'music3D_paden';
+    frm = 1;
+    echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+elseif 1
+    param.season_name = '2014_Greenland_P3';
+    param.day_seg = '';
+    out_type = 'multipass';
+    frm = 4;
+    echogram_fn = fullfile(ct_filename_out(param,out_type,''), 'summit_2012_2014_allwf_2012_music.mat');
+end
+
+if ~exist('mdata', 'var')
   mdata = load(echogram_fn);
 end
 trws_data = 10*log10(mdata.Tomo.img);
+
+if ~exist('St', 'var') || isnan(St) || isempty(St)
+    St  = 1;
+end
+if ~exist('Ssv', 'var') || isnan(Ssv) || isempty(Ssv)
+    Ssv = 1;
+end
+if ~exist('Sx', 'var') || isnan(Sx) || isempty(Sx)
+    Sx  = 1;
+end
+
+if ~exist('Et', 'var') || isnan(Et) || isempty(Et)
+    Et  = size(trws_data, 1);
+end
+if ~exist('Esv', 'var') || isnan(Esv) || isempty(Esv)
+    Esv = size(trws_data, 2);
+end
+if ~exist('Ex', 'var') || isnan(Ex) || isempty(Ex)
+    Ex  = size(trws_data, 3);
+end
+
+if ~exist('Nt', 'var') || isnan(Nt) || isempty(Nt)
+    Nt  = Et;
+end
+if ~exist('Nsv', 'var') || isnan(Nsv) || isempty(Nsv)
+    Nsv = Esv;
+end
+if ~exist('Nx', 'var') || isnan(Nx) || isempty(Nx)
+    Nx  = Ex;
+end
+
+% Step size
+Tt  = round((Et-St)/Nt);
+Tsv = round((Esv-Ssv)/Nsv);
+Tx  = round((Ex-Sx)/Nx);
+
+Tt  = max(Tt, 1);
+Tsv = max(Tsv, 1);
+Tx  = max(Tx, 1);
+
 trws_data = trws_data(St:Tt:Et, Ssv:Tsv:Esv, Sx:Tx:Ex);
+Nt  = size(trws_data, 1);
+Nsv = size(trws_data, 2);
+Nx  = size(trws_data, 3);
+
 trws_data = trws_data - min(trws_data(:));
 trws_data = trws_data/max(trws_data(:)) * 10;
-save('/users/reece/Desktop/entire_matrix.mat', 'trws_data');
 
 at_slope  = zeros(1, Nx);
 at_weight = 1;
@@ -54,7 +98,7 @@ bounds(2, :) = Nsv;
 correct_surface = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
   single(at_weight), uint32(MAX_LOOPS), uint32(bounds-1));
 
-save('/users/reece/Desktop/entire_matrix_surf.mat', 'correct_surface');
+save([SAVE_PATH 'entire_matrix_surf.mat'], 'correct_surface');
 
 figure(FIGURE_NUM);
 clf;
