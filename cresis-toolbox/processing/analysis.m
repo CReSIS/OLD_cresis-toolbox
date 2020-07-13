@@ -162,7 +162,31 @@ for cmd_idx = 1:length(param.analysis.cmd)
   cmd.method = lower(cmd.method);
   switch cmd.method
     case {'burst_noise'}
-      %
+      % Set defaults for burst noise analysis method
+      
+      if ~isfield(cmd,'max_bad_waveforms') || isempty(cmd.max_bad_waveforms)
+        cmd.max_bad_waveforms = 100;
+      end
+      
+      if ~isfield(cmd,'noise_filt') || isempty(cmd.noise_filt)
+        cmd.noise_filt = [11 101];
+      end
+      
+      if ~isfield(cmd,'signal_filt') || isempty(cmd.signal_filt)
+        cmd.signal_filt = [11 1];
+      end
+      
+      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
+        cmd.threshold = 17;
+      end
+      
+      if ~isfield(cmd,'valid_bins') || isempty(cmd.valid_bins)
+        cmd.valid_bins = {};
+        for img = 1:length(param.analysis.imgs)
+          cmd.valid_bins{img} = [501 inf];
+        end
+      end
+
     case {'coh_noise'}
       % Set defaults for coherent noise analysis method
       
@@ -302,11 +326,17 @@ end
 if ~isfield(param.analysis,'bit_mask') || isempty(param.analysis.bit_mask)
   % Set to 3 to mask out stationary and bad records (useful for coherent noise estimation on ground based data that may have stationary records)
   if all(strcmp('coh_noise',enabled_cmds))
-    % If coherent noise only command, the default is 3
-    param.analysis.bit_mask = 3;
-  else
-    % Otherwise the default is 1
+    % Remove bad records (bit_mask==1), remove stationary records
+    % (bit_mask==2), and remove bad records (bit_mask==4)
+    param.analysis.bit_mask = 1 + 2 + 4;
+  elseif all(strcmp('burst_noise',enabled_cmds))
+    % Remove bad records (bit_mask==1), leave stationary records
+    % (bit_mask==2), and leave bad records (bit_mask==4)
     param.analysis.bit_mask = 1;
+  else
+    % Remove bad records (bit_mask==1), leave stationary records
+    % (bit_mask==2), and remove bad records (bit_mask==4)
+    param.analysis.bit_mask = 1 + 4;
   end
 end
 

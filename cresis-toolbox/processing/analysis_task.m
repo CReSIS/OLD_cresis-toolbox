@@ -374,12 +374,7 @@ for img = 1:length(store_param.load.imgs)
         wf = param.load.imgs{img}(wf_adc,1);
         adc = param.load.imgs{img}(wf_adc,2);
         
-        cmd.threshold = 17;
-        cmd.noise_filt = [11 101];
-        cmd.signal_filt = [11 1];
-        cmd.valid_bins{img} = [501 inf];
-        cmd.max_bad_waveforms = 100;
-        
+        %% Burst Noise: Smooth and Threshold
         data_pow = abs(raw_data{1}(:,:,wf_adc).').^2;
         
         data_smooth = fir_dec(data_pow,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
@@ -387,14 +382,19 @@ for img = 1:length(store_param.load.imgs)
         data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
         data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
         
+        % Find peaks in data_pow relative to data_smooth (constant false
+        % alarm rate detector)
         bad_samples = lp(data_pow) > lp(data_smooth) + cmd.threshold;
+        % Convert peaks to range-bin/records
         bad_idxs = find(bad_samples);
         Nt = size(raw_data{1},1);
         bad_bins = mod(bad_idxs-1,Nt)+1;
         bad_recs = floor((bad_idxs-1)/Nt)+1;
+        % Remove detections that fall outside the valid bin range
         valid_mask = bad_bins >= cmd.valid_bins{img}(1) & bad_bins <= cmd.valid_bins{img}(2);
         bad_bins = bad_bins(valid_mask);
         bad_recs = bad_recs(valid_mask);
+        % Extract waveforms
         bad_recs_unique = unique(bad_recs);
         bad_waveforms = raw_data{1}(:,bad_recs_unique(1:min(end,cmd.max_bad_waveforms)),wf_adc);
         
@@ -406,6 +406,8 @@ for img = 1:length(store_param.load.imgs)
           imagesc(lp(data_pow))
           link_figures([2 1],'xy');
         end
+        
+        %% Burst Noise: Save Results
         out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('burst_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
         param_analysis = tmp_param;

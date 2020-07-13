@@ -44,6 +44,9 @@ if any(strcmpi('frames',{var_list.name}))
   frames.param.day_seg = param.day_seg;
   frames.param.season_name = param.season_name;
   frames.param.radar_name = param.radar_name;
+  if ~isfield(param,'sw_version')
+    param.sw_version = current_software_version;
+  end
   frames.param.sw_version = param.sw_version;
   
   if isfield(param,'ct_file_lock') && param.ct_file_lock

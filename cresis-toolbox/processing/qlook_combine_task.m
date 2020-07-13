@@ -266,7 +266,7 @@ for frm_idx = 1:length(param.cmd.frms);
     [Data_Surface, Time_Surface] = img_combine(img_combine_param, 'qlook', surf_layer);
     
     surf_param = param;
-    surf_param.cmd.frms = frm;
+    surf_param.layer_tracker.frms = frm;
     surf_param.layer_tracker.echogram_source = struct('Data',Data_Surface,'Time',Time_Surface,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation,'Roll',Roll);
     Surface = layer_tracker_task(surf_param);
   end

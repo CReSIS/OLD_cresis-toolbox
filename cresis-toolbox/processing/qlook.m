@@ -52,7 +52,9 @@ end
 % =====================================================================
 
 if ~isfield(param.qlook,'bit_mask') || isempty(param.qlook.bit_mask)
-  param.qlook.bit_mask = 1;
+  % Remove bad records (bit_mask==1), leave stationary records
+  % (bit_mask==2), and remove bad records (bit_mask==4)
+  param.qlook.bit_mask = 1 + 4;
 end
 
 if ~isfield(param.qlook,'block_size') || isempty(param.qlook.block_size)

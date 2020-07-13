@@ -269,7 +269,7 @@ obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5
 obj.plot_layers();
 obj.set_visibility();
 
-obj.layerLB_str();
+obj.layerLB_str(true);
 set(obj.left_panel.layerLB,'Value',val);
 
 end
@@ -300,7 +300,7 @@ delete(obj.h_quality((val-1)*6+(1:6)));
 obj.h_layer = [obj.h_layer(1:2*(val-1)) obj.h_layer(2*(val+1)-1:end)];
 obj.h_quality = [obj.h_quality(1:6*(val-1)) obj.h_quality(6*(val+1)-5:end)];
 
-obj.layerLB_str();
+obj.layerLB_str(true);
 set(obj.left_panel.layerLB,'Value',[]);
 
 end
@@ -348,7 +348,7 @@ obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
 obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
 obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
 
-obj.layerLB_str();
+obj.layerLB_str(true);
 set(obj.left_panel.layerLB,'Value',val);
 
 end

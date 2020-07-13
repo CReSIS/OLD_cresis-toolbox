@@ -244,7 +244,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           bad_bins(end+(1:length(noise.bad_bins))) = noise.bad_bins;
           bad_recs(end+(1:length(noise.bad_recs))) = rec_load_start + noise.bad_recs - 1;
           bad_recs_unique = unique(noise.bad_recs);
-          bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(bad_waveforms,2)) - 1;
+          bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(noise.bad_waveforms,2)) - 1;
           bad_waveforms{block_idx} = noise.bad_waveforms;
         end
 
@@ -252,8 +252,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         %   param_analysis, param_records
         
         % Overwrite concatenated dynamic fields for the whole segment:
-        noise.bad_recs = bad_recs;
         noise.bad_bins = bad_bins;
+        noise.bad_recs = bad_recs;
         noise.bad_waveforms_recs = bad_waveforms_recs;
         noise.bad_waveforms = bad_waveforms;
         

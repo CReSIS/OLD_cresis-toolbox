@@ -123,19 +123,27 @@ while frm_idx <= length(param.cmd.frms)
     % Compute matrix size
     % ---------------------------------------------------------------------
     data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-    mdata = load(data_fn, 'GPS_time','Time');
-    if (subblock_idx==1)
-      max_time = mdata.Time(end);
-      min_time = mdata.Time(1);
-    else
-      if(max_time <= mdata.Time(end))
+    try
+      mdata = load(data_fn, 'GPS_time','Time');
+      if (subblock_idx==1)
         max_time = mdata.Time(end);
-      end
-      if(min_time >= mdata.Time(1))
         min_time = mdata.Time(1);
+      else
+        if(max_time <= mdata.Time(end))
+          max_time = mdata.Time(end);
+        end
+        if(min_time >= mdata.Time(1))
+          min_time = mdata.Time(1);
+        end
       end
+      Nx = Nx + length(mdata.GPS_time);
+    catch ME
+      warning('Failed to load %s!!!!!!:\n  %s', data_fn, ME.getReport);
+      mdata.Time = [0 1e-6];
+      min_time = 0;
+      max_time = 0;
+      % keyboard % Uncomment for debugging why file loading failed
     end
-    Nx = Nx + length(mdata.GPS_time);
   end
   dt = mdata.Time(2) - mdata.Time(1);
   Nt = 1 + (max_time-min_time)/dt;

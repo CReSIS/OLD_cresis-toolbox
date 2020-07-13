@@ -12,7 +12,7 @@ if source == obj.left_panel.layerCM_visible || source == obj.left_panel.layerCM_
   
   obj.eg.layers.visible_layers(val) = source == obj.left_panel.layerCM_visible;
   
-  obj.layerLB_str();
+  obj.layerLB_str(true);
   
   % Update plot based on selection
   obj.set_visibility();

@@ -68,6 +68,15 @@ end
 if ~isfield(param.layer_tracker.layer_params,'layerdata_source') || isempty(param.layer_tracker.layer_params.layerdata_source)
   param.layer_tracker.layer_params.layerdata_source = 'layer';
 end
+  
+%  .overlap: nonnegative scalar integer indicating the number of range
+%  lines to load before and after the current set of frames in order to
+%  reduce edge effects (if data are not available because this is the first
+%  or last frame or the data files for the overlapping data are missing,
+%  then the overlap is set to zero for this side).
+if ~isfield(param.layer_tracker,'overlap') || isempty(param.layer_tracker.overlap)
+  param.layer_tracker.overlap = 0;
+end
 
 %  .surf_layer: layer parameter structure for loading a layer with
 %  opsLoadLayers.m
@@ -223,6 +232,10 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.max_rng = [0 0];
   end
   
+  if ~isfield(track,'max_rng_filter') || isempty(track.max_rng_filter)
+    track.max_rng_filter = track.filter;
+  end
+  
   if ~isfield(track,'max_rng_units') || isempty(track.max_rng_units)
     track.max_rng_units = 'time';
   end
@@ -280,6 +293,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(track,'sidelobe_dB') || isempty(track.sidelobe_dB)
     track.sidelobe_dB = [];
     track.sidelobe_rows = [];
+  end
+  
+  if ~isfield(track,'smooth_sgolayfilt') || isempty(track.smooth_sgolayfilt)
+    track.smooth_sgolayfilt = [];
   end
   
   if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
