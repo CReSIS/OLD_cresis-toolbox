@@ -21,21 +21,21 @@ INDEX_EVEN_LOOP = true; % Plot index traversal order for an even loop
 PLOT_POINTS = false; % Plot data points as sphere's
 PLOT_INDICES = false; % Plot indices on which dt is performed
 PLOT_THRESHOLD = 7; % The minimum intensity to plot if PLOT_POINTS is true
-RELOAD_DATA = true; % When false, only load trws_data if not already loaded
+RELOAD_DATA = false; % When false, only load trws_data if not already loaded
 
 
 %% Load Data
 param.radar_name = 'rds';
 surfdata_source = 'surfData_paden';
 
-if 0
+if 1
     param.season_name = '2019_Antarctica_Ground';
     param.day_seg = '20200107_01';
     out_type = 'music3D_paden';
     frm = 1;
     echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
     FIND_SURF = true;
-elseif 1
+elseif 0
     correct_surface = load('C:/Users/mathe/Documents/MATLAB/TRWS_CT results/perm Antarctica/entire_matrix_surf.mat');
     correct_surface = correct_surface.correct_surface;
     FIND_SURF = false;
