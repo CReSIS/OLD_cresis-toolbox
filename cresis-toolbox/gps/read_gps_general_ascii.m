@@ -501,5 +501,3 @@ end
 if ~isfield(gps,'range')
   gps.range = zeros(1,num_rows);
 end
-
-return;

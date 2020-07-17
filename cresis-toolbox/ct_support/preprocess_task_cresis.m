@@ -839,6 +839,8 @@ for board_idx = 1:numel(param.config.board_map)
     %  1: EPRI good
     %  2: Time-generated EPRI good
     %  3: EPRI and time-generated EPRI good
+    % "EPRI good" means that depri == 1
+    % "Time-generated EPRI good" means 0.9 < dtime_epri < 1.1
     dtime_epri_threshold = 0.1; % Allow for 10% PRI error
     mask = (depri == 1) + (2*(abs(dtime_epri-1) < dtime_epri_threshold));
     % If the EPRI's both indicate the same number of skipped records,
