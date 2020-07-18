@@ -17,6 +17,18 @@ params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190130_01');
 params = ct_set_params(params,'cmd.frms',[1]);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190131_03');
 
+% -------------------------------------------------------------------------
+% 2019 Antarctica TObas
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_05');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_06');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200126_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200127_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01');
+
 % =========================================================================
 % Multipass
 % =========================================================================
@@ -210,7 +222,13 @@ for param_idx = 1:length(params)
   %% radar.wfs
   for wf = 1:length(params(param_idx).radar.wfs)
     params(param_idx).radar.wfs(wf).deconv.en = 0;
-    if strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
+    if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
+      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+    elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+      % params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      % params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+    elseif strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
     elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -7.8534e-07; % 854.656e-9 shift
