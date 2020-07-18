@@ -189,13 +189,12 @@ void TRWS::solve() {
       // TRWS in running, call drawnow.
       mexEvalString("drawnow;");
       
-      // TODO[reece]: Do not update boxes outside bounds. Boxes outside bounds can be read because they will always be zero if not updated.
-      //              In DT, do not use dst or src's outside bounds. even zero boxes could be used due to binary cost. Must be explicitly skipped
-      //              DT is the only place where the boxes are updated. message_sum and message_in can be updated for out of bounds indices because they will be skipped in dt
+      // TODO[reece]: Regular TRWS2 except below note:
       // TODO[reece]: Skip columns entirely outside bounds to save time (find min/max of bounds for given column and skip if outside? compare times or think through thoroughly since this adds an iteration)
 
       // Loop through cross-track dimension
       for (size_t h_idx = 0; h_idx < mNsv; h_idx++) {
+
         // Iterate from the center always 
         size_t h = mNsvs_array[h_idx];
         // Index to start of current range line in along-track/elevation angle in cross-track
@@ -203,6 +202,8 @@ void TRWS::solve() {
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
         
+        // TODO[reece]: check if all states are out of bounds (or same value if we do not allow passing bounds to TRWS2) and skip if so
+
         // Message to node on the left of current
         //   Sum all input messages and create the message for the node on the right
         //   Messages the current node sends that node is called "mMessage_Right" for that node

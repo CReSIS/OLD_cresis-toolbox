@@ -25,8 +25,8 @@ void dt(const float *src, float *dst, int s1, int s2,
 
     int d = (d1 + d2) >> 1, s = s1; // Find the midpoint of the destination
 
-    // Check if destination index is out of bounds
-    if (ct_location >= ct_bounds_right[d] &&  ct_location <= ct_bounds_left[d]) {
+    // Check if destination index is in bounds
+    if (ct_location >= ct_bounds_right[d] && ct_location <= ct_bounds_left[d]) {
       // TODO[reece]: should this be `int p = s1+1` since s starts as s1 (p also starting as s1 would cause a superflouos f(s1) > f(s1) check)
       for (int p = s1; p <= s2; p++) { // Search through all the sources and find the minimum
 
