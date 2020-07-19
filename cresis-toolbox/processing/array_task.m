@@ -38,14 +38,23 @@ frames = frames_load(param);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
 
-if strcmpi(param.array.surf_layer.source, 'surfData')
-  surf_dir = ct_filename_out(param,'','surfData_sar');
+if strcmpi(param.array.surf_layer.source, 'surf_sar')
+  surf_dir = ct_filename_out(param,'','surf_sar');
   fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
   fn = fullfile(surf_dir,fn_name);
   surf_layer = tomo.surfdata(fn,param);
 else
   surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
 end
+% 
+% if strcmpi(param.array.surf_layer.source, 'surfData')
+%   surf_dir = ct_filename_out(param,'','surfData_sar');
+%   fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
+%   fn = fullfile(surf_dir,fn_name);
+%   surf_layer = tomo.surfdata(fn,param);
+% else
+%   surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
+% end
 
 %% Process
 % =========================================================================
@@ -621,7 +630,7 @@ for img = 1:length(param.array.imgs)
     elseif length(surf_layer.gps_time) == 1;
       % Handle special case 2: gps time is length 1, repeat twtt over rlines
       param.array_proc.surface = surf_layer.twtt*ones(size(rlines));
-    elseif strcmpi(param.array.surf_layer.source,'surfData')
+    elseif strcmpi(param.array.surf_layer.source,'surf_data')
       % If surf_layer source is surfData (twtt from DEM), just grab values
       % for the chunk
       surf_index = surf_layer.get_index('top twtt');

@@ -891,27 +891,27 @@ classdef surfdata < handle
     function run_update_file()
       %% run_update_file
       
-      % params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'');
-      % params = ct_set_params(params,'cmd.generic',0);
-      % ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03|20140506_01|20140325_05|20140325_06|20140325_07');
-      % param_override.cmd.frms = [];
+      params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'');
+%       params = ct_set_params(params,'cmd.generic',0);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
+      param_override.cmd.frms = [4 5];
       
       % params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'));
       % params = ct_set_params(params,'cmd.generic',0);
       % params = ct_set_params(params,'cmd.generic',1,'day_seg','20091224_01');
       % param_override.cmd.frms = [];
-      % param_override.update.input = 'surfData';
-      % param_override.update.output = 'surfData_v2';
-      % param_override.update.echogram = 'music3D';
+      param_override.update.input = 'surfData_sar';
+      param_override.update.output = 'surf_sar';
+      param_override.update.echogram = 'standard_air';
       
-      params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
-      params = ct_set_params(params,'cmd.generic',0);
-      params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
-      param_override.cmd.frms = [];
-      param_override.update.input = 'surfData_paden';
-      param_override.update.output = 'surfData_paden2';
-      param_override.update.echogram = 'music3D_paden';
-      
+%       params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
+%       params = ct_set_params(params,'cmd.generic',0);
+%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
+%       param_override.cmd.frms = [];
+%       param_override.update.input = 'surfData_paden';
+%       param_override.update.output = 'surfData_paden2';
+%       param_override.update.echogram = 'music3D_paden';
+%       
       global gRadar;
       
       % Input checking
@@ -937,7 +937,7 @@ classdef surfdata < handle
           
           fn = fullfile(ct_filename_out(param,param.update.input,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
           fn_cur_ver = fullfile(ct_filename_out(param,param.update.output,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-          echogram_fn = fullfile(ct_filename_out(param,param.update.echogram,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+          echogram_fn = fullfile(ct_filename_out(param,param.update.echogram,''),sprintf('Data_img_01_%s_%03d.mat',param.day_seg,frm));
           
           fprintf('Update\n  %s\n  %s\n', fn, echogram_fn);
           tomo.surfdata.update_file(fn,fn_cur_ver,echogram_fn);
@@ -1031,7 +1031,6 @@ classdef surfdata < handle
         
       elseif fn_version == 2.0
         %% update_file: v2.0
-        
         if ~isempty(whos('-file',echogram_fn,'param_array'))
           tmp = load(echogram_fn,'param_array','param_records');
           tmp.param = tmp.param_array;
@@ -1064,6 +1063,9 @@ classdef surfdata < handle
         for surf_idx = 1:length(surf_new.surf)
           surf_new.surf(surf_idx).x = interp1(1:length(surf_old.theta),surf_old.theta,surf_new.surf(surf_idx).x);
           if all(surf_new.surf(surf_idx).y(:) == 0 | surf_new.surf(surf_idx).y(:) == 1)
+            surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
+          elseif all(~isfinite(surf_new.surf(surf_idx).y(:)) | surf_new.surf(surf_idx).y(:) < 1 )
+            % Assume y-values are twtt (this should never happen)
             surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
           else
             surf_new.surf(surf_idx).y = interp1(1:length(surf_old.time),surf_old.time,surf_new.surf(surf_idx).y);
@@ -1187,7 +1189,7 @@ classdef surfdata < handle
       % =================================================================
       
       % Load frames file
-      load(ct_filename_support(param, '', 'frames'));
+      frames = load(ct_filename_support(param, '', 'frames'));
       
       % If no frames specified, then do all frames
       if isempty(param.cmd.frms)
@@ -1242,7 +1244,7 @@ classdef surfdata < handle
       
       
       if ~isfield(param.add_surf_from_dem,'surf_out_path') || isempty(param.add_surf_from_dem.surf_out_path)
-        param.add_surf_from_dem.surf_out_path = '';
+        param.add_surf_from_dem.surf_out_path = 'surf_sar';
       end
       
       %% add_surf_from_dem: Setup
@@ -1293,7 +1295,7 @@ classdef surfdata < handle
         delta_at      = 10;
         
         % Create surfdata
-        sd = tomo.surfdata();
+        sd = tomo.surfdata(sar_coord_fn,'surf_sar');
         sd.param = param;
         sd.param.load.frm = frm;
         sd.gps_time = frm_gps_time(1:delta_at:end);
@@ -1580,7 +1582,7 @@ classdef surfdata < handle
         sd.insert_surf(surf);
         
         %% add_surf_from_dem: Save output
-        out_fn_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar');
+        out_fn_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path);
         if ~isdir(out_fn_dir)
           mkdir(out_fn_dir);
         end
@@ -1618,7 +1620,7 @@ classdef surfdata < handle
       
       params = ct_set_params(params, 'add_surf_from_dem.dem_guard', 30e3);
       %       params = ct_set_params(params, 'add_surf_from_dem.dem_per_slice_guard', 500e3);
-      
+%       params = ct_set_params(params, 'add_surf_from_dem.surf_out_path', 'surfData_test');
       % Automated Section
       % =========================================================================
       % Input checking

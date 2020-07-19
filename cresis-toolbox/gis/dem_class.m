@@ -203,7 +203,7 @@ classdef dem_class < handle
         % Northern hemisphere, ArcticDEM
         obj.di(lat>49.0024) = 1;
         % USGS NED Dem
-        obj.di(lat<=49.0024 | lat >= 25.4483) = 3;
+        obj.di(lat<=49.0024 & lat >= 25.4483) = 3;
         % Southern hemisphere, REMA
         obj.di(lat<0) = 2;
         
