@@ -575,14 +575,7 @@ for param_idx = 1:length(params)
             hold on;
             plot(data(:,idx));
           end
-        end
-        
-        % Debug, remove later!!!
-        
-        if ismember(block,[34 35 36 79 80 81 171 172]) || block > 296
-            detrend_debug = 1;
-            keyboard
-        end          
+        end        
         
         
         % For snow data; bottom should be set to nan so echo_detrend uses data
