@@ -29,7 +29,6 @@ function status = block_data(params,block_data_param)
 % Authors: Ibikunle ( Adapted from John Paden's koenig_mat_loader )
 
 
-
 physical_constants;
 
 block_data = block_data_param.block_data;
@@ -42,10 +41,14 @@ else
   block_size = block_data.block_size;
 end
 
-if ~isfield(block_data,'block_overlap') || isempty(block_data.block_overlap) && block_data.block_overlap > 1
-  error('Invalid/ empty block overlap')
+if ~isfield(block_data,'block_overlap') || isempty(block_data.block_overlap)
+    error('Invalid/ empty block overlap')
 else
-  block_overlap = block_data.block_overlap;
+    if  block_data.block_overlap > 1
+        error('Block overlap %.2f is greater than 1,this should be less than one',block_data.block_overlap)
+    else        
+        block_overlap = block_data.block_overlap;
+    end
 end
 
 if ~isfield(block_data,'top_gap') || isempty(block_data.top_gap)
@@ -55,7 +58,7 @@ else
 end
 
 if ~isfield(block_data,'bottom_pad') || isempty(block_data.bottom_pad)
-  error('Please specify the value of bottom gap used')
+  error('Please specify the value of bottom gap to be used')
 else
   bottom_pad = block_data.bottom_pad;
 end
@@ -67,10 +70,8 @@ surface_flat_en = block_data.surface_flat_en;
 detrend_en = block_data.detrend_en;
 filter_echo_en = block_data.filter_echo_en;
 
-
 fn = block_data.out_fn;
 
-layers_name = block_data.layers_name;
 layers_source = block_data.layers_source;
 layerdata_source = block_data.layerdata_source;
 regexp_string = block_data.regexp;
@@ -79,9 +80,6 @@ regexp_string = block_data.regexp;
 % Debug Yay or nay?? :)
 debug_plot = block_data.debug_plot;
 detrend_debug = block_data.debug_plot;
-
-
-
 
 
 
@@ -95,17 +93,27 @@ for param_idx = 1:length(params)
   echo_fns = echo_fns_all( start:stop);
   
   %% Load layer for the entire day_seg
-  % Check radar type and load layers
+   
+  % Get names of layers for the layerdata_source
+  tmp_layers = layerdata(param,layerdata_source);
+  lay_names = tmp_layers.get_layer_names();  
   
+  
+  % Check radar type and load layers
   if regexp(param.radar_name,'snow')
-    idx = 1;
+    idx = 1;   
     layer_params(idx).name = 'surface';
     layer_params(idx).source = layers_source;
     layer_params(idx).layerdata_source = layerdata_source;
-    %     idx = idx + 1;
-    %     layer_params(idx).name = 'bottom';
-    %     layer_params(idx).source = layers_source;
-    %     layer_params(idx).layerdata_source = layerdata_source;
+    
+    % Check if "bottom" exists
+    if ~isempty(lay_names) && ismember('bottom',lay_names)
+        idx = idx + 1;
+        layer_params(idx).name = 'bottom';
+        layer_params(idx).source = layers_source;
+        layer_params(idx).layerdata_source = layerdata_source;
+    end
+    
     idx = idx + 1;
     layer_params(idx).regexp = regexp_string;
     layer_params(idx).source = layers_source;
@@ -117,26 +125,29 @@ for param_idx = 1:length(params)
     %     layers_struct = layers_cell.layers_cell;
     
     
-  elseif regexp(param.radar_name,'mcords')
-    
+  elseif regexp(param.radar_name,'mcords')    
     idx = 1;
     layer_params(idx).name = 'surface';
     layer_params(idx).source = layers_source;
     layer_params(idx).layerdata_source = layerdata_source;
-    idx = idx + 1;
-    layer_params(idx).name = 'bottom';
-    layer_params(idx).source = layers_source;
-    layer_params(idx).layerdata_source = layerdata_source;
+      
+    % Check if "bottom" exists
+    if ~isempty(lay_names) && ismember('bottom',lay_names)
+        idx = idx + 1;
+        layer_params(idx).name = 'bottom';
+        layer_params(idx).source = layers_source;
+        layer_params(idx).layerdata_source = layerdata_source;
+    end 
+    
     idx = idx + 1;
     layer_params(idx).regexp = regexp_string;
     layer_params(idx).source = layers_source;
     layer_params(idx).layerdata_source = 'layer_MacGregor'; % This might need to be updated
     
-    layers_struct = opsLoadLayers(param,layer_params);
-    
+    layers_struct = opsLoadLayers(param,layer_params);    
     
   else
-    warning('Radar type not recognized');
+    error('Radar type not recognized');
     break;
     
   end
@@ -153,11 +164,11 @@ for param_idx = 1:length(params)
     loaded_layers(iter_idx,:) = layers_struct(iter_idx).twtt ;
   end
   
-  % Put surface and bottom in the right positions
-  %   loaded_layers(1,:) = surf.twtt;
-  %   loaded_layers(end+1,:) = loaded_layers(2,:) ; % move bottom to the last entry
-  %   loaded_layers(2:end-1,:) = loaded_layers(3:end,:) ;
-  %   loaded_layers(end,:) =[]; % remove duplicate bottom
+% %   Put surface and bottom in the right positions
+%     loaded_layers(1,:) = surf.twtt;
+%     loaded_layers(end+1,:) = loaded_layers(2,:) ; % move bottom to the last entry
+%     loaded_layers(2:end-1,:) = loaded_layers(3:end,:) ;
+%     loaded_layers(end,:) =[]; % remove duplicate bottom
   
   % Filter Surface
   filter_len = block_data.surface_filter_len;
@@ -194,6 +205,7 @@ for param_idx = 1:length(params)
     layers = loaded_layers;      
   
     % Layers in a cell ( This is needed for opsInterpLayersToMasterGPSTime)
+    % Bottom is in the 2nd position.
     layers_cell = [];
     for layer_idx = 1: length(layers_struct)
       layers_cell{end+1} = layers_struct(layer_idx);
@@ -214,8 +226,7 @@ for param_idx = 1:length(params)
   % Load frames and records data
   
   load(ct_filename_support(param,'','frames')); % load frames
-  records = load(ct_filename_support(param,'','records')); % load records
-  
+  records = load(ct_filename_support(param,'','records')); % load records  
   
   % Initializations for left-over data
   left_over = [];
@@ -226,7 +237,7 @@ for param_idx = 1:length(params)
   rangeline_offset = 0;
   
   % Iterate over each frame in the day segment
-  for fn_idx = 1 : length(echo_fns)
+  for fn_idx = 2 : length(echo_fns)
        
     echo_fn = echo_fns{fn_idx};
     [~,fn_name] = fileparts(echo_fn);
@@ -243,7 +254,7 @@ for param_idx = 1:length(params)
       title(sprintf('Loaded data %s',fn_name),'Interpreter','none')
     end
     
-    if block_data.uncompress_en
+    if isfield(block_data,'uncompress_en') && block_data.uncompress_en
       tmp = uncompress_echogram(tmp1);
     else
       tmp = tmp1;
@@ -253,7 +264,7 @@ for param_idx = 1:length(params)
     
     
     % Pre detrend along track incoherent averaging
-    if block_data.pre_detrend_filter_en
+    if isfield(block_data,'pre_detrend_filter_en') && block_data.pre_detrend_filter_en
       tmp.Data = echo_filt(tmp.Data,filter_len);
     end
     
@@ -433,9 +444,9 @@ for param_idx = 1:length(params)
     
     %% Create layer raster from layer_rangebin
     Layer = zeros(size(flattened_Data));
-    for layer_idx = 1:size(layer_rangebin,1)
-      for layer_col = 1:size(layer_rangebin,2)
-        temp = round(layer_rangebin(layer_idx,layer_col)); % This idx represents the column of the layer
+    for layer_idx = 1:size(mdata.layer_rangebin,1)
+      for layer_col = 1:size(mdata.layer_rangebin,2)
+        temp = round(mdata.layer_rangebin(layer_idx,layer_col)); % This idx represents the column of the layer
         %         temp = temp + top_gap; % Add top_gap offset
         if ~isnan(temp)
           if Layer(temp,layer_col) == 0
@@ -447,10 +458,8 @@ for param_idx = 1:length(params)
       end
     end
     
-    % ================  End: Create layer  =========================%
-    
-    
-    
+    % ================  End: Create layer  =========================%   
+       
     %%     Merge data and meta-data when there's left-over from previous frame
     
     if ~isempty(left_over) && fn_idx ~= length(echo_fns)
@@ -568,13 +577,20 @@ for param_idx = 1:length(params)
           end
         end
         
+        % Debug, remove later!!!
+        
+        if ismember(block,[34 35 36 79 80 81 171 172]) || block > 296
+            detrend_debug = 1;
+            keyboard
+        end          
+        
         
         % For snow data; bottom should be set to nan so echo_detrend uses data
         % from surface to Nt
         if regexp(param.radar_name,'snow')
           dt_bottom = nan(1,size(data,2));
         else
-          dt_bottom = interp1(1:length(mdata.Time),mdata.Time,mdata.layer_rangebin(end,rline:rline_end));
+          dt_bottom = interp1(1:length(mdata.Time),mdata.Time,mdata.layer_rangebin(2,rline:rline_end)); % Bottom is in the 2nd position.
         end
         
         if detrend_en
@@ -607,12 +623,9 @@ for param_idx = 1:length(params)
             end
           end
           
-        else
-          
-          dt_Data = 10*log10(data); % Convert to log; no detrending
-          
-        end
-        
+        else          
+          dt_Data = 10*log10(data); % Convert to log; no detrending          
+        end        
         
         % Post detrend along track filtering: reduce 'em noise...
         if block_data.post_detrend_filter_en
@@ -639,15 +652,14 @@ for param_idx = 1:length(params)
             plot(filt_Data(:,idx))
           end
           
-        end
-        
+        end       
         
         scale_min = block_data.norm_detrend_params.scale_min;
         scale_max = block_data.norm_detrend_params.scale_max;
         
         % "window" specifies that rangebins that'd be used to estimate the noise floor
         
-        if any(~isnan(dt_bottom))
+        if all(~isnan(dt_bottom))
           % Estimate noise floor
           %           nf = nanmean(echo_noise(struct('Time',mdata.Time,'Data',mfilt_Data),struct('window',[dt_bottom+5e-6; inf(size(dt_bottom))])));
           % Adaptively set scale_min and scale_max ??
@@ -676,8 +688,11 @@ for param_idx = 1:length(params)
         end
         
         if block_data.late_trunc
-          norm_Data = norm_Data ( top_gap : longest_col+bottom_pad,:); % Truncate after the longest data
+          norm_Data = norm_Data ( top_gap : longest_col+bottom_pad,:); % Remove feed-through and truncate after the longest data
+          layer = layer (top_gap : longest_col+bottom_pad,:);
+          raster = raster (top_gap : longest_col+bottom_pad,:);
         end
+        
         
         if detrend_debug % Again :(
           figure(403);clf;
@@ -745,6 +760,13 @@ for param_idx = 1:length(params)
           
           keyboard
         end
+        
+        %% Check data, layer and raster dimension
+        
+        if ~all( size(data2) == size(layer) ) || ~all( size(data2) == size(raster) )           
+            error('Output dimensions does not match')
+        end
+        
         
         
         %% Save meta-data
