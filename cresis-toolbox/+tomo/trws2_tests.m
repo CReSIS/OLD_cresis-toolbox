@@ -1,16 +1,17 @@
-Nt  = 5;
-Nsv = 6;
-Nx  = 7;
+Nt  = 10;
+Nsv = 20;
+Nx  = 30;
 MAX_LOOPS = 10;
 
+% 'None' displays no indices
 % 'ALL' displays index numbers for every cell
 % 'FT' displays traversal order     for a fast-time-based search
 % 'CT' displays traversal order for a cross-track-based search
-INDEX_LABEL = 'CT';
+INDEX_LABEL = 'None';
 % 'NONE' does not plot a surface
 % 'FT' plots a surface normal to the fast-time axis
 % 'CT' plots a surface normal to the cross-track axis
-SURFACE = INDEX_LABEL;
+SURFACE = 'CT';
 % Display traversal order for even loops of TRWS
 INDEX_EVEN_LOOP = true;
 
@@ -42,8 +43,8 @@ elseif strcmp(SURFACE, 'CT')
 %     trws_data(3, 4, 3) = 40;
     trws_data(1:4, 2, 5) = 20;
     
-    bounds = zeros(2, Nx);
-    bounds(2, :) = Nt - 1;
+    bounds = ones(2, Nx);
+    bounds(2, :) = Nt;
     
     min_bounds = ones(Nsv, Nx);
     max_bounds = ones(Nsv, Nx)*Nt;
@@ -70,8 +71,6 @@ if ~strcmp(SURFACE, 'NONE')
     else
         correct_surface = tomo.trws2_CT_perm(trws_data, at_slope, at_weight, MAX_LOOPS, bounds - 1, min_bounds - 1, max_bounds - 1);
     end
-    correct_surface = single(correct_surface);
-    correct_surface(correct_surface == 0) = nan; 
 end
 
 figure(FIGURE_NUM);
@@ -111,8 +110,8 @@ else
         surf(X, Z, correct_surface, 'FaceAlpha', .2);
         blue   = [86 , 135, 214]./255;
         orange = [232, 145, 90 ]./255;
-        surf(X, Z, repmat(bounds(1, :), Nsv-1, 1), 'FaceColor', blue, 'LineStyle', 'none', 'FaceAlpha', 0.1);
-        surf(X, Z, repmat(bounds(2, :), Nsv-1, 1), 'FaceColor', orange, 'LineStyle', 'none', 'FaceAlpha', 0.1);
+        surf(X, Z, repmat(bounds(1, :), Nt, 1), 'FaceColor', blue, 'LineStyle', 'none', 'FaceAlpha', 0.1);
+        surf(X, Z, repmat(bounds(2, :), Nt, 1), 'FaceColor', orange, 'LineStyle', 'none', 'FaceAlpha', 0.1);
     end
     xlim([1 Nx]);
 %     xticks(1:Nx);
@@ -120,12 +119,14 @@ else
     set(gca, 'XColor', 'b');
     set(gca, 'xdir', 'reverse');
 
-    zlim([0 Nsv]);
+    zlims = [0 Nsv];
+    zlim(zlims);
 %     zticks(0:Nsv);
     zlabel('Z : Cross-Track (Nsv. DIM 1)');
     set(gca, 'ZColor', 'g');
     
-    ylim([1 Nt]);
+    ylims = [1 Nt];
+    ylim(ylims);
 %     yticks(1:Nt);
     ylabel('Y : Fast-Time (Nt, DIM 0)');
     set(gca, 'YColor', 'r');
@@ -136,10 +137,22 @@ else
     camorbit(90, 0, 'data', [1 0 0]);
     cameratoolbar('SetCoordSys', 'y');
     cameratoolbar('SetMode', 'orbit');
+    
+    ylim(zlims);
+    zlim(ylims);
+    minh = surf(min_bounds, 'FaceColor', '#304163', 'LineStyle', '-', 'FaceAlpha', 0.3);
+    rotate(minh, [1 0 0], 90, [0 Nt 0]);
+    set(minh, 'YData', Nt - get(minh, 'YData'));
+    set(minh, 'ZData', get(minh, 'ZData') - min(get(minh, 'ZData')) + 1);
+    maxh = surf(max_bounds, 'FaceColor', '#87763d', 'LineStyle', '-', 'FaceAlpha', 0.3);
+    rotate(maxh, [1 0 0], 90, [0 Nt 0]);
+    set(maxh, 'YData', Nt - get(maxh, 'YData'));
+    set(maxh, 'ZData', get(maxh, 'ZData') - min(get(maxh, 'ZData')) + 1);
+    ylim(ylims);
+    zlim(zlims);
 end
 camva(10);
 colormap(bone);
-
 
 Nsvs_center = floor(Nsv/2);
 Nsvs_array = [Nsvs_center:-1:1 (Nsvs_center+1):Nsv];
@@ -162,29 +175,13 @@ for w_idx = 1:Nx
                 color = 'r';
             end
             if intensity > 0
-                if ~strcmp(INDEX_LABEL, 'CT')
+                if ~strcmp(SURFACE, 'CT')
                     plot3(w_idx, h_idx, d_idx, sprintf('%s.', color), 'MarkerSize', intensity);
                 else
                     plot3(w_idx, d_idx, h_idx, sprintf('%s.', color), 'MarkerSize', intensity);
                 end
             end
-            
-            max_bound = max_bounds(d_idx, w_idx);
-            max_marker = '^';
-            min_marker = 'v';
-            if strcmp(INDEX_LABEL, 'FT')
-                max_marker = '<';
-                min_marker = '>';
-            end
-            if max_bound == h_idx
-                plot3(w_idx, h_idx, d_idx, sprintf('g%s', max_marker), 'MarkerSize', 10);
-            end
-            
-            min_bound = min_bounds(d_idx, w_idx);
-            if min_bound == h_idx
-                plot3(w_idx, h_idx, d_idx, sprintf('y%s', min_marker), 'MarkerSize', 10);
-            end
-            
+                   
             msg_idx = NaN;
            
             if strcmp(INDEX_LABEL, 'ALL')
@@ -194,7 +191,7 @@ for w_idx = 1:Nx
                 msg_idx = h + w*Nsv + 1;
             elseif strcmp(INDEX_LABEL, 'CT') && h_idx == 1
 %                 idx = d+w*Nsv*Nt;
-                msg_idx = d+w*Nt + 1;
+                msg_idx = d+w*Nt;
             end
             
             if ~isnan(msg_idx)
