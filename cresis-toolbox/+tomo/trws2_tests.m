@@ -4,7 +4,7 @@ Nx  = 7;
 MAX_LOOPS = 10;
 
 % 'ALL' displays index numbers for every cell
-% 'FT' displays traversal order for a fast-time-based search
+% 'FT' displays traversal order     for a fast-time-based search
 % 'CT' displays traversal order for a cross-track-based search
 INDEX_LABEL = 'CT';
 % 'NONE' does not plot a surface
@@ -30,23 +30,25 @@ if strcmp(SURFACE, 'FT')
     trws_data(2, 3, 4) = 10;
     trws_data(1, 4, 4) = 30;
     
-    bounds = zeros(2, Nx);
-    bounds(2, :) = Nt - 1;
+    bounds = ones(2, Nx);
+    bounds(2, :) = Nt;
 %     bounds(1, 3:5) = 2;
 
-    min_bounds = zeros(Nt, Nx);
-    max_bounds = ones(Nt, Nx)*(Nsv-1);
+    min_bounds = ones(Nt, Nx);
+    max_bounds = ones(Nt, Nx)*Nsv;
 elseif strcmp(SURFACE, 'CT')
-    trws_data(:, 2, :) = 10;
-    trws_data(3:4, 3, 2:3) = 20;
-    trws_data(3, 4, 3) = 40;
+%     trws_data(:, 2, :) = 10;
+%     trws_data(3:4, 3, 2:3) = 20;
+%     trws_data(3, 4, 3) = 40;
+    trws_data(1:4, 2, 5) = 20;
     
     bounds = zeros(2, Nx);
     bounds(2, :) = Nt - 1;
     
     min_bounds = ones(Nsv, Nx);
-    max_bounds = ones(Nsv, Nx)*(Nt-1);
-    max_bounds(3, 3) = 2;
+    max_bounds = ones(Nsv, Nx)*Nt;
+    max_bounds(2, :) = Nt-1;
+%     max_bounds(2, 5) = 3;
     
 elseif ~strcmp(SURFACE, 'NONE')
     error('Invalid surface selection.');
@@ -64,9 +66,9 @@ if ~strcmp(SURFACE, 'NONE')
     if strcmp(SURFACE, 'FT')
         correct_surface = tomo.trws2_surf_bounds(single(trws_data),single(at_slope), ...
           single(at_weight),single(ct_slope),single(ct_weight), ...
-          uint32(MAX_LOOPS), uint32(bounds - 1), uint32(min_bounds), uint32(max_bounds));
+          uint32(MAX_LOOPS), uint32(bounds - 1), uint32(min_bounds - 1), uint32(max_bounds - 1));
     else
-        correct_surface = tomo.trws2_CT_perm(trws_data, at_slope, at_weight, MAX_LOOPS, bounds - 1, min_bounds, max_bounds);
+        correct_surface = tomo.trws2_CT_perm(trws_data, at_slope, at_weight, MAX_LOOPS, bounds - 1, min_bounds - 1, max_bounds - 1);
     end
     correct_surface = single(correct_surface);
     correct_surface(correct_surface == 0) = nan; 
@@ -167,14 +169,20 @@ for w_idx = 1:Nx
                 end
             end
             
-            max_bound = max_bounds(d_idx, w_idx) + 1;
+            max_bound = max_bounds(d_idx, w_idx);
+            max_marker = '^';
+            min_marker = 'v';
+            if strcmp(INDEX_LABEL, 'FT')
+                max_marker = '<';
+                min_marker = '>';
+            end
             if max_bound == h_idx
-                plot3(w_idx, h_idx, d_idx, 'g^', 'MarkerSize', 10);
+                plot3(w_idx, h_idx, d_idx, sprintf('g%s', max_marker), 'MarkerSize', 10);
             end
             
-            min_bound = min_bounds(d_idx, w_idx) + 1;
+            min_bound = min_bounds(d_idx, w_idx);
             if min_bound == h_idx
-                plot3(w_idx, h_idx, d_idx, 'yv', 'MarkerSize', 10);
+                plot3(w_idx, h_idx, d_idx, sprintf('y%s', min_marker), 'MarkerSize', 10);
             end
             
             msg_idx = NaN;
