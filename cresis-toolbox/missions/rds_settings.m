@@ -17,6 +17,18 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,'cmd.frms',[1]);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190131_03');
 
+% -------------------------------------------------------------------------
+% 2019 Antarctica TObas
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_05');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_06');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200126_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200127_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01');
+
 % =========================================================================
 % Multipass
 % =========================================================================
@@ -72,6 +84,9 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,'cmd.frms',[1:3],'day_seg','20180418_05'); % 1 2
 % -------------------------------------------------------------------------
 % CAA
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_05');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_06');
 params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_07');
@@ -212,7 +227,13 @@ for param_idx = 1:length(params)
   %% radar.wfs
   for wf = 1:length(params(param_idx).radar.wfs)
     params(param_idx).radar.wfs(wf).deconv.en = 0;
-    if strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
+    if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
+      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+    elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+      % params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      % params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+    elseif strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
     elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -7.8534e-07; % 854.656e-9 shift
@@ -342,6 +363,17 @@ for param_idx = 1:length(params)
             else
               params(param_idx).collate_coh_noise.threshold_eval{img}{wf_adc} = 'threshold = -inf(size(threshold));';
             end
+            
+          elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+            params(param_idx).collate_coh_noise.method{img} = 'firdec';
+            params(param_idx).collate_coh_noise.firdec_fs{img} = 1/7.5;
+            params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t) 1/30;
+            
+            for wf = 1:length(params(param_idx).radar.wfs)
+              %params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
+              params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+1.2e-6)),5));';
+            end
+            
           else
             % Coherent noise estimate by finding DC of the entire segment
             % (as opposed to using a firdec low pass filter):
@@ -364,7 +396,7 @@ for param_idx = 1:length(params)
             % sometimes shift around with time. Threshold+6 dB is ideal, but is
             % occasionally too high due to signal interference so the DC average
             % is also used.
-            params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(noise_dft(:,1)).^2)+15)-1e6*(time>(Tpd+1.2e-6)),5));';
+            params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+1.2e-6)),5));';
           end
         end
       end

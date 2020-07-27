@@ -129,11 +129,11 @@ match_idx = strmatch('gps_19930709.mat',out_fns,'exact');
 %   save(gps_fn,'-append','-struct','gps','lat');
 %   
 %   gps.lon(gps.lon>median(gps.lon)+latlon_spike_jump |gps.lon<median(gps.lon)-latlon_spike_jump )=NaN;%deal with "spikes"
-%   gps.lon=interp_finite(gps.lon);
+%   gps.lon=interp_finite(gps.lon,[],@gps_interp1);
 %   gps.lon=medfilt1(gps.lon);%median filter
 %   while any(abs(diff(gps.lon))>latlon_min_jump)%deal with too large jumps
 %     gps.lon([logical(0),abs(diff(gps.lon))>latlon_min_jump])=NaN;
-%     gps.lon=interp_finite(gps.lon);
+%     gps.lon=interp_finite(gps.lon,[],@gps_interp1);
 %   end
 %   
 %   jump_idxs=find(abs(diff(gps.elev))>=elev_min_jump);
@@ -155,7 +155,7 @@ if ~isempty(match_idx)%---paden
   gps.elev = interp_finite(gps.elev);
   save(gps_fn,'-append','-struct','gps','elev');
   gps.lon(gps.lon < -150) = NaN;
-  gps.lon = interp_finite(gps.lon);
+  gps.lon = interp_finite(gps.lon,[],@gps_interp1);
   save(gps_fn,'-append','-struct','gps','lon');
 end
 

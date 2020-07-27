@@ -205,10 +205,10 @@ for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
   gps = load(out_fn,'gps_source');
-  if regexpi(gps.gps_source,'arena')
+  if ~isempty(regexpi(gps.gps_source,'arena'))
     % Extrapolation is necessary because GPS data starts after/stops before
     % the beginning/end of the radar data.
-    warning('Extrapolating arena GPS data: %s', out_fn);
+    warning('Extrapolating and filtering elevation for arena GPS data: %s', out_fn);
     gps = load(out_fn);
     
     if length(gps.lat) >= 2
@@ -221,10 +221,12 @@ for idx = 1:length(file_type)
       gps.heading = interp1(gps.gps_time,gps.heading,new_gps_time,'linear','extrap');
       gps.gps_time = new_gps_time;
       
+      gps.elev = fir_dec(gps.elev,ones(1,101)/101,1);
+      
       save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
     end
   end
-  
+    
   if regexpi(out_fn,'20180929')
     % Fake GPS for testing
     warning('Faking GPS data: %s', out_fn);

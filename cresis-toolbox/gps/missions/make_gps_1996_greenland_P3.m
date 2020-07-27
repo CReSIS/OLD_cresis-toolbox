@@ -80,11 +80,11 @@ if ~isempty(match_idx)
   save(gps_fn,'-append','-struct','gps','lat');
   
   gps.lon(gps.lon>median(gps.lon)+latlon_spike_jump |gps.lon<median(gps.lon)-latlon_spike_jump )=NaN;%deal with "spikes"
-  gps.lon=interp_finite(gps.lon);
+  gps.lon=interp_finite(gps.lon,[],@gps1_interp1);
   gps.lon=medfilt1(gps.lon);%median filter
   while any(abs(diff(gps.lon))>latlon_min_jump)%deal with too large jumps
     gps.lon(abs(diff(gps.lon))>latlon_min_jump)=NaN;
-    gps.lon=interp_finite(gps.lon);
+    gps.lon=interp_finite(gps.lon,[],@gps_interp1);
   end
   save(gps_fn,'-append','-struct','gps','lon'); 
 end
@@ -107,11 +107,11 @@ if ~isempty(match_idx)
   save(gps_fn,'-append','-struct','gps','lat');
   
   gps.lon(gps.lon>median(gps.lon)+latlon_spike_jump |gps.lon<median(gps.lon)-latlon_spike_jump )=NaN;%deal with "spikes"
-  gps.lon=interp_finite(gps.lon);
+  gps.lon=interp_finite(gps.lon,[],@gps_interp1);
   gps.lon=medfilt1(gps.lon);%median filter
   while any(abs(diff(gps.lon))>latlon_min_jump)%deal with too large jumps
     gps.lon(abs(diff(gps.lon))>latlon_min_jump)=NaN;
-    gps.lon=interp_finite(gps.lon);
+    gps.lon=interp_finite(gps.lon,[],@gps_interp1);
   end
   save(gps_fn,'-append','-struct','gps','lon'); 
   
@@ -139,11 +139,11 @@ if ~isempty(match_idx)
   save(gps_fn,'-append','-struct','gps','lat');
   
   gps.lon(gps.lon>median(gps.lon)+latlon_spike_jump |gps.lon<median(gps.lon)-latlon_spike_jump )=NaN;%deal with "spikes"
-  gps.lon=interp_finite(gps.lon);
+  gps.lon=interp_finite(gps.lon,[],@gps_interp1);
   gps.lon=medfilt1(gps.lon);%median filter
   while any(abs(diff(gps.lon))>latlon_min_jump)%deal with too large jumps
     gps.lon(abs(diff(gps.lon))>latlon_min_jump)=NaN;
-    gps.lon=interp_finite(gps.lon);
+    gps.lon=interp_finite(gps.lon,[],@gps_interp1);
   end
   save(gps_fn,'-append','-struct','gps','lon'); 
   
