@@ -900,7 +900,7 @@ for board_idx = 1:numel(param.config.board_map)
     set(h_fig(1),'Name',sprintf('%d: UTC Time',h_fig(1).Number));
     plot(h_axes,utc_time_sod);
     hold(h_axes,'on');
-    plot(h_axes,utc_time_sod_new,'r');
+    plot(h_axes,find(good_out_mask), utc_time_sod_new(good_out_mask),'r.');
     hold(h_axes,'off');
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'UTC Time SOD (sec)');
@@ -911,7 +911,7 @@ for board_idx = 1:numel(param.config.board_map)
     clf(h_fig(2)); h_axes = axes('parent',h_fig(2));
     set(h_fig(2),'NumberTitle','off');
     set(h_fig(2),'Name',sprintf('%d: Time Correction',h_fig(1).Number));
-    plot(h_axes,utc_time_sod - utc_time_sod_new);
+    plot(h_axes,find(good_out_mask), utc_time_sod(good_out_mask) - utc_time_sod_new(good_out_mask),'.');
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'Time correction (sec)');
     ylim(h_axes,[-UTC_MAX_ERROR UTC_MAX_ERROR]);
@@ -954,6 +954,8 @@ for board_idx = 1:numel(param.config.board_map)
     saveas(h_fig(3),fn_fig);
     
     utc_time_sod = utc_time_sod_new;
+    utc_time_sod(~good_out_mask) = NaN;
+    utc_time_sod = interp_finite(utc_time_sod,NaN);
     
     % Check for day wraps in the UTC time seconds of day
     day_wrap_idxs = find(diff(utc_time_sod) < -50000);
@@ -1141,8 +1143,8 @@ if any(param.config.file.version == [403 404 407 408])
     % Associate default parameters with each settings
     default = default_radar_params_settings_match(param.config.defaults,settings(set_idx));
     oparams{end+1} = default;
-    oparams{end} = rmfield(oparams{end},'config_regexp');
-    oparams{end} = rmfield(oparams{end},'name');
+    try; oparams{end} = rmfield(oparams{end},'config_regexp'); end;
+    try; oparams{end} = rmfield(oparams{end},'name'); end;
     
     % Parameter spreadsheet
     % =======================================================================
@@ -1188,7 +1190,11 @@ if any(param.config.file.version == [403 404 407 408])
       % ADC Gains
       atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
         + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
-      oparams{end}.radar.wfs(wf).adc_gains_dB = param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths));
+      if isfield(oparams{end}.radar.wfs(wf),'rx_paths')
+        oparams{end}.radar.wfs(wf).adc_gains_dB = param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths));
+      else
+        oparams{end}.radar.wfs(wf).adc_gains_dB = param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.rx_paths));
+      end
       
       % DDC mode and frequency
       if isfield(settings(set_idx), 'DDC_Ctrl')

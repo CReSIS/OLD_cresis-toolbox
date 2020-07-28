@@ -358,8 +358,15 @@ else
     % Time stamps are assumed to be the same from each board so each board
     % just writes all of its time stamps to the output records fields.
     records.raw.epri(out_idxs) = board_hdrs{board_idx}.epri(in_idxs);
-    records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs) ...
-      + max(param.records.gps.time_offset) - param.records.gps.time_offset(board_idx);
+    if board_idx > 1 && length(param.records.gps.time_offset) == 1
+      % Old parameter spreadsheet format only contained a single entry for
+      % all boards in param.records.gps.time_offset
+      records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs) ...
+        + max(param.records.gps.time_offset) - param.records.gps.time_offset;
+    else
+      records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs) ...
+        + max(param.records.gps.time_offset) - param.records.gps.time_offset(board_idx);
+    end
     records.raw.fraction(out_idxs) = board_hdrs{board_idx}.fraction(in_idxs);
     if param.records.file.version == 8
       records.settings.nyquist_zone(out_idxs) = board_hdrs{board_idx}.nyquist_zone(in_idxs);
