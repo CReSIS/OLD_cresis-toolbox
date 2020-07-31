@@ -1,4 +1,14 @@
 function file_type = file_type_get(source)
+% file_type = file_type_get(source)
+%
+% source: if a string, then it specifies a file path and the
+% "file_type" field will be loaded from that file.
+% if a struct, then it returns the "file_type" field from the struct
+% For old file formats (including structures loaded from old files), it
+% will try to determine the file type based on the fields that exist in the
+% file or in the structure.
+%
+% file_type: string containing the file type
 
 if ischar(source)
   % source is a filename
