@@ -526,14 +526,14 @@ for img = 1:length(param.array.imgs)
       param.array_proc.surface = surf_layer.twtt*ones(size(param.array_proc.lines));
     else
       
-      if strcmpi(param.array.surf_layer.source, 'surfData')
+      if strcmpi(param.array.surf_layer.source, 'surf_sar')
         % If surf_layer source is surfData (twtt from DEM), just grab values
         % for the chunk
-        surf_index = surf_layer.get_index('top twtt');
-        icemask_index = surf_layer.get_index('ice_mask');
-        theta_frm     = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+        surf_index = surf_layer.get_index({'top twtt'});
+        icemask_index = surf_layer.get_index({'ice_mask'});
+        theta_frm     = repmat(surf_layer.x(:,1),1,numel(surf_layer.gps_time));
         gps_frm       = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
-        theta_chunk   = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+        theta_chunk   = repmat(surf_layer.x(:,1),1,numel(fcs{1}{1}.gps_time));
         gps_chunk     = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
         param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
         param.array_proc.ice_mask = ...
@@ -633,8 +633,8 @@ for img = 1:length(param.array.imgs)
     elseif strcmpi(param.array.surf_layer.source,'surf_sar')
       % If surf_layer source is surfData (twtt from DEM), just grab values
       % for the chunk
-      surf_index = surf_layer.get_index('top twtt');
-      icemask_index = surf_layer.get_index('ice_mask');
+      surf_index = surf_layer.get_index({'top twtt'});
+      icemask_index = surf_layer.get_index({'ice mask'});     
       param.array_proc.surface_theta = surf_layer.surf(surf_index).x(:,1);
       theta_frm     = repmat(param.array_proc.surface_theta,1,numel(surf_layer.gps_time));
       gps_frm       = repmat(surf_layer.gps_time,length(param.array_proc.surface_theta),1);
