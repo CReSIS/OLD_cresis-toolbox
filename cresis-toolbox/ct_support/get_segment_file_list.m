@@ -144,9 +144,21 @@ if nargout > 2
     % A stop index of -N says to include all but the last N files
     stop_idx = length(fns) + param.records.file.stop_idx;
   else
-    stop_idx = param.records.file.stop_idx(board_idx);
+    if board_idx > 1 && length(param.records.file.stop_idx) == 1
+      % Old parameter spreadsheet format only contained a single entry for
+      % all boards in param.records.file.stop_idx
+      stop_idx = param.records.file.stop_idx;
+    else
+      stop_idx = param.records.file.stop_idx(board_idx);
+    end
   end
-  file_idxs = param.records.file.start_idx(board_idx):stop_idx;
+  if board_idx > 1 && length(param.records.file.start_idx) == 1
+    % Old parameter spreadsheet format only contained a single entry for
+    % all boards in param.records.file.start_idx
+    file_idxs = param.records.file.start_idx:stop_idx;
+  else
+    file_idxs = param.records.file.start_idx(board_idx):stop_idx;
+  end
   
   if isempty(file_idxs)
     error('No files selected to load out of %i files', length(fns));

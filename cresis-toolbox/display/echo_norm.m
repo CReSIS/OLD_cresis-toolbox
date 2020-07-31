@@ -6,7 +6,7 @@ function data = echo_norm(mdata, param)
 %
 % INPUTS:
 %
-% data = 2D input data matrix (log power)
+% mdata: 2D input data matrix (log power) or echogram file structure
 %
 % param: struct controlling how the normalization is done
 %

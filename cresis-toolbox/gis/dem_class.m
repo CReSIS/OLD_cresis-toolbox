@@ -312,7 +312,8 @@ classdef dem_class < handle
         ocean_mask_fn_antarctica = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L5.shp'));
         warning off;
         obj.ocean.shp_all = shaperead(ocean_mask_fn);
-        if strcmp(obj.param.post.ops.location,'antarctic')
+        if isfield(obj.param,'post') && isfield(obj.param.post,'ops') ...
+            && isfield(obj.param.post.ops,'location') && strcmp(obj.param.post.ops.location,'antarctic')
           shp_antarctica = shaperead(ocean_mask_fn_antarctica);
           obj.ocean.shp_all = cat(1,obj.ocean.shp_all,shp_antarctica);
         end
