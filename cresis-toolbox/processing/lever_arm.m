@@ -136,11 +136,10 @@ if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'ba
   gps.z = 1300;
 end
 
-if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TObas'})) && any(strcmpi(gps_source,{'arena','bas'})))
-  % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
-  %
+if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas'})) && any(strcmpi(gps_source,{'arena','bas'})))
   % 2018 Antarctica TObas (Jan-Feb 2019) GPS data are processed to the IMAR
-  % gravimeter.
+  % gravimeter. The origin that we use here is the aft GPS antenna above
+  % the radar system.
   %
   % From Tom Jordan at BAS:
   % My best solution is that the IMAR solution to the GPS above the radar is as follows (all in m):
@@ -148,8 +147,6 @@ if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TOba
   % Y (Positive port)  0.1116
   % Z (Positive up) 1.4762
   %
-  %
-  % 
   % Aircraft: British Antarctic Survey (BAS) VP-FBL
   %
   % Carl Robinson at BAS Aug 2018: Though we do have measurements for
@@ -183,6 +180,34 @@ if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TOba
   gps.x = 2.9369; % Gravimeter was in front of GPS antenna
   gps.y = 0.1116; % Gravimeter was on the right side of the plane/GPS
   gps.z = 1.4762; % Gravimeter was below (down is positive-z) the GPS
+end
+
+if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && any(strcmpi(gps_source,{'bas','bas_imu_to_gps'})))
+  % 2019 Antarctica TObas (Dec 2019-Jan 2020) GPS data are processed to the
+  % IMAR gravimeter for some flights and forward GPS antenna for some
+  % flights. This handles the data that are stored relative to the IMAR
+  % gravimeter.
+  %
+  % From Tom Jordan at BAS.
+
+  % T06 flight (before merging with GNSS only data), T07 flight
+  gps.x = -0.0538; % Gravimeter was just behind the antenna
+  gps.y = 0.349; % Gravimeter was on the right side of the plane/GPS
+  gps.z = 1.4803; % Gravimeter was below (down is positive-z) the GPS
+end
+
+if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && any(strcmpi(gps_source,{'arena','bas_gnss'})))
+  % 2019 Antarctica TObas (Dec 2019-Jan 2020) GPS data are processed to the
+  % IMAR gravimeter for some flights and forward GPS antenna for some
+  % flights. This handles the data that are stored relative to the forward
+  % GPS antenna.
+  %
+  % From Tom Jordan at BAS.
+
+  % End of T06 flight when IMU failed, all January flights
+  gps.x = 0; % Forward GPS antenna
+  gps.y = 0; % Forward GPS antenna
+  gps.z = 0; % Forward GPS antenna
 end
 
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
@@ -697,9 +722,9 @@ end
 %% Accumulation Radar
 % =========================================================================
 
-if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TObas'})) && strcmpi(radar_name,'accum'))
+if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas'})) && strcmpi(radar_name,'accum'))
   % See GPS section for 2018_Antarctica_TObas for details:
-  % 	3+5/8" from back of antenna box
+  % 	3+5/8" from back/aft-side of antenna box
   % 	9+15/16" from right/starboard side of lid (used edge of lid)
   % 	64+1/16" below to the lid of the antenna
   %
@@ -732,6 +757,58 @@ if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TOba
   LAtx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && strcmpi(radar_name,'accum'))
+  % See GPS section for 2019_Antarctica_TObas for details:
+  % 	-2.8274 from forward-side of antenna box
+  %   -0.1757 from right/starboard side of lid (used edge of lid)
+  % 	-1.7068 below to the lid of the antenna
+  %
+  % The offset from the outer back right top corner of the box to the
+  % center of the aperture of each of the antennas is:
+  %   (reference is aft, starboard, top)
+  %
+  % With the box (outer surfaces) as reference, the measurements (in
+  % inches) are the following:
+  % Element 1 (starboard): (x,y,z) = (6.8125, 1.69885,10.04).
+  % Element 2 (next to starboard): (x,y,z) = (6.8125, 6.44885, 10.04)
+  % Element 3 (next to port): (x,y,z) = (6.8125,11.19885, 10.04)
+  % Element 4 (port): (x,y,z) = (6.8125, 15.94885, 10.04)
+  % The thickness of each antenna element is 0.125 in.
+  %
+  % The bars were 0.75 in. thick. This decreases the z-position of all
+  % elements by 0.75 in.
+
+  % Accumulation antenna
+  LArx = [];
+  LArx(1,:)   = ( (-2.8274/0.0254 - 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
+  LArx(2,:)   = ( (+0.1757/0.0254) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LArx(3,:)   = ( (+1.7068/0.0254 - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
+  
+  LArx = mean(LArx,2); % Combine all 4 elements into a single element
+  
+  LAtx = [];
+  LAtx(1,:)   = ( (-2.8274/0.0254 - 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
+  LAtx(2,:)   = ( (+0.1757/0.0254) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LAtx(3,:)   = ( (+1.7068/0.0254 - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
+  
+  LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
+  
+  if strcmpi(gps_source,'bas_imu_to_gps')
+    % Special code for doing IMU to GPS lever arm rather than to radar
+    LArx = [-gps.x; -gps.y; -gps.z];
+    LAtx = [-gps.x; -gps.y; -gps.z];
+  end
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;

@@ -1,5 +1,5 @@
-function [param,defaults] = default_radar_params_2014_Greenland_P3_mcords
-% [param,defaults] = default_radar_params_2014_Greenland_P3_mcords
+function param = default_radar_params_2014_Greenland_P3_rds
+% param = default_radar_params_2014_Greenland_P3_rds
 %
 % MCORDS 3: 2014 Greenland P3
 %
@@ -71,7 +71,7 @@ param.config.header_load_func = @basic_load_mcords3;
 param.config.board_map = {'board0','board1','board2','board3'};
 param.config.tx_map = {'','','','','','','',''};
 
-param.config.daq.xml_version = 2.0;
+param.config.daq.xml_version = 1.4;
 
 param.config.max_data_rate = 100;
 param.config.max_duty_cycle = 0.12;
@@ -254,4 +254,6 @@ default.xml_regexp = '.*';
 default.name = 'Other Settings';
 defaults{end+1} = default;
 
-return;
+%% Add default settings
+
+param.config.defaults = defaults;

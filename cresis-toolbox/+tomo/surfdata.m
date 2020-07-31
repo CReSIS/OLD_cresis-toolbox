@@ -91,6 +91,15 @@ classdef surfdata < handle
     
     function obj = surfdata(source,surfdata_source)
       %% surfdata constructor
+      %
+      % source: several options to specify a source for the echogram
+      % information. 1. It can be a string containing the full filepath to
+      % an array output (echogram). 2. The structure loaded from such an
+      % echogram file. 3. An existing surfdata class/structure.
+      %
+      % surfdata_source: ct_filename_out "fn" string argument (this is
+      % where the output will be stored if a save command is run). Default
+      % is "surf" for CSARP_surf.
       
       if nargin < 2 || isempty(surfdata_source)
         surfdata_source = 'surf'; % CSARP_surf directory
@@ -1066,6 +1075,11 @@ classdef surfdata < handle
           if all(surf_new.surf(surf_idx).y(:) == 0 | surf_new.surf(surf_idx).y(:) == 1)
             surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
           elseif all(~isfinite(surf_new.surf(surf_idx).y(:)) | surf_new.surf(surf_idx).y(:) < 1 )
+<<<<<<< HEAD
+=======
+            warning('This code is only for a few special nonstandard files. E.g. snapshots which stored twtt instead of time bins.');
+            keyboard
+>>>>>>> 7ece532485b04c79b2547d9818413ef34ae1adee
             % Assume y-values are twtt (this should never happen)
             surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
           else
