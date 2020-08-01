@@ -54,10 +54,10 @@ for i = 1:n
   
   tiles{i} = tile;
 
-  figure(i);
-  imagesc(tiles{i}.array);
-  image_label = sprintf('Tile # %d, theta = %.3f', i, theta(i));
-  title(image_label);
+%   figure(i);
+%   imagesc(tiles{i}.array);
+%   image_label = sprintf('Tile # %d, theta = %.3f', i, theta(i));
+%   title(image_label);
   
   
 end

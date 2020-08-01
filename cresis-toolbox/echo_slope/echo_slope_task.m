@@ -18,12 +18,17 @@ for i = 1:n
 
 end
 
+corr_array = detrend(corr_array);
+
 figure(1001); clf;
 theta = linspace(param.echo_slope.min_slope,param.echo_slope.max_slope,n);
 [M2,I2] = max(corr_array,[],3);
 slope = theta(I2);
 imagesc(slope);
 colorbar
+
+
+
 
 
 keyboard

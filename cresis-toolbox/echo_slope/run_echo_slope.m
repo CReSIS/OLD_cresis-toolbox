@@ -36,7 +36,7 @@ param_override.echo_slope.max_slope = 40;
 
 
 %set the number of tiles to create 
-param_override.echo_slope.n = 81;
+param_override.echo_slope.n = 11;
 
 %set the sigma factor
 param_override.echo_slope.sigma_factor = 2;
