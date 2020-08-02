@@ -1326,7 +1326,7 @@ for img = 1:length(param.load.imgs)
         
         if wfs(wf).coh_noise_arg.DC_remove_en
           data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-            mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
+            nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
         end
         
         if length(wfs(wf).coh_noise_arg.B_coh_noise) > 1
