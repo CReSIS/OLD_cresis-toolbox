@@ -2,14 +2,11 @@ function radon_test()
 
 clc;
 
-%tile parameters
-rows = 50;
-cols = 50;
+%radon parameters
 max_slope = 40;
 min_slope = -40;
 radon_theta = min_slope:max_slope;
-n = 2;
-sigma_factor = 4;
+
 
 %set angle of the stub
 stub_theta = 30;
