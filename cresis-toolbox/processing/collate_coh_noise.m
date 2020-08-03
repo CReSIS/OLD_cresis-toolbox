@@ -221,7 +221,11 @@ for img = param.collate_coh_noise.imgs
       dft_freqs = dft_freqs(dft_freqs_idxs);
       dft_noise = zeros(Nt, Nx_dft, 'single');
       
+      % Average time step in slow time/GPS time. If there is only one
+      % record, then diff(noise.gps_time) returns an empty matrix and
+      % median returns NaN. This condition is captured below.
       dgps_time = median(diff(noise.gps_time));
+      
       dx = max(1,round(1/(dgps_time * param.collate_coh_noise.firdec_fs{img})));
       dec_idxs = 1:dx:Nx;
       firdec_gps_time = noise.gps_time(dec_idxs);
@@ -306,6 +310,9 @@ for img = param.collate_coh_noise.imgs
             firdec_noise(bin_idx,:) = 0;
           else
             % Positive cutoff frequency: Regular FIR filter
+            if ~isfinite(dgps_time)
+              error('dgps_time is not finite, use dft method instead. This is probably because length(noise.gps_time) < 2 because the segment is too short. length(noise.gps_time) = %d', length(noise.gps_time));
+            end
             B = tukeywin(round(1/(fcutoff*dgps_time)/2)*2+1,0.5).';
             B = B / sum(B);
             firdec_noise(bin_idx,:) = nan_fir_dec(coh_bin,B,dx);

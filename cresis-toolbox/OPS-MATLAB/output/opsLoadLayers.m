@@ -39,10 +39,11 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %       "elev" (m)
 %       "s" (two way travel time, twtt, in sec)
 %       "es" (this eval structure passed in by the user)
-%     The cmd string should generally update "source" variable. For example:
-%        '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
-%        'source = source + 0.1;' % Apply a twtt shift
-%        'source = source*2;' % Surface multiple
+%     The cmd string should generally update "s" variable. For example:
+%        '[B,A] = butter(0.1,2); s = filtfilt(B,A,s);' % Filter
+%        's = s + 0.1;' % Apply a twtt shift
+%        's = s*2;' % Surface multiple
+%        Add ";" to the end of each command to suppress console output.
 %
 %  .existence_check: boolean, default is true and causes an error to be
 %  thrown if the layer does not exist. If false, no data points are

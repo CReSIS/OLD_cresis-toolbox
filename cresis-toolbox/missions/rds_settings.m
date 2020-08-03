@@ -19,10 +19,17 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 
 % -------------------------------------------------------------------------
 % 2019 Antarctica TObas
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191215_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191215_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191222_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191225_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191226_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191229_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230_02');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_02');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_03');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_05');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_06');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200126_01');
@@ -108,6 +115,10 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % =========================================================================
 % Radar Depth Sounder
 % =========================================================================
+
+% -------------------------------------------------------------------------
+% 2014 Greenland P3
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140512_01');
 
 % -------------------------------------------------------------------------
 % 2018 Antarctica Ground
@@ -229,8 +240,8 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
       params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
-      % params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-      % params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
     elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
@@ -369,7 +380,13 @@ for param_idx = 1:length(params)
             
             for wf = 1:length(params(param_idx).radar.wfs)
               %params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
-              params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+1.2e-6)),5));';
+              if any(strcmp(params(param_idx).day_seg,{'20200127_01'})) && wf == 2
+                params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+2.4e-6)),5));';
+              elseif any(strcmp(params(param_idx).day_seg,{'20200126_01','20200128_01'})) && wf == 2
+                params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(max(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+3.6e-6)),5));';
+              else
+                params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+2.4e-6)),5));';
+              end
             end
             
           else
