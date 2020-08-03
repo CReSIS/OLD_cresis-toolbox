@@ -120,7 +120,7 @@ if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) %...
 end
 
 if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
-    && any(strcmpi(gps_source,{'nmea','ualidar'}))
+    && any(strcmpi(gps_source,{'nmea','lidar'}))
   % The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
   % Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
   gps.x = 0;
