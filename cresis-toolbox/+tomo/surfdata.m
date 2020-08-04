@@ -91,15 +91,6 @@ classdef surfdata < handle
     
     function obj = surfdata(source,surfdata_source)
       %% surfdata constructor
-      %
-      % source: several options to specify a source for the echogram
-      % information. 1. It can be a string containing the full filepath to
-      % an array output (echogram). 2. The structure loaded from such an
-      % echogram file. 3. An existing surfdata class/structure.
-      %
-      % surfdata_source: ct_filename_out "fn" string argument (this is
-      % where the output will be stored if a save command is run). Default
-      % is "surf" for CSARP_surf.
       
       if nargin < 2 || isempty(surfdata_source)
         surfdata_source = 'surf'; % CSARP_surf directory
@@ -1075,11 +1066,6 @@ classdef surfdata < handle
           if all(surf_new.surf(surf_idx).y(:) == 0 | surf_new.surf(surf_idx).y(:) == 1)
             surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
           elseif all(~isfinite(surf_new.surf(surf_idx).y(:)) | surf_new.surf(surf_idx).y(:) < 1 )
-<<<<<<< HEAD
-=======
-            warning('This code is only for a few special nonstandard files. E.g. snapshots which stored twtt instead of time bins.');
-            keyboard
->>>>>>> 7ece532485b04c79b2547d9818413ef34ae1adee
             % Assume y-values are twtt (this should never happen)
             surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
           else
@@ -1284,6 +1270,9 @@ classdef surfdata < handle
       % Load records file
       records = records_load(param);
       
+      % Physical constants
+      physical_constants;
+      
       % Loop over frames
       for frm_idx = 1:length(param.cmd.frms)
         frm = param.cmd.frms(frm_idx);
@@ -1336,10 +1325,11 @@ classdef surfdata < handle
         sd.param.season_name = param.season_name;
         sd.param.sw_version = current_software_version;
         sd.file_type = 'surf';
-        sd.surf = struct();
-        sd.surf = tomo.surfdata.empty_surf();
+        sd.surf(1) = tomo.surfdata.empty_surf();
+        sd.surf(2) = tomo.surfdata.empty_surf();
         sd = tomo.surfdata(sd,param.add_surf_from_dem.surf_out_path);
-       
+        
+        %
         clear frm_gps_time frm_origin frm_x frm_y frm_z
         
         %% add_surf_from_dem: Geotiff and Ice Mask
@@ -1527,7 +1517,8 @@ classdef surfdata < handle
                 twtt(theta_idx,rline) = NaN;
                 intersection(:,theta_idx) = NaN;
               else
-                twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+%                 twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+                twtt(theta_idx,rline) = t(intersect_idx(1))/(c/2);
                 intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
               end
               
@@ -1600,33 +1591,18 @@ classdef surfdata < handle
         %% add_surf_from_dem: Insert Surfaces
         
         % Insert TWTT of top surface
-        surf_twtt = tomo.surfdata.empty_surf();
-        surf_ice_mask = tomo.surfdata.empty_surf();
+        sd.surf(1).name = 'top twtt';
+        sd.surf(1).x = zeros(Nsv,length(sd.gps_time));
+        sd.surf(1).y = zeros(Nsv,length(sd.gps_time));
+        sd.surf(1).x = repmat(param.add_surf_from_dem.theta_bins,[1 size(twtt,2)]); % Nsv x Nx
+        sd.surf(1).y = twtt;
         
-        surf_twtt.name = 'top twtt';
-        surf_twtt.x  = repmat(param.add_surf_from_dem.theta_bins,[1 size(twtt,2)]); % Nsv x Nx
-        surf_twtt.y = twtt;
-        
-        surf_ice_mask.name = 'ice mask';
-        surf_ice_mask.x = repmat(param.add_surf_from_dem.theta_bins,[1 size(twtt,2)]); % Nsv x Nx
-        surf_ice_mask.y = ice_mask;
-        surf_ice_mask.plot_name_values = {'color','white','marker','x'};
-        
-        sd.insert_surf(surf_twtt);
-        sd.insert_surf(surf_ice_mask);
-%         
-%         sd.surf(1).name = 'top twtt';
-%         sd.surf(1).x = zeros(Nsv,length(sd.gps_time));
-%         sd.surf(1).y = zeros(Nsv,length(sd.gps_time));
-%         sd.surf(1).x = repmat(param.add_surf_from_dem.theta_bins,[1 size(twtt,2)]); % Nsv x Nx
-%         sd.surf(1).y = twtt;
-%         
-%         sd.surf(2).name = 'ice mask';
-%         sd.surf(2).x = zeros(Nsv,length(sd.gps_time));
-%         sd.surf(2).y = zeros(Nsv,length(sd.gps_time));
-%         sd.surf(2).x= repmat(param.add_surf_from_dem.theta_bins,[1 size(twtt,2)]); % Nsv x Nx
-%         sd.surf(2).y = ice_mask;
-%         sd.surf(2).plot_name_values = {'color','white','marker','x'};
+        sd.surf(2).name = 'ice mask';
+        sd.surf(2).x = zeros(Nsv,length(sd.gps_time));
+        sd.surf(2).y = zeros(Nsv,length(sd.gps_time));
+        sd.surf(2).x= repmat(param.add_surf_from_dem.theta_bins,[1 size(twtt,2)]); % Nsv x Nx
+        sd.surf(2).y = ice_mask;
+        sd.surf(2).plot_name_values = {'color','white','marker','x'};
         
         %% add_surf_from_dem: Save output
         out_fn_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path);
@@ -1657,8 +1633,8 @@ classdef surfdata < handle
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
-      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
-      params = ct_set_params(params,'cmd.frms',[2]);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      params = ct_set_params(params,'cmd.frms',[11:20]);
       %       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn','canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
       %       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',ct_filename_gis(params,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif')));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
@@ -1666,6 +1642,7 @@ classdef surfdata < handle
       %         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
       
       params = ct_set_params(params, 'add_surf_from_dem.dem_guard', 30e3);
+      params = ct_set_params(params, 'add_surf_from_dem.delta_at',10);
       %       params = ct_set_params(params, 'add_surf_from_dem.dem_per_slice_guard', 500e3);
 %       params = ct_set_params(params, 'add_surf_from_dem.surf_out_path', 'surfData_test');
 

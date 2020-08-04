@@ -242,17 +242,12 @@ for img = 1:length(param.load.imgs)
         % A number is provided for each receiver path for system_dB
         system_dB = wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
       end
-<<<<<<< HEAD
-      
       if ~isfield(noise.param_analysis.radar.wfs(wf),'system_dB')
         noise.param_analysis.radar.wfs(wf).system_dB = 0;
       end
-      
-=======
       if ~isfield(noise.param_analysis.radar.wfs(wf),'system_dB')
         noise.param_analysis.radar.wfs(wf).system_dB = 0;
       end
->>>>>>> 7ece532485b04c79b2547d9818413ef34ae1adee
       if length(noise.param_analysis.radar.wfs(wf).system_dB) == 1
         system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB;
         % Only a single number is provided for system_dB so apply it to all
