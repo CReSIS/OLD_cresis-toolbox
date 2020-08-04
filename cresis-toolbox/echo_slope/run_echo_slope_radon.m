@@ -26,8 +26,8 @@ params = ct_set_params(params,'echo_slope.out_path','echo_slope');
 params = ct_set_params(params,'echo_slope.in_path','standard');
 
 %set rows and columns of the radon tiles
-param_override.echo_slope.rows = 10;
-param_override.echo_slope.cols = 20;
+param_override.echo_slope.rows = 6;
+param_override.echo_slope.cols = 10;
 
 
 %set the maximum and minimum slope of the radon transform degrees
