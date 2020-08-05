@@ -182,37 +182,10 @@ for img = 1:length(param.load.imgs)
     %% Coherent noise: Analysis Load
     % ===================================================================
     if strcmpi(wfs(wf).coh_noise_method,'analysis')
-      noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
-      noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-      
-      fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
-      noise = load(noise_fn);
-      if ~isfield(noise,'param_collate_coh_noise') || isempty(noise.param_collate_coh_noise)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise = noise.param_collate;
-        noise = rmfield(noise,'param_collate');
-        ct_save(noise_fn,'-struct','noise')
-      end
+      noise = collate_coh_noise_load(param);
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
-      if ~isfield(noise,'param_records') || isempty(noise.param_records)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_records = param;
-        ct_save(noise_fn,'-struct','noise')
-      end
       param.collate_coh_noise.param_records = noise.param_records;
-      if ~isfield(noise.param_collate_coh_noise.collate_coh_noise,'method') || isempty(noise.param_collate_coh_noise.collate_coh_noise.method)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise.collate_coh_noise.method = 'dft';
-        ct_save(noise_fn,'-struct','noise')
-      end
-      if isfield(noise,'coh_noise') && isfield(noise,'coh_noise_gps_time')
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.firdec_gps_time = noise.coh_noise_gps_time;
-        noise.firdec_noise    = noise.coh_noise;
-        noise = rmfield(noise,{'coh_noise','coh_noise_gps_time'});
-        ct_save(noise_fn,'-struct','noise')
-      end
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate_coh_noise.collate_coh_noise.cmd_idx};
       
@@ -241,9 +214,6 @@ for img = 1:length(param.load.imgs)
       else
         % A number is provided for each receiver path for system_dB
         system_dB = wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
-      end
-      if ~isfield(noise.param_analysis.radar.wfs(wf),'system_dB')
-        noise.param_analysis.radar.wfs(wf).system_dB = 0;
       end
       if length(noise.param_analysis.radar.wfs(wf).system_dB) == 1
         system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB;

@@ -375,16 +375,16 @@ for img = 1:length(store_param.load.imgs)
         adc = param.load.imgs{img}(wf_adc,2);
         
         %% Burst Noise: Smooth and Threshold
-        data_pow = abs(raw_data{1}(:,:,wf_adc).').^2;
+        data_signal = abs(raw_data{1}(:,:,wf_adc).').^2;
         
-        data_smooth = fir_dec(data_pow,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
-        data_smooth = fir_dec(data_smooth,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
-        data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
-        data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
+        data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
+        data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+        data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
+        data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
         
-        % Find peaks in data_pow relative to data_smooth (constant false
+        % Find peaks in data_signal relative to data_noise (constant false
         % alarm rate detector)
-        bad_samples = lp(data_pow) > lp(data_smooth) + cmd.threshold;
+        bad_samples = lp(data_signal) > lp(data_noise) + cmd.threshold;
         % Convert peaks to range-bin/records
         bad_idxs = find(bad_samples);
         Nt = size(raw_data{1},1);
@@ -403,7 +403,7 @@ for img = 1:length(store_param.load.imgs)
           figure(1); clf;
           plot(bad_recs, bad_bins, 'x')
           figure(2); clf;
-          imagesc(lp(data_pow))
+          imagesc(lp(data_signal))
           link_figures([2 1],'xy');
         end
         

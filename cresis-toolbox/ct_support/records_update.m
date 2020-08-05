@@ -20,17 +20,16 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
 
-%% Input checks
-
-% save_changes: Logical, For debugging purposes, you can turn the file save on/off
-save_changes = true;
-
 %% Prep (load records and gps files)
 records_fn = ct_filename_support(param,'','records');
+if cluster_job_check()
+  error('records_update may not be called from cluster_job (param.cluster.is_cluster_job is currently set to true). To remove this error, run records_update on: %s', records_fn);
+end
 if ~exist(records_fn,'file')
   warning('Records file does not exist: %s (%s).\n', records_fn, datestr(now));
   return;
 end
+
 records = load(records_fn);
 if isfield(records,'settings') && isfield(records.settings,'wfs') && isfield(records.settings.wfs,'wfs')
   warning('Old records.settings format with "settings.wfs.wfs" field found in records file. Updating format.');
@@ -182,16 +181,12 @@ if isfield(records,'surface')
   records = rmfield(records,'surface');
 end
 
-if save_changes
-  % Save outputs
-  fprintf('  Saving records %s\n', records_fn);
-  if isfield(param,'ct_file_lock') && param.ct_file_lock
-    records.file_version = '1L';
-  else
-    records.file_version = '1';
-  end
-  records.file_type = 'records';
-  ct_save(records_fn,'-v7.3','-struct','records');
+%% Save outputs
+fprintf('  Saving records %s\n', records_fn);
+if isfield(param,'ct_file_lock') && param.ct_file_lock
+  records.file_version = '1L';
 else
-  fprintf('  Not saving information (TEST MODE)\n');
+  records.file_version = '1';
 end
+records.file_type = 'records';
+ct_save(records_fn,'-v7.3','-struct','records');

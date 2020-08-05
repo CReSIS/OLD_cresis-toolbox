@@ -41,6 +41,19 @@ if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_nois
   param.collate_coh_noise.cmd_idx = 1;
 end
 
+% debug_plots: cell array of strings that enable functionality, the
+% possible strings are {'cn_plot','reuse','threshold_plot','visible'}. The
+% default setting is {'cn_plot','threshold_plot'}.
+% 'threshold_plot': enable plotting of threshold plots (should always be
+%   enabled if threshold might be used).
+% 'visible': displays figures and enters debug mode to allow reviewing for
+%   each wf-adc pair
+% 'cn_plot': enable plotting of coherent noise plots (should always be
+%   enabled).
+% 'reuse': causes the reuse file to be loaded if it exists rather than
+%   rebuilding the coherent noise. Typical use would be to create all the
+%   collate_coh_noise files without visible enabled and then enable both
+%   visible and reuse to review all the files.
 if ~isfield(param.collate_coh_noise,'debug_plots') || isempty(param.collate_coh_noise.debug_plots)
   param.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'};
 end
@@ -56,6 +69,12 @@ if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debu
   param.(mfilename).debug_out_dir = mfilename;
 end
 debug_out_dir = param.(mfilename).debug_out_dir;
+
+% debug_max_size: maximum size allowed for .fig files to be saved in
+% cn_plot mode. .jpg files will always be saved.
+if ~isfield(param.(mfilename),'debug_max_size') || isempty(param.(mfilename).debug_max_size)
+  param.(mfilename).debug_max_size = 0;
+end
 
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
   for img = param.collate_coh_noise.imgs
@@ -424,7 +443,11 @@ for img = param.collate_coh_noise.imgs
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(1),fig_fn);
-      
+      if numel(cn_before)*16 < param.(mfilename).debug_max_size
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
       
       %cn_before(bsxfun(@gt,lp(cn_before,2),threshold)) = NaN;
       clf(h_fig(2));
@@ -438,7 +461,11 @@ for img = param.collate_coh_noise.imgs
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(2),fig_fn);
-      
+      if numel(cn_before)*16 < param.(mfilename).debug_max_size
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
       
       %cn_before(bsxfun(@gt,lp(cn_before,2),threshold)) = NaN;
       clf(h_fig(3));
@@ -451,7 +478,11 @@ for img = param.collate_coh_noise.imgs
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
-      
+      if numel(cn_before)*16 < param.(mfilename).debug_max_size
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
       
       clf(h_fig(4));
       set(h_fig(4), 'name', 'collate_coh_noise After');
@@ -464,6 +495,11 @@ for img = param.collate_coh_noise.imgs
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(4),fig_fn);
+      if numel(cn_before)*16 < param.(mfilename).debug_max_size
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
       
       linkaxes(h_axes(2:4));
     end
@@ -491,6 +527,9 @@ for img = param.collate_coh_noise.imgs
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(5),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      ct_saveas(h_fig(1),fig_fn);
     end
     
     if enable_visible_plot
@@ -509,7 +548,6 @@ for img = param.collate_coh_noise.imgs
     noise_simp.fc         = noise.fc;
     noise_simp.recs       = recs;
     noise_simp.start_bin  = start_bin;
-    noise_simp.datestr    = datestr(now);
     noise_simp.param_collate_coh_noise  = param;
     if strcmpi(param.collate_coh_noise.method{img},'dft')
       noise_simp.dft_freqs  = dft_freqs;
