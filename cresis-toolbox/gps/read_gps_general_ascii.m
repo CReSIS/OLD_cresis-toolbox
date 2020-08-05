@@ -154,7 +154,27 @@ function gps = read_gps_general_ascii(fn,param)
 % param.time_reference = 'gps';
 % gps = read_gps_general_ascii(fn,param);
 %
-% Author: John Paden
+% % Example 10: Gulfstream V (GV) IWG1 file with IMU (2019_Antarctica_GV)
+%
+% IWG1 string,Date/Time(utc),Latitude(deg),Longitude(deg),GPS_MSL_Alt(m),WGS_84_Alt(m),Press_Alt(ft),Radar_Alt(ft)',...
+% Grnd_Spd(m/s),True_Airspeed(m/s),Indicated_Airspeed(knots),Mach_Number,Ver_Velocity(m/s),Heading(deg),...
+% Track(deg),Drift(deg),Pitch(deg),Roll(deg),Side_slip(deg),'Angle_of_Attach(deg),Ambient_Temp(degc),...
+% Dew_Tmp(degc),Total_Tmp(degc),Static_Press(mbar),Dynamic_Press(mbar),Cabin_press(mbar),Wind_Speed(m/s),...
+% Wind_Dir(deg),Vert_Wind_Speed(m/s),Solar_Zenith(deg),Sun_Ele_AC(deg),Sun_Az_Grd(deg),Sun_Az_AC(deg)
+% IWG1,2019-10-17T14:10:33.003,,,,,-89.0,,,0.0,30.0,0.031,,,,,,,,,14.0,,14.2,30.0,1.8,1019.5,,,,,,1571320712.8,
+%
+% fn = '/cresis/snfs1/dataproducts/metadata/2019_Antarctica_GV/IWG1_17Oct2019-2224.txt';
+% param = [];
+% param.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
+% param.types = {'IWG1','date_time','lat_deg','lon_deg','gps_msl_alt','WGS_84_alt','press_alt',...
+%     'radar_alt','grnd_spd','true_airspeed','indicated_airspeed','Mach_number','vert_velocity','heading_deg',...
+%     'track','drift','pitch_deg','roll_deg','pitch_deg'};
+% param.textscan = {'delimiter',','};
+% param.headerlines = 0;
+% param.time_reference = 'utc';
+% gps = read_gps_general_ascii(fn,param);
+
+Author: John Paden
 
 [fid,msg] = fopen(fn,'r');
 if fid < 0
@@ -212,6 +232,7 @@ if isfield(tmp_gps,'date_time')
   %   yyyy/mm/dd HH:MM:SS, mm/dd/yyyy HH:MM:SS
   datenums = zeros(size(tmp_gps.date_time));
   for row=1:length(tmp_gps.date_time)
+    tmp_gps.date_time{row} = strrep(tmp_gps.date_time{row},'T',' ');
     try
       datenums(row) = datenum(tmp_gps.date_time{row});
     catch ME
@@ -252,24 +273,6 @@ if isfield(tmp_gps,'time_HMS')
     end
   end
   [~,~,~,hour,minute,sec] = datevec(datenums);
-end
-if isfield(tmp_gps,'IWG1')
-  % Handles date-time in aircraft IWG1 string (2019_Antarctica_GV test flight on 20191017)
-  tmp_gps.year = size(tmp_gps.IWG1);
-  tmp_gps.month = size(tmp_gps.IWG1);
-  tmp_gps.day = size(tmp_gps.IWG1);
-  tmp_gps.hour = size(tmp_gps.IWG1);
-  tmp_gps.minute = size(tmp_gps.IWG1);
-  tmp_gps.sec = size(tmp_gps.IWG1);
-  for row=1:length(tmp_gps.IWG1)
-    tmp_gps.year(row) = str2num(tmp_gps.date_YMD_time_HMS{row}(1:4));
-    tmp_gps.month(row) = str2num(tmp_gps.date_YMD_time_HMS{row}(6:7));
-    tmp_gps.day(row) = str2num(tmp_gps.date_YMD_time_HMS{row}(9:10));
-    tmp_gps.hour(row) = str2num(tmp_gps.date_YMD_time_HMS{row}(12:13));
-    tmp_gps.minute(row) = str2num(tmp_gps.date_YMD_time_HMS{row}(15:16));
-    tmp_gps.sec(row) = str2num(tmp_gps.date_YMD_time_HMS{row}(18:23));
-  end
-  tmp_gps.elev_m = tmp_gps.gps_msl_alt_m; % approximation to WGS_84_Alt (NaNs in IWG1)
 end
 if isfield(tmp_gps,'year')
   year = tmp_gps.year;
