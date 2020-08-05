@@ -22,7 +22,7 @@ fprintf('=====================================================================\n
 %% Input checks
 frames_fn = ct_filename_support(param,'','frames');
 if cluster_job_check()
-  error('frames_update may not be called from cluster_job (param.cluster.is_cluster_job is currently set to true). To remove this error, run frames_update on: %s', frames_fn);
+  error('frames_update may not be called from cluster_job (gRadar.cluster.is_cluster_job is currently set to true). To remove this error, run frames_update on: %s', frames_fn);
 end
 
 %% Update according to file format

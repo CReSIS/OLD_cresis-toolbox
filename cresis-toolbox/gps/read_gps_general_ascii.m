@@ -207,6 +207,20 @@ hour = [];
 minute = [];
 sec = [];
 
+if isfield(tmp_gps,'date_time')
+  % Handles all the standard date-time formats including:
+  %   yyyy/mm/dd HH:MM:SS, mm/dd/yyyy HH:MM:SS
+  datenums = zeros(size(tmp_gps.date_time));
+  for row=1:length(tmp_gps.date_time)
+    try
+      datenums(row) = datenum(tmp_gps.date_time{row});
+    catch ME
+      warning('Row %d failed: %s\n', row, ME.getReport);
+      datenums(row) = NaN;
+    end
+  end
+  [year,month,day,hour,minute,sec] = datevec(datenums);
+end
 if isfield(tmp_gps,'date_MDY')
   % Handles all the standard date formats including:
   %   yyyy/mm/dd, mm/dd/yyyy

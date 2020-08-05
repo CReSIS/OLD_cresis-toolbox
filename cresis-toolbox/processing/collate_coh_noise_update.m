@@ -19,7 +19,7 @@ fprintf('=====================================================================\n
 %% Update files if needed
 % =====================================================================
 if cluster_job_check()
-  error('collate_coh_noise_update may not be called from cluster_job (param.cluster.is_cluster_job is currently set to true). To remove this error, run collate_coh_noise_update on:\n  %s\n  %s\n  %s', param.radar_name, param.season_name, param.day_seg);
+  error('collate_coh_noise_update may not be called from cluster_job (gRadar.cluster.is_cluster_job is currently set to true). To remove this error, run collate_coh_noise_update on:\n  %s\n  %s\n  %s', param.radar_name, param.season_name, param.day_seg);
 end
 
 % Loop through each waveform for this segment

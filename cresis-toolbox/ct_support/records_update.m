@@ -23,7 +23,7 @@ fprintf('=====================================================================\n
 %% Prep (load records and gps files)
 records_fn = ct_filename_support(param,'','records');
 if cluster_job_check()
-  error('records_update may not be called from cluster_job (param.cluster.is_cluster_job is currently set to true). To remove this error, run records_update on: %s', records_fn);
+  error('records_update may not be called from cluster_job (gRadar.cluster.is_cluster_job is currently set to true). To remove this error, run records_update on: %s', records_fn);
 end
 if ~exist(records_fn,'file')
   warning('Records file does not exist: %s (%s).\n', records_fn, datestr(now));
