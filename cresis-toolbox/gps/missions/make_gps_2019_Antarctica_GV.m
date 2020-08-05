@@ -276,6 +276,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
         'grnd_spd_mps','true_airspeed_mps','indicated_airspeed_knots','mach_number','vert_velocity_mps','heading_deg',...
         'track_deg','drift_deg','pitch_deg','roll_deg'};
       params{file_idx}{2}.textscan ={'delimiter',','};
+      params{file_idx}{2}.date_time_format = 'yyyy-mm-ddTHH:MM:SS.FFF';
       gps_source{file_idx} = 'atm-final_20200110+IWG1';
       sync_flag{file_idx} = 0;
     else

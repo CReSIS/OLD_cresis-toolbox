@@ -169,12 +169,13 @@ function gps = read_gps_general_ascii(fn,param)
 % param.types = {'IWG1','date_time','lat_deg','lon_deg','gps_msl_alt','WGS_84_alt','press_alt',...
 %     'radar_alt','grnd_spd','true_airspeed','indicated_airspeed','Mach_number','vert_velocity','heading_deg',...
 %     'track','drift','pitch_deg','roll_deg','pitch_deg'};
+% param.date_time_format = 'yyyy-mm-ddTHH:MM:SS.FFF';
 % param.textscan = {'delimiter',','};
 % param.headerlines = 0;
 % param.time_reference = 'utc';
 % gps = read_gps_general_ascii(fn,param);
 
-Author: John Paden
+% Author: John Paden
 
 [fid,msg] = fopen(fn,'r');
 if fid < 0
@@ -232,9 +233,12 @@ if isfield(tmp_gps,'date_time')
   %   yyyy/mm/dd HH:MM:SS, mm/dd/yyyy HH:MM:SS
   datenums = zeros(size(tmp_gps.date_time));
   for row=1:length(tmp_gps.date_time)
-    tmp_gps.date_time{row} = strrep(tmp_gps.date_time{row},'T',' ');
     try
-      datenums(row) = datenum(tmp_gps.date_time{row});
+      if isfield(param,'date_time_format') 
+        datenums(row) = datenum(tmp_gps.date_time{row},param.date_time_format);
+      else
+        datenums(row) = datenum(tmp_gps.date_time{row});
+      end
     catch ME
       warning('Row %d failed: %s\n', row, ME.getReport);
       datenums(row) = NaN;
