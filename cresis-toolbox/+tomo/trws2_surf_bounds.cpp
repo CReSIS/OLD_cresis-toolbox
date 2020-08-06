@@ -65,15 +65,15 @@ public:
   const unsigned int *mCT_Bounds_Right;
   // mCT_Bounds_Left: cross-track dimension bounds, left
   const unsigned int *mCT_Bounds_Left;
-  
-  // Result
+
   float *mResult;
+  float *mDebug;
     
   TRWS(const float *image, const size_t *dim_image, const float *at_slope, const float *at_weight,
           const float *ct_slope, const float *ct_weight, const unsigned int max_loops,
-          const unsigned int *bounds, const unsigned int *ct_bounds_left, const unsigned int *ct_bounds_right, float *result)
+          const unsigned int *bounds, const unsigned int *ct_bounds_left, const unsigned int *ct_bounds_right, float *result, float *debug)
           : mImage(image), mAT_Slope(at_slope), mAT_Weight(at_weight), mCT_Slope(ct_slope), mCT_Weight(ct_weight),
-            mMax_Loops(max_loops), mBounds(bounds), mCT_Bounds_Left(ct_bounds_left), mCT_Bounds_Right(ct_bounds_right), mResult(result) {
+            mMax_Loops(max_loops), mBounds(bounds), mCT_Bounds_Left(ct_bounds_left), mCT_Bounds_Right(ct_bounds_right), mResult(result), mDebug(debug) {
             // Set dimensions
             mNt  = dim_image[0];
             mNsv = dim_image[1];
@@ -115,7 +115,11 @@ void TRWS::set_result() {
         temp += mMessage_Up[message_idx];
         temp += mMessage_Right[message_idx];
         temp += mMessage_Down[message_idx];
-        
+
+        if (mDebug) {
+          mDebug[message_idx] = temp;
+        }
+
         // Check to see if this d is the minimum
         if (temp < min_val) {
           min_val = temp;
@@ -124,22 +128,6 @@ void TRWS::set_result() {
       }
       
       mResult[result_idx] = static_cast<int>(best_result+1);
-
-      // Surface in contact with left bounds. Remove previous surface outside left bounds.
-      if (h == mCT_Bounds_Left[w*mNt + best_result]) {
-        for (int h_previous = 0; h_previous < h; h_previous++) {
-          mResult[result_idx-h_previous-1] = NAN;
-        }
-      }
-      // Surface in contact with right bounds. Skip remaining surface outside right bounds.
-      if (h == mCT_Bounds_Right[w*mNt + best_result]) {
-        result_idx++;
-        for (int h_following = 1; h_following < mNsv-h; h_following++) {
-          mResult[result_idx] = NAN;
-          result_idx++;
-        }
-        break;
-      }
 
       result_idx++;
     }
@@ -186,7 +174,7 @@ void TRWS::solve() {
       for (size_t h_idx = 0; h_idx < mNsv; h_idx++) {
         // Switch iteration direction every 2 loops
         size_t h = 0;        
-        if ((loop>>2) % 2 == 0) {
+        if ((loop>>1) % 2 == 0) {
           // Iterating bottom to top
           h = mNsv-1-h_idx;
         } else {
@@ -197,8 +185,17 @@ void TRWS::solve() {
         size_t cur_message_idx = (h + w*mNsv)*mNt;
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
-        
-        // TODO[reece]: Skip columns which are entirely outside bounds? Not iterating with bounds. 
+
+        // bool outside = true;
+        // for (int d = cur_rbin_start; d <= cur_rbin_stop; d++) {
+        //   if (h >= mCT_Bounds_Left[w*mNt + d] && h <= mCT_Bounds_Right[w*mNt + d]) {
+        //     outside = false;
+        //     break;
+        //   }
+        // }
+        // if (outside) {
+        //   continue;
+        // }
         
         // Message to node on the left of current
         //   Sum all input messages and create the message for the node on the right
@@ -309,8 +306,8 @@ void TRWS::solve() {
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if (nrhs != 9 || nlhs != 1) {
-    mexErrMsgTxt("Usage: float surface = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds, uint32 ct_bounds_left, uint32 ct_bounds_right)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1\n  numel(bounds) is 2*size(image,3)\n  numel(ct_bounds_left/right) is size(image, 1)*size(image, 3)");
+  if (nrhs != 9 || (nlhs != 1 && nlhs != 2)) {
+    mexErrMsgTxt("Usage: [float surface, ] = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds, uint32 ct_bounds_left, uint32 ct_bounds_right)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1\n  numel(bounds) is 2*size(image,3)\n  numel(ct_bounds_left/right) is size(image, 1)*size(image, 3)");
   }
 
   int arg = -1;
@@ -416,8 +413,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   plhs[0] = mxCreateNumericMatrix(dim_image[1], dim_image[2], mxSINGLE_CLASS, mxREAL);
   float *result = reinterpret_cast<float *>(mxGetData(plhs[0]));
 
-  // Run TRWS algorithm
-  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, *max_loops, bounds, ct_bounds_left, ct_bounds_right, result);
+  float *debug = nullptr;
+  if (nlhs == 2) {
+    // Debug mode
+    plhs[1] = mxCreateNumericArray(3, dim_image, mxSINGLE_CLASS, mxREAL);
+    debug = reinterpret_cast<float *>(mxGetData(plhs[1]));
+  }
   
+  // RUN TRWS2
+  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, *max_loops, bounds, ct_bounds_left, ct_bounds_right, result, debug);
+
   obj.solve();
 }
