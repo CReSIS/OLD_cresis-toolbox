@@ -69,7 +69,6 @@ for img = 1:length(param.load.imgs)
         end % rec loop
       end % INVERSE FILTER if strcmpi ends here
       
-      extra_delay = zeros(1,size(data{img},2));
       if strcmpi(wfs(wf).prepulse_H.type,'NI_DDC_2019')
         if 0
           % Test code to find each DDC filter delay
@@ -132,6 +131,7 @@ for img = 1:length(param.load.imgs)
           plot(angle(ref8))
         end
         
+        data_complex_hack = false; %
         for rec = 1:size(data{img},2)
           freq_axis = ifftshift(-floor(hdr.Nt{img}(rec)/2):floor((hdr.Nt{img}(rec)-1)/2)).';
           if hdr.DDC_dec{img}(rec) == 2
@@ -143,7 +143,6 @@ for img = 1:length(param.load.imgs)
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = exp(1i*-pi/2)*hdr.DDC_dec{img}(rec) ...
               * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
             % Delay of 100/4 = 25 relative to DDC_dec==2
-            extra_delay(rec) = 25;
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
               .* exp(1i*2*pi*25*freq_axis/hdr.Nt{img}(rec)));
           elseif hdr.DDC_dec{img}(rec) == 8
@@ -151,7 +150,6 @@ for img = 1:length(param.load.imgs)
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = exp(1i*-pi/2)*hdr.DDC_dec{img}(rec) ...
               * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
             % Delay of (100+2*100)/8 = 37.5 relative to DDC_dec==2
-            extra_delay(rec) = 37.5;
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
               .* exp(1i*2*pi*37.5*freq_axis/hdr.Nt{img}(rec)));
           elseif hdr.DDC_dec{img}(rec) == 16
@@ -162,6 +160,18 @@ for img = 1:length(param.load.imgs)
             data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
               .* exp(1i*2*pi*43.75*freq_axis/hdr.Nt{img}(rec)));
           end
+          if ~isreal(data{img}) && ~data_complex_hack && size(data{img},1) > 0
+            data_complex_hack = true;
+            % Temporarily add an imaginary part to the first value in the
+            % matrix so that Matlab will know right away that this matrix
+            % is complex and won't have to search through the entire
+            % matrix to find this out. We remove this value at the end of
+            % the loop.
+            data{img}(1) = data{img}(1) + 1i;
+          end
+        end
+        if data_complex_hack
+          data{img}(1) = data{img}(1) - 1i;
         end
       end
     end
@@ -172,30 +182,10 @@ for img = 1:length(param.load.imgs)
     %% Coherent noise: Analysis Load
     % ===================================================================
     if strcmpi(wfs(wf).coh_noise_method,'analysis')
-      noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
-      noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-      
-      fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
-      noise = load(noise_fn);
-      if ~isfield(noise,'param_collate_coh_noise') || isempty(noise.param_collate_coh_noise)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise = noise.param_collate;
-        noise = rmfield(noise,'param_collate');
-        save(noise_fn,'-struct','noise')
-      end
+      noise = collate_coh_noise_load(param);
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
-      if ~isfield(noise,'param_records') || isempty(noise.param_records)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_records = param;
-        save(noise_fn,'-struct','noise')
-      end
       param.collate_coh_noise.param_records = noise.param_records;
-      if ~isfield(noise.param_collate_coh_noise.collate_coh_noise,'method') || isempty(noise.param_collate_coh_noise.collate_coh_noise.method)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise.collate_coh_noise.method = 'dft';
-        save(noise_fn,'-struct','noise')
-      end
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate_coh_noise.collate_coh_noise.cmd_idx};
       
@@ -215,6 +205,25 @@ for img = 1:length(param.load.imgs)
       % Adjust coherent noise dft for changes in adc_gains relative to
       % when the coherent noise was loaded and estimated.
       coh_noise = coh_noise * 10.^((noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc)-wfs(wf).adc_gains_dB(adc))/20);
+      
+      % Adjust coherent noise for changes in system_dB
+      if length(wfs(wf).system_dB) == 1
+        system_dB = wfs(wf).system_dB;
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+      else
+        % A number is provided for each receiver path for system_dB
+        system_dB = wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
+      end
+      if length(noise.param_analysis.radar.wfs(wf).system_dB) == 1
+        system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB;
+        % Only a single number is provided for system_dB so apply it to all
+        % receiver paths
+      else
+        % A number is provided for each receiver path for system_dB
+        system_dB_noise = noise.param_analysis.radar.wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc));
+      end
+      coh_noise = coh_noise * 10.^((system_dB_noise-system_dB)/20);
       
       % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
       % changes relative to when the coherent noise was loaded and
@@ -951,6 +960,7 @@ for img = 1:length(param.load.imgs)
           else
             window_start_idx = find(f_rf >= wfs(wf).BW_window(1),1);
           end
+          f_rf = wfs(wf).f0 + wfs(wf).chirp_rate*(time_raw_no_trim - wfs(wf).td_mean);
           window_start_idx = window_start_idx_norm;
           H_idxs = window_start_idx : window_start_idx+Nt_raw_trim-1;
           if 0
@@ -1022,9 +1032,9 @@ for img = 1:length(param.load.imgs)
             tmp = tmp(cn.unique_idxs);
             tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
             if wfs(wf).f0 > wfs(wf).f1
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*cn.time));
             else
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*cn.time));
             end
             tmp = tmp .* cn.time_correction_freq;
             tmp = ifft(tmp);
@@ -1067,11 +1077,11 @@ for img = 1:length(param.load.imgs)
               % Undo tmp = tmp .* time_correction;
               tmp = tmp ./ cn.time_correction_freq;
               if wfs(wf).f0 > wfs(wf).f1
-                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
-                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-min(freq))*time);
+                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-f_rf(H_idxs(1)))*time);
               else
-                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
-                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-min(freq))*time);
+                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-f_rf(H_idxs(1)))*time);
               end
               % Undo tmp = tmp(unique_idxs);
               tmp = tmp(cn.return_idxs);
@@ -1082,9 +1092,9 @@ for img = 1:length(param.load.imgs)
               tmp = tmp(unique_idxs);
               tmp(conjugate_unique) = conj(tmp(conjugate_unique));
               if wfs(wf).f0 > wfs(wf).f1
-                tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
               else
-                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
               end
               tmp = tmp .* time_correction_freq;
               tmp = ifft(tmp);
@@ -1123,7 +1133,7 @@ for img = 1:length(param.load.imgs)
               %
               % Therefore, only a circular shift is required to complex baseband
               % the data.
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
             else
               % Positive chirp: the initial DFT causes a frequency domain reversal
               % which flips the frqeuency domain so that the RF frequency mapping
@@ -1134,7 +1144,7 @@ for img = 1:length(param.load.imgs)
               %
               % The frequency reversal and conjugation are fixed by conjugating the
               % signal before the FFT.
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
             end
             
             % Modulate the raw data to adjust the start time to always be a
@@ -1286,7 +1296,7 @@ for img = 1:length(param.load.imgs)
         
         if wfs(wf).coh_noise_arg.DC_remove_en
           data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-            mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
+            nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
         end
         
         if length(wfs(wf).coh_noise_arg.B_coh_noise) > 1
@@ -1482,7 +1492,7 @@ for img = 1:length(param.load.imgs)
   
   if param.load.pulse_comp == 1
     % Check if any good records, skip truncation if not
-    if any(~hdr.bad_rec{img}(1,:,wf_adc))
+    if any(~hdr.bad_rec{img}(1,:))
       data{img} = data{img}(1:wfs(wf).Nt,:,:);
     end
   end

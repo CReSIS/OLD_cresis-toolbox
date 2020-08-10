@@ -481,6 +481,8 @@ for state_idx = 1:length(states)
               nyquist_zone_hw{img}(num_accum(ai)+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum(ai)+1) = file_data(wf_hdr_offset+45);
+            elseif any(param.records.file.version == [4])
+              nyquist_zone_hw{img}(num_accum(ai)+1) = 0;
             else
               % nyquist_zone_hw defaults to 1 for all other file versions
               % (ideally this is overridden by

@@ -73,7 +73,9 @@ if ~update_records_flag
   try
     records = load(records_fn,'param_records');
     delta_offset = max(param.records.gps.time_offset) - max(records.param_records.records.gps.time_offset);
-    if delta_offset ~= 0
+    % Often param.records.gps.time_offset is NaN (unknown), if this is the
+    % case, then we do not do the delta_offset check
+    if isfinite(param.records.gps.time_offset) && delta_offset ~= 0
       update_records_flag = true;
     end
   end

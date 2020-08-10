@@ -9,6 +9,7 @@
 
 param_override = [];
 
+% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140325_04',{'analysis_noise','analysis'});
 params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200105_02',{'analysis_noise','analysis'});
 
 param_override.collate_burst_noise.in_path = 'analysis_burst';
@@ -40,7 +41,6 @@ else
 end
 
 % Process each of the segments
-ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic

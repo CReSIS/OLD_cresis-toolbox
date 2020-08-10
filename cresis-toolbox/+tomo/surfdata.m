@@ -79,9 +79,8 @@ classdef surfdata < handle
     %      value indicates no data at this point
     surf
     
-    theta
-    
-    time
+    theta % Support legacy "bins" unit format 
+    time % Support legacy "bins" unit format 
     
     unit_type
   end
@@ -161,6 +160,9 @@ classdef surfdata < handle
         obj.param.season_name = source.param.season_name;
         obj.param.sw_version = current_software_version;
         
+        if isempty(source.surf)
+          source.surf = struct();
+        end
         obj.surf = orderfields(source.surf);
       end
       
@@ -441,16 +443,26 @@ classdef surfdata < handle
       %
       % Function for validating all the metadata fields
       %
-      % md: struct containing gps_time, theta, fcs, radar_name,
-      %   param.
+      % md: struct containing gps_time, fcs, radar_name, param. May contain
+      %   theta and time fields.
       
       obj.valid_metadata(md);
       
       obj.param = md.param;
       obj.gps_time = md.gps_time;
-      obj.theta = md.theta;
-      obj.time = md.time;
       obj.fcs = md.fcs;
+      
+      if isfield(md,'theta')
+        obj.theta = md.theta;
+      else
+        obj.theta = [];
+      end
+      if isfield(md,'time')
+        obj.time = md.time;
+      else
+        obj.time = [];
+      end
+      
     end
     
     function obj = set_surf(obj, surf_struct)
