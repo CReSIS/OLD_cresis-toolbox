@@ -18,7 +18,7 @@ if ~exist('adc','var') || isempty(adc)
 end
 
 if ischar(param)
-  noise_fn = param
+  noise_fn = param;
   param = [];
 elseif isstruct(param)
   noise_fn_dir = fileparts(ct_filename_out(param,param.radar.wfs(wf).coh_noise_arg.fn, ''));
