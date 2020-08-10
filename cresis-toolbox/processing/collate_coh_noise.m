@@ -76,6 +76,16 @@ if ~isfield(param.(mfilename),'debug_max_size') || isempty(param.(mfilename).deb
   param.(mfilename).debug_max_size = 0;
 end
 
+if isfield(param.collate_coh_noise,'dft_corr_length')
+  error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time and specify an entry for each image to be processed.');
+end
+if ~isfield(param.collate_coh_noise,'dft_corr_time')
+  param.collate_coh_noise.dft_corr_time = [];
+end
+for img = param.collate_coh_noise.imgs
+  param.collate_coh_noise.dft_corr_time(img) = inf;
+end
+
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
   for img = param.collate_coh_noise.imgs
     param.collate_coh_noise.firdec_fs{img} = 0;
@@ -92,6 +102,10 @@ if ~isfield(param.collate_coh_noise,'in_path') || isempty(param.collate_coh_nois
   param.collate_coh_noise.in_path = 'analysis';
 end
 
+if ~isfield(param.collate_coh_noise,'min_samples') || isempty(param.collate_coh_noise.min_samples)
+  param.collate_coh_noise.min_samples = 0.5;
+end
+
 if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise.method)
   for img = param.collate_coh_noise.imgs
     param.collate_coh_noise.method{img} = 'dft';
@@ -102,16 +116,6 @@ if ~iscell(param.collate_coh_noise.method)
 end
 if length(param.collate_coh_noise.method) < max(param.collate_coh_noise.imgs)
   error('In param.collate_coh_noise.method cell array of strings, a collate coh noise method must be specified for each image. For example {''dft'',''dft''} for images 1 and 2.');
-end
-
-if isfield(param.collate_coh_noise,'dft_corr_length')
-  error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time and specify an entry for each image to be processed.');
-end
-if ~isfield(param.collate_coh_noise,'dft_corr_time')
-  param.collate_coh_noise.dft_corr_time = [];
-end
-for img = param.collate_coh_noise.imgs
-  param.collate_coh_noise.dft_corr_time(img) = inf;
 end
 
 if ~isfield(param.collate_coh_noise,'out_path') || isempty(param.collate_coh_noise.out_path)
@@ -205,9 +209,7 @@ for img = param.collate_coh_noise.imgs
       noise = load(fn);
       
       cmd = noise.param_analysis.analysis.cmd{param.collate_coh_noise.cmd_idx};
-      if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)
-        cmd.min_samples = 0.5*cmd.block_ave;
-      end
+      min_samples = param.collate_coh_noise.min_samples*cmd.block_ave;
       
       % Each processed block has a constant start and stop bin, but between
       % blocks the start/stop range bin may change.
@@ -283,7 +285,7 @@ for img = param.collate_coh_noise.imgs
               end
             else
               tmp = noise.coh_ave{block_idx}(bin-start_bins(block_idx)+1,:);
-              tmp(noise.coh_ave_samples{block_idx}(bin-start_bins(block_idx)+1,:) < cmd.min_samples) = NaN;
+              tmp(noise.coh_ave_samples{block_idx}(bin-start_bins(block_idx)+1,:) < min_samples) = NaN;
               coh_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = tmp;
               if enable_threshold
                 coh_bin_mag(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave_mag{block_idx}(bin-start_bins(block_idx)+1,:);
@@ -529,7 +531,7 @@ for img = param.collate_coh_noise.imgs
       ct_saveas(h_fig(5),fig_fn);
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
-      ct_saveas(h_fig(1),fig_fn);
+      ct_saveas(h_fig(5),fig_fn);
     end
     
     if enable_visible_plot

@@ -526,14 +526,20 @@ for img = 1:length(store_param.load.imgs)
             if cmd.threshold_removeDC
               good_samples = bsxfun(@lt, lp(bsxfun(@minus,data(:,rlines),mu)), threshold);
             else
-              good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+              if cmd.threshold_coh_ave == 1
+                good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+              else
+                good_samples = bsxfun(@lt, lp(nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2)), threshold-10);
+              end
             end
           end
           
           %% Coh Noise: Debug coh_ave.threshold
           if 0
+            num_coh_ave = cmd.threshold_coh_ave;
             figure(1); clf;
-            imagesc(lp(data(:,rlines)));
+            imagesc(lp(nan_fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2)));
+            cc = caxis;
             a1 = gca;
             figure(2); clf;
             imagesc(good_samples);
@@ -542,9 +548,22 @@ for img = 1:length(store_param.load.imgs)
             title('Good sample mask (black is thresholded)');
             a2 = gca;
             figure(3); clf;
-            imagesc( lp(bsxfun(@minus,data(:,rlines),mu)) );
+            if 0
+              % Subtract mu (mean of data with high variance signals removed)
+              imagesc( lp(bsxfun(@minus,nan_fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2), mu                     )) );
+              caxis(cc);
+            else
+              % Subtract the mean
+              tmp = data(:,rlines);
+              tmp(~good_samples) = NaN;
+              imagesc( lp(bsxfun(@minus,nan_fir_dec(tmp,ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2), nanmean(tmp,2) )) );
+              caxis(cc);
+            end
             a3 = gca;
-            linkaxes([a1 a2 a3], 'xy');
+            figure(4); clf;
+            imagesc(angle(fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1)));
+            a4 = gca;
+            linkaxes([a1 a2 a3 a4], 'xy');
             keyboard
           end
           

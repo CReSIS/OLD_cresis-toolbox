@@ -21,7 +21,7 @@ if ischar(param)
   noise_fn = param
   param = [];
 elseif isstruct(param)
-  noise_fn_dir = fileparts(ct_filename_out(param,param.wfs(wf).coh_noise_arg.fn, ''));
+  noise_fn_dir = fileparts(ct_filename_out(param,param.radar.wfs(wf).coh_noise_arg.fn, ''));
   noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
 else
   error('param must be a string or struct.');
