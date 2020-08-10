@@ -458,9 +458,9 @@ elseif 1
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_CESSNA.xls'),'','post');
+  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_N1KU.xls'),'','post');
   params = ct_set_params(params,'cmd.generic',0);
-  %params = ct_set_params(params,'cmd.generic',1,'day_seg','20200129_01');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20200128_01');
   
   grid_fn = ct_filename_gis([],fullfile('usa','DEM','NED','National_Elevation_Data_DEM_10m.tif'));
   
