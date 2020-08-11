@@ -34,7 +34,7 @@ for img = 1:length(param.load.imgs)
           nz = double(hdr.nyquist_zone_hw{img}(rec));
           % Check and load measured filter response for corresponding Nyquist Zone
           if ~(nz==nz_prev)
-            prepulse_fn = fullfile(ct_filename_out(param,'analysis','',1),...
+            prepulse_fn = fullfile(ct_filename_out(param,prepulse_H.dir,'',1),...
               sprintf('%s_rx_%d_nz_%d.mat', param.radar.wfs(wf).prepulse_H.fn, rx, nz));
             prepulse = load(prepulse_fn);
             nz_signal_prev = NaN;

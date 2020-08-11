@@ -44,7 +44,7 @@ end
 
 
 % Process each of the segments
-fprintf('%s\t%s\n', 'day_seg', 'BW_window');
+fprintf('%s\t%s\t%s\n', 'day_seg', 'BW_window_GHz', 'BW_window');
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
