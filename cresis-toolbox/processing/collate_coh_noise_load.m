@@ -55,6 +55,9 @@ if update_collate_coh_noise_file
     end
   end
   warning('Old collate_coh_noise file format. collate_coh_noise_update.m being run to update collate_coh_noise file.');
-  collate_coh_noise_update(param,[],wf,adc);
+  param.collate_coh_noise_update.wfs = wf;
+  param.collate_coh_noise_update.rx_paths{wf} = nan(1,adc);
+  param.collate_coh_noise_update.rx_paths{wf}(adc) = true; % Actual value does not matter as long as ~isnan
+  collate_coh_noise_update(param,[]);
   noise = load(param,[]);
 end
