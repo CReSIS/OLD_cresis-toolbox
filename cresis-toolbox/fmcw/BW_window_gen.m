@@ -82,4 +82,4 @@ BW_window(2) = BW_window_ideal(2) - ~param.BW_window_gen.stretch_deramp*(max(par
 % Ensure that the BW window is a multiple of df
 BW_window = round(BW_window(1)/df)*df + [0 round(diff(BW_window)/df)*df];
 
-fprintf('%s\t[%.12g %.12g]\n',param.day_seg, BW_window);
+fprintf('%s\t[%.3ge9 %.3ge9]\t[%.12g %.12g]\n',param.day_seg,  BW_window/1e9, BW_window);

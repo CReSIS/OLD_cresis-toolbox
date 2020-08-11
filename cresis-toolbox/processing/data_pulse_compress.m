@@ -30,6 +30,9 @@ for img = 1:length(param.load.imgs)
         nz_prev = NaN;
         nz_signal_prev = NaN;
         for rec = 1:size(data{img},2)
+          if hdr.bad_rec{img}(rec)
+            continue;
+          end
           rx = param.radar.wfs(wf).rx_paths(adc);
           nz = double(hdr.nyquist_zone_hw{img}(rec));
           % Check and load measured filter response for corresponding Nyquist Zone
