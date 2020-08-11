@@ -16,6 +16,39 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
+%% Input check
+% =====================================================================
+
+if ~isfield(param,'collate_coh_noise_update')
+  param.collate_coh_noise_update = [];
+end
+
+% param.collate_coh_noise_update.wfs: numeric vector of waveforms to be
+% updated. Default is to do all waveforms: 1:length(param.radar.wfs)
+if ~isfield(param.collate_coh_noise_update,'wfs')
+  param.collate_coh_noise_update.wfs = 1:length(param.radar.wfs);
+end
+
+% param.collate_coh_noise_update.rx_paths: vector of length equal to the
+% number of adcs to update. The entries in the vector do not matter except
+% whether or not they are NaN. ADCs corresponding to NaN entries will be
+% skipped. Non-NaN will be updated. For example if there are six ADCs and
+% only the fourth ADC should be processed, then two example field values
+% would work:
+%   [NaN NaN NaN 1 NaN NaN]
+%   [NaN NaN NaN 1]
+% Since only the fourth entry is ~isnan(), only the fourth ADC will be
+% updated.
+if ~isfield(param.collate_coh_noise_update,'rx_paths')
+  for wf = param.collate_coh_noise_update.wfs
+    % Make sure param.radar.wfs.rx_paths exists
+    if ~isfield(param.radar.wfs,'rx_paths')
+      param.radar.wfs.rx_paths = 1;
+    end
+    param.collate_coh_noise_update.rx_paths{wf} = param.radar.wfs(wf).rx_paths;
+  end
+end
+
 %% Update files if needed
 % =====================================================================
 if cluster_job_check()
@@ -23,15 +56,11 @@ if cluster_job_check()
 end
 
 % Loop through each waveform for this segment
-for wf = 1:length(param.radar.wfs)
-  % Make sure param.radar.wfs.rx_paths exists
-  if ~isfield(param.radar.wfs,'rx_paths')
-    param.radar.wfs.rx_paths = 1;
-  end
+for wf = param.collate_coh_noise_update.wfs
   % Loop through each adc for this segment
-  for adc = 1:length(param.radar.wfs(wf).rx_paths)
-    if ~isfinite(param.radar.wfs(wf).rx_paths(adc))
-      % NaN in rx_paths means the adc does not exist
+  for adc = 1:length(param.collate_coh_noise_update.rx_paths{wf})
+    if ~isfinite(param.collate_coh_noise_update.rx_paths{wf}(adc))
+      % NaN in rx_paths means the adc is not attached to anything
       continue;
     end
     
