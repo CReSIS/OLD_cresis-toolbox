@@ -155,10 +155,11 @@ void TRWS::solve() {
       mexPrintf("  loop: %2d of %2d                              \n", loop+1, mMax_Loops);
     }
 
+    bool odd_iteration = loop%2;
     // Loop through along-track dimension
     for (size_t w_idx = 0; w_idx < mNx; w_idx++) {
       size_t w;
-      if (loop%2) {
+      if (odd_iteration) {
         // Iterating right to left
         w = mNx-1-w_idx;
       } else {
@@ -173,8 +174,8 @@ void TRWS::solve() {
       // Loop through cross-track dimension
       for (size_t h_idx = 0; h_idx < mNsv; h_idx++) {
         // Switch iteration direction every 2 loops
-        size_t h = 0;        
-        if ((loop>>1) % 2 == 0) {
+        size_t h = 0;
+        if (odd_iteration) {
           // Iterating bottom to top
           h = mNsv-1-h_idx;
         } else {
@@ -206,7 +207,7 @@ void TRWS::solve() {
           message_sum[d] = mMessage_Up[message_idx] + mMessage_Right[message_idx] + mMessage_Down[message_idx] - mImage[message_idx];
           // message_in for node on the right (w-1) excludes mMessage_Left which came from the node on the right
         }
-        if (w > 0) {
+        if (w > 0 && odd_iteration) {
           // Message destination index
           size_t msg_dest_idx = (h + (w-1)*mNsv)*mNt;
           int dest_rbin_start = mBounds[2*w-2];
@@ -234,7 +235,7 @@ void TRWS::solve() {
           // message_in for node above (h-1) the current excludes mMessage_Up
           message_in[d] = message_sum[d] - mMessage_Up[message_idx];
         }
-        if (h > 0) {
+        if (h > 0 && odd_iteration) {
           size_t msg_dest_idx = (h-1 + w*mNsv)*mNt;
           int dest_rbin_start = mBounds[2*w];
           int dest_rbin_stop = mBounds[2*w+1];
@@ -257,7 +258,7 @@ void TRWS::solve() {
         for (size_t d = cur_rbin_start, message_idx = cur_message_idx+cur_rbin_start; d <= cur_rbin_stop; d++, message_idx++) {
           message_in[d] = message_sum[d] - mMessage_Right[message_idx];
         }
-        if (w < mNx-1) {
+        if (w < mNx-1 && !odd_iteration) {
           size_t msg_dest_idx = (h + (w+1)*mNsv)*mNt;
           int dest_rbin_start = mBounds[2*w+2];
           int dest_rbin_stop = mBounds[2*w+3];
@@ -279,7 +280,7 @@ void TRWS::solve() {
         for (size_t d = cur_rbin_start, message_idx = cur_message_idx+cur_rbin_start; d <= cur_rbin_stop; d++, message_idx++) {
           message_in[d] = message_sum[d] - mMessage_Down[message_idx];
         }
-        if (h < mNsv-1) {
+        if (h < mNsv-1 && !odd_iteration) {
           size_t msg_dest_idx = (h+1 + w*mNsv)*mNt;
           int dest_rbin_start = mBounds[2*w];
           int dest_rbin_stop = mBounds[2*w+1];

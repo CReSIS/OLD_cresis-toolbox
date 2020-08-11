@@ -16,7 +16,7 @@ SURFACE = 'CT';
 INDEX_EVEN_LOOP = true;
 
 % Display on this figure
-FIGURE_NUM = 2;
+FIGURE_NUM = 1;
 
 trws_data = zeros(Nt, Nsv, Nx);
 

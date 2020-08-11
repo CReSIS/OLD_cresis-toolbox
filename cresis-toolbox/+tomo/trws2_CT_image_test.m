@@ -1,8 +1,10 @@
 %% CONSTANTS
 FIGURE_NUM = NaN;
-SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/';
-SAVE_NORM = true;
-SAVE_SURF = true;
+SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/perm Antarctica/output images/';
+SAVE_IMAGE = false; % Save the normalized (output) image
+SAVE_SURF = true; % Save the output surface
+SAVE_FIG = true; % Save the created figure
+SAVE_NAME = 'forward send 2 perms 1 pass full vert'; % name of save files and directory
 RNG_SEED = 1;
 TOP_LAYER_GUARD = 0;
 BOTTOM_LAYER_GUARD = 0;
@@ -14,16 +16,16 @@ Ssv = NaN;
 Sx  = NaN;
 
 % End index
-Et  = 1700;
+Et  = NaN;
 Esv = NaN;
-Ex  = 500;
+Ex  = NaN;
 
 % Num sampled points (resolutions)
 Nt  = NaN;
 Nsv = NaN;
 Nx  = NaN;
 
-MAX_LOOPS = 4; % Number of iterations of TRWS to perform
+MAX_LOOPS = 1; % Number of iterations of TRWS to perform
 
 PLOT_INDICES = false; % Plot indices on which dt is performed
 INDEX_LOOP_NUM = 0; % Plot index traversal order for this loop num
@@ -41,6 +43,7 @@ PLOT_MAX_SURF = false; % Plot the maximum points as a surface. (LOAD_DATA must b
 LOAD_DATA = true; % Use image data to plot intensities
 RELOAD_DATA = false; % When false, only load trws_data if not already loaded. Ignored if LOAD_DATA is false
 FIND_SURF = true; % Calls TRWS when true. Overridden by presets below. correct_surface must be set manually when false.
+COLOR_SURF_DATA = 'trws_data'; % Color the surface with intensity values from given variable. generally 'trws_data_norm' for output image or 'trws_data' for input image. 'none' for solid coloring;
 
 PLOT_CT_BOUNDS = false; % Plot the CT-slope surface boundaries
 PLOT_FT_BOUNDS = true; % Plot the FT-slope surface boundaries
@@ -50,7 +53,7 @@ USE_DEBUG_MATRIX = true; % Get the final image values from the TRWS2 algorithm a
 PLOT_HISTOGRAM = false; % Plot a histogram of the data
 
 %% DISPLAY VARS
-DISPLAY_VARS = {'RNG_SEED', 'TOP_LAYER_GUARD', 'BOTTOM_LAYER_GUARD', 'NOISE_FLOOR', 'St', 'Ssv', 'Sx', 'Et', 'Esv', 'Ex', 'Nt', 'Nsv', 'Nx', 'MAX_LOOPS', 'NORMALIZE_DATA', 'USE_DEBUG_MATRIX', 'FIND_SURF'};
+DISPLAY_VARS = {'RNG_SEED', 'TOP_LAYER_GUARD', 'BOTTOM_LAYER_GUARD', 'NOISE_FLOOR', 'St', 'Ssv', 'Sx', 'Et', 'Esv', 'Ex', 'Nt', 'Nsv', 'Nx', 'MAX_LOOPS', 'NORMALIZE_DATA', 'USE_DEBUG_MATRIX', 'FIND_SURF', 'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SAVE_FIG', 'SAVE_NAME'};
 if PLOT_POINTS
   DISPLAY_VARS{end + 1} = 'PLOT_POINTS';
   DISPLAY_VARS{end + 1} = 'PLOT_THRESHOLD';
@@ -80,7 +83,7 @@ if 1
   LOAD_DATA = true;
 elseif 0
   % Load surface from file
-  correct_surface = load('C:/Users/mathe/Documents/MATLAB/TRWS_CT results/perm Antarctica/bounded/cropped surf traverse entire/100 guard/20 iter/entire_matrix_surf.mat');
+  correct_surface = load('C:/Users/mathe/Documents/MATLAB/TRWS_CT results/perm Antarctica/bounded/cropped surf traverse entire/no guard/1 iter/entire_matrix_surf.mat');
   correct_surface = correct_surface.correct_surface;
   echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   FIND_SURF = false;
@@ -88,6 +91,9 @@ elseif 0
   %     Nt  = NaN;
   %     Nsv = NaN;
   %     Nx  = NaN;
+  SAVE_FIG = false;
+  SAVE_SURF = false;
+  SAVE_IMAGE = false;
   Esv = 64;
 elseif 0
   % Find surface of Greenland data
@@ -201,7 +207,7 @@ end
 %% PERFORM TRWS
 % Create default slopes, weights, and bounds
 at_slope  = zeros(1, Nx);
-at_weight = 5;
+at_weight = 1;
 CT_bounds = ones(2, Nx);
 CT_bounds(2, :) = Nsv;
 
@@ -219,6 +225,7 @@ if FIND_SURF
 else
   correct_surface = correct_surface(St:Tt:Et, Sx:Tx:Ex);
 end
+
 
 %% NORMALIZE IMAGE DATA
 if LOAD_DATA
@@ -268,9 +275,9 @@ end
 
 %% CREATE FIGURE
 if ~isnan(FIGURE_NUM)
-  figure(FIGURE_NUM);
+  fig = figure(FIGURE_NUM);
 else
-  figure;
+  fig = figure;
 end
 
 clf;
@@ -334,7 +341,7 @@ ylabel('Y : Fast-Time (Nt, DIM 0)');
 set(gca, 'YColor', 'r');
 set(gca, 'ydir', 'reverse');
 
-view([90 90 45]);
+view([40 90 15]);
 camorbit(90, 0, 'data', [0 0 1]);
 camorbit(90, 0, 'data', [1 0 0]);
 cameratoolbar('SetCoordSys', 'y');
@@ -342,6 +349,26 @@ cameratoolbar('SetMode', 'orbit');
 
 camva(10);
 % colormap(bone);
+
+%% COLOR SURFACE
+if ~strcmp(COLOR_SURF_DATA, 'none')
+  color_data = eval(COLOR_SURF_DATA);
+  intensities = nan(Nt, Nx);
+  for d = 1:Nt
+    for w = 1:Nx
+      h = correct_surface(d, w);
+      if isnan(h)
+        continue
+      end
+      intensities(d, w) = color_data(d, h, w);
+    end
+  end
+  set(h_correct_surf, 'CData', intensities);
+  set(h_correct_surf, 'FaceColor', 'interp');
+  caxis([min(color_data(:)) max(color_data(:))]);
+  c_bar = colorbar;
+  ylabel(c_bar, 'Input Intensity');
+end
 
 %% PLOT FT BOUNDS
 if PLOT_FT_BOUNDS
@@ -445,8 +472,8 @@ end
 
 %% Add variable values to plot
 current_axes = gca;
-current_axes.Position(3) = .6;
-current_axes.Position(1) = .4;
+current_axes.Position(3) = .5;
+current_axes.Position(1) = .3;
 
 
 str = '';
@@ -461,26 +488,35 @@ for display_cell = DISPLAY_VARS
   else
     if isnumeric(value)
       template = '%s = %.2f';
-    elseif isstring(value)
+    elseif isstring(value) || ischar(value)
       template = '%s = %s';
     else
-      warning('No template for class %s', class(value));
+      warning('No template for %s (class %s)', display_var, class(value));
       continue;
     end
     str = sprintf('%s%s\n', str, sprintf(template, display_var, value));
   end
 end
-str = strrep(str, '_', '\_');
-annotation('textbox', [0, 0, 0.3, 1], 'String', str);
+annotation('textbox', [0, 0, 0.3, 1], 'String', str, 'Interpreter', 'none', 'FontSize', 6, 'LineStyle', 'none');
 
 %% SAVE OUTPUTS
-if SAVE_NORM
+
+if exist([SAVE_PATH SAVE_NAME], 'dir') ~= 7 % 7 is a folder
+  mkdir([SAVE_PATH SAVE_NAME]);
+end
+
+output_path = [SAVE_PATH SAVE_NAME '/'];
+
+if SAVE_IMAGE
   Tomo.img = trws_data_norm;
   Time = mdata.Time(St:Tt:Et);
-  save([SAVE_PATH 'norm_image.mat'], 'Tomo', 'Time');
+  save([output_path 'image.mat'], 'Tomo', 'Time');
 end
 if SAVE_SURF
-  save([SAVE_PATH 'output_surface.mat'], 'correct_surface');
+  save([output_path 'surf.mat'], 'correct_surface');
+end
+if SAVE_FIG
+  savefig(fig, [output_path 'fig.fig']);
 end
 
 
