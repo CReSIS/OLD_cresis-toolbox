@@ -59,6 +59,10 @@ if ~isfield(param.collate_burst_noise,'in_path') || isempty(param.collate_burst_
   param.collate_burst_noise.in_path = 'analysis';
 end
 
+if ~isfield(param.collate_burst_noise,'max_bad_waveforms') || isempty(param.collate_burst_noise.max_bad_waveforms)
+  param.collate_burst_noise.max_bad_waveforms = 1;
+end
+
 if ~isfield(param.collate_burst_noise,'out_path') || isempty(param.collate_burst_noise.out_path)
   param.collate_burst_noise.out_path = param.collate_burst_noise.in_path;
 end
@@ -105,7 +109,7 @@ for img = param.collate_burst_noise.imgs
     % Combine all boards: Some wf-adc pairs result in multiple waveforms
     % being loaded (e.g. for IQ on transmit or separate IQ channels or
     % zero-pi mod sequences that are stored separately)
-    boards = cell2mat({states.board});
+    boards = cell2mat({states.board_idx});
     
     % Set bit 2 to true for the bad records
     new_bit_mask(boards,bad_recs_unique) = bitor(4,new_bit_mask(boards,bad_recs_unique));
@@ -136,7 +140,7 @@ for img = param.collate_burst_noise.imgs
       set(h_fig(2), 'name', 'burst_noise waveforms');
       h_axes(2) = axes('parent',h_fig(2));
       for block_idx = 1:length(noise.bad_waveforms)
-        plot(lp(noise.bad_waveforms{block_idx}), 'parent', h_axes(2));
+        plot(lp(noise.bad_waveforms{block_idx}(:,1:min(param.collate_burst_noise.max_bad_waveforms,end))), 'parent', h_axes(2));
         hold(h_axes(2),'on');
       end
       title(h_axes(2), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
@@ -168,7 +172,7 @@ for img = param.collate_burst_noise.imgs
 end
 
 %% Update records file
-records.bit_mask = records.bit_mask - bitand(4,records.bit_mask) + new_bit_mask;
+records.bit_mask = records.bit_mask - bitand(4,records.bit_mask) + uint8(new_bit_mask);
 records_fn = ct_filename_support(param,'','records');
 ct_save(records_fn,'-append','-struct','records','bit_mask');
 

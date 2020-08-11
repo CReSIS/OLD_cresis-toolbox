@@ -221,6 +221,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         end
       end
       
+      if ~isfield(cmd,'threshold_coh_ave')
+        cmd.threshold_coh_ave = 1;
+      elseif mod(cmd.threshold_coh_ave-1,2)
+        error('param.analysis.cmd{%d}.threshold_coh_ave must be odd; currently %g.', cmd_idx, cmd.threshold_coh_ave);
+      end
+      
       if ~isfield(cmd,'threshold_removeDC') || isempty(cmd.threshold_removeDC)
         % Default is to not remove slow-time DC before determining good
         % samples to use in coh_ave and coh_ave_mag

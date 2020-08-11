@@ -462,7 +462,7 @@ elseif 1
   params = ct_set_params(params,'cmd.generic',0);
   %params = ct_set_params(params,'cmd.generic',1,'day_seg','20200129_01');
   
-  grid_fn = ct_filename_gis([],fullfile('SouthDakota','National_Elevation_Data_DEM_10m.tif'));
+  grid_fn = ct_filename_gis([],fullfile('usa','DEM','NED','National_Elevation_Data_DEM_10m.tif'));
   
   % Load the grid
   points = [];

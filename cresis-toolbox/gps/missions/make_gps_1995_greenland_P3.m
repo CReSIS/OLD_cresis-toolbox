@@ -111,6 +111,6 @@ if ~isempty(match_idx)
   gps.elev = interp_finite(gps.elev);
   save(gps_fn,'-append','-struct','gps','elev');
   gps.lon(gps.lon < -150) = NaN;
-  gps.lon = interp_finite(gps.lon);
+  gps.lon = interp_finite(gps.lon,[],@gps_interp1);
   save(gps_fn,'-append','-struct','gps','lon');
 end

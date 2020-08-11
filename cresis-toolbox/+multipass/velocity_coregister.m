@@ -1,3 +1,6 @@
+%% User Settings
+% =========================================================================
+
 param = [];
 vel_fn = {};
 vel_mult = [];
@@ -60,9 +63,31 @@ vel_mult{2} = [1 1 1 1];
 % vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
 % vel_mult{3} = [1 1];
 
-load(fn);
+%% Automated Section
+% =========================================================================
 
-figure(1); clf;
+% Load multipass.multipass output
+load(fn,'pass','param_multipass');
+
+vel_param = []; vel_param.velocity_coregister = [];
+if ~isfield(vel_param.velocity_coregister,'debug_plots') || isempty(vel_param.velocity_coregister.debug_plots)
+  vel_param.velocity_coregister.debug_plots = {'visible'};
+end
+enable_visible_plot = any(strcmp('visible',vel_param.velocity_coregister.debug_plots));
+if ~isempty(vel_param.velocity_coregister.debug_plots)
+  h_fig = get_figures(4,enable_visible_plot);
+end
+
+%% Interpolate velocity
+% =========================================================================
+%  Interpolate the surface velocity maps for each pass. We do not
+%  interpolate the last pass in the list because this function assumes it
+%  to be the last pass in time and therefore does not need any velocity
+%  correction. All other passes should have a list of velocity maps that
+%  allow the velocity to be integrated over time to correct for velocity
+%  from when the particular pass was taken to the last pass.
+
+figure(h_fig(1)); clf;
 baseline_master_idx = param_multipass.multipass.baseline_master_idx;
 for pass_idx = 1:length(pass)
   
@@ -92,7 +117,7 @@ for pass_idx = 1:length(pass)
       
       % Debug: plot velocity geotiff
       if 0
-        figure(1);
+        figure(h_fig(1));
         imagesc(xaxis/1e3, yaxis/1e3, vel);
         set(gca,'YDir','normal');
         colorbar;
@@ -107,24 +132,27 @@ for pass_idx = 1:length(pass)
   end
 end
 
-%%
-figure(2); clf;
-figure(3); clf;
-figure(4); clf;
+%% Plot velocity corrected layers
+% =========================================================================
+%  Plot the integrated velocity and the surface velocity corrected ice surface
+%  and bottom layers for each pass.
+figure(h_fig(2)); clf;
+figure(h_fig(3)); clf;
+figure(h_fig(4)); clf;
 leg_str = {};
 h_vel = [];
 h_plot = [];
 for pass_idx = 1:length(pass)
   [year month day] = datevec(epoch_to_datenum(pass(pass_idx).gps_time(1)));
   
-  figure(2);
+  figure(h_fig(2));
   h_vel(pass_idx) = plot(pass(baseline_master_idx).along_track/1e3, pass(pass_idx).vel);
   grid on;
   hold on;
   xlabel('Along-track (km)');
   ylabel('Horizontal movement (m)');
   
-  figure(3);
+  figure(h_fig(3));
   lay_idx = 1;
   alongtrack = pass(baseline_master_idx).along_track + pass(pass_idx).vel;
   h_plot(pass_idx) = plot(alongtrack/1e3, pass(pass_idx).layers(lay_idx).layer_elev);
@@ -138,7 +166,7 @@ for pass_idx = 1:length(pass)
   xlabel('Along-track (km)');
   ylabel('Elevation (m,WGS-84)');
   
-  figure(4);
+  figure(h_fig(4));
   lay_idx = 1;
   alongtrack = pass(baseline_master_idx).along_track;
   h_plot(pass_idx) = plot(alongtrack/1e3, pass(pass_idx).layers(lay_idx).layer_elev);

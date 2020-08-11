@@ -375,16 +375,16 @@ for img = 1:length(store_param.load.imgs)
         adc = param.load.imgs{img}(wf_adc,2);
         
         %% Burst Noise: Smooth and Threshold
-        data_pow = abs(raw_data{1}(:,:,wf_adc).').^2;
+        data_signal = abs(raw_data{1}(:,:,wf_adc).').^2;
         
-        data_smooth = fir_dec(data_pow,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
-        data_smooth = fir_dec(data_smooth,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
-        data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
-        data_pow = fir_dec(data_pow,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
+        data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
+        data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+        data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
+        data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
         
-        % Find peaks in data_pow relative to data_smooth (constant false
+        % Find peaks in data_signal relative to data_noise (constant false
         % alarm rate detector)
-        bad_samples = lp(data_pow) > lp(data_smooth) + cmd.threshold;
+        bad_samples = lp(data_signal) > lp(data_noise) + cmd.threshold;
         % Convert peaks to range-bin/records
         bad_idxs = find(bad_samples);
         Nt = size(raw_data{1},1);
@@ -403,7 +403,7 @@ for img = 1:length(store_param.load.imgs)
           figure(1); clf;
           plot(bad_recs, bad_bins, 'x')
           figure(2); clf;
-          imagesc(lp(data_pow))
+          imagesc(lp(data_signal))
           link_figures([2 1],'xy');
         end
         
@@ -526,14 +526,20 @@ for img = 1:length(store_param.load.imgs)
             if cmd.threshold_removeDC
               good_samples = bsxfun(@lt, lp(bsxfun(@minus,data(:,rlines),mu)), threshold);
             else
-              good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+              if cmd.threshold_coh_ave == 1
+                good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+              else
+                good_samples = bsxfun(@lt, lp(nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2)), threshold-10);
+              end
             end
           end
           
           %% Coh Noise: Debug coh_ave.threshold
           if 0
+            num_coh_ave = cmd.threshold_coh_ave;
             figure(1); clf;
-            imagesc(lp(data(:,rlines)));
+            imagesc(lp(nan_fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2)));
+            cc = caxis;
             a1 = gca;
             figure(2); clf;
             imagesc(good_samples);
@@ -542,9 +548,22 @@ for img = 1:length(store_param.load.imgs)
             title('Good sample mask (black is thresholded)');
             a2 = gca;
             figure(3); clf;
-            imagesc( lp(bsxfun(@minus,data(:,rlines),mu)) );
+            if 0
+              % Subtract mu (mean of data with high variance signals removed)
+              imagesc( lp(bsxfun(@minus,nan_fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2), mu                     )) );
+              caxis(cc);
+            else
+              % Subtract the mean
+              tmp = data(:,rlines);
+              tmp(~good_samples) = NaN;
+              imagesc( lp(bsxfun(@minus,nan_fir_dec(tmp,ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2), nanmean(tmp,2) )) );
+              caxis(cc);
+            end
             a3 = gca;
-            linkaxes([a1 a2 a3], 'xy');
+            figure(4); clf;
+            imagesc(angle(fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1)));
+            a4 = gca;
+            linkaxes([a1 a2 a3 a4], 'xy');
             keyboard
           end
           

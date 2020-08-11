@@ -37,7 +37,7 @@ for img = 1:length(param.load.imgs)
           nz = double(hdr.nyquist_zone_hw{img}(rec));
           % Check and load measured filter response for corresponding Nyquist Zone
           if ~(nz==nz_prev)
-            prepulse_fn = fullfile(ct_filename_out(param,'analysis','',1),...
+            prepulse_fn = fullfile(ct_filename_out(param,prepulse_H.dir,'',1),...
               sprintf('%s_rx_%d_nz_%d.mat', param.radar.wfs(wf).prepulse_H.fn, rx, nz));
             prepulse = load(prepulse_fn);
             nz_signal_prev = NaN;
@@ -185,37 +185,10 @@ for img = 1:length(param.load.imgs)
     %% Coherent noise: Analysis Load
     % ===================================================================
     if strcmpi(wfs(wf).coh_noise_method,'analysis')
-      noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
-      noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-      
-      fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
-      noise = load(noise_fn);
-      if ~isfield(noise,'param_collate_coh_noise') || isempty(noise.param_collate_coh_noise)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise = noise.param_collate;
-        noise = rmfield(noise,'param_collate');
-        ct_save(noise_fn,'-struct','noise')
-      end
+      noise = collate_coh_noise_load(param,wf,adc);
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
-      if ~isfield(noise,'param_records') || isempty(noise.param_records)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_records = param;
-        ct_save(noise_fn,'-struct','noise')
-      end
       param.collate_coh_noise.param_records = noise.param_records;
-      if ~isfield(noise.param_collate_coh_noise.collate_coh_noise,'method') || isempty(noise.param_collate_coh_noise.collate_coh_noise.method)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise.collate_coh_noise.method = 'dft';
-        ct_save(noise_fn,'-struct','noise')
-      end
-      if isfield(noise,'coh_noise') && isfield(noise,'coh_noise_gps_time')
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.firdec_gps_time = noise.coh_noise_gps_time;
-        noise.firdec_noise    = noise.coh_noise;
-        noise = rmfield(noise,{'coh_noise','coh_noise_gps_time'});
-        ct_save(noise_fn,'-struct','noise')
-      end
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate_coh_noise.collate_coh_noise.cmd_idx};
       
@@ -1326,7 +1299,7 @@ for img = 1:length(param.load.imgs)
         
         if wfs(wf).coh_noise_arg.DC_remove_en
           data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-            mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
+            nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
         end
         
         if length(wfs(wf).coh_noise_arg.B_coh_noise) > 1
