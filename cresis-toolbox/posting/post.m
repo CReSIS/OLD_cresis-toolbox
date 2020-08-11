@@ -372,7 +372,7 @@ for frm_idx = 1:length(param.cmd.frms)
       echo_param.fig_hand = [];
     end
     
-    echo_param.frm_id = sprintf('%s_03d', param.day_seg, frm);
+    echo_param.frm_id = sprintf('%s_%03d', param.day_seg, frm);
     
     echo_info = publish_echogram(echo_param,mdata,lay, surface_lay.layerData{1});
     for handle_idx = 1:length(echo_info.h_layers)

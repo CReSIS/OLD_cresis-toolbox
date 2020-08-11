@@ -486,16 +486,16 @@ if strcmpi(radar_type,'deramp')
   nz(nz<min(param.radar.nz_valid)) = min(param.radar.nz_valid);
   nz(nz>max(param.radar.nz_valid)) = max(param.radar.nz_valid);
   
-  if isfield(records.settings,'nyquist_zone')
-    original_nz = records.settings.nyquist_zone;
+  if isfield(records,'nyquist_zone_sig')
+    original_nz = records.nyquist_zone_sig;
   else
     original_nz = nan(size(records.gps_time));
   end
-  records.settings.nyquist_zone = interp1(layers(radar_idx).gps_time,nz,records.gps_time,'nearest','extrap');
+  records.nyquist_zone_sig = interp1(layers(radar_idx).gps_time,nz,records.gps_time,'nearest','extrap');
   
   if param.check_surface.save_records_en
     records_fn = ct_filename_support(param,'','records');
-    save(records_fn,'-append','-struct','records','settings');
+    ct_save(records_fn,'-append','-struct','records');
   end
   
   clf(h_fig(5));
