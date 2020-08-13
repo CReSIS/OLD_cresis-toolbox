@@ -482,7 +482,7 @@ else
 end
 set(obj.right_panel.status_panel.statusText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.statusText,'String','');
-set(obj.right_panel.status_panel.statusText,'TooltipString','Right click to copy status bar text');
+set(obj.right_panel.status_panel.statusText,'TooltipString','Right click or ctrl-C to copy status bar text. Status bar text shows time and location at cursor; shows layer depth if a layer is selected.');
 
 % mouse coordinate info display
 obj.right_panel.status_panel.mouseCoordText = uicontrol('parent',obj.right_panel.status_panel.handle);
@@ -495,7 +495,7 @@ else
 end
 set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.mouseCoordText,'String','');
-set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Latitude deg, Longitude deg (X, Y, ColorData)');
+set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Latitude (deg, N) Longitude (deg, W) |X-coordinate|Y-coordinate|Z-coordinate/intensity.');
 
 %----echogram context menu
 obj.right_panel.echoCM= uicontextmenu('parent',obj.h_fig);

@@ -190,6 +190,16 @@ for img = param.collate_coh_noise.imgs
           noise.fc = fc;
           noise.param_records = param_records;
           noise.param_analysis = param_analysis;
+          Nt = size(dft_noise,1);
+          time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
+          Tpd = param.radar.wfs(wf).Tpd;
+          if enable_threshold
+            coh_noise_est = sort(max_filt1(cn_before.',15),2);
+            coh_noise_est = lp(coh_noise_est(:,round(0.05*end)),2);
+            if Nt > 101
+              coh_noise_est = sgolayfilt(coh_noise_est,3,101);
+            end
+          end
           reuse_success = 1;
         else
           reuse_success = 0;
@@ -357,6 +367,16 @@ for img = param.collate_coh_noise.imgs
       time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
       Tpd = param.radar.wfs(wf).Tpd;
       if enable_threshold
+        coh_noise_est = sort(max_filt1(cn_before.',15),2);
+        coh_noise_est = lp(coh_noise_est(:,round(0.05*(end-1))+1),2);
+        if Nt > 101
+          coh_noise_est = sgolayfilt(coh_noise_est,3,101);
+        end
+      end
+      if enable_threshold
+        % For debugging and plotting, save the original threshold value
+        % When debugging, run "threshold = orig_threshold;" to test
+        % different threshold values.
         orig_threshold = threshold;
         if ~isempty(param.collate_coh_noise.threshold_eval)
           if numel(param.collate_coh_noise.threshold_eval) < img
@@ -378,6 +398,10 @@ for img = param.collate_coh_noise.imgs
           % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
           % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(dft_noise(:,1)).^2)+6);';
           % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(nt,threshold+6),max_filt1(10*log10(abs(dft_noise(:,1)).^2)+15-1e6*(time>(Tpd+1.2e-6)),5));';
+          % To update threshold in debug mode run:
+          %   threshold = orig_threshold;
+          %   cmd_str = param.collate_coh_noise.threshold_eval{img}; % Fill in string with new threshold_eval command
+          %   eval(cmd_str);
           eval(cmd_str);
         end
       end
@@ -405,6 +429,7 @@ for img = param.collate_coh_noise.imgs
       if enable_threshold
         reuse.orig_threshold  = orig_threshold;
         reuse.threshold       = threshold;
+        reuse.cn_before_mag   = cn_before_mag;
       end
       
       reuse.file_version = '1';
@@ -515,7 +540,8 @@ for img = param.collate_coh_noise.imgs
       grid(h_axes(5), 'on');
       plot(h_axes(5), threshold, 'LineStyle', '--')
       plot(h_axes(5), lp(abs(dft_noise(:,1)).^2,1))
-      legend(h_axes(5), 'Original', 'Modified', 'DC Noise', 'location', 'best')
+      plot(h_axes(5), coh_noise_est);
+      legend(h_axes(5), 'Original', 'Modified', 'DC Noise', 'Coh Noise Est', 'location', 'best')
       xlabel(h_axes(5), 'Range bin');
       ylabel(h_axes(5), 'Relative power (dB)');
       title(h_axes(5), sprintf('Threshold %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
@@ -577,60 +603,7 @@ for img = param.collate_coh_noise.imgs
     out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Saving %s (%s)\n', out_fn, datestr(now));
     ct_save(out_fn,'-struct','noise_simp');
-    
-    %         case 'custom2'
-    %
-    %           coh_ave_RFI = noise.coh_ave(regime_mask,:).';
-    %
-    %           % Remove RFI
-    %           B = [ones(1,11), 0, ones(1,11)]; A = 1; B = B / sum(B);
-    %           threshold = fir_dec(abs(coh_ave_RFI).^2, B, 1);
-    %           mask = lp(coh_ave_RFI) > lp(threshold) + 20;
-    %           coh_ave_RFI(mask) = 0;
-    %           for rbin = 1:size(coh_ave_RFI,1)
-    %             coh_ave_RFI(rbin,:) = interp_finite(coh_ave_RFI(rbin,:).',0).';
-    %           end
-    %
-    %           coh_ave = coh_ave_RFI;
-    %           Mx = 1;
-    %           Nx = size(coh_ave,2);
-    %           Nx_cutoff = round(cmd.Wn*Nx);
-    %
-    %           median_coh_ave = median(abs(coh_ave),2);
-    %           mask = bsxfun(@gt,abs(coh_ave),abs(median_coh_ave*cmd.threshold));
-    %
-    %           coh_ave(mask) = NaN;
-    %
-    %           coh_ave_hpf = coh_ave_RFI;
-    %           for fc = -round(cmd.Wn*Nx):round(cmd.Wn*Nx)
-    %             coh_ave = coh_ave_hpf;
-    %             coh_ave(mask) = NaN;
-    %             coh_ave_mod = bsxfun(@times,coh_ave,exp(-1i*2*pi*fc/Nx*(0:Nx-1)));
-    %             mean_coh_ave = nanmean(coh_ave_mod,2);
-    %             mean_coh_ave = kron(mean_coh_ave, exp(1i*2*pi*fc/Nx*(0:Nx-1)));
-    %             coh_ave_hpf = coh_ave_hpf - mean_coh_ave;
-    %           end
-    %
-    %           if 0
-    %             figure(1); clf;
-    %             imagesc(lp(coh_ave_hpf))
-    %             title('Should have coherent noise removed if working well.')
-    %             caxis([0 100]);
-    %
-    %             figure(2); clf;
-    %             imagesc(lp(noise.coh_ave(regime_mask,:).'))
-    %             caxis([0 100]);
-    %
-    %             figure(3); clf;
-    %             imagesc(mask)
-    %
-    %             keyboard
-    %           end
-    %
-    %           % Store data (1 - HPF = LPF)
-    %           noise.coh_ave(regime_mask,:) = coh_ave_RFI.'-coh_ave_hpf.';
-    %
-    
+
   end
 end
 
