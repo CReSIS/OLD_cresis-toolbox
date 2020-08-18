@@ -38,17 +38,12 @@ function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops,
     surface = single(surface);
   end
   
-  surface = [nan(min_bound - 1, nx); surface; nan(size(image, 1) - max_bound, nx)];
-  
   for rline = 1:nx
-    for rbin = 1:nt
-        doa_bin = surface(rbin, rline);
-        if isnan(doa_bin)
-          continue;
-        end
-        if rbin < ft_bounds_top(doa_bin, rline) + 1 || rbin > ft_bounds_bottom(doa_bin, rline) + 1
-            surface(rbin, rline) = NaN;
-        end
+    for doa_bin = 1:nsv
+      surface(1:nt < ft_bounds_top(doa_bin, rline), rline) = NaN;
+      surface(1:nt > ft_bounds_bottom(doa_bin, rline), rline) = NaN;
     end
-  end
+  end 
+  
+  surface = [nan(min_bound - 1, nx); surface; nan(size(image, 1) - max_bound, nx)];
 end

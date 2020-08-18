@@ -4,10 +4,10 @@ SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/perm Antarctica/out
 SAVE_IMAGE = false; % Save the normalized (output) image
 SAVE_SURF = true; % Save the output surface
 SAVE_FIG = true; % Save the created figure
-SAVE_NAME = 'forward send 2 perms 1 pass full vert'; % name of save files and directory
+SAVE_NAME = 'forward send 2 perms full vert layer guard 4 pass input crop'; % name of save files and directory
 RNG_SEED = 1;
-TOP_LAYER_GUARD = 0;
-BOTTOM_LAYER_GUARD = 0;
+TOP_LAYER_GUARD = 200;
+BOTTOM_LAYER_GUARD = 300;
 NOISE_FLOOR = -40;
 
 % Start index
@@ -25,7 +25,7 @@ Nt  = NaN;
 Nsv = NaN;
 Nx  = NaN;
 
-MAX_LOOPS = 1; % Number of iterations of TRWS to perform
+MAX_LOOPS = 4; % Number of iterations of TRWS to perform
 
 PLOT_INDICES = false; % Plot indices on which dt is performed
 INDEX_LOOP_NUM = 0; % Plot index traversal order for this loop num
@@ -179,6 +179,8 @@ Tx  = max(Tx, 1);
 
 %% RESAMPLE DATA
 % Resample and window data to given start and end indices and resolutions
+min_bound = 1;
+max_bound = Nx;
 if LOAD_DATA
   trws_data = trws_data(St:Tt:Et, Ssv:Tsv:Esv, Sx:Tx:Ex);
   trws_data_norm = trws_data;
@@ -190,6 +192,8 @@ if LOAD_DATA
   max_bounds = max_bounds(Ssv:Tsv:Esv, Sx:Tx:Ex) - St + 1;
   min_bounds = interp1(St:Tt:Et, 1:length(St:Tt:Et), min_bounds, 'nearest');
   max_bounds = interp1(St:Tt:Et, 1:length(St:Tt:Et), max_bounds, 'nearest');
+  max_bounds(isnan(max_bounds)) = Et - St;
+  min_bounds(isnan(min_bounds)) = 1;
   min_bound = min(min_bounds(:));
   max_bound = max(max_bounds(:));
 end
@@ -289,7 +293,7 @@ X = 1:Nx;
 
 xlims = [1 Nx];
 zlims = [0 Nsv];
-ylims = [1 Nt];
+
 
 clear surf;
 
@@ -332,8 +336,10 @@ zticklabels(z_labels);
 zlabel('Z : Cross-Track (Nsv. DIM 1)');
 set(gca, 'ZColor', 'g');
 
+num_t = length(min_bound:Tt:max_bound);
+ylims = [min_bound max_bound];
 ylim(ylims);
-y_points = round(linspace(1, Nt, min(Nt, MAX_TICKS)));
+y_points = round(linspace(min_bound, max_bound, min(num_t, MAX_TICKS)));
 yticks(y_points);
 y_labels = (y_points-1)*Tt+St;
 yticklabels(y_labels);
