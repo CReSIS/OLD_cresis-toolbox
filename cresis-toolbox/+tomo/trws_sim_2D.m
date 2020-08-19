@@ -1,7 +1,8 @@
 % Not complete, but started work on 2D MRF
-num_nodes = [20 20];
-num_states = 10;
-num_loops = 4;
+num_nodes = [32 24];
+num_states = 14;
+num_loops = 16;
+rng(0);
 if 0
   I = ones(num_states,num_nodes(1),num_nodes(2));
 else
@@ -13,7 +14,9 @@ else
   I(5,[13 15],:) = bsxfun(@plus, I(5,[13 15],:),[5 7]);
   I(4,[19],:) = I(4,[19],:) + [4];
   % Remove first 8 rows of every column
-  I(:,1:8,:) = randn(num_states,8,num_nodes(2));
+  I(:,17:32,:) = 1*randn(num_states,16,num_nodes(2));
+  % Artifact
+  I(12,26:28,14:16) = I(12,26:28,14:16) + 1000;
 end
 msg_up = zeros(num_states,num_nodes(1),num_nodes(2));
 msg_down = zeros(num_states,num_nodes(1),num_nodes(2));
@@ -25,6 +28,8 @@ old_msg_left = zeros(num_states,num_nodes(1),num_nodes(2));
 old_msg_right = zeros(num_states,num_nodes(1),num_nodes(2));
 trws_en = true;
 normalize = true;
+smooth_scale = 1;
+
 loop_dir = 2;
 figure(1); clf;
 imagesc(I(:,:,1))
@@ -45,7 +50,7 @@ for loop = 0:num_loops-1
         msg_up(:,row_idx+1,col_idx) = old_msg_up(:,row_idx,col_idx) + I(:,row_idx,col_idx);
       else
         for state = 1:num_states
-          msg_up(state,row_idx+1,col_idx) = max(I(:,row_idx,col_idx) + old_msg_left(:,row_idx,col_idx) + old_msg_right(:,row_idx,col_idx) + old_msg_up(:,row_idx,col_idx) - (state-(1:10).').^2);
+          msg_up(state,row_idx+1,col_idx) = max(I(:,row_idx,col_idx) + old_msg_left(:,row_idx,col_idx) + old_msg_right(:,row_idx,col_idx) + old_msg_up(:,row_idx,col_idx) - smooth_scale*(state-(1:num_states).').^2);
         end
         if normalize
           msg_up(:,row_idx+1,col_idx) = msg_up(:,row_idx+1,col_idx) - max(msg_up(:,row_idx+1,col_idx));
@@ -57,7 +62,7 @@ for loop = 0:num_loops-1
         msg_down(:,row_idx-1,col_idx) = old_msg_down(:,row_idx,col_idx) + I(:,row_idx,col_idx);
       else
         for state = 1:num_states
-          msg_down(state,row_idx-1,col_idx) = max(I(:,row_idx,col_idx) + old_msg_left(:,row_idx,col_idx) + old_msg_right(:,row_idx,col_idx) + old_msg_down(:,row_idx,col_idx) - (state-(1:10).').^2);
+          msg_down(state,row_idx-1,col_idx) = max(I(:,row_idx,col_idx) + old_msg_left(:,row_idx,col_idx) + old_msg_right(:,row_idx,col_idx) + old_msg_down(:,row_idx,col_idx) - smooth_scale*(state-(1:num_states).').^2);
         end
         if normalize
           msg_down(:,row_idx-1,col_idx) = msg_down(:,row_idx-1,col_idx) - max(msg_down(:,row_idx-1,col_idx));
@@ -69,7 +74,7 @@ for loop = 0:num_loops-1
         msg_left(:,row_idx,col_idx+1) = old_msg_left(:,row_idx,col_idx) + I(:,row_idx,col_idx);
       else
         for state = 1:num_states
-          msg_left(state,row_idx,col_idx+1) = max(I(:,row_idx,col_idx) + old_msg_up(:,row_idx,col_idx) + old_msg_down(:,row_idx,col_idx) + old_msg_left(:,row_idx,col_idx) - (state-(1:10).').^2);
+          msg_left(state,row_idx,col_idx+1) = max(I(:,row_idx,col_idx) + old_msg_up(:,row_idx,col_idx) + old_msg_down(:,row_idx,col_idx) + old_msg_left(:,row_idx,col_idx) - smooth_scale*(state-(1:num_states).').^2);
         end
         if normalize
           msg_left(:,row_idx,col_idx+1) = msg_left(:,row_idx,col_idx+1) - max(msg_left(:,row_idx,col_idx+1));
@@ -81,7 +86,7 @@ for loop = 0:num_loops-1
         msg_right(:,col_idx-1) = old_msg_right(:,col_idx) + I(:,col_idx);
       else
         for state = 1:num_states
-          msg_right(state,row_idx,col_idx-1) = max(I(:,row_idx,col_idx) + old_msg_up(:,row_idx,col_idx) + old_msg_down(:,row_idx,col_idx) + old_msg_right(:,row_idx,col_idx) - (state-(1:10).').^2);
+          msg_right(state,row_idx,col_idx-1) = max(I(:,row_idx,col_idx) + old_msg_up(:,row_idx,col_idx) + old_msg_down(:,row_idx,col_idx) + old_msg_right(:,row_idx,col_idx) - smooth_scale*(state-(1:num_states).').^2);
         end
         if normalize
           msg_right(:,row_idx,col_idx-1) = msg_right(:,row_idx,col_idx-1) - max(msg_right(:,row_idx,col_idx-1));
@@ -130,6 +135,8 @@ clf;
 for col = 1:num_nodes(2)
   figure(1); clf;
   imagesc(I(:,:,col))
+  hold on
+  plot(result(1,:,col),'k')
   figure(2); clf;
   imagesc(I(:,:,col) + msg_left(:,:,col) + msg_right(:,:,col) + msg_up(:,:,col) + msg_down(:,:,col));
   hold on
