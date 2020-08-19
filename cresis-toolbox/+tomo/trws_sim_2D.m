@@ -2,13 +2,19 @@
 num_nodes = [20 20];
 num_states = 10;
 num_loops = 4;
-I = ones(num_states,num_nodes(1),num_nodes(2));
-I = 1*randn(num_states,num_nodes(1),num_nodes(2));
-I(1:5,1:3,:) = I(1:5,1:3,:) + 3.5;
-I(6,[1],:) = I(6,[1],:) + [10];
-I(7,[4 10],:) = bsxfun(@plus, I(7,[4 10],:),[5 7]);
-I(5,[13 15],:) = bsxfun(@plus, I(5,[13 15],:),[5 7]);
-I(4,[19],:) = I(4,[19],:) + [4];
+if 0
+  I = ones(num_states,num_nodes(1),num_nodes(2));
+else
+  I = 1*randn(num_states,num_nodes(1),num_nodes(2));
+  % Add in surface points
+  I(1:5,1:3,:) = I(1:5,1:3,:) + 3.5;
+  I(6,[1],:) = I(6,[1],:) + [10];
+  I(7,[4 10],:) = bsxfun(@plus, I(7,[4 10],:),[5 7]);
+  I(5,[13 15],:) = bsxfun(@plus, I(5,[13 15],:),[5 7]);
+  I(4,[19],:) = I(4,[19],:) + [4];
+  % Remove first 8 rows of every column
+  I(:,1:8,:) = randn(num_states,8,num_nodes(2));
+end
 msg_up = zeros(num_states,num_nodes(1),num_nodes(2));
 msg_down = zeros(num_states,num_nodes(1),num_nodes(2));
 msg_left = zeros(num_states,num_nodes(1),num_nodes(2));
@@ -119,8 +125,12 @@ end
 
 [confidence,result] = max(I + msg_left + msg_right + msg_up + msg_down);
 
+%% Print result
 clf;
 for col = 1:num_nodes(2)
+  figure(1); clf;
+  imagesc(I(:,:,col))
+  figure(2); clf;
   imagesc(I(:,:,col) + msg_left(:,:,col) + msg_right(:,:,col) + msg_up(:,:,col) + msg_down(:,:,col));
   hold on
   plot(result(1,:,col),'k')
