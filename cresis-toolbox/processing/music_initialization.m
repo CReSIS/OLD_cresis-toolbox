@@ -1,4 +1,4 @@
-function out = music_initialization(Rxx,param)
+function out = music_initialization(DCM,param)
 % out = music_initialization(Rxx,param)
 %
 % Function used to get an initial estimate of source locations in MUSIC
@@ -29,7 +29,7 @@ function out = music_initialization(Rxx,param)
 % See also: array_proc.m, music_cost_function.m
 % =========================================================================
 
-[V,D]                   = eig(Rxx);
+[V,D]                   = eig(DCM);
 eigenVals               = diag(D);
 [eigenVals, eigenValIdxs]  = sort(real(eigenVals),'descend');
 V                       = V(:,eigenValIdxs);

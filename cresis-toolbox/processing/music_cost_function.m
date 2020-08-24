@@ -9,7 +9,7 @@ function S = music_cost_function(theta, param)
 % 
 %   param = control structure containing the following fields:
 %     .Nsrc   = 1 x 1 scalar specifying dimensionality of signal subspace,
-%     .Rxx    = Nc x Nc complex valued sample covariance matrix,
+%     .DCM    = Nc x Nc complex valued sample covariance matrix,
 %     .fc     = 1 x 1 scalar valued carrier frequency (Hz)
 %     .y_pc   = Nc x 1 vector containing y coordinates of phase centers
 %               in SAR FCS (meters),
@@ -23,38 +23,38 @@ function S = music_cost_function(theta, param)
 % See also: array_proc.m, music_initialization.m
 % =========================================================================
 
+%% music_cost_function: Input checks
+% =========================================================================
 
-%% Evaluate steering vectors at test value theta
+if ~isfield(param,'sv_fh')||isempty(param.sv_fh)
+  param.sv_fh = @array_proc_sv;
+end
+
+if ~isfield(param,'sv_dielectric') || isempty(param.sv_dielectric)
+  param.sv_dielectric = 1;
+end
+
+if ~isfield(param,'lut') || isempty(param.lut)
+  param.lut = [];
+end
+
+if ~isfield(param,'lut_roll') || isempty(param.lut_roll)
+  param.lut_roll = [];
+end
+
+%% music_cost_function:  Steering vector evaluation
 % =========================================================================
 %
 % NOTE: Currently only ideal steering vectors are supported. This could be 
 % improved by passing in LUT through the param structure.
 c = 2.997924580003452e+08; % physical_constants too slow
-% k = 4*pi*param.fc*param.sv_dielectric/c;
-% ky = k*sin(theta);
-% kz = k*cos(theta);
-% ky = ky(:).';
-% kz = kz(:).';
-% SV = sqrt(1/length(param.y_pc))*exp(1i*(-param.z_pc*kz + param.y_pc*ky));
-
-% Original array_proc_sv 
-if ~isfield(param,'sv_fh') || isempty(param.sv_fh)
-  sv_arg{1} = 'theta';
-  sv_arg{2} = theta;
-  sv_arguments = {sv_arg,param.fc*param.sv_dielectric,param.y_pc,param.z_pc,};
-  [~,SV] = array_proc_sv(sv_arguments{:});
-  
-else
-  % Update sv generation (better lut support)
-  sv_arg{1} = theta;
-  sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
-  [~,SV] = param.sv_fh(sv_arguments{:});
-end
-  
+sv_arg.theta = theta;
+sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
+[~,SV] = param.sv_fh(sv_arguments{:});
 
 %% Compute Cost
 % =========================================================================
-[V,D]     = eig(param.Rxx);
+[V,D]     = eig(param.DCM);
 eigenVals = diag(D);
 [eigenVals, noiseIdxs] = sort(eigenVals);
 noiseIdxs = noiseIdxs(1:end - param.Nsrc);

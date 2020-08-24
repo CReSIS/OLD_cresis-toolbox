@@ -13,15 +13,22 @@ rng_args = zeros(param.monte.runs);
 % SV params
 % Setup theta grid and steering vectors for multi-dimensional search
 % algorithms
+% [param.method.theta, param.method.SV] ...
+%   = array_proc_sv(param.method.Nsv,param.src.fc, param.src.y_pc, param.src.z_pc);
 [param.method.theta, param.method.SV] ...
-  = array_proc_sv(param.method.Nsv,param.src.fc, param.src.y_pc, param.src.z_pc);
+  = array_proc_sv(param.src.fc*param.src.sv_dielectric, param.src.y_pc, param.src.z_pc, param.method.Nsv, [],[]);
+
 param.method.theta             = fftshift(param.method.theta);
 param.method.SV                = fftshift(param.method.SV,2);
 
 % Setup theta grid and steering vectors for 1-dimensional search
 % algorithms (e.g. MUSIC)
+% [param.method.OneD_theta, param.method.OneD_SV] ...
+%   = array_proc_sv(param.method.OneD_Nsv,param.src.fc, param.src.y_pc, param.src.z_pc);
+
 [param.method.OneD_theta, param.method.OneD_SV] ...
-  = array_proc_sv(param.method.OneD_Nsv,param.src.fc, param.src.y_pc, param.src.z_pc);
+  = array_proc_sv(param.src.fc*param.src.sv_dielectric, param.src.y_pc, param.src.z_pc, param.method.Nsv,[],[]);
+
 param.method.OneD_theta             = fftshift(param.method.OneD_theta);
 param.method.OneD_SV                = fftshift(param.method.OneD_SV,2);
 
@@ -177,8 +184,8 @@ for run_idx = 1:param.monte.runs
   
   DCM_nb_idxs = (param.method.wb_td.widening_factor-1)/2*length(param.src.y_pc) + (1:length(param.src.y_pc));
   DCM_nb = DCM(DCM_nb_idxs,DCM_nb_idxs);
-  doa_nb_1d_param.Rxx = DCM_nb;
-  doa_nb_nd_param.Rxx = DCM_nb;
+  doa_nb_1d_param.DCM = DCM_nb;
+  doa_nb_nd_param.DCM = DCM_nb;
   
   doa_wb_fd_param.Rxx = DCM_fd;
   
