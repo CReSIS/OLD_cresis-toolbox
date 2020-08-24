@@ -30,12 +30,27 @@ function S = music_cost_function(theta, param)
 % NOTE: Currently only ideal steering vectors are supported. This could be 
 % improved by passing in LUT through the param structure.
 c = 2.997924580003452e+08; % physical_constants too slow
-k = 4*pi*param.fc*param.sv_dielectric/c;
-ky = k*sin(theta);
-kz = k*cos(theta);
-ky = ky(:).';
-kz = kz(:).';
-SV = sqrt(1/length(param.y_pc))*exp(1i*(-param.z_pc*kz + param.y_pc*ky));
+% k = 4*pi*param.fc*param.sv_dielectric/c;
+% ky = k*sin(theta);
+% kz = k*cos(theta);
+% ky = ky(:).';
+% kz = kz(:).';
+% SV = sqrt(1/length(param.y_pc))*exp(1i*(-param.z_pc*kz + param.y_pc*ky));
+
+% Original array_proc_sv 
+if ~isfield(param,'sv_fh') || isempty(param.sv_fh)
+  sv_arg{1} = 'theta';
+  sv_arg{2} = theta;
+  sv_arguments = {sv_arg,param.fc*param.sv_dielectric,param.y_pc,param.z_pc,};
+  [~,SV] = array_proc_sv(sv_arguments{:});
+  
+else
+  % Update sv generation (better lut support)
+  sv_arg{1} = theta;
+  sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
+  [~,SV] = param.sv_fh(sv_arguments{:});
+end
+  
 
 %% Compute Cost
 % =========================================================================

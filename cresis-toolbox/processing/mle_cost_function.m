@@ -42,9 +42,18 @@ if param.proj_mtx_update
   % Setup steering vectors for the fixed
   theta_eval = [param.theta_fixed(:).',theta];
   theta_eval = theta_eval(:).';   % make theta have the right dimensions
-  Nsv2{1} = 'theta';
-  Nsv2{2} = theta_eval;
-  [~,SVs] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
+  
+  % Old way
+  if ~isfield(param,'sv_fh') || isempty(param.sv_fh)
+    Nsv2{1} = 'theta';
+    Nsv2{2} = theta_eval;
+    [~,SVs] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
+  else % New way
+    sv_arg{1} = theta_eval;
+    sv_arguments={param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
+    [~,SVs] = param.sv_fh(sv_arguments{:});
+  end
+  
 %   k     = 4*pi*param.fc/c;
 %   ky    = k*sin(theta_eval).';
 %   kz    = k*cos(theta_eval).';
@@ -61,7 +70,14 @@ else
   M = param.Nsrc;
   Nsv2{1} = 'theta';
   Nsv2{2} = theta;
-  [~,A] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
+  if ~isfield(param,'sv_fh') || isempty(param.sv_fh)
+    [~,A] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
+  else
+    sv_arg{1} = theta;
+    sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
+    [~,A] = param.sv_fh(sv_arguments{:});
+  end
+  
 %   k = 4*pi*param.fc/c;
 %   A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta) + param.y_pc*sin(theta)));
   Pa  = A * inv(A'*A) * A';
