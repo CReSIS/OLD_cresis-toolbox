@@ -1,12 +1,15 @@
 function collate_snapshots(param,param_override)
 % collate_snapshots(param,param_override)
 %
-% Function that takes snapshots and pulls out calibration pixels and stores
+% Function that takes snapshots, pulls out calibration pixels and stores
 % with corresponding surface ARRIVAL ANGLES (not surface intersection
 % angles, i.e. roll-corrected)
 %
-% TO DO:  ADD FUNCTIONALITY TO STORE MASK IN A MEANINGFULL WAY FOR BROWSING
-% IN THE PICKER.
+% TO DO:  
+%   1. ADD FUNCTIONALITY TO STORE MASK IN A MEANINGFULL WAY FOR BROWSING
+%       IN THE PICKER,
+%   2. Future capability may allow for MOE
+%   3. Does it make more sense to store the outputs by rx?
 %
 % param: struct with processing parameters
 %         -- OR --
@@ -16,14 +19,14 @@ function collate_snapshots(param,param_override)
 %         Typically global gRadar; param_override = gRadar;
 %
 % Example:
-%  See run_FUNCTION.m for how to run this function directly.
+%  See run_collate_snapshots.m for how to run this function directly.
 %  This function may be called from the run_master.m script using the
 %  param spreadsheet and the cmd.generic column.
 %
 % Authors: Theresa Moore
 %
-% See also: collate_snapshots.m
-
+% See also: collate_snapshots.m, run_collate_snapshots.m, array_proc.m
+%
 %% General Setup
 % =====================================================================
 
@@ -85,9 +88,6 @@ end
 if ~isfield(param.collate_snapshots,'same_doa_guard') || isempty(param.collate_snapshots.same_doa_guard)
   param.collate_snapshots.same_doa_guard = 5; % degrees
 end
-
-% 2014-05-06 16:13:17.84
-% 2014-05-06 16:13:36.82
 
 %%
 % Load frames file
@@ -193,6 +193,7 @@ for frm_idx = 1:length(param.cmd.frms)
       Ndoa_max = size(Tomo.surf_doa,1);
       doa_sort_idxs = bsxfun(@plus,bsxfun(@plus,sort_idxs,Ndoa_max*(0:Nt-1)),permute(Ndoa_max*Nt*(0:Nx-1),[1 3 2]));
       
+      % For more than one source, threshold highestst
       if Ndoa_max > 1
         % Threshold
         Tomo.power_mask = squeeze(Tomo.power(1,:,:) > Tomo.power(2,:,:) + param.collate_snapshots.scr_threshold);
@@ -200,10 +201,6 @@ for frm_idx = 1:length(param.cmd.frms)
         Tomo.power_mask = true(size(squeeze(Tomo.power)));
       end
       
-      % Number of sources per pixel
-      %       nsrc_per_pixel = squeeze(sum(~isnan(Tomo.surf_theta),1));
-      
-      %       Tomo.surf_theta = Tomo.surf_theta(theta_sort_idxs);
       Tomo.surf_theta = Tomo.surf_theta(doa_sort_idxs);
       
       Tomo.surf_doa   = Tomo.surf_doa(doa_sort_idxs);
@@ -271,146 +268,7 @@ for frm_idx = 1:length(param.cmd.frms)
     end
   end
 end
-% Phase centers
-%       param_array.gps_source = param_records.gps_source;
-%       for wf_adc = 1:size(param_array.array.imgs{img}{1},1)
-%         wf = param_array.array.imgs{img}{1}(wf_adc,1);
-%         adc = param_array.array.imgs{img}{1}(wf_adc,2);
-%         rxchannel = param_array.radar.wfs(wf).rx_paths(adc);
-%         phase_centers(:,wf_adc) = lever_arm(param_array, param_array.radar.wfs(wf).tx_weights, rxchannel);
-%       end
-%
-%       % Create angle bins
-%       bins = [min(param_array.array_proc.surface_theta):param.collate_snapshots.dtheta:max(param_array.array_proc.surface_theta)];
-%
-%       % Compute nominal steering vector forthe bin
-%       Nsv = {'theta'};
-%       Nsv{2} = bins/180*pi;
-%       [~,sv] = array_proc_sv(Nsv, param_array.radar.wfs(1).fc, phase_centers(2,:).', phase_centers(3,:).');
-%
-%       % Preallocate memory to story mean, median, variance and number of
-%       % samples for each bin.
-%       sv_mean{img_idx,frm_idx} = zeros(size(sv_list,1),length(bins));
-%       sv_var{img_idx,frm_idx} = zeros(size(sv_list,1),length(bins));
-%       sv_median{img_idx,frm_idx} = zeros(size(sv_list,1),length(bins));
-%       num_sam{img_idx,frm_idx} = zeros(1,length(bins));
-%
-%       % Loop over bins
-%       for bin_idx = 1:length(bins)
-%         bin_angle = bins(bin_idx);
-%
-%         bin_mask = abs(theta-bins(bin_idx)) < param.collate_snapshots.dtheta/2;
-%
-%         sv_list_bin{bin_idx} = sv_list(:,bin_mask);
-%
-%         for sv_idx = 1:size
-%           % Apply correction
-%
-%         end
-%
-%
-%         % Average relative amplitude and phase offset for the bin
-%         rel_amplitude = sqrt(mean(abs(sv_list(:,bin_mask)).^2,2));
-%         rel_angle = angle(mean(sv_list(:,bin_mask),2));
-%
-%         sv_mean{img_idx,frm_idx}(:,bin_idx) = rel_amplitude .* exp(1i*rel_angle);
-%         num_sam{img_idx,frm_idx}(bin_idx) = sum(bin_mask);
-%
-%         % Debug plotting
-%         if param.collate_snapshots.debug && param.collate_snapshots.plot_enable
-%           if param.collate_snapshots.plot_enable && 0
-%
-%             figure(1);clf
-%             hold on
-%             grid on
-%             grid minor
-%
-%             color_vec = hsv(Nc);
-%             for id = 1:Nc
-%               plot(real(sv_list_bin{bin_idx}(id,:)),imag(sv_list_bin{bin_idx}(id,:)),'Marker','.','Color',hsv(id));
-%             end
-%
-%             figure(5); clf;
-%             figure(4); clf;
-%
-%             % Debug print outs and plots
-%             fprintf('%.2f deg %d\n', mean(theta(bin_mask)), sum(bin_mask));
-%             fprintf('  %.1f - %.1f dB %.1f\n', min(power(bin_mask)), max(power(bin_mask)), 10*log10(mean(10.^(power(bin_mask)/10))));
-%
-%             ff=unwrap(angle( SVmean{img,frm}(:,bin_idx) .* sv(:,bin_idx) ));
-%             %       ff=unwrap(angle( SVmean(:,bin_idx) ));
-%             %       ff=unwrap(angle( sv(:,bin_idx) ));
-%             gg=SVmean{img,frm}(:,bin_idx);
-%
-%             figure(5);
-%             plot((ff-ff(ref_channel))*180/pi);
-%             grid on;
-%             hold on;
-%             title(sprintf('%.2f deg\n', bin_angle));
-%             xlabel('Rx path');
-%             ylabel('Angle of steering vector (deg)');
-%
-%             figure(4);
-%             plot(lp(gg) - lp(gg(ref_channel)));
-%             grid on;
-%             hold on;
-%             title(sprintf('%.2f deg\n', bin_angle));
-%             xlabel('Rx path');
-%             ylabel('Power steering vector (dB)');
-%             %               pause
-%           end
-%
-%
-%           figure(img*100+frm); clf;
-%           subplot(3,1,1:2);
-%           aa = gca;
-%           imagesc(bins,[],angle(sv_mean{img_idx,frm_idx})*180/pi);
-%           colorbar
-%           subplot(3,1,3);
-%           aa(2) = gca;
-%           plot(bins, num_sam{img,frm});
-%           linkaxes(aa,'x');
-%         end
-%
-%       end
-%
-%       % Save results
-%       wf = param_array.array_proc.imgs{img}(1,1);
-%       adc_list = param_array.array_proc.imgs{img}(:,2);
-%       rx_list
-%       file = sprintf('sv_offsets_img_%02d_%s_%03d.mat',param_array.array_proc.imgs{img}(1,1),param.day_seg,frm);
-%       out_dir = ct_filename_out(param,param.collate_snapshots.out_path)
-%       if ~isdir(out_dir)
-%         mkdir(out_dir);
-%       end
-%
-%       out_fn = fullfile(param.collate_snapshots.out_path,file);
-%       fprintf('  Saving cal data %s (%s)\n', out_fn, datestr(now));
-%       %             ct_save('-v7.3',out_fn,'SVmatrix','Nsrcs_frm','doa_max_source','power_max_source','ice_mask_max','doa_source_two','power_source_two','ice_mask_source_two','Latitude','Longitude','Elevation','GPS_time', ...
-%       %               'Time','param_array','param_records', ...
-%       %               'param_sar', 'Roll', 'Pitch', 'Heading','file_version');
-%
-% %     else
-% %       fprintf('File does not exist: %s (%s)\n\n', fn, datestr(now));
-% %
-% %     end
-% %
-%       ref_channel = param.collate_snapshots.ref_chan;
-%
-%       % Relative offset from the reference channel
-%       sv_list = bsxfun(@times, sv_list, exp(-1i*angle(sv_list(ref_channel,:))) );
 
-%
-%     keyboard
-%
-%   end
-%
-%% Save the result
-%     % =====================================================================
-%     out_fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.out_path, ''));
-%     out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-%     fprintf('Saving %s (%s)\n', out_fn, datestr(now));
-%     ct_save(out_fn,'-struct','noise_simp');
 
 
 
