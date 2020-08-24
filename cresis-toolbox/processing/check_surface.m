@@ -105,7 +105,7 @@ end
 
 if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
   param.check_surface.radar_layer_params.name = 'surface';
-  param.check_surface.radar_layer_params.source = 'layer';
+  param.check_surface.radar_layer_params.source = 'layerdata';
 end
 
 if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)

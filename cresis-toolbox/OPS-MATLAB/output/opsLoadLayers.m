@@ -158,7 +158,7 @@ for layer_idx = 1:length(layer_params)
     layer_params(layer_idx).read_only = true;
   end
   if ~isfield(layer_params,'lever_arm_en') || isempty(layer_params(layer_idx).lever_arm_en)
-    layer_params(layer_idx).lever_arm_en = false;
+    layer_params(layer_idx).lever_arm_en = true;
   end
   if ~isfield(layer_params(layer_idx),'existence_check') || isempty(layer_params(layer_idx).existence_check)
     layer_params(layer_idx).existence_check = true;
@@ -255,6 +255,13 @@ if ~isempty(lidar_layer_idx)
       records.gps_time([1 end]));
     
     lidar = read_lidar_dtu(lidar_fns,param);
+    
+  elseif any(strcmpi('bas',{layer_params.lidar_source}))
+    error('Not supported yet.');
+    lidar_fns = get_filenames_lidar(param, 'bas', ...
+      records.gps_time([1 end]));
+    
+    lidar = read_lidar_bas(lidar_fns,param);
     
   else
     error('Invalid LIDAR source %s', layer_params.lidar_source);
