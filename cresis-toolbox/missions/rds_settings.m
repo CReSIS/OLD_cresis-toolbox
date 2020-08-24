@@ -244,8 +244,13 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
       params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
-      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+      if any(strcmp(params(param_idx).day_seg,{'20200127_01'}))
+        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold_coh_ave';
+      else
+        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+      end
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
     elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
@@ -379,8 +384,13 @@ for param_idx = 1:length(params)
             params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t) 1/30;
             
             %params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
-            if any(strcmp(params(param_idx).day_seg,{'20200127_01'})) && wf == 2
-              params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(min(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+2.4e-6)),5));';
+            if any(strcmp(params(param_idx).day_seg,{'20200127_01'}))
+              if wf == 1
+                params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold(:) = -150;';
+              else
+                params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(orig_threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6,coh_noise_est+20)-10;';
+              end
+              
             elseif any(strcmp(params(param_idx).day_seg,{'20200126_01','20200128_01','20191230_02'}))
               params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(nanmin(threshold(time>Tpd+1.2e-6 & time<time(end)-Tpd))+6*ones(size(threshold)),max_filt1(max(threshold+6,10*log10(abs(dft_noise(:,1)).^2)+15)-1e6*(time>(Tpd+3.6e-6)),5));';
             elseif strcmp(params(param_idx).day_seg(1:6),'202001')

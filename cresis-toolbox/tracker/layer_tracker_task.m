@@ -71,7 +71,11 @@ else
     
     % Load the current frame
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    else
+      data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
+    end
     if frm_idx == 1
       mdata = load_L1B(data_fn);
       frm_start(frm_idx) = 1;
@@ -112,7 +116,11 @@ else
     
     % Load the previous frame
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    else
+      data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
+    end
     if exist(data_fn,'file')
       tmp_data = load_L1B(data_fn);
       
@@ -143,7 +151,11 @@ else
     
     % Load the next frame
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    else
+      data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
+    end
     if exist(data_fn,'file')
       tmp_data = load_L1B(data_fn);
       

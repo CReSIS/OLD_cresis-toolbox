@@ -232,7 +232,6 @@ for param_idx = 1:length(param_fns)
       surf = [surf tmp.surf NaN];
       bottom = [bottom tmp.bottom NaN];
       quality = [quality tmp.quality NaN];
-      collate_coh_noise_threshold
       % Store frame GPS time boundaries
       frm_info.frm_id = [frm_info.frm_id tmp.frm_info.frm_id];
       frm_info.start_gps_time = [frm_info.start_gps_time tmp.frm_info.start_gps_time];

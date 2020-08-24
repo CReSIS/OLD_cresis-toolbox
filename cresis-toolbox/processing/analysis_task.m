@@ -529,7 +529,7 @@ for img = 1:length(store_param.load.imgs)
               if cmd.threshold_coh_ave == 1
                 good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
               else
-                good_samples = bsxfun(@lt, lp(nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2)), threshold-10);
+                good_samples = bsxfun(@lt, lp(nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2)), threshold);
               end
             end
           end
@@ -554,9 +554,10 @@ for img = 1:length(store_param.load.imgs)
               caxis(cc);
             else
               % Subtract the mean
-              tmp = data(:,rlines);
+              tmp = nan_fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2);
               tmp(~good_samples) = NaN;
-              imagesc( lp(bsxfun(@minus,nan_fir_dec(tmp,ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2), nanmean(tmp,2) )) );
+              tmp_mean = nanmean(tmp,2);
+              imagesc( lp(bsxfun(@minus, tmp, tmp_mean )) );
               caxis(cc);
             end
             a3 = gca;
@@ -569,7 +570,11 @@ for img = 1:length(store_param.load.imgs)
           
           %% Coh Noise: Concatenate Info
           coh_ave_samples(:,rline0_idx) = sum(good_samples,2);
-          coh_ave(:,rline0_idx) = nansum(data(:,rlines) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          if cmd.threshold_coh_ave == 1
+            coh_ave(:,rline0_idx) = nansum(data(:,rlines) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          else
+            coh_ave(:,rline0_idx) = nansum( nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          end
           if cmd.mag_en
             coh_ave_mag(:,rline0_idx) = nansum(abs(data(:,rlines)) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
           else

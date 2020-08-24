@@ -323,7 +323,7 @@ for state_idx = 1:length(states)
         else
           % Next record is in the next file, rec_size is set to the rest of
           % the data in this file
-          rec_size = (length(file_data)-file_data_offset) - records.offset(board_idx,rec);
+          rec_size = (length(file_data)+file_data_offset) - records.offset(board_idx,rec);
         end
         
         % Process all wf-adc pairs in this record
