@@ -68,7 +68,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   end
 
   if 1
-    copy_param.copy_method = 'overwrite';
+    copy_param.copy_method = 'overwrite'; % default
   elseif 0
     copy_param.copy_method = 'fillgaps';
   else
