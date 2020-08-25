@@ -92,7 +92,7 @@ if ~isempty(LUT) && ~isempty(LUT_roll)
   theta_lut = theta - LUT_roll;
   sv_corr = (interp1(LUT.bins,LUT.sv_real,theta_lut,'linear','extrap') + 1i*interp1(LUT.bins,LUT.sv_imag,theta_lut,'linear','extrap')).';
   
-  sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
+%   sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
   sv = sv .* sv_corr;
 end
 
