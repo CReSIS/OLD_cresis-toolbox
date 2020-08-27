@@ -53,6 +53,95 @@ function gps = read_gps_arena(fn, param)
 %
 % See also read_gps_*.m, gps_plot.m, gps_make.m
 
+%% NMEA String Format
+% =============================================================================
+% NMEA-0183 message: GGA
+% Related Topics
+% NMEA-0183 messages: Overview
+% Time, position, and fix related data
+% An example of the GGA message string is:
+% 
+% $GPGGA,172814.0,3723.46587704,N,12202.26957864,W,2,6,1.2,18.893,M,-25.669,M,2.0,0031*4F
+% 
+% Note: The data string exceeds the NMEA standard length.
+% 
+% GGA message fields
+% Field	Meaning
+% 0	Message ID $GPGGA
+% 1	UTC of position fix
+% 2	Latitude
+% 3	Direction of latitude:
+% 	N: North
+% 	S: South
+% 4	Longitude
+% 5	Direction of longitude:
+% 	E: East
+% 	W: West
+% 6	GPS Quality indicator:
+% 	0: Fix not valid
+% 	1: GPS fix
+% 	2: Differential GPS fix, OmniSTAR VBS
+% 	4: Real-Time Kinematic, fixed integers
+% 	5: Real-Time Kinematic, float integers, OmniSTAR XP/HP or Location RTK
+% 7	Number of SVs in use, range from 00 through to 24+
+% 8	HDOP
+% 9	Orthometric height (MSL reference)
+% 10	M: unit of measure for orthometric height is meters
+% 11	Geoid separation
+% 12	M: geoid separation measured in meters
+% 13	Age of differential GPS data record, Type 1 or Type 9. Null field when DGPS is not used.
+% 14	Reference station ID, range 0000-4095. A null field when any reference station ID is selected and no corrections are received1.
+% 15	
+% The checksum data, always begins with *
+% 
+% Note: If a user-defined geoid model, or an inclined plane is loaded into the receiver, then the height output in the NMEA GGA string is always the orthometric height (height above a geoid). The orthometric height is output even if no user-defined geoid is loaded (there is a simplified default geoid in the receiver), or if a user-defined geoid is loaded, or if an inclined plane is used.
+% 
+% =============================================================================
+% NMEA-0183 message: RMC
+% Related Topics
+% NMEA-0183 messages: Overview
+% Position, velocity, and time
+% The RMC string is:
+% 
+% $GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+% 
+% GPRMC message fields
+% Field	Meaning
+% 0	Message ID $GPRMC
+% 1	UTC of position fix
+% 2	Status A=active or V=void
+% 3	Latitude
+% 4	Longitude
+% 5	Speed over the ground in knots
+% 6	Track angle in degrees (True)
+% 7	Date
+% 8	Magnetic variation in degrees
+% 9	The checksum data, always begins with *
+% 
+% =============================================================================
+% NMEA-0183 message: VTG
+% Related Topics
+% NMEA-0183 messages: Overview
+% Track made good and speed over ground
+% An example of the VTG message string is:
+% 
+% $GPVTG,,T,,M,0.00,N,0.00,K*4E
+% 
+% VTG message fields
+% Field	Meaning
+% 0	Message ID $GPVTG
+% 1	Track made good (degrees true)
+% 2	T: track made good is relative to true north
+% 3	Track made good (degrees magnetic)
+% 4	M: track made good is relative to magnetic north
+% 5	Speed, in knots
+% 6	N: speed is measured in knots
+% 7	Speed over ground in kilometers/hour (kph)
+% 8	K: speed over ground is measured in kph
+% 9	The checksum data, always begins with *
+% =============================================================================
+
+%% Input checks
 if ~exist('param','var') || isempty(param)
   error('Year, month, day must be specified in param struct');
 end
@@ -60,11 +149,13 @@ if ~isfield(param,'clk') || isempty(param.clk)
   param.clk = 10e6;
 end
 
+%% Open file
 [fid,msg] = fopen(fn,'r');
 if fid < 0
   error('Error opening %s: %s', fn, msg);
 end
 
+%% Process file line by line
 UTC_time_file = [];
 latitude = [];
 N_S = [];
@@ -96,7 +187,7 @@ while ~feof(fid)
       GPGGA_str = remain(2:end);
       C = textscan(GPGGA_str,format_str_GPGGA,'delimiter',', ','emptyvalue',NaN);
       [tag,UTC_time_file_tmp,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,fix,NoSatelite,dilution,...
-        altitude_tmp,alt_unit,geode_ref,geode_unit,dgps,checksum] = deal(C{:});
+        altitude_tmp,alt_unit,geoid_ref,geoid_unit,dgps,checksum] = deal(C{:});
       
       if ~isnan(relTimeCntrTmp) && ~isnan(profileCntrTmp) && ~isnan(ppsCntrTmp)
         if nmea_idx > 1
@@ -123,6 +214,9 @@ while ~feof(fid)
           longitude(nmea_idx) = longitude_tmp;
           E_W(nmea_idx) = E_W_tmp;
           altitude(nmea_idx) = altitude_tmp;
+          if ~isempty(geoid_ref) && isfinite(geoid_ref)
+            altitude(nmea_idx) = altitude(nmea_idx) + geoid_ref;
+          end
           relTimeCntr(nmea_idx) = relTimeCntrTmp;
           profileCntr(nmea_idx) = profileCntrTmp;
           ppsCntr(nmea_idx) = ppsCntrTmp;
@@ -176,6 +270,8 @@ while ~feof(fid)
   end
 end
 fclose(fid);
+
+%% Parse file contents
 
 if nmea_idx < 2
   gps.gps_time = [];
@@ -260,8 +356,7 @@ if all(isnan(gps_date))
   end
 end
 
-% ===================================================================
-% Store outputs in structure
+%% Store outputs in structure
 % ===================================================================
 if strcmpi(param.time_reference,'utc')
   % UTC time stored in file, so need to add leap seconds back in

@@ -11,7 +11,7 @@ function [lidar] = read_lidar_las(fns, param)
 %
 % -------------------------------------------------------------------------
 % IMPORTANT NOTE:
-% The x,y,z fields in the LAS file must be lon, lat, WGS-84 elevation
+% The x,y,z fields in the LAS file must be lat, lon, WGS-84 elevation
 % -------------------------------------------------------------------------
 %
 % 1. Obtain LAZ (compressed LAS) files. If LAS files already skip the first
@@ -69,11 +69,15 @@ lidar.surface = [];
 for fn_idx = 1:length(fns)
   fn = fns{fn_idx};
   
+  % Create lasdata class with contents from file "fn"
   lidar_tmp = lasdata(fn);
 
   % Concatenate contents of this file to the lidar output structure fields:
   lidar.lat(1,end+(1:length(lidar_tmp.x))) = lidar_tmp.x;
   lidar.lon(1,end+(1:length(lidar_tmp.x))) = lidar_tmp.y;
   lidar.surface(1,end+(1:length(lidar_tmp.x))) = lidar_tmp.z;
+  
+  % Delete handle class or it will stay in memory
+  delete(lidar_tmp);
 end
 lidar.gps_time = nan(size(lidar.lon));

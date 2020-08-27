@@ -6,9 +6,10 @@
 % Authors: John Paden
 
 %% Example Operations (just choose one)
+example_str = '';
 
-if 0
-  %% Example 1: Gogineni's Jakobshavn points
+if strcmpi(example_str,'gogineni_jakobshavn_point_cloud')
+  %% Example 1: Gogineni's Jakobshavn Point Cloud
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -43,7 +44,7 @@ if 0
   insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = points.x;
   insert_param.y = points.y;
-  insert_param.data = (points.A_SURF-points.A_BED) / (c/2/sqrt(er_ice));;
+  insert_param.data = (points.A_SURF-points.A_BED) / (c/2/sqrt(er_ice));
   
   insert_param.type = 'point'; % Point data
   insert_param.layer_dest.name = 'gogineni2014_pnt';
@@ -56,7 +57,7 @@ if 0
   insert_param.gaps_fill.method_args = [300 60];
   opsInsertLayer(params, insert_param);
   
-elseif 0
+elseif strcmpi(example_str,'atm_ramp_pass')
   %% Example 2: ATM Ramp Pass Data
   % =====================================================================
   % =====================================================================
@@ -96,8 +97,8 @@ elseif 0
   insert_param.gaps_fill.method_args = [300 60];
   opsInsertLayer(params, insert_param);
   
-elseif 0
-  %% Example 3: Insert 3-D data
+elseif strcmpi(example_str,'tomography_point_cloud')
+  %% Example 3: Insert 3-D Tomography Swath Point Cloud
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -147,8 +148,8 @@ elseif 0
   insert_param.gaps_fill.method_args = [300 60];
   opsInsertLayer(params, insert_param);
   
-elseif 0
-  %% Example 4: Merge Geoid data onto another (e.g. GIMP) layer
+elseif strcmpi(example_str,'EGM96')
+  %% Example 4: Insert EGM96 Geoid data
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -194,7 +195,7 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 0
+elseif strcmpi(example_str,'EGM96')
   %% Example 5: mass conservation grid
   % =====================================================================
   % =====================================================================
@@ -268,8 +269,8 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);  
   
-elseif 0
-  %% Example 6: Gogineni's Jakobshavn grid
+elseif strcmpi(example_str,'gogineni_jakobshavn_grid')
+  %% Example 6: Gogineni's Jakobshavn Grid
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -322,8 +323,8 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param); 
   
-elseif 0
-  %% Example 7: Joe Plummer's Jakobshavn grid
+elseif strcmpi(example_str,'joel_plummer_jakobshavn_grid')
+  %% Example 7: Joe Plummer's Jakobshavn Grid
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -363,8 +364,8 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 0
-  %% Example 8: GIMP grid
+elseif strcmpi(example_str,'gimp_grid')
+  %% Example 8: GIMP Grid
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -404,8 +405,8 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 0
-  %% Example 9: BEDMAP2 grid
+elseif strcmpi(example_str,'bedmap2_grid')
+  %% Example 9: BEDMAP2 Grid
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -448,8 +449,8 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 1
-  %% Example 10: South Dakota DEM
+elseif strcmpi(example_str,'south_dakota_grid')
+  %% Example 10: South Dakota Grid
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers

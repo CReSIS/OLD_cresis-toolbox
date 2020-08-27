@@ -191,6 +191,9 @@ for track_idx = param.layer_tracker.tracks_in_task
   track = param.layer_tracker.track{track_idx};
   orig_track = track;
   layer_param = param;
+  % Load layer data from the frame before and after the current frame.
+  % opsLoadLayers will check to see if the frame exists or not so we don't
+  % need to worry about specifying frames that do not exist.
   layer_param.cmd.frms = [param.layer_tracker.frms(1)-1 param.layer_tracker.frms param.layer_tracker.frms(end)+1];
   
   %% Track: Load reference surface

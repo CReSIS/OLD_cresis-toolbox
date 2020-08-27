@@ -294,49 +294,55 @@ if ~isempty(lidar_layer_idx)
     % IMU elevation and not the radar phase center elevation.
     lidar.elev = interp1(records.gps_time,records.elev,lidar.gps_time);
   else
-    % Create reference trajectory (rx_path == 0, tx_weights = []). Update
-    % the records field with this information.
-    trajectory_param = struct('gps_source',records.gps_source, ...
-      'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
-      'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
-    records = trajectory_with_leverarm(records,trajectory_param);
-    
-    % Project to map coordinates
-    proj_load_standard;
-    if strcmpi(param.post.ops.location,'antarctic')
-      proj = antarctic_proj;
-    else % if strcmpi(param.post.ops.location,'arctic')
-      proj = arctic_proj;
+    if isempty(lidar.lat)
+      warning('No lidar data exists.');
+      lidar.elev = [];
+    else
+      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
+      % the records field with this information.
+      trajectory_param = struct('gps_source',records.gps_source, ...
+        'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
+        'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
+      records = trajectory_with_leverarm(records,trajectory_param);
+      
+      % Project to map coordinates
+      proj_load_standard;
+      if strcmpi(param.post.ops.location,'antarctic')
+        proj = antarctic_proj;
+      else % if strcmpi(param.post.ops.location,'arctic')
+        proj = arctic_proj;
+      end
+      [records_x,records_y] = projfwd(proj,records.lat,records.lon);
+      [lidar_x,lidar_y] = projfwd(proj,lidar.lat,lidar.lon);
+      lidar_pnts = [lidar_x.',lidar_y.'];
+      lidar_pnts = unique(lidar_pnts,'rows','stable');
+      
+      % Find the closest point for each record
+      if 0
+        % Slowest method (517 sec)
+        T = delaunayn(lidar_pnts);
+        [xi,dist] = dsearchn(lidar_pnts,T,[records_x.' records_y.']);
+      elseif 1
+        % Second slowest method (69 sec)
+        tic
+        dt = delaunayTriangulation(lidar_pnts);
+        [xi,dist] = nearestNeighbor(dt, [records_x.' records_y.']);
+        clear dt;
+        toc
+      elseif 0
+        % Fastest method but requires toolbox (29 sec)
+        [xi,dist] = knnsearch(lidar_pnts,[records_x.' records_y.']);
+      end
+      
+      % Remove records which are too far from closest lidar data point
+      mask = dist < layer_params(lidar_layer_idx).lidar_max_gap;
+      xi = xi(mask);
+      lidar.gps_time = records.gps_time(mask);
+      lidar.lat = records.lat(mask);
+      lidar.lon = records.lon(mask);
+      lidar.surface = lidar.surface(xi);
+      lidar.elev = records.elev(mask);
     end
-    [records_x,records_y] = projfwd(proj,records.lat,records.lon);
-    [lidar_x,lidar_y] = projfwd(proj,lidar.lat,lidar.lon);
-    lidar_pnts = [lidar_x.',lidar_y.'];
-    lidar_pnts = unique(lidar_pnts,'rows','stable');
-    
-    % Find the closest point for each record
-    if 0
-      % Slowest method (517 sec)
-      T = delaunayn(lidar_pnts);
-      [xi,dist] = dsearchn(lidar_pnts,T,[records_x.' records_y.']);
-    elseif 1
-      % Second slowest method (69 sec)
-      tic
-      dt = delaunayTriangulation(lidar_pnts);
-      [xi,dist] = nearestNeighbor(dt, [records_x.' records_y.']);
-      toc
-    elseif 0
-      % Fastest method but requires toolbox (29 sec)
-      [xi,dist] = knnsearch(lidar_pnts,[records_x.' records_y.']);
-    end
-    
-    % Remove records which are too far from closest lidar data point
-    mask = dist < layer_params(lidar_layer_idx).lidar_max_gap;
-    xi = xi(mask);
-    lidar.gps_time = records.gps_time(mask);
-    lidar.lat = records.lat(mask);
-    lidar.lon = records.lon(mask);
-    lidar.surface = lidar.surface(xi);
-    lidar.elev = records.elev(mask);
     
   end
 end
@@ -490,7 +496,7 @@ for layerdata_source_idx = 1:length(layerdata_sources)
     [id,name,group_name,desc,age,age_source] = tmp_layers.get_id(layer_param.name);
     if isempty(id)
       if layer_param.existence_check
-        error('Layer %s does not exist in %s.', layer_param.name, tmp_layers.layer_organizer_fn());
+        error('layer_param.existence_check is true and layer %s does not exist in %s. Set to false to still load layers even if they do not exist yet.', layer_param.name, tmp_layers.layer_organizer_fn());
       end
       if ~ischar(layer_param.name)
         error('Layer name must be a string because it does not exist in %s and a new layer must be inserted for which a name is required.', tmp_layers.layer_organizer_fn());

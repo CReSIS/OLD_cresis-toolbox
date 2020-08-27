@@ -43,12 +43,19 @@ G = 6.6742e-11;
 % which does match the values above.
 GearthMassProd = 398600.5e9;
 
-% WGS84 ellipsoid parameters [semimajor sqrt(e2)]
+% WGS84 ellipsoid parameters [semimajor sqrt(e2)] for geodetic2ecef
 WGS84.semimajor = 6378137;
 WGS84.semiminor = 6356752.314245;
 WGS84.flattening = 298.257223563;
 WGS84.eccentricity = sqrt(0.00669437999013);
 WGS84.ellipsoid = [WGS84.semimajor WGS84.eccentricity];
+
+% GRS80 ellipsoid parameters [semimajor sqrt(e2)] for geodetic2ecef
+GRS80.semimajor = 6378137;
+GRS80.flattening = 298.25722210;
+GRS80.semiminor = GRS80.semimajor - 1/GRS80.flattening * GRS80.semimajor;
+GRS80.eccentricity = sqrt(1 - GRS80.semiminor^2/GRS80.semimajor^2);
+GRS80.ellipsoid = [GRS80.semimajor GRS80.eccentricity];
 
 % Basic ice properties
 er_ice = 3.15;
