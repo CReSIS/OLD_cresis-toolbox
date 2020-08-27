@@ -1,4 +1,4 @@
-// trws2_surf_bounds.h: Some very helpful variables and functions.
+// trws2_bounded.h: Some very helpful variables and functions.
 // By Mingze Xu, November 2016
 //
 // Minor style changes to comply with new C++ standards: Victor Berger 2018

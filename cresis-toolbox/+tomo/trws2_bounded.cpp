@@ -1,4 +1,4 @@
-// trws2_surf_bounds.cpp
+// trws2_bounded.cpp
 //
 // Extract 3D surface of ice-bed layers
 //
@@ -6,16 +6,16 @@
 //  Mingze Xu, July 2016
 //  Basic prior/unary cost, binary cost/weight, John Paden 2020
 //
-// See also: trws2_surf_bounds.h
+// See also: trws2_bounded.h
 //
-// mex -v -largeArrayDims trws2_surf_bounds.cpp
+// mex -v -largeArrayDims trws2_bounded.cpp
 
 #include <cmath>
 #include <ctime>
 #include <stddef.h>
 using namespace std;
 #include "mex.h"
-#include "trws2_surf_bounds.h"
+#include "trws2_bounded.h"
 
 void print_time(void)
 {
