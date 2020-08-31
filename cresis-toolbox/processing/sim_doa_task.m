@@ -16,7 +16,7 @@ rng_args = zeros(param.monte.runs);
 % [param.method.theta, param.method.SV] ...
 %   = array_proc_sv(param.method.Nsv,param.src.fc, param.src.y_pc, param.src.z_pc);
 [param.method.theta, param.method.SV] ...
-  = array_proc_sv(param.src.fc*param.src.sv_dielectric, param.src.y_pc, param.src.z_pc, param.method.Nsv, [],[]);
+  = array_proc_sv(param.src.fc*sqrt(param.src.sv_dielectric), param.src.y_pc, param.src.z_pc, param.method.Nsv, [],[]);
 
 param.method.theta             = fftshift(param.method.theta);
 param.method.SV                = fftshift(param.method.SV,2);
@@ -27,7 +27,7 @@ param.method.SV                = fftshift(param.method.SV,2);
 %   = array_proc_sv(param.method.OneD_Nsv,param.src.fc, param.src.y_pc, param.src.z_pc);
 
 [param.method.OneD_theta, param.method.OneD_SV] ...
-  = array_proc_sv(param.src.fc*param.src.sv_dielectric, param.src.y_pc, param.src.z_pc, param.method.Nsv,[],[]);
+  = array_proc_sv(param.src.fc* sqrt(param.src.sv_dielectric), param.src.y_pc, param.src.z_pc, param.method.OneD_Nsv,[],[]);
 
 param.method.OneD_theta             = fftshift(param.method.OneD_theta);
 param.method.OneD_SV                = fftshift(param.method.OneD_SV,2);
@@ -165,29 +165,31 @@ for run_idx = 1:param.monte.runs
 %   er_zpc(2) = 0;
 %   tmp_param.src.y_pc = tmp_param.src.y_pc + er_ypc;
 %   tmp_param.src.z_pc = tmp_param.src.z_pc + er_zpc;
-%  [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(tmp_param);
+%  [Data,Rxx,imp_response,Rxx_fd] = sim.doa_wideband_data(tmp_param);
 %   tmp_param = [];
 
-    [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(param);
+    [Data,Rxx,imp_response,Rxx_fd] = sim.doa_wideband_data(param);
 
   %% Test/Run Loop: Set up estimation parameters for each method
   if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
     % For model order estimation simulation.
-    DCM_runs{run_idx} = DCM;
+    Rxx_runs{run_idx} = Rxx;
   end
   
   doa_wb_td_param.h    = conv(imp_response.vals,imp_response.vals,'same');
   doa_wb_td_param.h    = doa_wb_td_param.h ./ max(abs(doa_wb_td_param.h));
   doa_wb_td_param.t0   = imp_response.time_vec(1);
   doa_wb_td_param.dt   = mean(diff(imp_response.time_vec));
-  doa_wb_td_param.DCM  = DCM;
+  doa_wb_td_param.Rxx  = Rxx;
   
-  DCM_nb_idxs = (param.method.wb_td.widening_factor-1)/2*length(param.src.y_pc) + (1:length(param.src.y_pc));
-  DCM_nb = DCM(DCM_nb_idxs,DCM_nb_idxs);
-  doa_nb_1d_param.DCM = DCM_nb;
-  doa_nb_nd_param.DCM = DCM_nb;
+  Rxx_nb_idxs = (param.method.wb_td.widening_factor-1)/2*length(param.src.y_pc) + (1:length(param.src.y_pc));
+  Rxx_nb = Rxx(Rxx_nb_idxs,Rxx_nb_idxs);
+%   doa_nb_1d_param.Rxx = Rxx_nb;
+%   doa_nb_nd_param.Rxx = Rxx_nb;
   
-  doa_wb_fd_param.Rxx = DCM_fd;
+  doa_nb_1d_param.Rxx = Rxx_nb;
+  doa_nb_nd_param.Rxx = Rxx_nb;
+  doa_wb_fd_param.Rxx = Rxx_fd;
   
   % Debug plots of impulse response
   if 0
@@ -204,28 +206,28 @@ for run_idx = 1:param.monte.runs
     switch method
       case MUSIC_DOA_METHOD
         % MUSIC method: DOA initialization and estimation
-        doa0 = sort(music_initialization(DCM_nb,doa_nb_1d_param));
+        doa0 = sort(music_initialization(Rxx_nb,doa_nb_1d_param));
         
         [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
           fmincon(@(theta_hat) music_cost_function(theta_hat,doa_nb_1d_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_nb_1d_param.options);
         
       case MLE_METHOD
         % MLE method: DOA initialization and estimation
-        doa0 = sort(mle_initialization(DCM_nb,doa_nb_nd_param));
+        doa0 = sort(mle_initialization(Rxx_nb,doa_nb_nd_param));
         
         [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
           fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_nb_nd_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_nb_nd_param.options);
         
       case DCM_METHOD
         % WB DCM method: DOA initialization and estimation
-        doa0 = sort(wb_initialization(DCM,doa_wb_td_param));
+        doa0 = sort(wb_initialization(Rxx,doa_wb_td_param));
         
         [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
           fmincon(@(theta_hat) wb_cost_function(theta_hat,doa_wb_td_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_wb_td_param.options);
         
       case WBMLE_METHOD
         % WBMLE method: DOA initialization and estimation
-        doa0 = sort(wbmle_initialization(DCM_fd,doa_wb_fd_param));
+        doa0 = sort(wbmle_initialization(Rxx_fd,doa_wb_fd_param));
         
         [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
           fmincon(@(theta_hat) wbmle_cost_function(theta_hat,doa_wb_fd_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_wb_fd_param.options);

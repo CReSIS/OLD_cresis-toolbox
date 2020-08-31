@@ -9,7 +9,7 @@ function S = music_cost_function(theta, param)
 % 
 %   param = control structure containing the following fields:
 %     .Nsrc   = 1 x 1 scalar specifying dimensionality of signal subspace,
-%     .DCM    = Nc x Nc complex valued sample covariance matrix,
+%     .Rxx    = Nc x Nc complex valued sample covariance matrix,
 %     .fc     = 1 x 1 scalar valued carrier frequency (Hz)
 %     .y_pc   = Nc x 1 vector containing y coordinates of phase centers
 %               in SAR FCS (meters),
@@ -48,13 +48,13 @@ end
 % NOTE: Currently only ideal steering vectors are supported. This could be 
 % improved by passing in LUT through the param structure.
 c = 2.997924580003452e+08; % physical_constants too slow
-sv_arg.theta = theta;
-sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
-[~,SV] = param.sv_fh(sv_arguments{:});
+sv_opt_arg.theta = theta;
+sv_arg = {param.fc*sqrt(param.sv_dielectric),param.y_pc,param.z_pc, sv_opt_arg, param.lut, param.lut_roll};
+[~,SV] = param.sv_fh(sv_arg{:});
 
 %% Compute Cost
 % =========================================================================
-[V,D]     = eig(param.DCM);
+[V,D]     = eig(param.Rxx);
 eigenVals = diag(D);
 [eigenVals, noiseIdxs] = sort(eigenVals);
 noiseIdxs = noiseIdxs(1:end - param.Nsrc);

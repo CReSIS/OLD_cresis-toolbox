@@ -90,7 +90,9 @@ sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
 
 if ~isempty(LUT) && ~isempty(LUT_roll)
   theta_lut = theta - LUT_roll;
-  sv_corr = (interp1(LUT.bins,LUT.sv_real,theta_lut,'linear','extrap') + 1i*interp1(LUT.bins,LUT.sv_imag,theta_lut,'linear','extrap')).';
+  sv_real = real(LUT.sv);
+  sv_imag = imag(LUT.sv);
+  sv_corr = (interp1(LUT.doa, sv_real, theta_lut,'linear','extrap') + 1i*interp1(LUT.doa, sv_imag,theta_lut,'linear','extrap')).';
   
 %   sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
   sv = sv .* sv_corr;

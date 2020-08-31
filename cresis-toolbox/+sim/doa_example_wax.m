@@ -12,10 +12,10 @@ fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
 
 %% Cluster Parameters
 param_override = []; % X
-param_override.cluster.type = 'torque'; 
+% param_override.cluster.type = 'torque'; 
 param_override.cluster.type = 'debug'; 
 
-param_override.cpu_time = 100;
+param_override.cpu_time = 50;
 param_override.mem = 1e9;
 param_override.cluster.ppn_fixed = 4;
 
@@ -38,6 +38,8 @@ if fig_to_plot == 2
   % Source parameters
   fc = 195e6;
   BW = 30e6;
+%   fc = 312.5e6;
+%   BW = 1e6;
   param.src.f0                      = fc-BW/2;
   param.src.f1                      = fc+BW/2;
   param.src.ft_wind                 = @hanning;
@@ -60,7 +62,7 @@ if fig_to_plot == 2
   % One source fixed at 0 deg, another fixed at 20 deg
   % Snapshots fixed at 10
   param.monte.SNR   = repmat(linspace(10,25,16).', [1 2]);
-   if 1
+   if 0
     param.monte.SNR   = repmat(linspace(10,40,20).', [1 2]);
   end
   num_tests = size(param.monte.SNR,1);

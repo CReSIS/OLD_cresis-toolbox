@@ -211,6 +211,12 @@ for frm_idx = 1:length(param.cmd.frms)
       
       %% Create simplified output
       
+      % Create a list of the rxs
+      wf = param_array.array_proc.imgs{1}(1,1);
+      adc_list = param_array.array_proc.imgs{1}(:,2);
+      rx_list = param.radar.wfs(wf).rx_paths(adc_list);
+      
+      
       % Pick out the snapshots of the good pixels
       snapshots.sv_list = Tomo.img(:,Tomo.mask);
       
@@ -248,6 +254,7 @@ for frm_idx = 1:length(param.cmd.frms)
       snapshots.pitch = snapshots.pitch(:).';
       snapshots.heading = snapshots.heading(:).';
       snapshots.roll = snapshots.roll(:).';
+      snapshots.rx_list = rx_list;
       
       snapshots.param_collate_snapshots = param.collate_snapshots;
       snapshots.param_array = param_array;

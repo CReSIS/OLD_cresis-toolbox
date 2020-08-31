@@ -1,5 +1,5 @@
-function out = mle_initialization(DCM,param)
-% out = mle_initialization(DCM,param)
+function out = mle_initialization(Rxx,param)
+% out = mle_initialization(Rxx,param)
 %
 % Function used to initialize maximum likelihood stimator called in
 % array_proc.m. Uses the alternating projection approach to initialize.
@@ -8,7 +8,7 @@ function out = mle_initialization(DCM,param)
 % refine that estimate.
 %
 % Inputs:
-%   DCM = data covariance matrix
+%   Rxx = data covariance matrix
 %
 %   param = control struction containing the following fields:
 %     .Nsig   = number of sources specified by array_param.Nsrc field,
@@ -117,17 +117,17 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
     
     if good
       % Evaluate cost function
-      sv_arg.theta = theta.';
-      sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
-      [~,A] = param.sv_fh(sv_arguments{:});
+      sv_opt_arg.theta = theta.';
+      sv_arg = {param.fc*sqrt(param.sv_dielectric),param.y_pc,param.z_pc, sv_opt_arg, param.lut, param.lut_roll};
+      [~,A] = param.sv_fh(sv_arg{:});
 
 %       [~,A] = array_proc_sv(Nsv2,param.fc*param.sv_dielectric,param.y_pc,param.z_pc);
 %       A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta).' + param.y_pc*sin(theta).'));
       Pa  = A * inv(A'*A) * A';
       if  param.doa_seq && param.apriori.en
-        J(idx) = -(M*size(A,1)) * log(abs(sum(sum((eye(size(Pa))-Pa) .* DCM.'))));
+        J(idx) = -(M*size(A,1)) * log(abs(sum(sum((eye(size(Pa))-Pa) .* Rxx.'))));
       else
-        J(idx) = abs(sum(sum(Pa .* DCM.')));
+        J(idx) = abs(sum(sum(Pa .* Rxx.')));
       end
       
       % Incorporate the a priori pdf if available
@@ -187,11 +187,11 @@ else
   
   % Initialize first source
   % -------------------------------------------------------------------------
-  B             = Cb ./ (repmat(sqrt(sum(abs(Cb).^2,1)),size(DCM,1),1));
+  B             = Cb ./ (repmat(sqrt(sum(abs(Cb).^2,1)),size(Rxx,1),1));
   L = zeros(size(B,2),1);
   for theta_idx = 1:size(B,2)
     b = B(:,theta_idx);
-    L(theta_idx) = abs(b'*DCM*b);
+    L(theta_idx) = abs(b'*Rxx*b);
   end
   [~,max_idx]   = max(L);
   
@@ -242,9 +242,9 @@ else
       
       % Setup steering vectors
       theta_eval  = [out(:).',search_theta]; % search range has same meaning as   theta_i in [Ziskind and Wax]
-      sv_arg.theta = theta_eval;
-      sv_arguments = {param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
-      [~,SVs] = param.sv_fh(sv_arguments{:});
+      sv_opt_arg.theta = theta_eval;
+      sv_arg = {param.fc*sqrt(param.sv_dielectric),param.y_pc,param.z_pc, sv_opt_arg, param.lut, param.lut_roll};
+      [~,SVs] = param.sv_fh(sv_arg{:});
 %       k           = 4*pi*param.fc/c;
 %       ky          = k*sin(theta_eval);
 %       kz          = k*cos(theta_eval);
@@ -256,7 +256,7 @@ else
       B           = bsxfun(@rdivide, Cb, sqrt(sum(abs(Cb).^2,1)));
 
       % Evaluate likelihood function
-      L           = abs(diag(B'*DCM*B));
+      L           = abs(diag(B'*Rxx*B));
       
       % Maximize cost function
       [~,max_idx] = max(L);

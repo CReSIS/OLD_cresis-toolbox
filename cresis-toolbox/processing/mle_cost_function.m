@@ -8,7 +8,7 @@ function val = mle_cost_function(theta, param)
 %
 %   param     = control structure containing the following fields:
 %     .Nsrc   = number of signals,
-%     .DCM    = data covariance matrix,
+%     .Rxx    = data covariance matrix,
 %     .y_pc   = column vector of y coordinates of each phase center in SAR
 %               flight coordinate system,
 %     .z_pc   = column vector of z coordinates of each phase center in SAR
@@ -72,30 +72,30 @@ if param.proj_mtx_update
   % Setup steering vectors for the fixed
   theta_eval = [param.theta_fixed(:).',theta];
   theta_eval = theta_eval(:).';   % make theta have the right dimensions
-  sv_arg.theta = theta_eval;
-  sv_arguments={param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
-  [~,SVs] = param.sv_fh(sv_arguments{:});
+  sv_opt_arg.theta = theta_eval;
+  sv_arg ={param.fc*param.sv_dielectric, param.y_pc, param.z_pc, sv_opt_arg, param.lut, param.lut_roll};
+  [~,SVs] = param.sv_fh(sv_arg{:});
   A     = SVs(:,1:numel(param.theta_fixed)); % Nc x (Nsrc - 1)
   C     = SVs(:,numel(param.theta_fixed)+1:end); % Nc x 1 (always)
   Pa    = A* inv(A' * A) * A'; % Nc x Nc
   Cb    = (eye(size(Pa,1))- Pa)*C; % Nc x 1
   B     = Cb ./ (repmat(sqrt(sum(abs(Cb).^2,1)),size(Cb,2),1)); % Nc x 1
-  L     = trace(B'*param.DCM*B);
+  L     = trace(B'*param.Rxx*B);
   
 else
-  DCM = param.DCM;
+  Rxx = param.Rxx;
   M = param.Nsrc;
-  sv_arg.theta = theta;
-  sv_arguments={param.fc*param.sv_dielectric,param.y_pc,param.z_pc, sv_arg, param.lut, param.lut_roll};
-  [~,A] = param.sv_fh(sv_arguments{:});
+  sv_opt_arg.theta = theta;
+  sv_arg={param.fc*sqrt(param.sv_dielectric),param.y_pc,param.z_pc, sv_opt_arg, param.lut, param.lut_roll};
+  [~,A] = param.sv_fh(sv_arg{:});
   Pa  = A * inv(A'*A) * A';
   if param.doa_seq && param.apriori.en
-    L = -(M*size(A,1)) * log(abs(sum(sum((eye(size(Pa))-Pa) .* DCM.'))));
+    L = -(M*size(A,1)) * log(abs(sum(sum((eye(size(Pa))-Pa) .* Rxx.'))));
   else
-    L = abs(sum(sum(Pa .* DCM.')));
+    L = abs(sum(sum(Pa .* Rxx.')));
   end
-%   L = -abs(trace((eye(size(Pa))-Pa)*DCM)); % Mohanad
-%   L = abs(trace(Pa*DCM)); % Wax
+%   L = -abs(trace((eye(size(Pa))-Pa)*Rxx)); % Mohanad
+%   L = abs(trace(Pa*Rxx)); % Wax
 end
 
 if param.doa_seq && param.apriori.en
