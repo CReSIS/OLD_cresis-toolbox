@@ -498,7 +498,7 @@ if strcmpi(radar_type,'deramp')
   
   if param.check_surface.save_records_en
     records_fn = ct_filename_support(param,'','records');
-    ct_save(records_fn,'-append','-struct','records');
+    ct_save(records_fn,'-v7.3','-struct','records');
   end
   
   clf(h_fig(5));
