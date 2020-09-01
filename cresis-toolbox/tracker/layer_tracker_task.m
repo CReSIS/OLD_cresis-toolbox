@@ -71,7 +71,11 @@ else
     
     % Load the current frame
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    else
+      data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
+    end
     if frm_idx == 1
       mdata = load_L1B(data_fn);
       frm_start(frm_idx) = 1;
@@ -112,7 +116,11 @@ else
     
     % Load the previous frame
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    else
+      data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
+    end
     if exist(data_fn,'file')
       tmp_data = load_L1B(data_fn);
       
@@ -143,7 +151,11 @@ else
     
     % Load the next frame
     frm_str{frm_idx} = sprintf('%s_%03d',param.day_seg,frm);
-    data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir, sprintf('Data_%s.mat',frm_str{frm_idx}));
+    else
+      data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
+    end
     if exist(data_fn,'file')
       tmp_data = load_L1B(data_fn);
       
@@ -179,6 +191,9 @@ for track_idx = param.layer_tracker.tracks_in_task
   track = param.layer_tracker.track{track_idx};
   orig_track = track;
   layer_param = param;
+  % Load layer data from the frame before and after the current frame.
+  % opsLoadLayers will check to see if the frame exists or not so we don't
+  % need to worry about specifying frames that do not exist.
   layer_param.cmd.frms = [param.layer_tracker.frms(1)-1 param.layer_tracker.frms param.layer_tracker.frms(end)+1];
   
   %% Track: Load reference surface

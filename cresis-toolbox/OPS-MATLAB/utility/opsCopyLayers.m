@@ -566,10 +566,10 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     % Remove all_points that are not in the selected frames
     % Use update_mask to exclude all points that are not getting updated
     % -----------------------------------------------------------------------
-    ops_param.properties.point_path_id = all_points(layer_idx).ids(update_mask);
-    ops_param.properties.twtt = all_points(layer_idx).twtt_final(update_mask);
-    ops_param.properties.type = all_points(layer_idx).type_final(update_mask);
-    ops_param.properties.quality = all_points(layer_idx).quality_final(update_mask);
+    ops_param.properties.point_path_id = all_points(layer_idx).ids(update_mask{layer_idx});
+    ops_param.properties.twtt = all_points(layer_idx).twtt_final(update_mask{layer_idx});
+    ops_param.properties.type = all_points(layer_idx).type_final(update_mask{layer_idx});
+    ops_param.properties.quality = all_points(layer_idx).quality_final(update_mask{layer_idx});
     ops_param.properties.lyr_name = layer_dest(layer_idx).name;
     
     % Update these points

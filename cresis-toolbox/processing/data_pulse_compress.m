@@ -238,6 +238,9 @@ for img = 1:length(param.load.imgs)
         noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
         - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
       
+      % Tadc_adjust changes do not matter since they do not affect the data
+      % (only the time axis is affected).
+      
       % Correct any changes in Tsys
       Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
       Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));

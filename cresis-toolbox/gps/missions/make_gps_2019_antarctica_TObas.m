@@ -312,8 +312,8 @@ gps_make;
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
-  gps = load(out_fn,'gps_source');
-  if ~isempty(regexpi(gps.gps_source,'arena'))
+  load(out_fn,'gps_source');
+  if ~isempty(regexpi(gps_source,'arena'))
     % Extrapolation is necessary because GPS data starts after/stops before
     % the beginning/end of the radar data.
     warning('Extrapolating and filtering elevation for arena GPS data: %s', out_fn);
@@ -335,7 +335,7 @@ for idx = 1:length(file_type)
     end
   end
   
-  if ~isempty(regexpi(out_fn,'20191225')) && ~isempty(regexpi(gps.gps_source,'bas-'))
+  if ~isempty(regexpi(out_fn,'20191225')) && ~isempty(regexpi(gps_source,'bas-'))
     % Merge of IMU and GNSS data
     warning('Merging IMU and GNSS GPS data: %s', out_fn);
     
@@ -383,6 +383,43 @@ for idx = 1:length(file_type)
     
     out_fn = fullfile(out_fn_dir,'gps_20191225.mat');
     ct_save(out_fn,'-struct','gps');
+  end
+  
+  if ~isempty(regexpi(gps_source,'bas')) && isempty(regexpi(out_fn,'gps_20191225_gnss'))
+    % gps_20191225_gnss is skipped because gps_20191225 is taken care of
+    % when gps_20191225_imu is produced.
+    %
+    % BAS GPS data are referenced to:
+    % # ITRF2014(2020.07117)
+    % # Ellipsoid: GRS80 (a=6378137.0000, f=1/298.25722210)
+    % Convert to WGS84... the effect seems to be very very small (0.1 mm difference between the ellipsoids)
+    
+    warning('Converting from GRS80 ellipsoid to WGS84 ellipsoid: %s', out_fn);
+    
+    physical_constants;
+    gps = load(out_fn);
+    old_gps = gps;
+    [x,y,z] = geodetic2ecef(gps.lat/180*pi, gps.lon/180*pi, gps.elev, GRS80.ellipsoid);
+    [gps.lat,gps.lon,gps.elev] = ecef2geodetic(x, y, z, WGS84.ellipsoid);
+    gps.lat = gps.lat*180/pi;
+    gps.lon = gps.lon*180/pi;
+    
+    if 0
+      figure(1); clf;
+      plot(gps.lon, gps.lat);
+      hold on;
+      plot(old_gps.lon, old_gps.lat,'--');
+      grid on;
+      
+      figure(2); clf;
+      plot(gps.elev);
+      hold on;
+      plot(old_gps.elev,'--');
+      grid on;
+    end
+    
+    save(out_fn,'-append','-struct','gps','lat','lon','elev');
+
   end
   
   if ~isempty(regexpi(out_fn,'201910XX'))
