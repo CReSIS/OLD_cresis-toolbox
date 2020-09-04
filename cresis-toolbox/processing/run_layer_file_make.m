@@ -12,18 +12,22 @@ param_override = [];
 
 % Parameters spreadsheet to use for updating
 % params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
-% params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20191231');
-% params = ct_set_params(params,'cmd.frms',[]);
-params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'));
+% params = read_param_xls(ct_filename_param('snow_param_2014_Greenland_P3.xls'));
+params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_P3.xls'));
+
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20091230_01');
-params = ct_set_params(params,'cmd.frms',[1]);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20160501_01');
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+% params = ct_set_params(params,'cmd.frms',[]);
+
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+% params = ct_set_params(params,'cmd.frms',[]);
 
 % .out_path: string containing file path where layer files will be stored
 % to; string is passed to ct_filename_out to form the file path.
 %  Default is 'layer'.
-param_override.layer_file_make.out_path = 'layer2';
+param_override.layer_file_make.out_path = 'layer';
 % param_override.layer_file_make.out_path = 'CSARP_post/layer';
 
 % Uncomment to delete all layer files and start over:
