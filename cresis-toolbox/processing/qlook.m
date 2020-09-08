@@ -139,6 +139,10 @@ if ~isfield(param.qlook,'nan_dec') || isempty(param.qlook.nan_dec)
   end
 end
 
+if ~isfield(param.qlook,'nan_dec_normalize_threshold') || isempty(param.qlook.nan_dec_normalize_threshold)
+  param.qlook.nan_dec_normalize_threshold = 2;
+end
+
 if ~isfield(param.qlook,'presums') || isempty(param.qlook.presums)
   param.qlook.presums = 1;
 end
