@@ -49,8 +49,18 @@ end
 
 % Run the save command
 if ~isempty(varargin)
-  cmd = sprintf('save(''%s''%s,''%s'')',fn,sprintf(',''%s''',varargin{:}),mat_file_version);
+  if any(strcmp('-append',varargin)) && exist(fn,'file')
+    % Appending to file, so version field not required
+    cmd = sprintf('save(''%s''%s)',fn,sprintf(',''%s''',varargin{:}));
+  else
+    cmd = sprintf('save(''%s''%s,''%s'')',fn,sprintf(',''%s''',varargin{:}),mat_file_version);
+  end
 else
-  cmd = sprintf('save(''%s'',''%s'')',fn,mat_file_version);
+  if any(strcmp('-append',varargin)) && exist(fn,'file')
+    % Appending to file, so version field not required
+    cmd = sprintf('save(''%s'')',fn);
+  else
+    cmd = sprintf('save(''%s'',''%s'')',fn,mat_file_version);
+  end
 end
 evalin('caller',cmd);

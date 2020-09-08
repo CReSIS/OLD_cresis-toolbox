@@ -20,7 +20,10 @@ param_override = [];
 % params = read_param_xls(ct_filename_param('snow_param_2014_Greenland_P3.xls'));
 % params = ct_set_params(params,'radar.wfs.DDC_valid',[1 2 4 8 16]);
 
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'));
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'));
+% params = ct_set_params(params,'radar.wfs.DDC_valid',1);
+
+params = read_param_xls(ct_filename_param('snow_param_2019_Arctic_GV.xls'));
 params = ct_set_params(params,'radar.wfs.DDC_valid',1);
 
 % params = read_param_xls(ct_filename_param('snow_param_2019_Arctic_Polar6.xls'));
@@ -31,7 +34,18 @@ params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
 
-% param_override.BW_window_gen.BW_guard = [0.12e9 0.12e9];
+% BW_guard: Two element vector which specifies the bandwidth guard to
+% remove at the start and end of the bandwidth (e.g. if the signal is poor
+% on the edges or you are selecting a subband; subband is normally done
+% during deconvolution and not with BW_guard). Default is [1 1] and the
+% units are set to '%' which means 1% of the bandwidth if removed at the
+% start and end.
+% param_override.BW_window_gen.BW_guard = [0.8e9 10e9];
+
+% nice_BW_ratio: Specify the range of bandwidth to search for a nicer round
+% number for the bandwidth. This is a percentage of abs(f1-f0). Default is
+% 1% or 0.01.
+% param_override.BW_window_gen.nice_BW_ratio = 0.005;
 
 warning off;
 

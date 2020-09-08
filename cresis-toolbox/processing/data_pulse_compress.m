@@ -655,7 +655,7 @@ for img = 1:length(param.load.imgs)
             % and store this in p,q.
             Nt_desired = wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
             if abs(Nt_desired/2 - round(Nt_desired/2)) > 1e-6
-              error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+              error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency. See BW_window_gen.m for help.');
             end
             % Remove rounding errors
             Nt_desired = round(Nt_desired);

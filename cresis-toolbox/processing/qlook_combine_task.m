@@ -376,6 +376,7 @@ if param.qlook.surf.en
     copy_param.layer_source.source = 'echogram';
     copy_param.layer_source.echogram_source = param.qlook.out_path;
     copy_param.layer_source.existence_check = false;
+    copy_param.layer_source.existence_warning = false;
     copy_param.layer_source.echogram_source_img = echogram_source_img;
     
     copy_param.layer_dest = param.qlook.surf_layer;
