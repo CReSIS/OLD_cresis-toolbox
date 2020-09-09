@@ -501,6 +501,12 @@ if param.collate_deconv.stage_one_en
         % Oversample to get a good measurement of the peak value
         h_deconvolved = interpft(h_deconvolved,Mt*Nt);
         
+        % Create ideal response (follow same steps as h_deconvolved)
+        h_ideal = deconv.ref_window(Nt_Hwind);
+        h_ideal = ifftshift([zeros(Nt_shorten(1),1); h_ideal; zeros(Nt_shorten(end),1)]);
+        h_ideal = ifft(h_ideal);
+        h_ideal = interpft(h_ideal,Mt*Nt);
+
         % Oversample sample signal by the same amount as the deconvolved
         % signal
         h_sample = interpft(spec.deconv_sample{rline},Mt*Nt);
@@ -512,6 +518,7 @@ if param.collate_deconv.stage_one_en
         
         % Find maximum values and indices for the deconvolved and
         % undeconvolved signals.
+        [ideal_max_val,ideal_max_idx] = max(h_ideal);
         [deconv_max_val,deconv_max_idx] = max(h_deconvolved);
         [max_val,max_idx] = max(h_sample);
         
@@ -535,15 +542,16 @@ if param.collate_deconv.stage_one_en
           figure(h_fig(1)); clf(h_fig(1));
           set(h_fig(1),'Name','Impulse response falling edge');
           h_axes = axes('parent',h_fig(1));
-          [max_val,max_idx] = max(lp(h_sample));
+          [max_val,max_idx] = max(lp(h_sample,2));
           plot(h_axes(1), bins_Mt, circshift(lp(h_sample) - max_val,[-max_idx 1]))
           hold(h_axes(1),'on');
           plot(h_axes(1), bins_Mt, circshift(lp(h_deconvolved) - max_val + dsignal,[-max_idx 1]))
+          plot(h_axes(1), bins_Mt, circshift(lp(h_ideal) - lp(ideal_max_val,2),[-ideal_max_idx 1]))
           plot(h_axes(1), param.collate_deconv.SL_guard_bins*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(1), 'Range bin');
           ylabel(h_axes(1), 'Relative power (dB)');
           title(h_axes(1), 'Impulse response falling edge');
-          legend(h_axes(1), 'sample','deconvolved','location','best');
+          legend(h_axes(1), 'sample','deconvolved','ideal','location','best');
           xlim(h_axes(1), [0 2*param.collate_deconv.rbins{img}(2)]);
           ylim(h_axes(1), [-debug_ylim 0]);
           grid(h_axes(1), 'on');
@@ -551,15 +559,16 @@ if param.collate_deconv.stage_one_en
           figure(h_fig(2)); clf(h_fig(2));
           set(h_fig(2),'Name','Impulse response rising edge');
           h_axes(2) = axes('parent',h_fig(2));
-          [max_val,max_idx] = max(lp(h_sample));
+          [max_val,max_idx] = max(lp(h_sample,2));
           plot(h_axes(2), fliplr(bins_Mt+1), circshift(lp(h_sample) - max_val,[-max_idx 1]))
           hold(h_axes(2),'on');
           plot(h_axes(2), fliplr(bins_Mt+1), circshift(lp(h_deconvolved) - max_val + dsignal,[-max_idx 1]))
+          plot(h_axes(2), fliplr(bins_Mt+1), circshift(lp(h_ideal) - lp(ideal_max_val,2),[-ideal_max_idx 1]))
           plot(h_axes(2), (1+param.collate_deconv.SL_guard_bins)*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(2), 'Range bin');
           ylabel(h_axes(2), 'Relative power (dB)');
           title(h_axes(2), 'Impulse response rising edge');
-          legend(h_axes(2), 'sample','deconvolved','location','best');
+          legend(h_axes(2), 'sample','deconvolved','ideal','location','best');
           xlim(h_axes(2), [0 -2*param.collate_deconv.rbins{img}(1)]);
           ylim(h_axes(2), [-debug_ylim 0]);
           grid(h_axes(2), 'on');

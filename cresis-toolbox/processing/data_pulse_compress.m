@@ -407,7 +407,7 @@ for img = 1:length(param.load.imgs)
         
         
       elseif strcmpi(radar_type,'deramp')
-        %% Pulse compress: Deramp
+        %% Pulse compress: Deramp Debug
         if 0
           % ENABLE_FOR_DEBUG
           % Create simulated data
@@ -584,6 +584,7 @@ for img = 1:length(param.load.imgs)
           hdr.Nt{img} = store_Nt;
         end
         
+        %% Pulse compress: Deramp
         freq_axes_changed = false;
         for rec = 1:size(data{img},2)
           

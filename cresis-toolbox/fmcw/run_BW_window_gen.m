@@ -38,9 +38,9 @@ params = ct_set_params(params,'cmd.generic',1);
 % remove at the start and end of the bandwidth (e.g. if the signal is poor
 % on the edges or you are selecting a subband; subband is normally done
 % during deconvolution and not with BW_guard). Default is [1 1] and the
-% units are set to '%' which means 1% of the bandwidth if removed at the
-% start and end.
-% param_override.BW_window_gen.BW_guard = [0.8e9 10e9];
+% BW_guard_units are set to '%' which means 1% of the bandwidth if removed
+% at the start and end. The default units are 'Hz' if BW_guard is defined.
+% param_override.BW_window_gen.BW_guard = [0.8e9 0.5e9];
 
 % nice_BW_ratio: Specify the range of bandwidth to search for a nicer round
 % number for the bandwidth. This is a percentage of abs(f1-f0). Default is

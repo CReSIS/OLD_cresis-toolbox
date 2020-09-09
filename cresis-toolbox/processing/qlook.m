@@ -154,6 +154,9 @@ end
 if ~isfield(param.qlook,'resample') || isempty(param.qlook.resample)
   param.qlook.resample = [1 1; 1 1];
 end
+if length(param.qlook.resample) == 2
+  param.qlook.resample = [param.qlook.resample(1) param.qlook.resample(2); 1 1];
+end
 
 if ~isfield(param.qlook,'surf') || isempty(param.qlook.surf)
   param.qlook.surf.en = false;
