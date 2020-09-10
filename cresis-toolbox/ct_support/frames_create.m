@@ -59,15 +59,13 @@ classdef (HandleCompatible = true) frames_create < handle
       obj.records = records_load(obj.param,'gps_time','lat','lon');
       
       if exist(frames_fn,'file')
-        tmp = load(frames_fn,'frames');
-        obj.frames = tmp.frames;
+        obj.frames = frames_load(obj.param);
         if any(obj.frames.frame_idxs > length(obj.records.lat))
           warning('Frames file %s\ncontains indices past the end of the records file. These indices will be ignored.', frames_fn);
           obj.frames.frame_idxs = obj.frames.frame_idxs(obj.frames.frame_idxs <= length(obj.records.lat));
         end
       else
         obj.frames.frame_idxs = 1;
-        obj.frames.nyquist_zone = NaN;
         obj.frames.proc_mode = 0;
       end
       
@@ -453,7 +451,6 @@ classdef (HandleCompatible = true) frames_create < handle
       mask = mask{1}; mask(1) = 0;
       
       obj.frames.frame_idxs = obj.frames.frame_idxs(~mask);
-      obj.frames.nyquist_zone = obj.frames.nyquist_zone(~mask);
       obj.frames.proc_mode = obj.frames.proc_mode(~mask);
       
       obj.h_geotiff.delete_pnt(1,find(mask));
@@ -520,9 +517,6 @@ classdef (HandleCompatible = true) frames_create < handle
         end
         rec = rec + 1;
       end
-      
-      obj.frames.nyquist_zone(frm+1+num:end+num) = obj.frames.nyquist_zone(frm+1:end);
-      obj.frames.nyquist_zone(frm+(1:num)) = NaN;
       
       obj.frames.proc_mode(frm+1+num:end+num) = obj.frames.proc_mode(frm+1:end);
       new_proc_mode = str2double(get(obj.h_gui.fig.ctrl_panel.procTB,'String'));
@@ -650,8 +644,6 @@ classdef (HandleCompatible = true) frames_create < handle
         end
         obj.frames.frame_idxs(frm+1:end+1) = obj.frames.frame_idxs(frm:end);
         obj.frames.frame_idxs(frm) = min_idx;
-        obj.frames.nyquist_zone(frm+1:end+1) = obj.frames.nyquist_zone(frm:end);
-        obj.frames.nyquist_zone(frm) = NaN;
         obj.frames.proc_mode(frm+1:end+1) = obj.frames.proc_mode(frm:end);
         obj.frames.proc_mode(frm) = str2double(get(obj.h_gui.fig.ctrl_panel.procTB,'String'));
         segment.lat = obj.records.lat(min_idx);

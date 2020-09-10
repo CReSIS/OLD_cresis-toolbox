@@ -40,8 +40,12 @@ if ~isfield(param,'BW_window_gen') || isempty(param.BW_window_gen)
 end
 
 if ~isfield(param.BW_window_gen,'BW_guard') || isempty(param.BW_window_gen.BW_guard)
-  param.BW_window_gen.BW_guard = [5 5];
+  param.BW_window_gen.BW_guard = [1 1];
   param.BW_window_gen.BW_guard_units = '%';
+end
+
+if length(param.BW_window_gen.BW_guard) ~= 2 || any(~param.BW_window_gen.BW_guard < 0)
+  error('param.BW_window_gen.BW_guard must be a 2 element vector with nonnegative numbers');
 end
 
 if ~isfield(param.BW_window_gen,'BW_guard_units') || isempty(param.BW_window_gen.BW_guard_units)
@@ -82,4 +86,24 @@ BW_window(2) = BW_window_ideal(2) - ~param.BW_window_gen.stretch_deramp*(max(par
 % Ensure that the BW window is a multiple of df
 BW_window = round(BW_window(1)/df)*df + [0 round(diff(BW_window)/df)*df];
 
-fprintf('%s\t[%.12g %.12g]\n',param.day_seg, BW_window);
+% Find BW_window_nice which is BW_window adjusted to choose round numbers
+% without long non-zero decimals
+last_char = [];
+steps = [0 : round(diff(BW_window)*0.01/df)];
+for idx = 1:length(steps)
+  str = sprintf('%.12g', BW_window(1) + df*steps(idx));
+  last_char(idx) = find(str ~= '0' & str ~= '.',1,'last');
+end
+[~,idx] = min(last_char);
+BW_window_nice(1) = BW_window(1) + steps(idx)*df;
+
+last_char = [];
+steps = [0 : round(diff(BW_window)*0.01/df)];
+for idx = 1:length(steps)
+  str = sprintf('%.12g', BW_window(2) - df*steps(idx));
+  last_char(idx) = find(str ~= '0' & str ~= '.',1,'last');
+end
+[~,idx] = min(last_char);
+BW_window_nice(2) = BW_window(2) - steps(idx)*df;
+
+fprintf('%s\t[%.3g %.3g]\t[%.12g %.12g]\t[%.12g %.12g]\t%.12g\n',param.day_seg,  BW_window/1e9, BW_window, BW_window_nice, df);

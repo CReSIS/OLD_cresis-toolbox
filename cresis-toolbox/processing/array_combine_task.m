@@ -54,7 +54,7 @@ along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.ele
 array_proc_methods;
 
 % Radiometric correction (dB)
-radiometric_corr = param.qlook.radiometric_corr_dB;
+radiometric_corr = param.array.radiometric_corr_dB;
 
 %% Combine chunks into each frame
 % =====================================================================

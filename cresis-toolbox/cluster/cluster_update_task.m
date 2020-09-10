@@ -310,14 +310,14 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  Max memory potentially exceeded\n');
     fprintf('    Job max_mem used is %.1f GB\n', max_mem/1e9);
     fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
-    fprintf('    Task memory requested %.1f*%.1f GB\n', ctrl.mem(task_id)/1e9, ctrl.cluster.mem_mult);
+    fprintf('    Task memory requested %.1f*%.1f = %.1f GB\n', ctrl.mem(task_id)/1e9, ctrl.cluster.mem_mult, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
     fprintf('    Job''s last executed task id %d\n', last_task_id);
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
     fprintf('  Task max memory exceeded.\n');
     if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'debug'))
       ctrl.cluster.max_mem_mode
-      fprintf('  task memory (%.1f GB) exceeded the maximum memory requested (%.1f GB):\n', max_mem/1e9, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
+      fprintf('  task memory (%.1f GB) exceeded the maximum memory requested (%.1f*%.1f = %.1f GB):\n', max_mem/1e9, ctrl.mem(task_id)/1e9, ctrl.cluster.mem_mult, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
       fprintf('%s\n',ones(1,80)*'=');
       fprintf('Options:\n');
       fprintf('  1. Increase ctrl.mem(task_id) or ctrl.cluster.mem_mult\n');

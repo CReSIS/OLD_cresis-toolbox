@@ -38,13 +38,12 @@ else
 end
 
 % Process each of the segments
-ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
-  %collate_deconv(param,param_override);
-  collate_deconv
+  collate_deconv(param,param_override);
+  %collate_deconv
   
 end

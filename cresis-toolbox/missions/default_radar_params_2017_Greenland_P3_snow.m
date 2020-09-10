@@ -31,7 +31,8 @@ param.config.file.suffix = '.bin';
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 2;
 
-param.config.ni.clk = 125e6;
+% param.config.ni.clk = 125e6;
+param.config.cresis.clk = 125e6;
 
 %% Command worksheet
 default.cmd.records = 1;

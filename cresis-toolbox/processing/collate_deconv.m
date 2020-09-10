@@ -828,6 +828,10 @@ if param.collate_deconv.stage_one_en
         fprintf('Metric table: %s\n', diary_fn);
       end
       
+      if any(strcmp('visible',param.collate_deconv.debug_plots))
+        keyboard
+      end
+      
       %% Stage 1: Save results
       fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_path, ''));
       if ~exist(fn_dir,'dir')
