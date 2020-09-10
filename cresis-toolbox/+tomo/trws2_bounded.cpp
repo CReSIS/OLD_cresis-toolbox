@@ -414,7 +414,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   plhs[0] = mxCreateNumericMatrix(dim_image[1], dim_image[2], mxSINGLE_CLASS, mxREAL);
   float *result = reinterpret_cast<float *>(mxGetData(plhs[0]));
 
-  float *debug = nullptr;
+  float *debug = 0;
   if (nlhs == 2) {
     // Debug mode
     plhs[1] = mxCreateNumericArray(3, dim_image, mxSINGLE_CLASS, mxREAL);
