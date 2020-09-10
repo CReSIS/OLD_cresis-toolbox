@@ -99,16 +99,20 @@ for task_idx = 1:length(task_ids)
   eval_cmd = sprintf('%s);', eval_cmd);
   
   % Evaluate command
+  global gRadar;
   try
     argsout = {};
     fprintf('%s: %s\n', mfilename, param.notes);
     fprintf('%s: Eval %s\n', mfilename, eval_cmd);
+    gRadar.cluster.is_cluster_job = true;
     eval(eval_cmd);
+    gRadar.cluster.is_cluster_job = false;
     fprintf('%s: Done Eval (%s)\n', mfilename, datestr(now));
     errorstruct = [];
     cpu_time_actual = toc(cluster_task_start_time);
     save(out_fn,param.file_version,'argsout','errorstruct','cpu_time_actual');
   catch errorstruct
+    gRadar.cluster.is_cluster_job = false;
     fprintf('%s: Error\n  %s: %s (%s)\n', mfilename, errorstruct.identifier, errorstruct.message, datestr(now));
     for stack_idx = 1:length(errorstruct.stack)
       fprintf('  %s: %d\n', errorstruct.stack(stack_idx).name, errorstruct.stack(stack_idx).line);

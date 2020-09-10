@@ -63,6 +63,9 @@ do
   fi
 done
 MCR_CACHE_ROOT=$MCR_CACHE_ROOT/`hostname`
+# Export MCR_CACHE_ROOT so that the child processes that cluster_job.sh
+# creates will have the environment variable too.
+export MCR_CACHE_ROOT
 
 # =========================================================================
 # ATTEMPT TO RUN CLUSTER_JOB.M UP TO MAX_ATTEMPTS TIMES

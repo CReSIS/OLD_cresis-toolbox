@@ -65,6 +65,9 @@ end
 if ~isfield(param.layer_tracker.layer_params,'source') || isempty(param.layer_tracker.layer_params.source)
   param.layer_tracker.layer_params.source = 'layerdata';
 end
+if ~any(strcmpi(param.layer_tracker.layer_params.source,{'ops','layerdata','lidar','records','echogram'}))
+  error('Unsupported output param.layer_tracker.layer_params.source = ''%s'', but must be one of ''ops'',''layerdata'',''lidar'',''records'',''echogram''.', param.layer_tracker.layer_params.source);
+end
 if ~isfield(param.layer_tracker.layer_params,'layerdata_source') || isempty(param.layer_tracker.layer_params.layerdata_source)
   param.layer_tracker.layer_params.layerdata_source = 'layer';
 end
@@ -84,11 +87,21 @@ if ~isfield(param.layer_tracker,'surf_layer') || isempty(param.layer_tracker.sur
   param.layer_tracker.surf_layer = [];
 end
 
+%  .track_per_task: Positive integer specifying the number of tracks to
+%  process per cluster task. Default is inf which means each task will
+%  process all of the specified param.layer_tracker.track{:} commands.
+if ~isfield(param.layer_tracker,'track_per_task') || isempty(param.layer_tracker.track_per_task)
+  param.layer_tracker.track_per_task = inf;
+end
+
 %% Input Checks: layer_tracker.track field
 % ======================================================================
 
 if ~isfield(param.layer_tracker,'track') || isempty(param.layer_tracker.track)
   param.layer_tracker.track = {};
+end
+if isstruct(param.layer_tracker.track)
+  param.layer_tracker.track = {param.layer_tracker.track};
 end
 
 for track_idx = 1:length(param.layer_tracker.track)
@@ -199,6 +212,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   if ~isfield(track.init,'dem_layer') || isempty(track.init.dem_layer)
     track.init.dem_layer = '';
   end
+  if isfield(track.init.dem_layer,'source') ...
+      && ~any(strcmpi(track.init.dem_layer.source,{'ops','layerdata','lidar','records','echogram'}))
+    error('Unsupported output track.init.dem_layer.source = ''%s'', but must be one of ''ops'',''layerdata'',''lidar'',''records'',''echogram''.', track.init.dem_layer.source);
+  end
   if ~any(strcmpi(track.init.method,{'max','nan','snake','medfilt','dem'}))
     error('Unsupported surface init method %s. Options are max, nan, snake, medfilt, or dem. max is default.', track.init.method);
   end
@@ -280,10 +297,6 @@ for track_idx = 1:length(param.layer_tracker.track)
   
   if ~isfield(track,'name') || isempty(track.name)
     track.name = sprintf('t%03d', track_idx);
-  end
-  
-  if ~isfield(track,'track_per_task') || isempty(track.track_per_task)
-    track.track_per_task = inf;
   end
   
   if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)

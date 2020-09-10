@@ -64,10 +64,11 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   else
     copy_param.layer_source.source = 'lidar';
     copy_param.layer_source.lidar_source = 'awi';
+    copy_param.layer_source.lever_arm_en = true;
   end
 
   if 1
-    copy_param.copy_method = 'overwrite';
+    copy_param.copy_method = 'overwrite'; % default
   elseif 0
     copy_param.copy_method = 'fillgaps';
   else

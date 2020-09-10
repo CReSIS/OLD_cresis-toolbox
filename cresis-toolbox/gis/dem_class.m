@@ -139,6 +139,35 @@ classdef dem_class < handle
         warning(ME.getReport);
       end
       
+      % /cresis/snfs1/dataproducts/GIS_data/usa/DEM/NED/National_Elevation_Data_DEM_10m.tif
+      % USGS National Elevation Dataset (NED)
+      % 1/3 arc-seconds: 10 m resolution
+      % https://www.usgs.gov/core-science-systems/ngp/3dep/data-tools
+      % https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/n44w104/USGS_13_n44w104.tif <-- I think this URL can be automatically generated to grab the tiles that are needed for a specific region
+      % 
+      try
+        new_dem_info.url = '';
+        new_dem_info.res = [10];
+        new_dem_info.res_str = {'10m'};
+        new_dem_info.tile_en = [0 0 0 0];
+        new_dem_info.subtile_en = [0 0 0 0];
+        new_dem_info.tile_fn_ext = '';
+        new_dem_info.mosaic_fn_fh = @(res_str) sprintf('National_Elevation_Data_DEM_%s.tif',res_str);
+        new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('',res_str,y,x,y,x,res_str);
+        new_dem_info.acknowledge = 'USGS National Elevation Dataset (NED)';
+        new_dem_info.citation = 'USGS National Elevation Dataset (NED)';
+        new_dem_info.y_tile_origin = NaN;
+        new_dem_info.x_tile_origin = NaN;
+        new_dem_info.y_tile_size = NaN;
+        new_dem_info.x_tile_size = NaN;
+        new_dem_info.no_data = -9999;
+        new_dem_info.proj = usa_ned_proj; % Loaded from proj_load_standard.m
+        new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('usa','DEM','NED'));
+        obj.dem_info{end+1} = new_dem_info;
+      catch ME
+        warning(ME.getReport);
+      end
+      
       % NOAA Shoreline:
       % Wessel, P., and W. H. F. Smith (1996), A global, self-consistent, hierarchical, high-resolution shoreline database, J. Geophys. Res., 101(B4), 8741-8743, doi:10.1029/96JB00104.
       
@@ -170,9 +199,12 @@ classdef dem_class < handle
         obj.x = nan(size(lat));
         obj.y = nan(size(lat));
         obj.di = nan(size(lat));
-        % Northern hemisphere
-        obj.di(lat>0) = 1;
-        % Southern hemisphere
+        % For each input determine the dem index to use
+        % Northern hemisphere, ArcticDEM
+        obj.di(lat>49.0024) = 1;
+        % USGS NED Dem
+        obj.di(lat<=49.0024 & lat >= 25.4483) = 3;
+        % Southern hemisphere, REMA
         obj.di(lat<0) = 2;
         
         for di = unique(obj.di)
@@ -280,7 +312,8 @@ classdef dem_class < handle
         ocean_mask_fn_antarctica = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L5.shp'));
         warning off;
         obj.ocean.shp_all = shaperead(ocean_mask_fn);
-        if strcmp(obj.param.post.ops.location,'antarctic')
+        if isfield(obj.param,'post') && isfield(obj.param.post,'ops') ...
+            && isfield(obj.param.post.ops,'location') && strcmp(obj.param.post.ops.location,'antarctic')
           shp_antarctica = shaperead(ocean_mask_fn_antarctica);
           obj.ocean.shp_all = cat(1,obj.ocean.shp_all,shp_antarctica);
         end

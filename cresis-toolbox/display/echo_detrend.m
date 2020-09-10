@@ -6,7 +6,8 @@ function data = echo_detrend(mdata, param)
 %
 % INPUTS:
 %
-% data = 2D input data matrix (log power)
+% mdata: 2D input data matrix (log power) or echogram structure with "Data"
+%   field. "Time" and "Roll" may also be used depending on param settings.
 %
 % param: struct controlling how the detrending is done
 %  .units: units of the data, string containing 'l' (linear power) or 'd' (dB
@@ -48,6 +49,15 @@ function data = echo_detrend(mdata, param)
 %
 %   'tonemap': uses Matlab's tonemap command
 %
+%  .roll_comp_en: logical scalar, enables 
+%
+%  .roll_comp_data: structure loaded from roll compensation file generated
+%  by FILLTHISIN.m. Should have two fields:
+%
+%    .all_roll: roll axis vector
+
+%    .all_pwr: power axis vector correspondign to all_roll vector
+%
 % OUTPUTS:
 %
 % data: detrended input (log power)
@@ -61,10 +71,15 @@ function data = echo_detrend(mdata, param)
 %
 % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
 % imagesc(echo_detrend(mdata, struct('method','polynomial','layer_top',surface,'layer_bottom',bottom)));
-% 
+%
 % imagesc(echo_detrend(mdata, struct('method','tonemap')));
-% 
+%
 % imagesc(echo_detrend(mdata, struct('method','local','filt_len',[51 101])));
+%
+% param = struct('method','polynomial','roll_comp_en',true);
+% param.roll_comp_data = load('/cresis/snfs1/scratch/ibikunle/ct_user_tmp/roll_compensation.mat');
+% [param.layer_top,param.layer_bottom] = layerdata.load_layers(mdata,'','surface','bottom');
+% imagesc(echo_detrend(mdata, param));
 %
 % Author: John Paden
 %
@@ -72,18 +87,32 @@ function data = echo_detrend(mdata, param)
 % echo_norm, echo_param, echo_stats, echo_stats_layer, echo_xcorr,
 % echo_xcorr_profile
 
-if isstruct(mdata)
-  data = mdata.Data;
-else
-  data = mdata;
-end
-
 if ~exist('param','var') || isempty(param)
   param = [];
 end
 
 if ~isfield(param,'method') || isempty(param.method)
   param.method = 'mean';
+end
+
+if ~isfield(param,'roll_comp_en') || isempty(param.roll_comp_en)
+  param.roll_comp_en = false;
+end
+
+if ~isfield(param,'detrend_offset') || isempty(param.detrend_offset)
+  param.detrend_offset = 0;
+end
+
+if isstruct(mdata)
+  data = mdata.Data;
+  if param.roll_comp_en && isfield(mdata,'Roll')
+    roll = mdata.Roll;
+  end
+else
+  data = mdata;
+  if param.roll_comp_en
+    roll = zeros(1,size(data,2));
+  end
 end
 
 switch param.method
@@ -144,6 +173,13 @@ switch param.method
   case 'polynomial'
     Nt = size(data,1);
     Nx = size(data,2);
+    
+    if param.roll_comp_en
+      % Roll compensation data interpolated to specific roll values for
+      % this echogram
+      roll_comp = interp1(param.roll_comp_data.all_roll,param.roll_comp_data.all_pwr,roll);
+    end
+    
     if ~isfield(param,'order') || isempty(param.order)
       param.order = 7;
     end
@@ -211,31 +247,68 @@ switch param.method
       
       if top_bin > Nt
         trend(:) = polyval(detrend_poly,0);
+        [min_val,~] = min(trend);
+        if param.roll_comp_en
+          trend = trend - roll_comp(rline) ;
+        end
+        
       elseif bottom_bin < 1
         trend(:) = polyval(detrend_poly,1);
+        [min_val,~] = min(trend);
+        if param.roll_comp_en
+          trend = trend - roll_comp(rline) ;
+        end
+        
       elseif top_bin >= bottom_bin
         trend(1:top_bin) = polyval(detrend_poly,0);
         trend(top_bin+1:end) = polyval(detrend_poly,1);
+        [min_val,~] = min(trend (top_bin+1:end) );
+        
+        if param.roll_comp_en
+          trend(top_bin+1:end) = trend(top_bin+1:end) - roll_comp(rline) ;
+        end
+        
       else
         bins = top_bin:bottom_bin;
         
-        % Section 1: Constant above surface
-        trend(1:bins(1)-1) = trend(bins(1));
-        
-        % Section 2: Polynomial fit
+        % Section 1: Polynomial fit
         trend(bins) = polyval(detrend_poly,x_axis(bins,rline));
         
+        % Section 2: Constant above surface
+        trend(1:bins(1)-1) = trend(bins(1));
+        
         % Section 3: Constant below bottom
-        trend(bins(end):end) = trend(bins(end));
+        [min_val,min_loc] = min(trend(bins));
+        min_loc = min_loc + top_bin;
+        
+        trend(min_loc:end) = min(trend(bins));
+        
+        if param.roll_comp_en
+          % Apply roll compensation
+          trend(top_bin:min_loc) = trend(top_bin:min_loc) - roll_comp(rline);
+        end
+        
       end
+      
+        trend = trend - param.detrend_offset;
+        trend(trend < min_val) = min_val;
       
       if 0
         %% Debug plots
         figure(1); clf;
         plot(data(:,rline));
+        if param.roll_comp_en
+          title(sprintf('Rangeline %d block %d, Roll= %.3f',rline,param.block,roll(rline) ),'Interpreter','none');
+        else
+          title(sprintf('Rangeline %d block %d',rline,param.block),'Interpreter','none');
+        end
         hold on;
         plot(trend);
+        hold on;  plot(data(:,rline) - trend);
+        grid on; grid minor
+        pause(0.5)
       end
+      
       data(:,rline) = data(:,rline) - trend;
     end
     
@@ -252,7 +325,7 @@ switch param.method
     % for generating synthetic HDR images
     data = tonemap(tmp, 'AdjustLightness', [0.1 1], 'AdjustSaturation', 1.5);
     data = single(data(:,:,2));
-   
+    
   otherwise
     error('Invalid param.method %s.', param.method);
 end

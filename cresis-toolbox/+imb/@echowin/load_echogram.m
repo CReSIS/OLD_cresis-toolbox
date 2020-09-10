@@ -42,6 +42,11 @@ if any(~desire_exists)
     if isempty(img)
       first_match = find(obj.eg.source_fns_existence(most_desire_frame_idx,:,:),1);
       if isempty(first_match)
+        fprintf('Searching for echogram source files in:\n');
+        for source_idx = 1:length(obj.eg.sources)
+          fn_dir = ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx});
+          fprintf('  %s\n', fn_dir);
+        end
         error('No source files exist for frame %03d.', most_desire_frame_idx);
       else
         warning('Source %s does not exist for frame %03d.', obj.eg.sources{source_idx}, most_desire_frame_idx);
@@ -122,7 +127,12 @@ for frame_idx = 1:length(desire_frame_idxs)
     keyboard
   end
   % Load EG data and metadata
-  tmp = load(fn,'Time','Truncate_Bins','Elevation_Correction');
+  tmp_vars = whos('-file',fn);
+  if any(strcmp('Truncate_Bins',{tmp_vars.name}))
+    tmp = load(fn,'Time','Truncate_Bins','Elevation_Correction');
+  else
+    tmp = load(fn);
+  end
   tmp = uncompress_echogram(tmp);
   if frame_idx == 1
     min_time = tmp.Time(1);

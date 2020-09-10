@@ -14,7 +14,7 @@ end
 if strcmpi(run_example_str,'demo_exist_file')
   % Demonstrate loading an existing surf file and manipulating it
   
-  param = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091224_01');
+  param = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091224_01'); frm = 1;
   fn_original = fullfile(ct_filename_out(param,'surfData',''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   fn_new = [tempname '.mat'];
   % Ensure that example file is using the most up to date format
