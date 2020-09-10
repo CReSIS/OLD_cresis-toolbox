@@ -187,16 +187,16 @@ void TRWS::solve() {
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
 
-        // bool outside = true;
-        // for (int d = cur_rbin_start; d <= cur_rbin_stop; d++) {
-        //   if (h >= mCT_Bounds_Left[w*mNt + d] && h <= mCT_Bounds_Right[w*mNt + d]) {
-        //     outside = false;
-        //     break;
-        //   }
-        // }
-        // if (outside) {
-        //   continue;
-        // }
+        bool outside = true;
+        for (int d = cur_rbin_start; d <= cur_rbin_stop; d++) {
+          if (h >= mCT_Bounds_Left[w*mNt + d] && h <= mCT_Bounds_Right[w*mNt + d]) {
+            outside = false;
+            break;
+          }
+        }
+        if (outside) {
+          continue;
+        }
         
         // Message to node on the left of current
         //   Sum all input messages and create the message for the node on the right

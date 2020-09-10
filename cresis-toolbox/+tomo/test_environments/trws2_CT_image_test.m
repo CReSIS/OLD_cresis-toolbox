@@ -1,10 +1,10 @@
 %% CONSTANTS
 FIGURE_NUM = nan;
-SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/perm Greenland/output images/';
+SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/output images/';
 SAVE_IMAGE = false; % Save the normalized (output) image
 SAVE_SURF = false; % Save the output surface
-SAVE_FIG = false; % Save the created figure
-SAVE_NAME = 'test'; % name of save files and directory
+SAVE_FIG = true; % Save the created figure
+SAVE_NAME = 'speed tests/unbounded/4 traversal antarctic'; % name of save files and directory
 RNG_SEED = 1;
 TOP_LAYER_GUARD = 0;
 BOTTOM_LAYER_GUARD = 0;
@@ -41,7 +41,7 @@ PLOT_MAX_POINTS = false; % Plot maximum data point in the CT dimension for each 
 MAX_POINTS_NUM = 3; % Number of max points to plot for every (AT, FT) row.
 MAX_POINTS_SKIP = 1; % Number of rows to skip between each plot for max points
 
-PLOT_MAX_SURF = true; % Plot the maximum points as a surface. (LOAD_DATA must be true. Does not plot found surface when this is true)
+PLOT_MAX_SURF = false; % Plot the maximum points as a surface. (LOAD_DATA must be true. Does not plot found surface when this is true)
 NUM_MAX_SURF = 1; % Number of max sufaces to plot (1st uses maximum points, 2nd uses next greatest points, etc.)
 COLOR_MAX_SURF = 'none';
 
@@ -50,7 +50,7 @@ RELOAD_DATA = false; % When false, only load trws_data if not already loaded. Ig
 FIND_SURF = true; % Calls TRWS when true. Overridden by presets below. correct_surface must be set manually when false.
 COLOR_SURF_DATA = 'trws_data'; % Color the surface with intensity values from given variable. generally 'trws_data_norm' for output image or 'trws_data' for input image. 'none' for solid coloring;
 
-USE_SURF_BOUNDS = true; % Bound results with surface layers
+USE_SURF_BOUNDS = false; % Bound results with surface layers
 USE_BOTTOM_LAYER = false; % Use the bottom layer as the bottom boundary surface. USE_SURF_BOUNDS must be true. Useful for Greenland data.
 RELOAD_BOTTOM_LAYER = false; % Force reload of layer information with opsLoadLayers even if already present.
 PLOT_CT_BOUNDS = false; % Plot the CT-slope surface boundaries
@@ -64,7 +64,7 @@ PLOT_HISTOGRAM = false; % Plot a histogram of the data
 %% DISPLAY VARS
 DISPLAY_VARS = {'RNG_SEED', 'TOP_LAYER_GUARD', 'BOTTOM_LAYER_GUARD', 'NOISE_FLOOR', 'St', 'Ssv', 'Sx', 'Et', 'Esv', 'Ex', 'Nt', 'Nsv', 'Nx', ...
   'MAX_LOOPS', 'AT_WEIGHT', 'PLOT_CT_BOUNDS', 'PLOT_FT_BOUNDS', 'NORMALIZE_DATA', 'MAKE_DATA_POSITIVE', 'USE_DEBUG_MATRIX', ... 
-  'FIND_SURF', 'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SAVE_FIG', 'SAVE_NAME', 'SAVE_PATH'};
+  'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SAVE_FIG', 'SAVE_NAME', 'SAVE_PATH'};
 
 if PLOT_POINTS
   DISPLAY_VARS{end + 1} = 'PLOT_POINTS';
@@ -89,6 +89,7 @@ if LOAD_DATA
 end
 if FIND_SURF
   DISPLAY_VARS{end + 1} = 'FIND_SURF';
+  DISPLAY_VARS{end + 1} = 'trws_run_time';
 else
   DISPLAY_VARS{end + 1} = 'surf_fn';
 end
@@ -110,7 +111,7 @@ param.day_seg = '20200107_01';
 frm = 1;
 
 %% PRESETS
-if 0
+if 1
   % Find surface of antarctica data
   echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
@@ -131,7 +132,7 @@ elseif 0
   SAVE_SURF = false;
   SAVE_IMAGE = false;
   Esv = 64;
-elseif 1
+elseif 0
   % Find surface of Greenland data
   param.season_name = '2014_Greenland_P3';
   param.day_seg = '20140502_01';
@@ -296,7 +297,9 @@ CT_bounds(2, :) = Nsv;
 
 % Perform TRWS and save surface
 debug = [];
+trws_run_time = nan;
 if FIND_SURF
+  tic;
   if USE_DEBUG_MATRIX
     [correct_surface, debug] = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
       single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1);
@@ -305,6 +308,7 @@ if FIND_SURF
     correct_surface = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
       single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1);
   end
+  trws_run_time = toc
 else
   correct_surface = correct_surface(St:Tt:Et, Sx:Tx:Ex);
 end
@@ -633,10 +637,14 @@ annotation('textbox', [0, 0, 0.3, 1], 'String', str, 'Interpreter', 'tex', 'Font
 
 %% SAVE OUTPUTS
 
-if exist([SAVE_PATH SAVE_NAME], 'dir') ~= 7 % 7 is a folder
-  mkdir([SAVE_PATH SAVE_NAME]);
+path_parts = SAVE_PATH;
+for path_part = strsplit(SAVE_NAME, '/')
+  path_parts = [path_parts path_part{1} '/'];
+  if exist(path_parts, 'dir') ~= 7 % 7 is a folder
+    mkdir(path_parts);
+  end
 end
-
+  
 output_path = [SAVE_PATH SAVE_NAME '/'];
 
 if SAVE_IMAGE
