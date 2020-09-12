@@ -4,15 +4,17 @@ function success = layer_tracker_tune_plot
 % Used to plot 2 dimensional imagesc plots of data matrix from layer_tracker_tune.m
 % set filename to the file location of where result data matrix is stored in layer_tracker_plot.m script
 % set number of total layers (num_layers)
+% set the format image must be saved in (e.g. fig, jpg, png)
 % Plots will be saved in same folder as specified in filename
+% Plots will be saved in the filename formatted as
 % Authors: Anjali Pare, John Paden
 %
 % See layer_tracker_tune.m
 %% Set Input
 % =====================================================================
 %filename = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp'); %where temporary files are saved
-
-filename = '/cresis/snfs1/scratch/anjali/cluster_tuning/result1.mat'; % where the matrix is saved. Images generated will be saved in the same folder
+img_format = 'jpg';
+filename = '/cresis/snfs1/scratch/anjali/cluster_tuning/tmp_imgs/resultTest3.mat'; % where the matrix is saved. Images generated will be saved in the same folder
 num_layers = 2; % enter number of layers
 img_dir = fileparts(filename);
 if ~exist(img_dir,'dir')
@@ -70,7 +72,8 @@ for layer_idx = 1:num_layers
     set(gca,'YTick',yTick);
     h_colorbar = colorbar(gca);
     set(get(h_colorbar,'YLabel'),'String','Mean absolute error (rows)');
-    img_fn = fullfile(img_dir,sprintf('%03d_%s_%s.fig',layer_idx,labelNameX,labelNameY));
+    testname = param.layer_tracker.layer_params.layerdata_source;
+    img_fn = fullfile(img_dir,sprintf('%03d_%s_%s_%s.%s',layer_idx,testname,labelNameX,labelNameY,img_format));
     ct_saveas(h_fig(1),img_fn);
     
   end

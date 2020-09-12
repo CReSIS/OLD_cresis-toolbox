@@ -27,10 +27,11 @@ if strcmpi(get(obj.h_fig,'SelectionType'),'open')
   
 else
   val = get(source,'Value');
-  
+  disp(obj.eg.layers.lyr_desc{val})
+  set(obj.left_panel.layerLB,'TooltipString',obj.eg.layers.lyr_desc{val});
   obj.eg.layers.selected_layers(:)=false;
   obj.eg.layers.selected_layers(val)=true;
   
-  % Update plot based on selection
+  % Update plot based on selectio
   obj.set_visibility();
 end

@@ -21,9 +21,9 @@ fprintf('=====================================================================\n
 
 %% General User Settings
 
-temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20200416_183307_t032_lsm.mat'); % where param structure is stored
+temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20200902_011840_t006_lsm');
 param= temp.param;
-save_name = '/cresis/snfs1/scratch/anjali/cluster_tuning/result2.mat'; % where to store tuning final result
+save_name = '/cresis/snfs1/scratch/anjali/cluster_tuning/resultTest1.mat'; % where to store tuning final result
 
 gt_layer_params = [];
 res_matrix = [];
@@ -87,9 +87,11 @@ for layer_names = 1:num_layers
   res_matrix_all_frms{layer_names} = permute(res_matrix_all_frms{layer_names},idx_matrix);
   [min_val{layer_names},i]=min(res_matrix_all_frms{layer_names}(:));
   sizeMatrix = size(res_matrix_all_frms{layer_names});
-  
   for dim = 1:length(size(res_matrix_all_frms{layer_names}))
     points{layer_names}(dim) = mod(floor((i-1)/prod(sizeMatrix(1:dim-1))),sizeMatrix(dim))+1;
+  end
+  if (length(size(res_matrix_all_frms{layer_names})) < length(param.layer_tracker.track{1}.idx_reshape))
+    points{layer_names}(dim+1) = 1;
   end
 end
 
