@@ -1,20 +1,44 @@
-function [slope, slope_corr] = echo_slope(param, param_override)
-
-%keyboard
-
-
-
-
+function [slope, slope_corr] = echo_slope_radon(param, param_override)
+% echo_slope_radon(param,param_override)
+%
+% Function that takes culled snapshots, sorts them into doa bins,
+% collates over images and frames and removes outliers.  Generates an
+% estimated lut from a set of snapshots for one dayseg
+%
+% param: struct with processing parameters
+%         -- OR --
+%         function handle to script with processing parameters
+% param_override: parameters in this struct will override parameters
+%         in param.  This struct must also contain the gRadar fields.
+%         Typically global gRadar; param_override = gRadar;
+%
+% Example:
+%  See run_FUNCTION.m for how to run this function directly.
+%  This function may be called from the run_master.m script using the
+%  param spreadsheet and the cmd.generic column.
+%
+% Authors: Kevin Moore
+%
+% See also: estimate_sv_lut.m
 
 %% General Setup
 % =====================================================================
 
 param = merge_structs(param, param_override);
 
-% fprintf('=====================================================================\n');
-% fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
-% fprintf('=====================================================================\n');
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
 
+%% Input checks
+% =====================================================================
+if ~isfield(param,mfilename) || isempty(param.(mfilename))
+  param.(mfilename) = [];
+end
+
+if ~isfield(param.echo_slope_radon,'out_path') || isempty(param.echo_slope_radon.out_path)
+  param.echo_slope_radon.out_path = 'echo_slope_radon';
+end
 
 max_slope = param.echo_slope.max_slope;
 min_slope = param.echo_slope.min_slope;

@@ -48,6 +48,8 @@ colorbar
 set(gcf, 'Name', 'Detrended Radon Transform Slope');
 
 
+
+
 for i = rows/2+1:frame_rows - rows/2
   
   fprintf('Smoothing row %d of %d at time: %s\n', i, frame_rows-rows/2, datestr(now, 'HH:MM:SS'))
@@ -62,14 +64,49 @@ for i = rows/2+1:frame_rows - rows/2
   end
 end
 
-keyboard
+%keyboard
+
+echo_detrend_result = echo_detrend(weighted_smoothing_result);
 
 figure(1003); clf;
-imagesc(echo_detrend(weighted_smoothing_result));
+imagesc(echo_detrend_result);
 colorbar
 set(gcf, 'Name', 'Smoothed Radon Transform Slope');
-keyboard
+
+%keyboard
+
+% %Output directory
+
+out_dir = ct_filename_out(param, param.echo_slope.out_path,'');
+
+if ~isdir(out_dir)
+  mkdir(out_dir);
+end
+
+% % Output filename
+out_fn =  fullfile(out_dir,sprintf('data_%s_%03d.mat',param.day_seg,param.cmd.frms))
+
+slope_data.data = echo_detrend_result;
+slope_data.Latitude = mdata.Latitude;
+slope_data.Longitude = mdata.Longitude;
+slope_data.Elevation = mdata.Elevation;
+slope_data.Roll = mdata.Roll;
+slope_data.Pitch = mdata.Pitch;
+slope_data.Heading = mdata.Heading;
+slope_data.GPS_time = mdata.GPS_time;
+slope_data.Surface = mdata.Surface;
+slope_data.Bottom = mdata.Bottom;
+slope_data.Time = mdata.Time;
+slope_data.param_csarp = mdata.param_csarp;
+slope_data.param_records = mdata.param_records;
+slope_data.param_combine = mdata.param_combine;
+slope_data.param_echo_slope_radon = param.echo_slope_radon;
+
+fprintf('Saving %s (%s)\n', out_fn, datestr(now));
+ct_save(out_fn,'-struct','slope_data');
 
 
 end
+
+
 
