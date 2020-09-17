@@ -27,7 +27,7 @@ out_dir = ct_filename_out(param, param.qlook.out_path);
 tmp_out_dir = ct_filename_out(param, param.qlook.out_path, 'qlook_tmp');
 
 % Radiometric correction (dB)
-radiometric_corr = param.qlook.radiometric_corr_dB;
+radiometric_corr_dB = param.qlook.radiometric_corr_dB;
 
 %% Loop through all the frames: combine and surface track
 % =====================================================================
@@ -244,13 +244,17 @@ for frm_idx = 1:length(param.cmd.frms);
       file_version = '1';
     end
     file_type = 'qlook';
-    Data = single(Data);
+    if isnan(radiometric_corr_dB)
+      Data = single(Data);
+    else
+      Data = single(Data * 10^(radiometric_corr_dB/10));
+    end
     if isempty(custom)
-      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr_dB', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type');
     else
-      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr_dB', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type','custom');
     end
@@ -309,11 +313,11 @@ for frm_idx = 1:length(param.cmd.frms);
     file_type = 'qlook';
     
     if isempty(custom)
-      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr_dB', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type');
     else
-      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
+      ct_save(out_fn,'Time','Latitude','Longitude', 'radiometric_corr_dB', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','file_type','custom');
     end
@@ -376,6 +380,7 @@ if param.qlook.surf.en
     copy_param.layer_source.source = 'echogram';
     copy_param.layer_source.echogram_source = param.qlook.out_path;
     copy_param.layer_source.existence_check = false;
+    copy_param.layer_source.existence_warning = false;
     copy_param.layer_source.echogram_source_img = echogram_source_img;
     
     copy_param.layer_dest = param.qlook.surf_layer;

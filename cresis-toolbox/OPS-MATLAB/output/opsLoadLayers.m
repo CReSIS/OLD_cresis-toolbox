@@ -166,6 +166,9 @@ for layer_idx = 1:length(layer_params)
   if ~isfield(layer_params(layer_idx),'existence_check') || isempty(layer_params(layer_idx).existence_check)
     layer_params(layer_idx).existence_check = true;
   end
+  if ~isfield(layer_params(layer_idx),'existence_warning') || isempty(layer_params(layer_idx).existence_warning)
+    layer_params(layer_idx).existence_warning = true;
+  end
   switch lower(layer_params(layer_idx).source)
     case 'ops'
       ops_en = true;
@@ -426,7 +429,9 @@ for frm_idx = 1:length(param.cmd.frms)
         if layer_param.existence_check
           error('Echogram file %s does not exist', data_fn);
         else
-          warning('Echogram file %s does not exist', data_fn);
+          if layer_param.existence_warning
+            warning('Echogram file %s does not exist', data_fn);
+          end
           continue;
         end
       end
@@ -550,7 +555,9 @@ if ops_en
       if layer_param.existence_check
         error('Layer %s does not exist in OPS.', layer_param.name);
       else
-        warning('Layer %s does not exist in OPS.', layer_param.name);
+        if layer_param.existence_warning
+          warning('Layer %s does not exist in OPS.', layer_param.name);
+        end
       end
     else
       layers(layer_idx).group_name = data.properties.lyr_group_name{match_idx};

@@ -34,6 +34,7 @@ function [day_seg,frm_id,recs,num_recs] = get_frame_id(param,gps_time,search_par
 %   [day_seg,frm_id,recs] = get_frame_id(param,[1303490781.93816 1303491582.05660])
 %   [day_seg,frm_id,recs] = get_frame_id(param,[1303837435.04928 1303838235.17157])
 %   [day_seg,frm_id,recs] = get_frame_id(param,datenum_to_epoch(datenum(2011,4,22,16,46,21)))
+%   [day_seg,frm_id,recs] = get_frame_id(param,datenum_to_epoch(datenum('2019-09-09 14:11:19.08')))
 %
 % Author: John Paden
 %
