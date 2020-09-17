@@ -503,7 +503,4 @@ for file_idx = 1:length(in_fns)
     ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type');
   end
   
-  if debug_level >= 2
-    gps_plot(out_fn);
-  end
 end

@@ -80,7 +80,7 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_params{file_idx} = struct('time_reference','utc');
   
 elseif strcmpi(gps_source_to_use,'arena_cpu_time')
-  correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
+  correction = make_gps_2018_Antarctica_Ground_cpu_time(in_base_path);
     
 %   year = 2018; month = 12; day = 17;
 %   file_idx = file_idx + 1;
@@ -109,7 +109,7 @@ elseif strcmpi(gps_source_to_use,'arena_cpu_time')
     'cpu_time_correction',correction);
 
 elseif strcmpi(gps_source_to_use,'trimble_cpu_time_shun')
-  correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
+  correction = make_gps_2018_Antarctica_Ground_cpu_time(in_base_path);
 
   % Shun processed with ? software, but noticed unusually large errors:
   % currently not using this versino of the processed data
@@ -167,7 +167,7 @@ elseif strcmpi(gps_source_to_use,'trimble_cpu_time_shun')
 %   end
       
 elseif strcmpi(gps_source_to_use,'trimble_cpu_time_paden')
-  correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
+  correction = make_gps_2018_Antarctica_Ground_cpu_time(in_base_path);
   
   % Paden processed with the Canadian online service. The results seem to
   % be smoother than Shun's processed results and the reported errors are

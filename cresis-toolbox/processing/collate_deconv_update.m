@@ -1,11 +1,11 @@
-function update_collate_deconv(param,param_override)
-% update_collate_deconv(param,param_override)
+function collate_deconv_update(param,param_override)
+% collate_deconv_update(param,param_override)
 %
 % This scripts updates the collate_deconv output files. It allows one to
 % delete, add, and update waveforms to the final deconv file.
 %
 % Example:
-%  See run_update_collate_deconv.m to run.
+%  See run_collate_deconv_update.m to run.
 %
 % Author: John Paden
 
@@ -24,84 +24,84 @@ physical_constants;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-% param.update_collate_deconv structure
+% param.collate_deconv_update structure
 % =========================================================================
 
-if ~isfield(param.update_collate_deconv,'abs_metric') || isempty(param.update_collate_deconv.abs_metric)
-  param.update_collate_deconv.abs_metric = [58 5 -25 -35 inf inf];
+if ~isfield(param.collate_deconv_update,'abs_metric') || isempty(param.collate_deconv_update.abs_metric)
+  param.collate_deconv_update.abs_metric = [58 5 -25 -35 inf inf];
 end
 
-if ~isfield(param.update_collate_deconv,'debug_plots')
-  param.update_collate_deconv.debug_plots = {'final'};
-  % param.update_collate_deconv.debug_plots = {'final','visible'};
+if ~isfield(param.collate_deconv_update,'debug_plots')
+  param.collate_deconv_update.debug_plots = {'final'};
+  % param.collate_deconv_update.debug_plots = {'final','visible'};
 end
 
-if ~isfield(param.update_collate_deconv,'delete_existing') || isempty(param.update_collate_deconv.delete_existing)
-  param.update_collate_deconv.delete_existing = false;
+if ~isfield(param.collate_deconv_update,'delete_existing') || isempty(param.collate_deconv_update.delete_existing)
+  param.collate_deconv_update.delete_existing = false;
 end
 
-if ~isfield(param.update_collate_deconv,'gps_time_penalty') || isempty(param.update_collate_deconv.gps_time_penalty)
-  param.update_collate_deconv.gps_time_penalty = 1/(10*24*3600);
+if ~isfield(param.collate_deconv_update,'gps_time_penalty') || isempty(param.collate_deconv_update.gps_time_penalty)
+  param.collate_deconv_update.gps_time_penalty = 1/(10*24*3600);
 end
 
 if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
   param.analysis.imgs = {[1 1]};
 end
-if ~isfield(param.update_collate_deconv,'imgs') || isempty(param.update_collate_deconv.imgs)
-  param.update_collate_deconv.imgs = 1:length(param.analysis.imgs);
+if ~isfield(param.collate_deconv_update,'imgs') || isempty(param.collate_deconv_update.imgs)
+  param.collate_deconv_update.imgs = 1:length(param.analysis.imgs);
 end
 
-if ~isfield(param.update_collate_deconv,'in_path') || isempty(param.update_collate_deconv.in_path)
-  param.update_collate_deconv.in_path = 'analysis';
+if ~isfield(param.collate_deconv_update,'in_path') || isempty(param.collate_deconv_update.in_path)
+  param.collate_deconv_update.in_path = 'analysis';
 end
 
-if ~isfield(param.update_collate_deconv,'metric_weights') || isempty(param.update_collate_deconv.metric_weights)
-  param.update_collate_deconv.metric_weights = [0.5 0 3 5 0 0];
+if ~isfield(param.collate_deconv_update,'metric_weights') || isempty(param.collate_deconv_update.metric_weights)
+  param.collate_deconv_update.metric_weights = [0.5 0 3 5 0 0];
 end
-error_mask = isinf(param.update_collate_deconv.abs_metric) & param.update_collate_deconv.metric_weights ~= 0;
+error_mask = isinf(param.collate_deconv_update.abs_metric) & param.collate_deconv_update.metric_weights ~= 0;
 if any(error_mask)
   warning('Fields set to inf in abs_metric must be set to 0 in metric_weights. Setting these to 0 now.');
-  param.update_collate_deconv.metric_weights(error_mask) = 0;
+  param.collate_deconv_update.metric_weights(error_mask) = 0;
 end
 
-if ~isfield(param.update_collate_deconv,'min_score') || isempty(param.update_collate_deconv.min_score)
-  param.update_collate_deconv.min_score = -10;
+if ~isfield(param.collate_deconv_update,'min_score') || isempty(param.collate_deconv_update.min_score)
+  param.collate_deconv_update.min_score = -10;
 end
 
-if ~isfield(param.update_collate_deconv,'out_path') || isempty(param.update_collate_deconv.out_path)
-  param.update_collate_deconv.out_path = param.update_collate_deconv.in_path;
+if ~isfield(param.collate_deconv_update,'out_path') || isempty(param.collate_deconv_update.out_path)
+  param.collate_deconv_update.out_path = param.collate_deconv_update.in_path;
 end
 
-if ~isfield(param.update_collate_deconv,'twtt_penalty') || isempty(param.update_collate_deconv.twtt_penalty)
+if ~isfield(param.collate_deconv_update,'twtt_penalty') || isempty(param.collate_deconv_update.twtt_penalty)
   if strcmpi(radar_type,'deramp')
-    param.update_collate_deconv.twtt_penalty = 1e6;
+    param.collate_deconv_update.twtt_penalty = 1e6;
   else
     % No twtt dependence
-    param.update_collate_deconv.twtt_penalty = 1e-6;
+    param.collate_deconv_update.twtt_penalty = 1e-6;
   end
 end
 
-if ~isfield(param.update_collate_deconv,'wf_adcs') || isempty(param.update_collate_deconv.wf_adcs)
-  param.update_collate_deconv.wf_adcs = [];
+if ~isfield(param.collate_deconv_update,'wf_adcs') || isempty(param.collate_deconv_update.wf_adcs)
+  param.collate_deconv_update.wf_adcs = [];
 end
 
 % Other Setup
 % =========================================================================
 
-if ~isempty(param.update_collate_deconv.debug_plots)
-  h_fig = get_figures(3,any(strcmp('visible',param.update_collate_deconv.debug_plots)),'collate_deconv');
+if ~isempty(param.collate_deconv_update.debug_plots)
+  h_fig = get_figures(3,any(strcmp('visible',param.collate_deconv_update.debug_plots)),'collate_deconv');
 end
 
 %% Process commands
 % =====================================================================
 tmp_param = param;
-for img = param.update_collate_deconv.imgs
+for img = param.collate_deconv_update.imgs
   
-  if isempty(param.update_collate_deconv.wf_adcs)
+  if isempty(param.collate_deconv_update.wf_adcs)
     % If no wf-adc pairs specified, then do them all.
     wf_adcs = 1:size(param.analysis.imgs{img},1);
   else
-    wf_adcs = param.update_collate_deconv.wf_adcs;
+    wf_adcs = param.collate_deconv_update.wf_adcs;
   end
   for wf_adc = wf_adcs
     wf = param.analysis.imgs{img}(wf_adc,1);
@@ -109,11 +109,11 @@ for img = param.update_collate_deconv.imgs
     
     % Load input
     % ===================================================================
-    fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.in_path, ''));
+    fn_dir = fileparts(ct_filename_out(param,param.collate_deconv_update.in_path, ''));
     fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('\n==============================================================\n');
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
-    if param.update_collate_deconv.delete_existing
+    if param.collate_deconv_update.delete_existing
       delete(fn);
     end
     if exist(fn,'file')
@@ -138,18 +138,18 @@ for img = param.update_collate_deconv.imgs
     
     % Execute update commands
     % ===================================================================
-    for cmd_idx = 1:length(param.update_collate_deconv.cmd)
-      switch lower(param.update_collate_deconv.cmd{cmd_idx}.method)
+    for cmd_idx = 1:length(param.collate_deconv_update.cmd)
+      switch lower(param.collate_deconv_update.cmd{cmd_idx}.method)
         case 'delete'
-          fprintf('%s:', param.update_collate_deconv.cmd{cmd_idx}.method);
-          fprintf(' %d', param.update_collate_deconv.cmd{cmd_idx}.idxs);
+          fprintf('%s:', param.collate_deconv_update.cmd{cmd_idx}.method);
+          fprintf(' %d', param.collate_deconv_update.cmd{cmd_idx}.idxs);
           fprintf('\n');
           
           if new_file
             error('Delete not allowed on segments that do not have a deconv file or any waveforms loaded.');
           end
           
-          deconv_idxs = setdiff(1:length(deconv_lib.gps_time), param.update_collate_deconv.cmd{cmd_idx}.idxs);
+          deconv_idxs = setdiff(1:length(deconv_lib.gps_time), param.collate_deconv_update.cmd{cmd_idx}.idxs);
           deconv_lib.elev = deconv_lib.elev(deconv_idxs);
           deconv_lib.fc = deconv_lib.fc(deconv_idxs);
           deconv_lib.frm = deconv_lib.frm(deconv_idxs);
@@ -170,27 +170,27 @@ for img = param.update_collate_deconv.imgs
           deconv_lib.twtt = deconv_lib.twtt(deconv_idxs);
           
         case {'add','replace'}
-          for seg_idx = 1:length(param.update_collate_deconv.cmd{cmd_idx}.day_seg)
-            fprintf('%s: ', param.update_collate_deconv.cmd{cmd_idx}.method);
-            fprintf(' (%s,', param.update_collate_deconv.cmd{cmd_idx}.day_seg{seg_idx});
-            fprintf(' %d', param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx});
+          for seg_idx = 1:length(param.collate_deconv_update.cmd{cmd_idx}.day_seg)
+            fprintf('%s: ', param.collate_deconv_update.cmd{cmd_idx}.method);
+            fprintf(' (%s,', param.collate_deconv_update.cmd{cmd_idx}.day_seg{seg_idx});
+            fprintf(' %d', param.collate_deconv_update.cmd{cmd_idx}.idxs{seg_idx});
             fprintf(')');
           end
           fprintf('\n');
           
-          for seg_idx = 1:length(param.update_collate_deconv.cmd{cmd_idx}.day_seg)
-            if ~isfield(param.update_collate_deconv.cmd{cmd_idx},'wf_adcs_map') ...
-                || numel(param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map) < seg_idx ...
-                || isempty(param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map{seg_idx})
+          for seg_idx = 1:length(param.collate_deconv_update.cmd{cmd_idx}.day_seg)
+            if ~isfield(param.collate_deconv_update.cmd{cmd_idx},'wf_adcs_map') ...
+                || numel(param.collate_deconv_update.cmd{cmd_idx}.wf_adcs_map) < seg_idx ...
+                || isempty(param.collate_deconv_update.cmd{cmd_idx}.wf_adcs_map{seg_idx})
               wf_map = wf;
               adc_map = adc;
             else
-              wf_map = param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map{seg_idx}{img}(wf_adc,1);
-              adc_map = param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map{seg_idx}{img}(wf_adc,2);
+              wf_map = param.collate_deconv_update.cmd{cmd_idx}.wf_adcs_map{seg_idx}{img}(wf_adc,1);
+              adc_map = param.collate_deconv_update.cmd{cmd_idx}.wf_adcs_map{seg_idx}{img}(wf_adc,2);
             end
             
-            tmp_param.day_seg = param.update_collate_deconv.cmd{cmd_idx}.day_seg{seg_idx};
-            fn_dir = fileparts(ct_filename_out(tmp_param,param.update_collate_deconv.in_path, ''));
+            tmp_param.day_seg = param.collate_deconv_update.cmd{cmd_idx}.day_seg{seg_idx};
+            fn_dir = fileparts(ct_filename_out(tmp_param,param.collate_deconv_update.in_path, ''));
             fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', tmp_param.day_seg, wf_map, adc_map));
             fprintf('  Loading %s img %d wf %d adc %d\n  %s\n', tmp_param.day_seg, img, wf_map, adc_map, fn);
             tmp_deconv{cmd_idx}{seg_idx} = load(fn);
@@ -227,12 +227,12 @@ for img = param.update_collate_deconv.imgs
             end
             
             % Make sure selected waveforms to add/replace exist
-            param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx}  ...
-              = intersect(param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx}, ...
+            param.collate_deconv_update.cmd{cmd_idx}.idxs{seg_idx}  ...
+              = intersect(param.collate_deconv_update.cmd{cmd_idx}.idxs{seg_idx}, ...
               1:length(tmp_deconv{cmd_idx}{seg_idx}.gps_time));
             
-            new_idxs = param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx};
-            if strcmpi(param.update_collate_deconv.cmd{cmd_idx}.method,'add')
+            new_idxs = param.collate_deconv_update.cmd{cmd_idx}.idxs{seg_idx};
+            if strcmpi(param.collate_deconv_update.cmd{cmd_idx}.method,'add')
               deconv_lib.elev = [deconv_lib.elev tmp_deconv{cmd_idx}{seg_idx}.elev(new_idxs)];
               deconv_lib.fc = [deconv_lib.fc tmp_deconv{cmd_idx}{seg_idx}.fc(new_idxs)];
               deconv_lib.frm = [deconv_lib.frm tmp_deconv{cmd_idx}{seg_idx}.frm(new_idxs)];
@@ -295,8 +295,8 @@ for img = param.update_collate_deconv.imgs
     layer.elev = layer.elev(decim_idxs);
     
     % 4. Compare results to metric
-    pass = bsxfun(@lt,deconv_lib.metric,param.update_collate_deconv.abs_metric(:));
-    score = nansum(bsxfun(@times, param.update_collate_deconv.metric_weights(:), bsxfun(@minus, param.update_collate_deconv.abs_metric(:), deconv_lib.metric)));
+    pass = bsxfun(@lt,deconv_lib.metric,param.collate_deconv_update.abs_metric(:));
+    score = nansum(bsxfun(@times, param.collate_deconv_update.metric_weights(:), bsxfun(@minus, param.collate_deconv_update.abs_metric(:), deconv_lib.metric)));
     score(:,any(isnan(deconv_lib.metric))) = nan;
     
     % 5. Find best score at each point along the flight track
@@ -307,16 +307,16 @@ for img = param.update_collate_deconv.imgs
       % Score with twtt penalty and time constant penalty term
       d_twtt = layer.twtt(rline) - deconv_lib.twtt;
       d_gps_time = layer.gps_time(rline) - deconv_lib.gps_time;
-      %adjusted_score = min_score + score .* exp(-abs(param.update_collate_deconv.twtt_penalty*d_twtt).^2) ...
-      %  .* exp(-abs(param.update_collate_deconv.gps_time_penalty*d_gps_time).^2);
-      adjusted_score = min_score + score - (100-100*exp(-abs(param.update_collate_deconv.twtt_penalty*d_twtt).^2)) ...
-        - (50-50*exp(-abs(param.update_collate_deconv.gps_time_penalty*d_gps_time).^2));
+      %adjusted_score = min_score + score .* exp(-abs(param.collate_deconv_update.twtt_penalty*d_twtt).^2) ...
+      %  .* exp(-abs(param.collate_deconv_update.gps_time_penalty*d_gps_time).^2);
+      adjusted_score = min_score + score - (100-100*exp(-abs(param.collate_deconv_update.twtt_penalty*d_twtt).^2)) ...
+        - (50-50*exp(-abs(param.collate_deconv_update.gps_time_penalty*d_gps_time).^2));
       
       [max_score(rline),max_idx(rline)] = max(adjusted_score);
       unadjusted_score(rline) = min_score + score(max_idx(rline));
     end
-    if any(max_score < param.update_collate_deconv.min_score)
-      warning('Score is too low for %d of %d blocks of range lines.', sum(max_score < param.update_collate_deconv.min_score), length(max_score));
+    if any(max_score < param.collate_deconv_update.min_score)
+      warning('Score is too low for %d of %d blocks of range lines.', sum(max_score < param.collate_deconv_update.min_score), length(max_score));
     end
     [max_idxs,~,max_idxs_mapping] = unique(max_idx);
     
@@ -364,7 +364,7 @@ for img = param.update_collate_deconv.imgs
     end
     
     % 7. Plot final deconv waveforms
-    if any(strcmp('final',param.update_collate_deconv.debug_plots))
+    if any(strcmp('final',param.collate_deconv_update.debug_plots))
       % TWTT Figure
       % ===================================================================
       clf(h_fig(1));
@@ -388,14 +388,14 @@ for img = param.update_collate_deconv.imgs
       legend(h_axes(1), h_plot, legend_str,'location','best');
       grid(h_axes(1), 'on');
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(1),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(1),fig_fn);
       
@@ -423,10 +423,10 @@ for img = param.update_collate_deconv.imgs
       legend(h_axes(2), h_plot, legend_str,'location','best');
       grid(h_axes(2), 'on');
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(2),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(2),fig_fn);
       
@@ -493,17 +493,17 @@ for img = param.update_collate_deconv.imgs
       pos4 = get(h_axes(4),'Position');
       set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
     end
     
     % Save outputs
     % ===================================================================
-    fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.out_path, ''));
+    fn_dir = fileparts(ct_filename_out(param,param.collate_deconv_update.out_path, ''));
     if ~exist(fn_dir,'dir')
       mkdir(fn_dir);
     end
