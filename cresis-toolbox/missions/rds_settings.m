@@ -20,9 +20,10 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % -------------------------------------------------------------------------
 % 2019 Antarctica TObas
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191215_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191215_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191215_03'); % DO NOT SAR PROCESS
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191222_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191225_01');
+% params = ct_set_params(params,'cmd.frms',[20:22],'day_seg','20191225_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191226_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191229_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230_01');
@@ -34,7 +35,9 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_06');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200126_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200127_01');
+% params = ct_set_params(params,'cmd.frms',[33:34],'day_seg','20200127_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01');
+% params = ct_set_params(params,'cmd.frms',[],'day_seg','20200128_01');
 
 % =========================================================================
 % Multipass
@@ -177,7 +180,11 @@ for param_idx = 1:length(params)
   %% qlook
   params = ct_set_params(params,'qlook.out_path','qlook');
   params = ct_set_params(params,'qlook.surf_layer',struct('name','surface','source','layerdata','layerdata_source','layer'));
-  if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
+  if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
+    param_override.qlook.surf.en = false;
+  elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+    param_override.qlook.surf.en = false;
+  elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
     %params(param_idx).qlook.out_path = 'qlook_test';
     params(param_idx).qlook.out_path = 'qlook_test_adcs5678';
     %params(param_idx).qlook.out_path = 'qlook';
@@ -239,16 +246,13 @@ for param_idx = 1:length(params)
   for wf = 1:length(params(param_idx).radar.wfs)
     params(param_idx).radar.wfs(wf).deconv.en = 0;
     if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
+      params(param_idx).radar.wfs(wf).deconv.en = 1;
       params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
       params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
     elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
-      if any(strcmp(params(param_idx).day_seg,{'20200127_01'}))
-        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold_coh_ave';
-      else
-        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
-        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
-      end
+      params(param_idx).radar.wfs(wf).deconv.en = 1;
+      params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+      params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
     elseif strcmpi(params(param_idx).season_name,'2011_Greenland_P3')
@@ -545,7 +549,9 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
       % Standard
       params(param_idx).array.tomo_en = false;
       params(param_idx).array.method = 'standard';
-      if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+      if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
+      elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+      elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
         params = ct_set_params(params,'array.imgs',{[ones(1,7); 6:12].', [2*ones(1,7); 6:12].', [3*ones(1,7); 6:12].'});
       elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
       elseif strcmpi(params(param_idx).season_name,'2010_Greenland_P3')

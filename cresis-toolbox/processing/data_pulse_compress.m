@@ -185,6 +185,9 @@ for img = 1:length(param.load.imgs)
     %% Coherent noise: Analysis Load
     % ===================================================================
     if strcmpi(wfs(wf).coh_noise_method,'analysis')
+      noise_fn_dir = fileparts(ct_filename_out(param,param.radar.wfs(wf).coh_noise_arg.fn, ''));
+      noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+      fprintf('  Loading coherent noise: %s (%s)\n', noise_fn, datestr(now));
       noise = collate_coh_noise_load(param,wf,adc);
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
@@ -194,10 +197,27 @@ for img = 1:length(param.load.imgs)
       
       noise.Nx = length(noise.gps_time);
       
-      if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
+      % Find the matching image index that includes this wf-adc pair.
+      match_found = false;
+      for collate_coh_noise_img = 1:length(noise.param_analysis.analysis.imgs)
+        for match_wf_adc = 1:size(noise.param_analysis.analysis.imgs{collate_coh_noise_img},1)
+          if noise.param_analysis.analysis.imgs{collate_coh_noise_img}(match_wf_adc,1) == wf ...
+              && noise.param_analysis.analysis.imgs{collate_coh_noise_img}(match_wf_adc,2) == adc
+            match_found = true;
+            break;
+          end
+        end
+        if match_found
+          break;
+        end
+      end
+      if ~match_found
+        error('Could not find matching wf-adc pair in noise.param_analysis.analysis.imgs and therefore the collate_coh_noise.method cannot be verified.');
+      end
+      if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'dft')
         coh_noise = noise.dft_noise;
         noise = rmfield(noise,'dft_noise');
-      elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
+      elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'firdec')
         coh_noise = noise.firdec_noise;
         noise = rmfield(noise,'firdec_noise');
       end
@@ -244,7 +264,13 @@ for img = 1:length(param.load.imgs)
       % Correct any changes in Tsys
       Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
       Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-      dTsys = Tsys-Tsys_old;
+      if strcmpi(radar_type,'pulsed')
+        time_correction = param.radar.wfs(wf).time_correction;
+        time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
+        dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
+      else
+        dTsys = Tsys-Tsys_old;
+      end
       noise.Nt = size(coh_noise,1);
       noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
       if dTsys ~= 0
@@ -328,7 +354,7 @@ for img = 1:length(param.load.imgs)
           plot(lp(coh_noise))
         end
         
-        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
+        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'dft')
           cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
@@ -338,7 +364,7 @@ for img = 1:length(param.load.imgs)
               cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
             end
           end
-        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
+        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'firdec')
           % Interpolate coherent noise onto current data's gps time
           if all(hdr.gps_time>noise.firdec_gps_time(end))
             % All current data's gps time is after the coherent noise
@@ -1328,7 +1354,7 @@ for img = 1:length(param.load.imgs)
     end
     if strcmpi(radar_type,'pulsed')
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
+        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'dft')
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
             % coh_noise(bin,dft_idx): Coefficient for the matched filter
@@ -1338,7 +1364,7 @@ for img = 1:length(param.load.imgs)
             end
           end
           
-        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
+        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'firdec')
           blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
           rel_gps_time = single(noise.firdec_gps_time - noise.firdec_gps_time(1));
           rel_gps_time_interp = single(hdr.gps_time - noise.firdec_gps_time(1));

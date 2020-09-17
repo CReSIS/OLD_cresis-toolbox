@@ -493,7 +493,7 @@ if isunix
 else
   set(obj.right_panel.status_panel.mouseCoordText,'FontSize',8)
 end
-set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','left');
+set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','right');
 set(obj.right_panel.status_panel.mouseCoordText,'String','');
 set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Frame Latitude (deg, N) Longitude (deg, W) |X-coordinate|Y-coordinate|Z-coordinate/intensity.');
 
@@ -515,7 +515,7 @@ obj.right_panel.status_panel.table.width_margin(row,col)  = 0;
 obj.right_panel.status_panel.table.height_margin(row,col) = 0;
 row = 1; col = 2;
 obj.right_panel.status_panel.table.handles{row,col}       = obj.right_panel.status_panel.mouseCoordText;
-obj.right_panel.status_panel.table.width(row,col)         = 230;
+obj.right_panel.status_panel.table.width(row,col)         = 250;
 obj.right_panel.status_panel.table.height(row,col)        = inf;
 obj.right_panel.status_panel.table.width_margin(row,col)  = 0;
 obj.right_panel.status_panel.table.height_margin(row,col) = 0;

@@ -99,6 +99,13 @@ if ~isfield(param.collate_deconv,'debug_ylim') || isempty(param.collate_deconv.d
 end
 debug_ylim = param.collate_deconv.debug_ylim;
 
+% decimate_table_sec: decimation spacing in seconds (default 10 sec), an entry
+% in the deconvolution waveform mapping will be made every decimate_table_sec
+% seconds.
+if ~isfield(param.collate_deconv,'decimate_table_sec') || isempty(param.collate_deconv.decimate_table_sec)
+  param.collate_deconv.decimate_table_sec = 10;
+end
+
 if ~isfield(param.collate_deconv,'f0') || isempty(param.collate_deconv.f0)
   % Default is no limits on lower frequency
   param.collate_deconv.f0 = -inf;
@@ -113,6 +120,15 @@ if ~isfield(param.collate_deconv,'gps_time_penalty') || isempty(param.collate_de
   param.collate_deconv.gps_time_penalty = 1/(10*24*3600);
 end
 
+% gps_times is a Ngt by 3 matrix where the number of rows, Ngt, is the
+% number of gps times to specifically consider in the final deconvolution
+% mapping. If gps_times is empty (Ngt == 0), then all waveforms are
+% considered. The first column specifies the GPS time of the deconvolution
+% waveform to use (the deconvolution waveform closest to this GPS time will
+% be used), the second column and third column specify the range of GPS
+% times that this waveform will be considered for. To consider a waveform
+% for all times then the 2nd and 3rd columns should be -inf and +inf
+% respectively.
 if ~isfield(param.collate_deconv,'gps_times') || isempty(param.collate_deconv.gps_times)
   param.collate_deconv.gps_times = [];
 end
@@ -181,6 +197,11 @@ end
 
 if ~isfield(param.collate_deconv,'stage_two_en') || isempty(param.collate_deconv.stage_two_en)
   param.collate_deconv.stage_two_en = true;
+end
+
+if ~isfield(param.collate_deconv,'surf_layer') || isempty(param.collate_deconv.surf_layer)
+  param.collate_deconv.surf_layer.name = 'surface';
+  param.collate_deconv.surf_layer.source = 'layerData';
 end
 
 if ~isfield(param.collate_deconv,'threshold') || isempty(param.collate_deconv.threshold)
@@ -443,7 +464,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(4),[1 length(SNR)], 20*[1 1],'k--');
           plot(h_axes(4),(Nt+param.collate_deconv.rbins{img}(1))*[1 1], [0 debug_ylim],'k--');
           title(h_axes(4),sprintf('SNR rising edge (rline %d of %d)',rline, length(spec.deconv_gps_time)));
-          xlabel(h_axes(4),'Range[-200 150] bin');
+          xlabel(h_axes(4),'Range bin');
           ylabel(h_axes(4),'SNR (dB)');
           ylim(h_axes(4), [0 debug_ylim]);
           grid(h_axes(4), 'on');
@@ -492,9 +513,11 @@ if param.collate_deconv.stage_one_en
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
         h_filled_inverse = Hwind_filled ./ h_filled;
         
-        % Normalize so that reflection is 0 dB (i.e. we assume this
-        % specular target is a perfect reflector) at this range, R when
-        % voltage is scaled R.
+        % Calculate the range R for debugging. Usually the specular
+        % reflection is 0 dB (i.e. the specular target is a perfect
+        % reflector) and we expect the voltage to be 1/R after corrections
+        % are applied when loading data (e.g. system_dB, adc_gains_dB,
+        % etc.).
         R = interp1(spec.gps_time,spec.surface,spec.deconv_gps_time(rline)) * c/2;
         % Apply deconvolution with unnormalized filter
         h_deconvolved = ifft(fft(spec.deconv_sample{rline}) .* h_filled_inverse);
@@ -511,7 +534,8 @@ if param.collate_deconv.stage_one_en
         % signal
         h_sample = interpft(spec.deconv_sample{rline},Mt*Nt);
         
-        % Scale so that the peak value is 1/R
+        % Scale so that the peak value matches between deconvolved and
+        % sample (this h_mult_factor is used in data_pulse_compress)
         h_mult_factor = max(abs(h_sample)) / max(abs(h_deconvolved));
         h_filled_inverse = h_filled_inverse * h_mult_factor;
         h_deconvolved = h_deconvolved * h_mult_factor;
@@ -790,7 +814,7 @@ if param.collate_deconv.stage_one_en
           fprintf(fid,'Peak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\n');
           fprintf(fid,'%.1f\t', param.collate_deconv.abs_metric); fprintf('\n');
           fprintf(fid,'Metric ( '); fprintf(fid_error,'Red Failed '); fprintf(fid,')\n');
-          fprintf(fid,'INDEX\tFRM\tREC\tPeak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\tPASS\tSCORE\tTWTT\n');
+          fprintf(fid,'INDEX\tFRM\tREC\tPeak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\tPASS\tSCORE\tTWTT\tGPS_TIME\tGPS_TIME\n');
           for rline = 1:length(deconv.gps_time)
             fprintf(fid,'%d\t',rline);
             fprintf(fid,'%.02f\t',floor(deconv.frm(rline)*100)/100);
@@ -830,15 +854,19 @@ if param.collate_deconv.stage_one_en
               [~,twtts_idx] = min(abs(deconv.twtt(rline)-twtts));
               fprintf(fid,'%.3g ', twtts(twtts_idx));
             end
+            
+            % Print gps_time
+            fprintf(fid, '\t%.14g\t%s', deconv.gps_time(rline), datestr(epoch_to_datenum(deconv.gps_time(rline)),'yyyy-mm-dd HH:MM:SS.FFF'));
+            
             fprintf(fid,'\n');
           end
         end
         fclose(fid);
         fprintf('Metric table: %s\n', diary_fn);
-      end
       
-      if any(strcmp('visible',param.collate_deconv.debug_plots))
-        keyboard
+        if any(strcmp('visible',param.collate_deconv.debug_plots))
+          keyboard
+        end
       end
       
       %% Stage 1: Save results
@@ -959,13 +987,10 @@ if param.collate_deconv.stage_two_en
       
       %% Stage 2: 3. Load surface using opsLoadLayers
       %  To determine which waveforms are needed
-      layer_params = [];
-      layer_params.name = 'surface';
-      layer_params.source = 'layerData';
-      layer = opsLoadLayers(param,layer_params);
+      layer = opsLoadLayers(param,param.collate_deconv.surf_layer);
       
       %% Stage 2: 4. Decimate layer
-      decim_idxs = get_equal_alongtrack_spacing_idxs(layer.gps_time,10);
+      decim_idxs = get_equal_alongtrack_spacing_idxs(layer.gps_time,param.collate_deconv.decimate_table_sec);
       layer.gps_time = layer.gps_time(decim_idxs);
       layer.twtt = layer.twtt(decim_idxs);
       layer.lat = layer.lat(decim_idxs);
@@ -996,10 +1021,21 @@ if param.collate_deconv.stage_two_en
         % Score with twtt penalty and time constant penalty term
         d_twtt = layer.twtt(rline) - deconv_lib.twtt;
         d_gps_time = layer.gps_time(rline) - deconv_lib.gps_time;
-        %adjusted_score = min_score + score .* exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2) ...
-        %  .* exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2);
         adjusted_score = min_score + score - (100-100*exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2)) ...
           - (50-50*exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2));
+        if ~isempty(param.collate_deconv.gps_times)
+          gps_times_mask = false(size(deconv_lib.gps_time));
+          for gps_times_idx = 1:size(param.collate_deconv.gps_times,1)
+            if param.collate_deconv.gps_times(gps_times_idx,2) <= layer.gps_time(rline) ...
+                && param.collate_deconv.gps_times(gps_times_idx,3) > layer.gps_time(rline)
+              [~,min_idx] = min(abs(param.collate_deconv.gps_times(gps_times_idx,1) - deconv_lib.gps_time));
+              gps_times_mask(min_idx) = true;
+            end
+          end
+        else
+          gps_times_mask = true(size(deconv_lib.gps_time));
+        end
+        adjusted_score(~gps_times_mask) = NaN;
         
         [max_score(rline),max_idx(rline)] = max(adjusted_score);
         unadjusted_score(rline) = min_score + score(max_idx(rline));
