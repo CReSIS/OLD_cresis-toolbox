@@ -27,16 +27,14 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191226_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191229_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20191230_02'); % DECONV
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_03'); % DECONV
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_05');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200125_06');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200126_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200126_01'); % DECONV
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200127_01');
 % params = ct_set_params(params,'cmd.frms',[33:34],'day_seg','20200127_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01'); % DECONV
 % params = ct_set_params(params,'cmd.frms',[],'day_seg','20200128_01');
 
 % =========================================================================
@@ -649,12 +647,21 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
     end
     params(param_idx).array.ft_over_sample = 2;
     
+    params(param_idx).array.dline = 6;
     if ~isempty(regexp(param_override.array.out_path,'standard'))
       % Standard
       params(param_idx).array.tomo_en = false;
       params(param_idx).array.method = 'standard';
+      params(param_idx).array.Nsv = 1;
+      params(param_idx).array.bin_rng = [0];
+      params(param_idx).array.line_rng = [-5:5];
+      params(param_idx).array.Nsrc = 1;
       if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
+        params(param_idx).array.line_rng = [-10:10];
+        params(param_idx).array.dline = 11;
       elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+        params(param_idx).array.line_rng = [-10:10];
+        params(param_idx).array.dline = 11;
       elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
         params = ct_set_params(params,'array.imgs',{[ones(1,7); 6:12].', [2*ones(1,7); 6:12].', [3*ones(1,7); 6:12].'});
       elseif strcmpi(params(param_idx).season_name,'2010_Greenland_DC8')
@@ -679,10 +686,6 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
       else
         keyboard
       end
-      params(param_idx).array.Nsv = 1;
-      params(param_idx).array.bin_rng = [0];
-      params(param_idx).array.line_rng = [-5:5];
-      params(param_idx).array.Nsrc = 1;
     elseif ~isempty(regexp(param_override.array.out_path,'mvdr'))
       % MVDR
       params(param_idx).array.tomo_en = false;
@@ -824,8 +827,7 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
       end
       %   params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
       params = ct_set_params(params,'array.imgs',{[ones(1,7); 2:8].', [2*ones(1,7); 2:8].', [3*ones(1,7); 2:8].'});
-      params = ct_set_params(params,'array.dline',1);
+      params(param_idx).array.dline = 1;
     end
-    params = ct_set_params(params,'array.dline',6);
   end
 end
