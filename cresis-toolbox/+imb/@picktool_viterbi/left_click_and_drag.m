@@ -195,7 +195,7 @@ for layer_idx = 1:length(cur_layers)
   lower_bounds(lower_bounds < 1) = 1;
   lower_bounds(~isfinite(lower_bounds) | lower_bounds > size(viterbi_data, 1)) = size(viterbi_data, 1);
   
-  % Detrending
+  % Echogram image normalization
   viterbi_data(~isfinite(viterbi_data)) = NaN;
   viterbi_data = echo_norm(viterbi_data,struct('scale',[-40 90]));
   viterbi_data(~isfinite(viterbi_data)) = -inf;

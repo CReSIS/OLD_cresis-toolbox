@@ -436,14 +436,16 @@ end
 % Account for averaging
 Nx_max = Nx_max / param.qlook.dec / max(1,param.qlook.inc_dec);
 Nx = Nx / param.qlook.dec / max(1,param.qlook.inc_dec);
+
+records_var = whos('records');
 for img = 1:length(param.qlook.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
   if isempty(param.qlook.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
+    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*total_num_sam(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
+    sparam.mem = 350e6 + records_var.bytes + Nx*sum(total_num_sam)*mem_mult;
   end
 end
 if param.qlook.surf.en
