@@ -1,33 +1,43 @@
 % Modified from Paden's code to allow saving and keyboard control - Reece
-function trws_sim_2D
+function correct_surface = trws_sim_2D(image, num_loops)
 SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/paden_sim/output images/';
 SAVE_NAME = 'result'; % name of save files and directory
+SAVE = true;
 % Not complete, but started work on 2D MRF
-num_nodes = [32 24];
-num_states = 14;
-num_loops = 16;
 rng(0);
 mdata = struct();
+
+if nargin == 0
+  num_nodes = [32 24];
+  num_states = 14;
+  num_loops = 16;
+  if 0
+    mdata.I = ones(num_states,num_nodes(1),num_nodes(2));
+  else
+    mdata.I = 1*randn(num_states,num_nodes(1),num_nodes(2));
+    % Add in surface points
+  %   mdata.I(1:5,1:3,:) = mdata.I(1:5,1:3,:) + 3.5;
+  %   mdata.I(6,[1],:) = mdata.I(6,[1],:) + [10];
+  %   mdata.I(7,[4 10],:) = bsxfun(@plus, mdata.I(7,[4 10],:),[5 7]);
+  %   mdata.I(5,[13 15],:) = bsxfun(@plus, mdata.I(5,[13 15],:),[5 7]);
+  %   mdata.I(4,[19],:) = mdata.I(4,[19],:) + [4];
+  %   % Remove first 8 rows of every column
+  %   mdata.I(:,17:32,:) = 1*randn(num_states,16,num_nodes(2));
+  %   % Artifact
+  %   mdata.I(12,26:28,14:16) = mdata.I(12,26:28,14:16) + 1000;
+
+    mdata.I(1:2, 1:2, :) = randn(2, 2, num_nodes(2))*5;
+
+  end
+else 
+  SAVE = false;
+  mdata.I = image;
+  num_nodes = size(image, [2 3]);
+  num_states = size(image, 1);
+end
 mdata.cols = num_nodes(2);
 mdata.col = 1;
-if 0
-  mdata.I = ones(num_states,num_nodes(1),num_nodes(2));
-else
-  mdata.I = 1*randn(num_states,num_nodes(1),num_nodes(2));
-  % Add in surface points
-%   mdata.I(1:5,1:3,:) = mdata.I(1:5,1:3,:) + 3.5;
-%   mdata.I(6,[1],:) = mdata.I(6,[1],:) + [10];
-%   mdata.I(7,[4 10],:) = bsxfun(@plus, mdata.I(7,[4 10],:),[5 7]);
-%   mdata.I(5,[13 15],:) = bsxfun(@plus, mdata.I(5,[13 15],:),[5 7]);
-%   mdata.I(4,[19],:) = mdata.I(4,[19],:) + [4];
-%   % Remove first 8 rows of every column
-%   mdata.I(:,17:32,:) = 1*randn(num_states,16,num_nodes(2));
-%   % Artifact
-%   mdata.I(12,26:28,14:16) = mdata.I(12,26:28,14:16) + 1000;
 
-  mdata.I(1:2, 1:2, :) = randn(2, 2, num_nodes(2))*5;
-
-end
 mdata.msg_up = zeros(num_states,num_nodes(1),num_nodes(2));
 mdata.msg_down = zeros(num_states,num_nodes(1),num_nodes(2));
 mdata.msg_left = zeros(num_states,num_nodes(1),num_nodes(2));
@@ -153,16 +163,19 @@ keyboard_input(mdata.h_fig,event);
 event.Key = 'leftarrow';
 keyboard_input(mdata.h_fig,event);
 
-output_path = [SAVE_PATH SAVE_NAME '/'];
-
-if exist(output_path, 'dir') ~= 7 % 7 is a folder
-  mkdir(output_path);
-end
-Tomo.img = permute(mdata.I, [2 1 3]);
-Time = 1:num_states;
 correct_surface = mdata.result;
-save([output_path 'image.mat'], 'Tomo', 'Time');
-save([output_path 'surf.mat'], 'correct_surface');
+
+if SAVE
+  output_path = [SAVE_PATH SAVE_NAME '/'];
+
+  if exist(output_path, 'dir') ~= 7 % 7 is a folder
+    mkdir(output_path);
+  end
+  Tomo.img = permute(mdata.I, [2 1 3]);
+  Time = 1:num_states;
+  save([output_path 'image.mat'], 'Tomo', 'Time');
+  save([output_path 'surf.mat'], 'correct_surface');
+end
 
 end
 

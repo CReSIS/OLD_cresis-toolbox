@@ -4,7 +4,7 @@ SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/output images/';
 SAVE_IMAGE = false; % Save the normalized (output) image
 SAVE_SURF = false; % Save the output surface
 SAVE_FIG = true; % Save the created figure
-SAVE_NAME = 'speed tests/unbounded/4 traversal antarctic'; % name of save files and directory
+SAVE_NAME = 'sim_test/1'; % name of save files and directory
 RNG_SEED = 1;
 TOP_LAYER_GUARD = 0;
 BOTTOM_LAYER_GUARD = 0;
@@ -21,12 +21,15 @@ Esv = NaN;
 Ex  = NaN;
 
 % Num sampled points (resolutions)
-Nt  = NaN;
+Nt  = 100;
 Nsv = NaN;
-Nx  = NaN;
+Nx  = 100;
 
 MAX_LOOPS = 4; % Number of iterations of TRWS to perform
 AT_WEIGHT = 1; % Along track weight used in TRWS2
+USE_ORIGINAL_TRAVERSAL = false; % Use original 4-perm traversal method for trws2. Passed as debug switch one (1) to trws2_bounded.cpp. Only used when trws2_bounded is called.
+PASS_ALL_MESSAGES = false; % Always pass messages as opposed to only passing forward. Passed as debug switch two (2) to trws2_bounded.cpp. Only used when trws2_bounded is called.
+DONT_SKIP_COLS = false; % Do not skip columns which are outside the surface bounds. Passed as debug switch three (4) to trws2_bounded.cpp. Only used when trws2_bounded is called.
 
 PLOT_INDICES = false; % Plot indices on which dt is performed
 INDEX_LOOP_NUM = 0; % Plot index traversal order for this loop num
@@ -34,14 +37,14 @@ MAX_TICKS = 10; % Max number of axis tick labels
 ANNOTATION_MAX_CHAR_WIDTH = 15; % Number of chars to allow on a line before inserting a space.
 
 PLOT_POINTS = false; % Plot data points as sphere's if PLOT_MAX_POINTS is false
-PLOT_THRESHOLD = 2; % The minimum intensity to plot if PLOT_POINTS is true. 'auto' selects the greatest AUTO_THRESHOLD_MAX_POINTS points;
+PLOT_THRESHOLD = 'auto'; % The minimum intensity to plot if PLOT_POINTS is true. 'auto' selects the greatest AUTO_THRESHOLD_MAX_POINTS points;
 AUTO_THRESHOLD_MAX_POINTS = 2000; % Number of points to plot when PLOT_THRESHOLD is set to 'auto'
 
 PLOT_MAX_POINTS = false; % Plot maximum data point in the CT dimension for each (AT, FT) row. Overrides PLOT_POINTS
 MAX_POINTS_NUM = 3; % Number of max points to plot for every (AT, FT) row.
 MAX_POINTS_SKIP = 1; % Number of rows to skip between each plot for max points
 
-PLOT_MAX_SURF = false; % Plot the maximum points as a surface. (LOAD_DATA must be true. Does not plot found surface when this is true)
+PLOT_MAX_SURF = true; % Plot the maximum points as a surface. (LOAD_DATA must be true. Does not plot found surface when this is true)
 NUM_MAX_SURF = 1; % Number of max sufaces to plot (1st uses maximum points, 2nd uses next greatest points, etc.)
 COLOR_MAX_SURF = 'none';
 
@@ -49,6 +52,7 @@ LOAD_DATA = true; % Use image data to plot intensities
 RELOAD_DATA = false; % When false, only load trws_data if not already loaded. Ignored if LOAD_DATA is false
 FIND_SURF = true; % Calls TRWS when true. Overridden by presets below. correct_surface must be set manually when false.
 COLOR_SURF_DATA = 'trws_data'; % Color the surface with intensity values from given variable. generally 'trws_data_norm' for output image or 'trws_data' for input image. 'none' for solid coloring;
+SIMULATE_SURF = false; % Calls trws2_sim_2D to create surface instead of mex function. FIND_SURF must be false.
 
 USE_SURF_BOUNDS = false; % Bound results with surface layers
 USE_BOTTOM_LAYER = false; % Use the bottom layer as the bottom boundary surface. USE_SURF_BOUNDS must be true. Useful for Greenland data.
@@ -63,8 +67,8 @@ PLOT_HISTOGRAM = false; % Plot a histogram of the data
 
 %% DISPLAY VARS
 DISPLAY_VARS = {'RNG_SEED', 'TOP_LAYER_GUARD', 'BOTTOM_LAYER_GUARD', 'NOISE_FLOOR', 'St', 'Ssv', 'Sx', 'Et', 'Esv', 'Ex', 'Nt', 'Nsv', 'Nx', ...
-  'MAX_LOOPS', 'AT_WEIGHT', 'PLOT_CT_BOUNDS', 'PLOT_FT_BOUNDS', 'NORMALIZE_DATA', 'MAKE_DATA_POSITIVE', 'USE_DEBUG_MATRIX', ... 
-  'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SAVE_FIG', 'SAVE_NAME', 'SAVE_PATH'};
+  'MAX_LOOPS', 'AT_WEIGHT', 'USE_ORIGINAL_TRAVERSAL', 'PASS_ALL_MESSAGES', 'DONT_SKIP_COLS', 'PLOT_CT_BOUNDS', 'PLOT_FT_BOUNDS', 'NORMALIZE_DATA', 'MAKE_DATA_POSITIVE', 'USE_DEBUG_MATRIX', ... 
+  'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SIMULATE_SURF', 'SAVE_FIG', 'SAVE_NAME', 'SAVE_PATH'};
 
 if PLOT_POINTS
   DISPLAY_VARS{end + 1} = 'PLOT_POINTS';
@@ -111,7 +115,7 @@ param.day_seg = '20200107_01';
 frm = 1;
 
 %% PRESETS
-if 1
+if 0
   % Find surface of antarctica data
   echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
@@ -132,7 +136,7 @@ elseif 0
   SAVE_SURF = false;
   SAVE_IMAGE = false;
   Esv = 64;
-elseif 0
+elseif 1
   % Find surface of Greenland data
   param.season_name = '2014_Greenland_P3';
   param.day_seg = '20140502_01';
@@ -156,17 +160,33 @@ elseif 0
   correct_surface = load(surf_fn);
   correct_surface = squeeze(correct_surface.correct_surface);
   echogram_fn = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/paden_sim/output images/result/image.mat';
-  FIND_SURF = false;
-  LOAD_DATA = true;
+
   Nt  = NaN;
   Nsv = NaN;
   Nx  = NaN;
+  
+  FIND_SURF = false;
+  LOAD_DATA = true;
+  
   SAVE_FIG = false;
   SAVE_SURF = false;
   SAVE_IMAGE = false;
+  
   MAKE_DATA_POSITIVE = true;
   RELOAD_DATA = true;
   NORMALIZE_DATA = false;
+elseif 0
+  % Create surface from Greenland data in simulator
+  SIMULATE_SURF = true;
+  FIND_SURF = false;
+  LOAD_DATA = true;
+  USE_SURF_BOUNDS = false;
+  
+  param.season_name = '2014_Greenland_P3';
+  param.day_seg = '20140502_01';
+  out_type = 'multipass';
+  frm = 41;
+  echogram_fn = fullfile(ct_filename_out(param,out_type,''), 'summit_2012_2014_allwf_2012_music.mat');
 end
 
 %% LOAD IMAGE DATA
@@ -257,6 +277,11 @@ if USE_SURF_BOUNDS
 end
 
 %% RESAMPLE DATA
+% Correct num sampled points to match step size constraint
+Nt  = length(St:Tt:Et);
+Nsv = length(Ssv:Tsv:Esv);
+Nx  = length(Sx:Tx:Ex);
+
 % Resample and window data to given start and end indices and resolutions
 min_bound = 1;
 max_bound = Nt;
@@ -279,11 +304,6 @@ if LOAD_DATA
   end
 end
 
-% Correct num sampled points to match step size constraint
-Nt  = length(St:Tt:Et);
-Nsv = length(Ssv:Tsv:Esv);
-Nx  = length(Sx:Tx:Ex);
-
 if ~LOAD_DATA || ~USE_SURF_BOUNDS
   min_bounds = ones(Nsv, Nx)*1;
   max_bounds = ones(Nsv, Nx)*Nt;
@@ -295,20 +315,35 @@ at_slope  = zeros(1, Nx);
 CT_bounds = ones(2, Nx);
 CT_bounds(2, :) = Nsv;
 
+% Setup binary debug switches
+debug_switches = 0;
+if USE_ORIGINAL_TRAVERSAL
+  debug_switches = bitor(debug_switches, 1);
+end
+if PASS_ALL_MESSAGES
+  debug_switches = bitor(debug_switches, 2);
+end
+if DONT_SKIP_COLS
+  debug_switches = bitor(debug_switches, 4);
+end
+
 % Perform TRWS and save surface
 debug = [];
 trws_run_time = nan;
 if FIND_SURF
   tic;
+  
   if USE_DEBUG_MATRIX
     [correct_surface, debug] = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
-      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1);
+      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, debug_switches);
     trws_data_norm = max(debug(:)) - debug + .01;
   else
     correct_surface = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
-      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1);
+      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, debug_switches);
   end
   trws_run_time = toc
+elseif SIMULATE_SURF
+  correct_surface = squeeze(trws_sim_2D(permute(trws_data, [2 1 3]), MAX_LOOPS));
 else
   correct_surface = correct_surface(St:Tt:Et, Sx:Tx:Ex);
 end
@@ -397,7 +432,7 @@ if LOAD_DATA && PLOT_MAX_SURF
   max_surf_handles = {};
   for max_surf_num = 1:NUM_MAX_SURF
     
-    max_surf_handles{end + 1} = surf(max_surfs{max_surf_num}, 'FaceAlpha', .6, 'FaceColor', 'black', 'LineStyle', 'none');
+    max_surf_handles{end + 1} = surf(max_surfs{max_surf_num}, 'FaceAlpha', .3, 'FaceColor', 'black', 'LineStyle', 'none');
     %% COLOR MAX SURFACE
     if ~strcmp(COLOR_MAX_SURF, 'none')
       color_data = eval(COLOR_MAX_SURF);
