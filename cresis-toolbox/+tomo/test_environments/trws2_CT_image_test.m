@@ -21,15 +21,15 @@ Esv = NaN;
 Ex  = NaN;
 
 % Num sampled points (resolutions)
-Nt  = 100;
+Nt  = NaN;
 Nsv = NaN;
-Nx  = 100;
+Nx  = NaN;
 
 MAX_LOOPS = 4; % Number of iterations of TRWS to perform
 AT_WEIGHT = 1; % Along track weight used in TRWS2
-USE_ORIGINAL_TRAVERSAL = false; % Use original 4-perm traversal method for trws2. Passed as debug switch one (1) to trws2_bounded.cpp. Only used when trws2_bounded is called.
-PASS_ALL_MESSAGES = false; % Always pass messages as opposed to only passing forward. Passed as debug switch two (2) to trws2_bounded.cpp. Only used when trws2_bounded is called.
-DONT_SKIP_COLS = false; % Do not skip columns which are outside the surface bounds. Passed as debug switch three (4) to trws2_bounded.cpp. Only used when trws2_bounded is called.
+USE_ORIGINAL_TRAVERSAL = true; % Use original 4-perm traversal method for trws2. Passed as debug switch one (1) to trws2_bounded.cpp. Only used when trws2_bounded is called.
+PASS_ALL_MESSAGES = true; % Always pass messages as opposed to only passing forward. Passed as debug switch two (2) to trws2_bounded.cpp. Only used when trws2_bounded is called.
+DONT_SKIP_COLS = true; % Do not skip columns which are outside the surface bounds. Passed as debug switch three (4) to trws2_bounded.cpp. Only used when trws2_bounded is called.
 
 PLOT_INDICES = false; % Plot indices on which dt is performed
 INDEX_LOOP_NUM = 0; % Plot index traversal order for this loop num

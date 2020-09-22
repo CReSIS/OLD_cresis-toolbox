@@ -215,7 +215,7 @@ void TRWS::solve() {
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
 
-        if (!(mDebug_Switches & F_NO_SKIP_COLS)) {
+        if (!(dont_skip_cols)) {
           bool outside = true;
           for (int d = cur_rbin_start; d <= cur_rbin_stop; d++) {
             if (h >= mCT_Bounds_Left[w*mNt + d] && h <= mCT_Bounds_Right[w*mNt + d]) {
