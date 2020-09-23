@@ -34,6 +34,10 @@ switch (profile_name)
     param.h_filt = fliplr([0.1*ones(1,20) 0.5*ones(1,21)]);
     param.h_filt = param.h_filt-mean(param.h_filt);
     param.h_filt_offset = -16;
+  case 'xlong_unitstep_delay'
+    param.h_filt = fliplr([0.1*ones(1,20) 0.5*ones(1,21)]);
+    param.h_filt = param.h_filt-mean(param.h_filt);
+    param.h_filt_offset = -8;
   case 'snow'
     param.h_filt = fliplr([0.1*ones(1,21) 4*ones(1,5) 0.5*ones(1,21)]);
     param.h_filt = param.h_filt-mean(param.h_filt);
