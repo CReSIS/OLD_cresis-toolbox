@@ -164,6 +164,19 @@ dt = mdata.Time(2)-mdata.Time(1);
 twtt_bin(mdata.twtt < mdata.Time(1)+(mu_length+1)*dt) = 1+mu_length;
 twtt_bin(isnan(twtt_bin) | twtt_bin > length(mdata.Time)-mu_length) = length(mdata.Time)-mu_length;
 
+%% Open Ground Truth Surf File
+if param.tomo_collate.gt.en
+  gt_dir = ct_filename_out(param,param.tomo_collate.gt.path,'');
+  gt_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
+  gt_fn = fullfile(gt_dir,gt_fn_name);
+  fprintf('  Loading ground truth %s\n', gt_fn);
+  gt_sd = tomo.surfdata(gt_fn);
+  gt_surf = gt_sd.get_surf(param.tomo_collate.gt.surf_name);
+  gt_theta = gt_sd.theta;
+  gt_time = gt_sd.time;
+  delete(gt_sd);
+end
+
 %% Open/Create Surf File
 out_dir = ct_filename_out(param,param.tomo_collate.surf_out_path,'');
 if ~isdir(out_dir)
@@ -808,6 +821,17 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         data(1:Bottom_bin(rline)-gt_range,nadir_col,rline) = -inf;
         % Set the bins below the ground truth in the nadir column to -inf
         data(Bottom_bin(rline)+gt_range:end,nadir_col,rline) = -inf;
+      end
+    end
+    % Optional ground truth
+    if param.tomo_collate.gt.en
+      % Convert to bins
+      gt_surf.y = interp1(mdata.Time, 1:length(mdata.Time), gt_surf.y);
+      for rline = 1:Nx
+        gt_bins = interp1(gt_surf.x(:,rline), gt_surf.y, theta);
+        for sv_idx = 1:Nsv
+          data([1:gt_bins(sv_idx)-param.tomo_collate.gt.range, gt_bins(sv_idx)+param.tomo_collate.gt.range:end], sv_idx, rline) = -inf;
+        end
       end
     end
     
