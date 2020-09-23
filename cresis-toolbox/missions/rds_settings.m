@@ -164,6 +164,35 @@ params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200107');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200108');
 
+% -------------------------------------------------------------------------
+% 2018 Greenland P3
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20180315_10');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_03');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_04');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180404_02'); % 4 wfs
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180405');
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180406'); % 2 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180421');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180422');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180423');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180425');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180427_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180427_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180429');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180430');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180501');
+
+% -------------------------------------------------------------------------
+% 2019 Greenland P3
 
 for param_idx = 1:length(params)
   param = params(param_idx);
@@ -320,6 +349,15 @@ for param_idx = 1:length(params)
         params(param_idx).radar.wfs(wf).chan_equal_dB = [10.6 6.8 20.2 16.3 20.2 6.1 1.4 10.6];
         params(param_idx).radar.wfs(wf).chan_equal_deg = [-47.1 -53.7 127.2 147.1 111.9 122.6 11.2 -35.2];
       end
+    elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+      params(param_idx).radar.wfs(wf).system_dB = 10*log10(337*sum([1,1,1,1,1,0,0])^2)+6+6+20*log10(300000000/(8*pi*(180e6+210e6)/2))+10*log10(50);
+      params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;
+      params(param_idx).radar.wfs(wf).chan_equal_dB = [6.8 -0.6 3 0.1 0 3.5 3.9 7 3.3 4.8 6.1 6.2 4.6 3.1 6.2];
+      params(param_idx).radar.wfs(wf).chan_equal_deg = [-166.2 -142.7 177 -95.9 0 -25.9 -86.5 -27.4 128.1 41.6 -46.8 43 90.7 121.3 31.6];
+      
+    elseif strcmpi(params(param_idx).season_name,'2019_Greenland_P3')
+      params(param_idx).radar.wfs(wf).system_dB = 10*log10(337*sum([1,1,1,0,0,0,0])^2)+6+6+20*log10(300000000/(8*pi*(180e6+210e6)/2))+10*log10(50);
+      
     else
       params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
       params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
@@ -408,6 +446,72 @@ for param_idx = 1:length(params)
                 params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold(:) = -155;';
               end
             end
+            
+          elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+            
+            params(param_idx).collate_coh_noise.min_samples = 0.5; % 50% of samples must be good to use data
+            params(param_idx).collate_coh_noise.threshold_en = true;
+            
+            if any(wf == [1 2])
+              params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;';
+            elseif any(wf == [3 4])
+              params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -130; threshold = threshold+20;';
+            elseif any(wf == [5 6])
+              params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+3e-6 & threshold>-142) = -122; threshold(time<=Tpd+3e-6) = threshold(time<=Tpd+3e-6)+20;';
+              params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+3e-6 & threshold>-142) = -142; threshold = threshold+20;';
+            else
+              keyboard
+            end
+            
+            if length(params(param_idx).radar.wfs) == 2 ...
+                || length(params(param_idx).radar.wfs) == 3
+              % Only a single pass required
+              params(param_idx).collate_coh_noise.method{img} = 'dft';
+              params(param_idx).collate_coh_noise.dft_corr_time(img) = inf;
+              params(param_idx).collate_coh_noise.in_path = 'analysis_threshold';
+              params(param_idx).collate_coh_noise.out_path = 'analysis_threshold';
+              
+            elseif length(params(param_idx).radar.wfs) == 4 ...
+                || length(params(param_idx).radar.wfs) == 6
+              
+              if isempty(regexp(param_override.collate_coh_noise.in_path,'threshold'))
+                if img < 3
+                  params(param_idx).collate_coh_noise.method{img} = 'firdec';
+                else
+                  params(param_idx).collate_coh_noise.method{img} = 'dft';
+                end
+                params(param_idx).collate_coh_noise.firdec_fs{img} = 1/30;
+                params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t) 1/120*(t<1.834e-6) + -1*(t>=1.834e-6);
+                params(param_idx).collate_coh_noise.dft_corr_time(img) = inf;
+                
+              else
+                % Second pass
+                % Runs each of the modes one at a time
+                mode_2018_Greenland_P3 = 1;
+                
+                if mode_2018_Greenland_P3 == 1
+                  if img < 3
+                    params(param_idx).collate_coh_noise.method{img} = 'firdec';
+                  else
+                    params(param_idx).collate_coh_noise.method{img} = 'dft';
+                  end
+                  params(param_idx).collate_coh_noise.firdec_fs{img} = 1/30;
+                  params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t) 1/120*(t<1.834e-6) + -1*(t>=1.834e-6);
+                  params(param_idx).collate_coh_noise.dft_corr_time(img) = inf;
+                  params(param_idx).collate_coh_noise.wf_adcs{img} = [1:4,6:16];
+                  
+                elseif mode_2018_Greenland_P3 == 2
+                  params(param_idx).collate_coh_noise.imgs = 3:length(params(param_idx).radar.wfs);
+                  params(param_idx).collate_coh_noise.wf_adcs{img} = [9 10];
+                  params(param_idx).collate_coh_noise.method{img} = 'firdec';
+                  params(param_idx).collate_coh_noise.firdec_fs{img} = 1/7.5;
+                  params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t) 1/30*(t<30e-6);
+                end
+
+              end
+            end
+            
+          elseif strcmpi(params(param_idx).season_name,'2019_Greenland_P3')
             
           else
             % Coherent noise estimate by finding DC of the entire segment
