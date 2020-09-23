@@ -71,7 +71,7 @@ if ~isfield(param.tomo_collate.gt,'range') || isempty(param.tomo_collate.gt.rang
   param.tomo_collate.gt.range = 5;
 end
 if ~isfield(param.tomo_collate.gt,'surf_name') || isempty(param.tomo_collate.gt.surf_name)
-  param.tomo_collate.gt.surf_name = 'bottom';
+  param.tomo_collate.gt.surf_name = 'bottom gt';
 end
 
 if ~isfield(param.tomo_collate,'ground_based_flag') || isempty(param.tomo_collate.ground_based_flag)

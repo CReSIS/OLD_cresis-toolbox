@@ -175,6 +175,8 @@ if param.tomo_collate.gt.en
   gt_theta = gt_sd.theta;
   gt_time = gt_sd.time;
   delete(gt_sd);
+  % Convert twtt to range bins
+  gt_bins = interp1(mdata.Time, 1:length(mdata.Time), gt_surf.y);
 end
 
 %% Open/Create Surf File
@@ -825,12 +827,12 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
     % Optional ground truth
     if param.tomo_collate.gt.en
-      % Convert to bins
-      gt_surf.y = interp1(mdata.Time, 1:length(mdata.Time), gt_surf.y);
       for rline = 1:Nx
-        gt_bins = interp1(gt_surf.x(:,rline), gt_surf.y, theta);
+        % Interpolate ground truth surf data elevation angle (steering
+        % vector) axis to 3D image file elevation angle axis
+        gt_bins_rline = interp1(gt_surf.x(:,rline), gt_bins(:,rline), theta);
         for sv_idx = 1:Nsv
-          data([1:gt_bins(sv_idx)-param.tomo_collate.gt.range, gt_bins(sv_idx)+param.tomo_collate.gt.range:end], sv_idx, rline) = -inf;
+          data([1:gt_bins_rline(sv_idx)-param.tomo_collate.gt.range, gt_bins_rline(sv_idx)+param.tomo_collate.gt.range:end], sv_idx, rline) = -inf;
         end
       end
     end
