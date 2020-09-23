@@ -140,7 +140,7 @@ default.radar.wfs(1).f0 = 2.5e9;
 default.radar.wfs(1).f1 = 8e9;
 default.radar.wfs(1).Tpd = 250e-6;
 default.radar.wfs(1).BW_window = [2.5e9 7.72016e9];
-default.radar.wfs(1).t_ref = 0;
+default.radar.wfs(1).t_ref = -103e-9;
 fc = (default.radar.wfs(1).f0+default.radar.wfs(1).f1)/2;
 default.radar.wfs(1).system_dB = 10*log10(0.1)+10.5+10.5+20*log10(300000000/(8*pi*fc))+10*log10(50);
 

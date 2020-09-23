@@ -113,7 +113,7 @@ for param_idx = 1:length(param_fns)
     % HACK!!!
 %     keyboard
 %     params = ct_set_params(params,'cmd.generic',0);
-%     params = ct_set_params(params,'cmd.generic',1,'day_seg','20200128_01');
+%     params = ct_set_params(params,'cmd.generic',1,'day_seg','20200128_02');
 % 
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'day_seg','20191211');
