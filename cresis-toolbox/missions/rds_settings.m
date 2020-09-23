@@ -35,7 +35,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200127_01');
 % params = ct_set_params(params,'cmd.frms',[33:34],'day_seg','20200127_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01'); % DECONV
-% params = ct_set_params(params,'cmd.frms',[],'day_seg','20200128_01');
+% params = ct_set_params(params,'cmd.frms',[],'day_seg','20200128_01'); % DECONV
 
 % =========================================================================
 % Multipass
