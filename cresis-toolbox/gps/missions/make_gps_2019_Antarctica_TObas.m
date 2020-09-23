@@ -1,7 +1,9 @@
-% script make_gps_2019_antarctica_TObas
+% script make_gps_2019_Antarctica_TObas
 %
 % Makes the GPS files for 2019 Antarctica TObas field season
 
+%% Setup
+% =========================================================================
 tic;
 
 global gRadar;
@@ -25,21 +27,18 @@ if isempty(data_support_path)
   data_support_path = gRadar.data_support_path;
 end
 
-% ======================================================================
-% User Settings
-% ======================================================================
-debug_level = 1;
-
 in_base_path = fullfile(data_support_path,'2019_Antarctica_TObas');
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
-gps_source_to_use = 'arena';
-% gps_source_to_use = 'BAS';
+%% <== CHOOSE WHICH GPS SOURCE TO PROCESS
+% gps_source_to_use = 'arena';
+gps_source_to_use = 'BAS';
 
 if strcmpi(gps_source_to_use,'arena')
-  %% ARENA
+  %% ARENA GPS SOURCE
+  % =======================================================================
   
   year = 2019; month = 9; day = 23;
   file_idx = file_idx + 1;
@@ -65,29 +64,29 @@ if strcmpi(gps_source_to_use,'arena')
   sync_file_type{file_idx} = 'arena';
   sync_params{file_idx} = struct('time_reference','utc');
   
-  year = 2019; month = 12; day = 15;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2019,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
-  
-  year = 2019; month = 12; day = 22;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2019,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
+%   year = 2019; month = 12; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',2019,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2019; month = 12; day = 22;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',2019,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
   
 %   year = 2019; month = 12; day = 25;
 %   file_idx = file_idx + 1;
@@ -113,41 +112,41 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_file_type{file_idx} = 'arena';
 %   sync_params{file_idx} = struct('time_reference','utc');
   
-  year = 2019; month = 12; day = 29;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2019,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
-  
-  year = 2019; month = 12; day = 30;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2019,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
-  
-  year = 2020; month = 1; day = 25;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2020,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
+%   year = 2019; month = 12; day = 29;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',2019,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2019; month = 12; day = 30;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',2019,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2020; month = 1; day = 25;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',2020,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
   
 %   year = 2020; month = 1; day = 26;
 %   file_idx = file_idx + 1;
@@ -186,11 +185,51 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_params{file_idx} = struct('time_reference','utc');
   
 elseif strcmpi(gps_source_to_use,'bas')
+  %% BAS GPS SOURCE
+  % =======================================================================
+  
+  % IMU worked fine
+  year = 2019; month = 12; day = 15;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T01.txt')};
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'General_ASCII';
+  params{file_idx} = struct('time_reference','gps');
+  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
+    'elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3','f4',...
+    'f5','f6','f7'};
+  params{file_idx}.textscan = {};
+  params{file_idx}.headerlines = 34;
+  gps_source{file_idx} = 'bas-final20200306';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
+  
+  % IMU worked fine
+  year = 2019; month = 12; day = 22;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T03.txt')};
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'General_ASCII';
+  params{file_idx} = struct('time_reference','gps');
+  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
+    'elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3','f4',...
+    'f5','f6','f7'};
+  params{file_idx}.textscan = {};
+  params{file_idx}.headerlines = 34;
+  gps_source{file_idx} = 'bas-final20200306';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
   
   % IMU worked fine for the first part of flight, processed to IMU
   year = 2019; month = 12; day = 25;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'IMU_solution_T06_and_T07','T06.txt')};
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T06_IMU.txt')};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d_imu.mat', year, month, day);
   file_type{file_idx} = 'General_ASCII';
   params{file_idx} = struct('time_reference','gps');
@@ -209,7 +248,7 @@ elseif strcmpi(gps_source_to_use,'bas')
   % IMU missing for latter part of flight, processed to GPS antenna
   year = 2019; month = 12; day = 25;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'T06_GNSS','T06_GNSS.txt')};
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T06_GNSS.txt')};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d_gnss.mat', year, month, day);
   file_type{file_idx} = 'General_ASCII';
   params{file_idx} = struct('time_reference','gps');
@@ -228,7 +267,45 @@ elseif strcmpi(gps_source_to_use,'bas')
   % IMU worked fine
   year = 2019; month = 12; day = 26;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'IMU_solution_T06_and_T07','T07.txt')};
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T07.txt')};
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'General_ASCII';
+  params{file_idx} = struct('time_reference','gps');
+  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
+    'elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3','f4',...
+    'f5','f6','f7'};
+  params{file_idx}.textscan = {};
+  params{file_idx}.headerlines = 34;
+  gps_source{file_idx} = 'bas-final20200306';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
+  
+  % IMU worked fine (T14 and T15)
+  year = 2019; month = 12; day = 29;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T14.txt')};
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'General_ASCII';
+  params{file_idx} = struct('time_reference','gps');
+  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
+    'elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3','f4',...
+    'f5','f6','f7'};
+  params{file_idx}.textscan = {};
+  params{file_idx}.headerlines = 34;
+  gps_source{file_idx} = 'bas-final20200306';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
+  
+  % IMU worked fine (T16 and T17)
+  year = 2019; month = 12; day = 30;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T16.txt')};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'General_ASCII';
   params{file_idx} = struct('time_reference','gps');
@@ -245,9 +322,28 @@ elseif strcmpi(gps_source_to_use,'bas')
   sync_params{file_idx} = struct('time_reference','utc');
 
   % No IMU data, processed to GPS antenna
+  year = 2020; month = 1; day = 25;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T19.txt')};
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'General_ASCII';
+  params{file_idx} = struct('time_reference','gps');
+  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
+    'elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3','f4',...
+    'f5','f6','f7'};
+  params{file_idx}.textscan = {};
+  params{file_idx}.headerlines = 33;
+  gps_source{file_idx} = 'bas_gnss-final20200306';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
+
+  % No IMU data, processed to GPS antenna
   year = 2020; month = 1; day = 26;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'T06_GNSS','T20.txt')};
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T20.txt')};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'General_ASCII';
   params{file_idx} = struct('time_reference','gps');
@@ -266,7 +362,7 @@ elseif strcmpi(gps_source_to_use,'bas')
   % No IMU data, processed to GPS antenna
   year = 2020; month = 1; day = 27;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'T06_GNSS','T21.txt')};
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T21.txt')};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'General_ASCII';
   params{file_idx} = struct('time_reference','gps');
@@ -285,7 +381,7 @@ elseif strcmpi(gps_source_to_use,'bas')
   % No IMU data, processed to GPS antenna
   year = 2020; month = 1; day = 28;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'T06_GNSS','T22.txt')};
+  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T22.txt')};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'General_ASCII';
   params{file_idx} = struct('time_reference','gps');
@@ -304,11 +400,13 @@ elseif strcmpi(gps_source_to_use,'bas')
   
 end
 
-% ======================================================================
+%% gps_make
 % Read and translate files according to user settings
-% ======================================================================
+% =========================================================================
 gps_make;
 
+%% custom fixes
+% =========================================================================
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
