@@ -248,7 +248,7 @@ for param_idx = 1:length(params)
     at = geodetic_to_along_track(lat,lon,elev);
     eval_struct = insert_param.eval;
     eval(insert_param.eval.cmd);
-    all_points.twtt = source;
+    all_points.twtt = s;
   end
   
   copy_param = [];
