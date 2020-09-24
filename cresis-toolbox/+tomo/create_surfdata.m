@@ -830,9 +830,11 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       for rline = 1:Nx
         % Interpolate ground truth surf data elevation angle (steering
         % vector) axis to 3D image file elevation angle axis
-        gt_bins_rline = interp1(gt_surf.x(:,rline), gt_bins(:,rline), theta);
+        gt_bins_rline = round(interp1(gt_surf.x(:,rline), gt_bins(:,rline), theta));
         for sv_idx = 1:Nsv
-          data([1:gt_bins_rline(sv_idx)-param.tomo_collate.gt.range, gt_bins_rline(sv_idx)+param.tomo_collate.gt.range:end], sv_idx, rline) = -inf;
+          if ~isnan(gt_bins_rline(sv_idx))
+            data([1:gt_bins_rline(sv_idx)-param.tomo_collate.gt.range, gt_bins_rline(sv_idx)+param.tomo_collate.gt.range:end], sv_idx, rline) = -inf;
+          end
         end
       end
     end
