@@ -6,7 +6,7 @@
 % Authors: John Paden
 
 %% Example Operations (just choose one)
-example_str = '';
+example_str = 'other_season_points';
 
 if strcmpi(example_str,'gogineni_jakobshavn_point_cloud')
   %% Example 1: Gogineni's Jakobshavn Point Cloud
@@ -490,6 +490,59 @@ elseif strcmpi(example_str,'south_dakota_grid')
   insert_param.type = 'raster'; % Raster data
   insert_param.layer_dest.name = 'USGS_surface';
   insert_param.layer_dest.desc = 'USGS Surface'; % For OPS layer_dest source
+  insert_param.layer_dest.source = 'layerdata';
+  insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
+  insert_param.layer_dest.group_name = ''; % For OPS layer_dest source
+  insert_param.layer_dest.layerdata_source = 'layer'; % For layerData layer_dest source
+  insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
+  insert_param.copy_method = 'overwrite';
+  insert_param.gaps_fill.method = 'interp_finite';
+  opsInsertLayer(params, insert_param);
+    
+elseif strcmpi(example_str,'other_season_points')
+  %% Example 10: Other Season Points
+  % =====================================================================
+  % =====================================================================
+  % Use parameters spreadsheet to select segment and frame list for creating layers
+  % Set the generic to 1 for the selected segments and frames
+  
+  global gRadar;
+  physical_constants;
+  insert_param = [];
+  
+  params = read_param_xls(ct_filename_param('accum_param_2019_Antarctica_TObas.xls'),'','post');
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20191225_01');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20191226_01');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20200127_01');
+  
+  % Setup the points
+  proj_load_standard;
+  insert_param.proj = arctic_proj;
+  insert_param.x = [];
+  insert_param.y = [];
+  insert_param.data = [];
+  insert_param.eval.ref_source.name = 'surface';
+  insert_param.eval.ref_source.source = 'layerdata';
+  insert_param.eval.ref_gaps_fill.method = 'interp_finite';
+  % Convert "layer twtt below the surface" to "total twtt"
+  insert_param.eval.cmd = 's = s + ref.twtt;';
+  insert_param.interp_method = 'nearest';
+  
+  % Load points from other segments
+  param = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'20190201_01','post');
+  layer_params = struct('name',{'surface','bottom'},'source','ops');
+  layers = opsLoadLayers(merge_structs(param,gRadar), layer_params);
+  [layers(2).x,layers(2).y] = projfwd(insert_param.proj, layers(2).lat, layers(2).lon);
+  insert_param.x = layers(2).x(:);
+  insert_param.y = layers(2).y(:);
+  % Convert "total twtt" to "twtt below the surface"
+  insert_param.data = layers(2).twtt-interp1(layers(1).gps_time,layers(1).twtt,layers(2).gps_time);
+  insert_param.data = insert_param.data(:);
+  
+  insert_param.type = 'point'; % Point data
+  insert_param.layer_dest.name = 'bottom_old';
+  insert_param.layer_dest.desc = 'Layer from other segments'; % For OPS layer_dest source
   insert_param.layer_dest.source = 'layerdata';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
   insert_param.layer_dest.group_name = ''; % For OPS layer_dest source

@@ -1,5 +1,5 @@
-function frames_check(param)
-% frames_check(param)
+function frames_check(param,param_override)
+% frames_check(param,param_override)
 %
 % Checks the fields in the frames files for potential errors.
 %
@@ -17,8 +17,8 @@ function frames_check(param)
 % frames_check(param)
 %
 % param = [];
-% param.radar_name = 'icards';
-% param.season_name = '1993_Greenland_P3';
+% param.radar_name = 'rds';
+% param.season_name = '2018_Greenland_P3';
 % frames_check(param)
 %
 % param = [];
@@ -26,18 +26,27 @@ function frames_check(param)
 % param.season_name = '2013_Antarctica_Basler';
 % frames_check(param)
 
+% Input checking
+global gRadar;
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
+
 if ischar(param)
   % param is a string containing the filename
-  
-  records_fn = ct_filename_support(param,'','records');
-  records = load(param,'param_records');
-  
-  frames_fn = ct_filename_support(records.param_records,'','frames');
-  
+  records_fn = param;
+  records = records_load(records_fn,'param_records');
   if ~isfield(records,'param_records')
     error('This mode only supported for new records files with param_records field.');
   end
-  records_check_support_func(param,records.param_records);
+  
+  param = merge_structs(records.param_records,param_override);
+  
+  frames_fn = ct_filename_support(param,'','frames');
+  
+  frames_create_support_func(frames_fn,param);
   
 elseif isstruct(param)
   % param is a struct indicating which radar/season to check (checks all segments)
@@ -48,23 +57,24 @@ elseif isstruct(param)
   
   for param_idx = 1:length(params)
     param = params(param_idx);
-    
-    records_fn = ct_filename_support(param,'','records');
+    param = merge_structs(param,param_override);
     
     if ~isempty(regexpi(param.cmd.notes,'do not process'))
       continue;
     end
     
-    % DEBUG OPTION TO JUST CHECK RECORDS BASED ON GENERIC COLUMN IN SPREADSHEET
+    frames_fn = ct_filename_support(param,'','frames');
+    
+    % DEBUG OPTION TO JUST CHECK FRAMES BASED ON GENERIC COLUMN IN SPREADSHEET
     % Uses the generic column of the parameter spreadsheet to determine which segments
     % to check.
     %if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     %  continue;
     %end
 
-    fprintf('%s\tChecking\t%s\n', param.day_seg, records_fn);
+    fprintf('%s\tChecking\t%s\n', param.day_seg, frames_fn);
     
-    frames_create_support_func(records_fn,param);
+    frames_create_support_func(frames_fn,param);
   end
   
 else
@@ -73,25 +83,25 @@ end
 
 end
 
-function frames_create_support_func(records_fn,param)
-% frames_create_support_func(records_fn,param)
+function frames_create_support_func(frames_fn,param)
+% frames_create_support_func(frames_fn,param)
 %
 % Support function which does the actual checking of the frames
 
+if ~exist(frames_fn,'file')
+  fprintf(2,'%s\tno_frames_file\t%s\n', param.day_seg, frames_fn);
+  return;
+end
+
+records_fn = ct_filename_support(param,'','frames');
 if ~exist(records_fn,'file')
   fprintf(2,'%s\tno_records_file\t%s\n', param.day_seg, records_fn);
   return;
 end
 
-frames_fn = ct_filename_support(param,'','frames');
-if ~exist(frames_fn,'file')
-  fprintf(2,'%s\tno_frames_file\t%s\n', param.day_seg, records_fn);
-  return;
-end
-
-records = load(records_fn,'lat','lon');
+records = records_load(param,'lat','lon');
 along_track = geodetic_to_along_track(records.lat,records.lon);
-load(frames_fn);
+frames = frames_load(param);
 
 if frames.frame_idxs(1) ~= 1
   fprintf(2,'%s\tframe_idxs_1_not_1\t%d instead of 1\n', param.day_seg, frames.frame_idxs(1));
