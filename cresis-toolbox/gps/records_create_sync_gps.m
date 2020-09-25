@@ -162,12 +162,12 @@ else
 end
 
 %% Synchronize times to get positions and absolute time
-my_struct.lat = double(interp1(gps.gps_time,gps.lat,radar_gps_time));
-my_struct.lon = double(mod(interp1(gps.gps_time,unwrap(gps.lon/180*pi),radar_gps_time)*180/pi+180, 360)-180);
-my_struct.elev = double(interp1(gps.gps_time,gps.elev,radar_gps_time));
-my_struct.roll = double(interp1(gps.gps_time,gps.roll,radar_gps_time));
-my_struct.pitch = double(interp1(gps.gps_time,gps.pitch,radar_gps_time));
-my_struct.heading = double(mod(interp1(gps.gps_time,unwrap(gps.heading),radar_gps_time)+pi,2*pi)-pi);
+my_struct.lat = double(interp1(gps.gps_time,gps.lat,radar_gps_time,'spline'));
+my_struct.lon = double(gps_interp1(gps.gps_time,gps.lon/180*pi,radar_gps_time,'spline'))*180/pi;
+my_struct.elev = double(interp1(gps.gps_time,gps.elev,radar_gps_time),'spline');
+my_struct.roll = double(interp1(gps.gps_time,gps.roll,radar_gps_time),'spline');
+my_struct.pitch = double(interp1(gps.gps_time,gps.pitch,radar_gps_time),'spline');
+my_struct.heading = double(gps_interp1(gps.gps_time,gps.heading,radar_gps_time,'spline'));
 my_struct.gps_time = radar_gps_time;
 my_struct.gps_source = gps.gps_source;
 

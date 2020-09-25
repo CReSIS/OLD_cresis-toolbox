@@ -116,7 +116,7 @@ for layer_idx = 1:num_layers+1
           * var_spread(layer_idx,rline,spread_idx);
       end
       
-      Data(:,rline) = Data(:,rline) + signal_power * sinc((bins - layers(layer_idx,rline) - var_spread(layer_idx,rline,spread_idx))/sinc_width).^2;
+      Data(:,rline) = Data(:,rline) + signal_power * sinc((bins - layers(layer_idx,rline) - var_spread(layer_idx,rline,spread_idx))/sinc_width);
       %plot(lp(Data(:,rline))); hold on
     end
   end

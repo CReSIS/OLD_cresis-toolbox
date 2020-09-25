@@ -502,7 +502,12 @@ for img = 1:length(store_param.load.imgs)
           noise_fn_dir = fileparts(ct_filename_out(param,cmd.threshold, ''));
           noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
           fprintf('  Loading coh_noise threshold: %s\n', noise_fn);
-          load(noise_fn,'threshold');
+          if strcmp(radar_type,'deramp')
+            load(noise_fn,'threshold','threshold_time');
+            threshold = interp1(threshold_time, threshold, tmp_hdr.time{1}, 'nearest', 'extrap');
+          else
+            load(noise_fn,'threshold');
+          end
         else
           % threshold is a scalar constant
           threshold = cmd.threshold;
