@@ -22,8 +22,20 @@ function param = echo_xcorr_profile(profile_name)
 % echo_xcorr_profile
 
 switch (profile_name)
+  case 'short_unitstep'
+    param.h_filt = fliplr([0.1*ones(1,6) 0.5*ones(1,7)]);
+    param.h_filt = param.h_filt-mean(param.h_filt);
+    param.h_filt_offset = -4;
   case 'long_unitstep'
     param.h_filt = fliplr([0.1*ones(1,10) 0.5*ones(1,11)]);
+    param.h_filt = param.h_filt-mean(param.h_filt);
+    param.h_filt_offset = -8;
+  case 'xlong_unitstep'
+    param.h_filt = fliplr([0.1*ones(1,20) 0.5*ones(1,21)]);
+    param.h_filt = param.h_filt-mean(param.h_filt);
+    param.h_filt_offset = -16;
+  case 'xlong_unitstep_delay'
+    param.h_filt = fliplr([0.1*ones(1,20) 0.5*ones(1,21)]);
     param.h_filt = param.h_filt-mean(param.h_filt);
     param.h_filt_offset = -8;
   case 'snow'
@@ -34,10 +46,6 @@ switch (profile_name)
     param.h_filt = [0.1 0.1 0.4 0.5 0.4 0.1 0.1];
     param.h_filt = param.h_filt-mean(param.h_filt);
     param.h_filt_offset = -3;
-  case 'short_unitstep'
-    param.h_filt = fliplr([0.1*ones(1,6) 0.5*ones(1,7)]);
-    param.h_filt = param.h_filt-mean(param.h_filt);
-    param.h_filt_offset = -4;
   otherwise
     error('Profile %s does not exist.', profile_name);
 end
