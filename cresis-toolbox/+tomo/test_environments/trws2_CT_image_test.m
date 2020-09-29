@@ -21,15 +21,14 @@ Esv = NaN;
 Ex  = NaN;
 
 % Num sampled points (resolutions)
-Nt  = NaN;
+Nt  = 100;
 Nsv = NaN;
-Nx  = NaN;
+Nx  = 100;
 
 MAX_LOOPS = 4; % Number of iterations of TRWS to perform
 AT_WEIGHT = 1; % Along track weight used in TRWS2
-USE_ORIGINAL_TRAVERSAL = true; % Use original 4-perm traversal method for trws2. Passed as debug switch one (1) to trws2_bounded.cpp. Only used when trws2_bounded is called.
-PASS_ALL_MESSAGES = true; % Always pass messages as opposed to only passing forward. Passed as debug switch two (2) to trws2_bounded.cpp. Only used when trws2_bounded is called.
-DONT_SKIP_COLS = true; % Do not skip columns which are outside the surface bounds. Passed as debug switch three (4) to trws2_bounded.cpp. Only used when trws2_bounded is called.
+USE_ORIGINAL_TRAVERSAL = true; % Use original 4-perm traversal method for trws2. Only used when trws2_bounded is called.
+DONT_SKIP_COLS = false; % Do not skip columns which are outside the surface bounds. Only used when trws2_bounded is called.
 
 PLOT_INDICES = false; % Plot indices on which dt is performed
 INDEX_LOOP_NUM = 0; % Plot index traversal order for this loop num
@@ -54,7 +53,7 @@ FIND_SURF = true; % Calls TRWS when true. Overridden by presets below. correct_s
 COLOR_SURF_DATA = 'trws_data'; % Color the surface with intensity values from given variable. generally 'trws_data_norm' for output image or 'trws_data' for input image. 'none' for solid coloring;
 SIMULATE_SURF = false; % Calls trws2_sim_2D to create surface instead of mex function. FIND_SURF must be false.
 
-USE_SURF_BOUNDS = false; % Bound results with surface layers
+USE_SURF_BOUNDS = true; % Bound results with surface layers
 USE_BOTTOM_LAYER = false; % Use the bottom layer as the bottom boundary surface. USE_SURF_BOUNDS must be true. Useful for Greenland data.
 RELOAD_BOTTOM_LAYER = false; % Force reload of layer information with opsLoadLayers even if already present.
 PLOT_CT_BOUNDS = false; % Plot the CT-slope surface boundaries
@@ -67,7 +66,7 @@ PLOT_HISTOGRAM = false; % Plot a histogram of the data
 
 %% DISPLAY VARS
 DISPLAY_VARS = {'RNG_SEED', 'TOP_LAYER_GUARD', 'BOTTOM_LAYER_GUARD', 'NOISE_FLOOR', 'St', 'Ssv', 'Sx', 'Et', 'Esv', 'Ex', 'Nt', 'Nsv', 'Nx', ...
-  'MAX_LOOPS', 'AT_WEIGHT', 'USE_ORIGINAL_TRAVERSAL', 'PASS_ALL_MESSAGES', 'DONT_SKIP_COLS', 'PLOT_CT_BOUNDS', 'PLOT_FT_BOUNDS', 'NORMALIZE_DATA', 'MAKE_DATA_POSITIVE', 'USE_DEBUG_MATRIX', ... 
+  'MAX_LOOPS', 'AT_WEIGHT', 'USE_ORIGINAL_TRAVERSAL', 'DONT_SKIP_COLS', 'PLOT_CT_BOUNDS', 'PLOT_FT_BOUNDS', 'NORMALIZE_DATA', 'MAKE_DATA_POSITIVE', 'USE_DEBUG_MATRIX', ... 
   'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SIMULATE_SURF', 'SAVE_FIG', 'SAVE_NAME', 'SAVE_PATH'};
 
 if PLOT_POINTS
@@ -115,7 +114,7 @@ param.day_seg = '20200107_01';
 frm = 1;
 
 %% PRESETS
-if 0
+if 1
   % Find surface of antarctica data
   echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
@@ -316,15 +315,9 @@ CT_bounds = ones(2, Nx);
 CT_bounds(2, :) = Nsv;
 
 % Setup binary debug switches
-debug_switches = 0;
-if USE_ORIGINAL_TRAVERSAL
-  debug_switches = bitor(debug_switches, 1);
-end
-if PASS_ALL_MESSAGES
-  debug_switches = bitor(debug_switches, 2);
-end
-if DONT_SKIP_COLS
-  debug_switches = bitor(debug_switches, 4);
+traversal_method = 0;
+if ~USE_ORIGINAL_TRAVERSAL
+  traversal_method = 1;
 end
 
 % Perform TRWS and save surface
@@ -335,11 +328,11 @@ if FIND_SURF
   
   if USE_DEBUG_MATRIX
     [correct_surface, debug] = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
-      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, debug_switches);
+      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, traversal_method, ~DONT_SKIP_COLS);
     trws_data_norm = max(debug(:)) - debug + .01;
   else
     correct_surface = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
-      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, debug_switches);
+      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, traversal_method, ~DONT_SKIP_COLS);
   end
   trws_run_time = toc
 elseif SIMULATE_SURF

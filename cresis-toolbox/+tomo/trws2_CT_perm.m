@@ -1,7 +1,10 @@
-function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops, ct_bounds, ft_bounds_top, ft_bounds_bottom, debug_switches)
+function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops, ct_bounds, ft_bounds_top, ft_bounds_bottom, traversal_method, skip_cols)
 
   if nargin < 8
-    debug_switches = 0;
+    traversal_method = 1;
+  end
+  if nargin < 9
+    skip_cols = false;
   end
 
   NOISE_FLOOR = -40;
@@ -27,7 +30,7 @@ function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops,
   ct_slope = zeros(size(new_image, 2), size(new_image, 3));
   ct_weight = ones(1, size(new_image, 2))*at_weight(1);
 
-  [surface, debug] = tomo.trws2_bounded(single(new_image), single(at_slope), single(at_weight), single(ct_slope), single(ct_weight), uint32(max_loops), uint32(ct_bounds), uint32(ft_bounds_top), uint32(ft_bounds_bottom), uint32(debug_switches));
+  [surface, debug] = tomo.trws2_bounded(single(new_image), single(at_slope), single(at_weight), single(ct_slope), single(ct_weight), uint32(max_loops), uint32(ct_bounds), uint32(ft_bounds_top), uint32(ft_bounds_bottom), uint32(traversal_method), logical(skip_cols));
   debug = permute(debug, [2 1 3]);
   debug = [nan(min_bound - 1, nsv, nx); debug; nan(size(image, 1) - max_bound, nsv, nx)];
   

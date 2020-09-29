@@ -17,7 +17,7 @@ using namespace std;
 #include "mex.h"
 #include "trws2_bounded.h"
 
-// Flags corresponding to values of debug_switches
+// Flags corresponding to values of traversal_method
 int F_ORIGINAL_TRAVERSAL = 1;
 int F_PASS_ALL = 2;
 int F_NO_SKIP_COLS = 4;
@@ -43,6 +43,8 @@ public:
   size_t mNt;
   // mNsv: Cross-track dimension (number of columns/second-dimension in mImage)
   size_t mNsv;
+  // mNsv_center: Starting index of TRW-S iteration in cross-track dimension
+  size_t mNsv_center;
   // mNx: Along-track dimension (number of range lines/third-dimension in mImage)
   size_t mNx;
   // mMax_Loops: Number of message passing loops/iterations to run
@@ -71,21 +73,26 @@ public:
   const unsigned int *mCT_Bounds_Right;
   // mCT_Bounds_Left: cross-track dimension bounds, left
   const unsigned int *mCT_Bounds_Left;
-  // mDebug_Switches: Interpreted as binary to enable various switches
-  const unsigned int mDebug_Switches;
+  // mTraversal_Method: Value in range 0-2. 0: Original center-out traversal method. 1: 4 permutation traversal. 2: 2 perm optimized traversal
+  const unsigned int mTraversal_Method;
+  // mSkip_Cols: Skip message passing in columns entirely outside the surface bounds
+  const bool mSkip_Cols;
 
   float *mResult;
   float *mDebug;
     
   TRWS(const float *image, const size_t *dim_image, const float *at_slope, const float *at_weight,
           const float *ct_slope, const float *ct_weight, const unsigned int max_loops,
-          const unsigned int *bounds, const unsigned int *ct_bounds_left, const unsigned int *ct_bounds_right, const unsigned int debug_swithces, float *result, float *debug)
+          const unsigned int *bounds, const unsigned int *ct_bounds_left, const unsigned int *ct_bounds_right, 
+          const unsigned int traversal_method, const bool skip_cols, float *result, float *debug)
           : mImage(image), mAT_Slope(at_slope), mAT_Weight(at_weight), mCT_Slope(ct_slope), mCT_Weight(ct_weight),
-            mMax_Loops(max_loops), mBounds(bounds), mCT_Bounds_Left(ct_bounds_left), mCT_Bounds_Right(ct_bounds_right), mDebug_Switches(debug_swithces), mResult(result), mDebug(debug) {
+            mMax_Loops(max_loops), mBounds(bounds), mCT_Bounds_Left(ct_bounds_left), mCT_Bounds_Right(ct_bounds_right), 
+            mTraversal_Method(traversal_method), mSkip_Cols(skip_cols), mResult(result), mDebug(debug) {
             // Set dimensions
             mNt  = dim_image[0];
             mNsv = dim_image[1];
             mNx  = dim_image[2];
+            mNsv_center = round(mNsv/2);
 
             // Allocate message inboxes
             // calloc sets the values to zero which corresonds to floating point value of 0
@@ -143,6 +150,22 @@ void TRWS::set_result() {
 }
 
 void TRWS::solve() {
+  // mNsvs_array: array of indices that allow iteration to go from the
+  // midpoint outward
+  //
+  // Propagate h/mNsv from the midpoint out (mNsv_center) and let it be
+  // biased by the current loop's mResults. This means the starting point
+  // can have a large affect on the result because propagation away from
+  // the starting point is much more effective and far reaching. In our
+  // case, the midpoint always has ground truth so it is a good.
+  float mNsvs_array[mNsv];
+  for (int i=0; i<=mNsv_center; i++) {
+    mNsvs_array[i] = mNsv_center-i; // From center to left
+  }
+  for (int i=mNsv_center+1; i<mNsv; i++) {
+    mNsvs_array[i] = i; // From center to right
+  }
+
   // Arrays for holding all the incoming messages. On each iteration, every
   // pixel sends out a message in all four directions (up/down in
   // cross-track and left/right in along-track) and this message is the sum
@@ -150,21 +173,6 @@ void TRWS::solve() {
   // the message that came from the direction that the message is going).
   float message_sum[mNt];
   float message_in[mNt];
-
-  mexPrintf("Debug_switches: %d\n", mDebug_Switches);
-  bool original_traversal = mDebug_Switches & F_ORIGINAL_TRAVERSAL;
-  bool pass_all = mDebug_Switches & F_PASS_ALL;
-  bool dont_skip_cols = mDebug_Switches & F_NO_SKIP_COLS;
-  if (original_traversal) {
-      mexPrintf("F_ORIGINAL_TRAVERSAL\n");
-  }
-  if (pass_all) {
-      mexPrintf("F_PASS_ALL\n");
-  }
-  if (dont_skip_cols) {
-      mexPrintf("F_NO_SKIP_COLS\n");
-  }
-
 
   time_t start_time;
   time(&start_time);
@@ -198,24 +206,40 @@ void TRWS::solve() {
       for (size_t h_idx = 0; h_idx < mNsv; h_idx++) {
         // Switch iteration direction every 2 loops
         size_t h = 0;
-        bool backward = odd_iteration;
-        if (original_traversal) {
-          backward = (loop>>1) % 2 == 0;
+        bool backward = false;
+        bool pass_all = true;
+
+        if (mTraversal_Method == 0) {
+          // Iterate from the center always 
+          h = mNsvs_array[h_idx];
+
+        } else {
+          
+          if (mTraversal_Method == 1) {
+            // 4 iteration permutations. Only change inner traversal every two loops
+            backward = (loop >> 1) % 2 == 0;
+
+          } else if (mTraversal_Method == 2) {
+            // 2 iteration permutations. Change inner traversal with outer.
+            backward = odd_iteration;
+            pass_all = false;
+          }
+
+          if (backward) {
+            // Iterating bottom to top
+            h = mNsv - 1 - h_idx;
+          } else {
+            // Iterating top to bottom
+            h = h_idx;
+          }
         }
 
-        if (backward) {
-          // Iterating bottom to top
-          h = mNsv-1-h_idx;
-        } else {
-          // Iterating top to bottom
-          h = h_idx;
-        }
         // Index to start of current range line in along-track/elevation angle in cross-track
         size_t cur_message_idx = (h + w*mNsv)*mNt;
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
 
-        if (!(dont_skip_cols)) {
+        if (mSkip_Cols) {
           bool outside = true;
           for (int d = cur_rbin_start; d <= cur_rbin_stop; d++) {
             if (h >= mCT_Bounds_Left[w*mNt + d] && h <= mCT_Bounds_Right[w*mNt + d]) {
@@ -336,8 +360,8 @@ void TRWS::solve() {
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if (nrhs < 9 || nrhs > 10 || nlhs < 1 || nlhs > 2) {
-    mexErrMsgTxt("Usage: [float surface, [debug_output]] = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds, uint32 ct_bounds_left, uint32 ct_bounds_right, [unint32 debug_switches])\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1\n  numel(bounds) is 2*size(image,3)\n  numel(ct_bounds_left/right) is size(image, 1)*size(image, 3)\n  debug_switches is an int used as binary flags up to value 7 (111)");
+  if (nrhs < 9 || nrhs > 11 || nlhs < 1 || nlhs > 2) {
+    mexErrMsgTxt("Usage: [float surface, [debug_output]] = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds, uint32 ct_bounds_left, uint32 ct_bounds_right, [unint32 traversal_method, bool skip_cols])\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1\n  numel(bounds) is 2*size(image,3)\n  numel(ct_bounds_left/right) is size(image, 1)*size(image, 3)\n  numel(traversal_method) is 1 \n  numel(skip_cols) is 1");
   }
 
   int arg = -1;
@@ -437,17 +461,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
   unsigned int *ct_bounds_right = reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
   
-  unsigned int debug_switches = 0;
+  // traversal_method ===============================================================
+  unsigned int traversal_method = 0;
   if (nrhs > 9) {
     arg++;
-    // debug_switches ===============================================================
     if (!mxIsClass(prhs[arg],"uint32")) {
-      mexErrMsgTxt("usage: debug_switches must be type unsigned int32");
+      mexErrMsgTxt("usage: traversal_method must be type unsigned int32");
     }
     if (mxGetNumberOfElements(prhs[arg]) != 1) {
-      mexErrMsgTxt("usage: debug_switches must have numel equal to 1");
+      mexErrMsgTxt("usage: traversal_method must have numel equal to 1");
     }
-    debug_switches = *reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
+    traversal_method = *reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
+  }
+  
+  bool skip_col = false;
+  if (nrhs > 10) {
+    arg++;
+    // skip_col ===============================================================
+    if (!mxIsClass(prhs[arg],"logical")) {
+      mexErrMsgTxt("usage: skip_col must be type bool");
+    }
+    if (mxGetNumberOfElements(prhs[arg]) != 1) {
+      mexErrMsgTxt("usage: skip_col must have numel equal to 1");
+    }
+    skip_col = *reinterpret_cast<bool *>(mxGetData(prhs[arg]));
   }
   // ====================================================================
   
@@ -463,7 +500,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
   
   // RUN TRWS2
-  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, max_loops, bounds, ct_bounds_left, ct_bounds_right, debug_switches, result, debug);
+  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, max_loops, bounds, ct_bounds_left, ct_bounds_right, traversal_method, skip_col, result, debug);
 
   obj.solve();
 }
