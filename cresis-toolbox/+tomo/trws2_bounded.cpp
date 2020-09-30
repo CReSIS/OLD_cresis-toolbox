@@ -17,11 +17,6 @@ using namespace std;
 #include "mex.h"
 #include "trws2_bounded.h"
 
-// Flags corresponding to values of traversal_method
-int F_ORIGINAL_TRAVERSAL = 1;
-int F_PASS_ALL = 2;
-int F_NO_SKIP_COLS = 4;
-
 
 void print_time(void)
 {
@@ -75,19 +70,17 @@ public:
   const unsigned int *mCT_Bounds_Left;
   // mTraversal_Method: Value in range 0-2. 0: Original center-out traversal method. 1: 4 permutation traversal. 2: 2 perm optimized traversal
   const unsigned int mTraversal_Method;
-  // mSkip_Cols: Skip message passing in columns entirely outside the surface bounds
-  const bool mSkip_Cols;
 
   float *mResult;
   float *mDebug;
     
   TRWS(const float *image, const size_t *dim_image, const float *at_slope, const float *at_weight,
           const float *ct_slope, const float *ct_weight, const unsigned int max_loops,
-          const unsigned int *bounds, const unsigned int *ct_bounds_left, const unsigned int *ct_bounds_right, 
-          const unsigned int traversal_method, const bool skip_cols, float *result, float *debug)
+          const unsigned int *bounds, const unsigned int traversal_method, 
+          const unsigned int *ct_bounds_left, const unsigned int *ct_bounds_right, float *result, float *debug)
           : mImage(image), mAT_Slope(at_slope), mAT_Weight(at_weight), mCT_Slope(ct_slope), mCT_Weight(ct_weight),
-            mMax_Loops(max_loops), mBounds(bounds), mCT_Bounds_Left(ct_bounds_left), mCT_Bounds_Right(ct_bounds_right), 
-            mTraversal_Method(traversal_method), mSkip_Cols(skip_cols), mResult(result), mDebug(debug) {
+            mMax_Loops(max_loops), mBounds(bounds), mTraversal_Method(traversal_method), mCT_Bounds_Left(ct_bounds_left), 
+            mCT_Bounds_Right(ct_bounds_right), mResult(result), mDebug(debug) {
             // Set dimensions
             mNt  = dim_image[0];
             mNsv = dim_image[1];
@@ -239,7 +232,7 @@ void TRWS::solve() {
         int cur_rbin_start = mBounds[2*w];
         int cur_rbin_stop = mBounds[2*w+1];
 
-        if (mSkip_Cols) {
+        if (mCT_Bounds_Left != 0 && mCT_Bounds_Right != 0) {
           bool outside = true;
           for (int d = cur_rbin_start; d <= cur_rbin_stop; d++) {
             if (h >= mCT_Bounds_Left[w*mNt + d] && h <= mCT_Bounds_Right[w*mNt + d]) {
@@ -356,12 +349,10 @@ void TRWS::solve() {
   set_result();
 }
 
-// TODO[reece]: Allow CT bounds to be optional, maybe replace trws2.cpp with this one.
-
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if (nrhs < 9 || nrhs > 11 || nlhs < 1 || nlhs > 2) {
-    mexErrMsgTxt("Usage: [float surface, [debug_output]] = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds, uint32 ct_bounds_left, uint32 ct_bounds_right, [unint32 traversal_method, bool skip_cols])\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1\n  numel(bounds) is 2*size(image,3)\n  numel(ct_bounds_left/right) is size(image, 1)*size(image, 3)\n  numel(traversal_method) is 1 \n  numel(skip_cols) is 1");
+  if (nrhs < 7 || nrhs > 10 || nlhs < 1 || nlhs > 2) {
+    mexErrMsgTxt("Usage: [float surface, [debug_output]] = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds, [unint32 traversal_method, uint32 ct_bounds_left, uint32 ct_bounds_right])\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1\n  numel(bounds) is 2*size(image,3)\n  numel(traversal_method) is 1\n  numel(ct_bounds_left/right) is size(image, 1)*size(image, 3)");
   }
 
   int arg = -1;
@@ -441,30 +432,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
   unsigned int *bounds = reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
   
-  arg++;
-  // ct_bounds_left ===============================================================
-  if (!mxIsClass(prhs[arg],"uint32")) {
-    mexErrMsgTxt("usage: ct_bounds_left must be type unsigned int32");
-  }
-  if (mxGetNumberOfElements(prhs[arg]) != dim_image[0]*dim_image[2]) {
-    mexErrMsgTxt("usage: ct_bounds_left must have numel equal to size(image,1)*size(image,3)");
-  }
-  unsigned int *ct_bounds_left = reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
-
-  arg++;
-  // ct_bounds_right ===============================================================
-  if (!mxIsClass(prhs[arg],"uint32")) {
-    mexErrMsgTxt("usage: ct_bounds_right must be type unsigned int32");
-  }
-  if (mxGetNumberOfElements(prhs[arg]) != dim_image[0]*dim_image[2]) {
-    mexErrMsgTxt("usage: ct_bounds_right must have numel equal to size(image,1)*size(image,3)");
-  }
-  unsigned int *ct_bounds_right = reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
-  
   // traversal_method ===============================================================
   unsigned int traversal_method = 0;
-  if (nrhs > 9) {
-    arg++;
+  arg++;
+  if (nrhs > arg) {
     if (!mxIsClass(prhs[arg],"uint32")) {
       mexErrMsgTxt("usage: traversal_method must be type unsigned int32");
     }
@@ -473,20 +444,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     traversal_method = *reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
   }
-  
-  bool skip_col = false;
-  if (nrhs > 10) {
+
+  unsigned int *ct_bounds_left = 0;
+  unsigned int *ct_bounds_right = 0;
+  arg++;
+  if (nrhs > arg) {
+    if (nrhs <= arg + 1) {
+      mexErrMsgTxt("usage: ct_bounds_right must be present as well when given ct_bounds_left.");
+    }
+    // ct_bounds_left ===============================================================
+    if (!mxIsClass(prhs[arg],"uint32")) {
+      mexErrMsgTxt("usage: ct_bounds_left must be type unsigned int32");
+    }
+    if (mxGetNumberOfElements(prhs[arg]) != dim_image[0]*dim_image[2]) {
+      mexErrMsgTxt("usage: ct_bounds_left must have numel equal to size(image,1)*size(image,3)");
+    }
+    ct_bounds_left = reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
     arg++;
-    // skip_col ===============================================================
-    if (!mxIsClass(prhs[arg],"logical")) {
-      mexErrMsgTxt("usage: skip_col must be type bool");
+    // ct_bounds_right ===============================================================
+    if (!mxIsClass(prhs[arg],"uint32")) {
+      mexErrMsgTxt("usage: ct_bounds_right must be type unsigned int32");
     }
-    if (mxGetNumberOfElements(prhs[arg]) != 1) {
-      mexErrMsgTxt("usage: skip_col must have numel equal to 1");
+    if (mxGetNumberOfElements(prhs[arg]) != dim_image[0]*dim_image[2]) {
+      mexErrMsgTxt("usage: ct_bounds_right must have numel equal to size(image,1)*size(image,3)");
     }
-    skip_col = *reinterpret_cast<bool *>(mxGetData(prhs[arg]));
+    ct_bounds_right = reinterpret_cast<unsigned int *>(mxGetData(prhs[arg]));
   }
-  // ====================================================================
+
   
   // Allocate output
   plhs[0] = mxCreateNumericMatrix(dim_image[1], dim_image[2], mxSINGLE_CLASS, mxREAL);
@@ -500,7 +484,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
   
   // RUN TRWS2
-  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, max_loops, bounds, ct_bounds_left, ct_bounds_right, traversal_method, skip_col, result, debug);
+  TRWS obj(image, dim_image, at_slope, at_weight, ct_slope, ct_weight, max_loops, bounds, traversal_method, ct_bounds_left, ct_bounds_right, result, debug);
 
   obj.solve();
 }

@@ -1,14 +1,15 @@
 %% CONSTANTS
-FIGURE_NUM = nan;
+FIGURE_NUM = 1;
 SAVE_PATH = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/output images/';
 SAVE_IMAGE = false; % Save the normalized (output) image
 SAVE_SURF = false; % Save the output surface
 SAVE_FIG = true; % Save the created figure
+SAVE_IMAGESC = true; % Save the imagesc of the produced layer. PLOT_IMAGESC must be true.
 SAVE_NAME = 'sim_test/1'; % name of save files and directory
 RNG_SEED = 1;
-TOP_LAYER_GUARD = 0;
-BOTTOM_LAYER_GUARD = 0;
-NOISE_FLOOR = -40;
+TOP_LAYER_GUARD = 0; % Number of FT-bins to ignore after the top surface bounds
+BOTTOM_LAYER_GUARD = 0; % Number of FT-bins to ignore before the bottom surface bounds
+NOISE_FLOOR = -40; % Value to assign to the noise floor for use with echo_norm
 
 % Start index
 St  = NaN;
@@ -50,7 +51,7 @@ COLOR_MAX_SURF = 'none';
 LOAD_DATA = true; % Use image data to plot intensities
 RELOAD_DATA = false; % When false, only load trws_data if not already loaded. Ignored if LOAD_DATA is false
 FIND_SURF = true; % Calls TRWS when true. Overridden by presets below. correct_surface must be set manually when false.
-COLOR_SURF_DATA = 'trws_data'; % Color the surface with intensity values from given variable. generally 'trws_data_norm' for output image or 'trws_data' for input image. 'none' for solid coloring;
+COLOR_SURF_DATA = 'ct_bins_absolute'; % Color the surface with intensity values from given variable. generally 'trws_data_norm' for output image or 'trws_data' for input image. 'none' for solid coloring. 'ct_bins' for coloring based on surface bin. 'ct_bins_absolute' for coloring based on possible bins.;
 SIMULATE_SURF = false; % Calls trws2_sim_2D to create surface instead of mex function. FIND_SURF must be false.
 
 USE_SURF_BOUNDS = true; % Bound results with surface layers
@@ -63,11 +64,13 @@ MAKE_DATA_POSITIVE = false; % Subtract the min value from the data to make the m
 NORMALIZE_DATA = true; % Normalize data for display identically to the normalization used by trws2_CT_perm.m. LOAD_DATA must be true.
 USE_DEBUG_MATRIX = false; % Get the final image values from the TRWS2 algorithm and use these to plot points, etc. Replaces normalized data with debug data.
 PLOT_HISTOGRAM = false; % Plot a histogram of the data
+PLOT_IMAGESC = true; % Plot an imagesc of the surface
+ABSOLUTE_IMAGESC_COLORS = true; % Set colors relative to total number of CT bins rather than max and min bins of surface 
 
 %% DISPLAY VARS
 DISPLAY_VARS = {'RNG_SEED', 'TOP_LAYER_GUARD', 'BOTTOM_LAYER_GUARD', 'NOISE_FLOOR', 'St', 'Ssv', 'Sx', 'Et', 'Esv', 'Ex', 'Nt', 'Nsv', 'Nx', ...
   'MAX_LOOPS', 'AT_WEIGHT', 'USE_ORIGINAL_TRAVERSAL', 'DONT_SKIP_COLS', 'PLOT_CT_BOUNDS', 'PLOT_FT_BOUNDS', 'NORMALIZE_DATA', 'MAKE_DATA_POSITIVE', 'USE_DEBUG_MATRIX', ... 
-  'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SIMULATE_SURF', 'SAVE_FIG', 'SAVE_NAME', 'SAVE_PATH'};
+  'COLOR_SURF_DATA', 'SAVE_IMAGE', 'SAVE_SURF', 'SIMULATE_SURF', 'SAVE_FIG', 'SAVE_IMAGESC', 'PLOT_IMAGESC', 'SAVE_NAME', 'SAVE_PATH'};
 
 if PLOT_POINTS
   DISPLAY_VARS{end + 1} = 'PLOT_POINTS';
@@ -135,7 +138,7 @@ elseif 0
   SAVE_SURF = false;
   SAVE_IMAGE = false;
   Esv = 64;
-elseif 1
+elseif 0
   % Find surface of Greenland data
   param.season_name = '2014_Greenland_P3';
   param.day_seg = '20140502_01';
@@ -328,11 +331,11 @@ if FIND_SURF
   
   if USE_DEBUG_MATRIX
     [correct_surface, debug] = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
-      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, traversal_method, ~DONT_SKIP_COLS);
+      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), traversal_method, min_bounds-1, max_bounds-1, ~DONT_SKIP_COLS);
     trws_data_norm = max(debug(:)) - debug + .01;
   else
     correct_surface = tomo.trws2_CT_perm(single(trws_data),single(at_slope), ...
-      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), min_bounds-1, max_bounds-1, traversal_method, ~DONT_SKIP_COLS);
+      single(AT_WEIGHT), uint32(MAX_LOOPS), uint32(CT_bounds-1), traversal_method, min_bounds-1, max_bounds-1, ~DONT_SKIP_COLS);
   end
   trws_run_time = toc
 elseif SIMULATE_SURF
@@ -481,10 +484,9 @@ zticklabels(z_labels);
 zlabel('Z : Cross-Track (Nsv. DIM 1)');
 set(gca, 'ZColor', 'g');
 
-num_t = length(min_bound:Tt:max_bound);
 ylims = [min_bound max_bound];
 ylim(ylims);
-y_points = round(linspace(min_bound, max_bound, min(num_t, MAX_TICKS)));
+y_points = round(linspace(min_bound, max_bound, min(Nt, MAX_TICKS)));
 yticks(y_points);
 y_labels = (y_points-1)*Tt+St;
 yticklabels(y_labels);
@@ -502,6 +504,17 @@ camva(10);
 % colormap(bone);
 
 %% COLOR SURFACE
+
+% Create ct_bins and ct_bins_absolute for use with coloring if chosen by
+% user
+ct_bin_range = Ssv:Tsv:Esv;
+ct_bins_absolute = repmat(ct_bin_range, [Nt 1 Nx]);
+ct_bin_min = min(correct_surface(:));
+ct_bin_max = max(correct_surface(:));
+ct_bins = ct_bins_absolute;
+ct_bins(ct_bins_absolute < ct_bin_min) = ct_bin_min;
+ct_bins(ct_bins_absolute > ct_bin_max) = ct_bin_max;
+
 if ~strcmp(COLOR_SURF_DATA, 'none')
   color_data = eval(COLOR_SURF_DATA);
   intensities = nan(Nt, Nx);
@@ -518,7 +531,11 @@ if ~strcmp(COLOR_SURF_DATA, 'none')
   set(h_correct_surf, 'FaceColor', 'interp');
   caxis([min(color_data(:)) max(color_data(:))]);
   c_bar = colorbar;
-  ylabel(c_bar, 'Input Intensity');
+  if strcmp(COLOR_SURF_DATA, 'ct_bins') || strcmp(COLOR_SURF_DATA, 'ct_bins_absolute')
+    ylabel(c_bar, 'CT Bin');
+  else
+    ylabel(c_bar, 'Input Intensity');
+  end
 end
 
 %% PLOT FT BOUNDS
@@ -663,6 +680,41 @@ for display_cell = DISPLAY_VARS
 end
 annotation('textbox', [0, 0, 0.3, 1], 'String', str, 'Interpreter', 'tex', 'FontSize', 6, 'LineStyle', 'none', 'FitBoxToText', 'off');
 
+%% Create imagesc of surface
+if PLOT_IMAGESC
+  if ~isnan(FIGURE_NUM)
+    fig2 = figure(FIGURE_NUM + 1);
+  else
+    fig2 = figure;
+  end
+  h_imagesc = imagesc(correct_surface);
+  c_bar = colorbar;
+  ylabel(c_bar, 'CT Bin');
+  if ABSOLUTE_IMAGESC_COLORS
+      caxis([Ssv Esv]);
+  end
+
+  % Set up camera view and axes
+  xlim(xlims);
+  xticks(x_points);
+  xticklabels(x_labels);
+  xlabel('X : Along-Track (Nx, DIM 2)');
+  set(gca, 'XColor', 'b');
+
+  ylim(ylims);
+  yticks(y_points);
+  yticklabels(y_labels);
+  ylabel('Y : Fast-Time (Nt, DIM 0)');
+  set(gca, 'YColor', 'r');
+  set(gca, 'ydir', 'reverse');
+
+  % Add variable values to imagesc
+  current_axes = gca;
+  current_axes.Position(3) = .5;
+  current_axes.Position(1) = .3;
+  annotation('textbox', [0, 0, 0.3, 1], 'String', str, 'Interpreter', 'tex', 'FontSize', 6, 'LineStyle', 'none', 'FitBoxToText', 'off');
+end
+
 %% SAVE OUTPUTS
 
 path_parts = SAVE_PATH;
@@ -684,7 +736,10 @@ if SAVE_SURF
   save([output_path 'surf.mat'], 'correct_surface');
 end
 if SAVE_FIG
-  savefig(fig, [output_path 'fig.fig']);
+  savefig(fig, [output_path 'surf.fig']);
+end
+if SAVE_IMAGESC && PLOT_IMAGESC
+  savefig(fig2, [output_path 'imagesc.fig']);
 end
 
 function new_word = format_word(word, max_width)

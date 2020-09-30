@@ -1,11 +1,16 @@
-function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops, ct_bounds, ft_bounds_top, ft_bounds_bottom, traversal_method, skip_cols)
+function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops, ct_bounds, traversal_method, ft_bounds_top, ft_bounds_bottom, skip_cols)
 
-  if nargin < 8
+  if nargin < 6
     traversal_method = 1;
   end
-  if nargin < 9
+  if nargin < 8
+    % Missing at least bottom surface
     skip_cols = false;
+  elseif nargin == 8
+    % Both surfaces present
+    skip_cols = true;
   end
+  % otherwise, just use given skip_cols
 
   NOISE_FLOOR = -40;
 
@@ -30,7 +35,16 @@ function [surface, debug] = trws2_CT_perm(image, at_slope, at_weight, max_loops,
   ct_slope = zeros(size(new_image, 2), size(new_image, 3));
   ct_weight = ones(1, size(new_image, 2))*at_weight(1);
 
-  [surface, debug] = tomo.trws2_bounded(single(new_image), single(at_slope), single(at_weight), single(ct_slope), single(ct_weight), uint32(max_loops), uint32(ct_bounds), uint32(ft_bounds_top), uint32(ft_bounds_bottom), uint32(traversal_method), logical(skip_cols));
+  if ~skip_cols
+    [surface, debug] = tomo.trws2_bounded(single(new_image), single(at_slope), ...
+      single(at_weight), single(ct_slope), single(ct_weight), uint32(max_loops), ...
+      uint32(ct_bounds), uint32(traversal_method), uint32(ft_bounds_top), uint32(ft_bounds_bottom));
+  else
+    [surface, debug] = tomo.trws2_bounded(single(new_image), single(at_slope), ...
+      single(at_weight), single(ct_slope), single(ct_weight), uint32(max_loops), ...
+      uint32(ct_bounds), uint32(traversal_method));
+  end
+  
   debug = permute(debug, [2 1 3]);
   debug = [nan(min_bound - 1, nsv, nx); debug; nan(size(image, 1) - max_bound, nsv, nx)];
   
