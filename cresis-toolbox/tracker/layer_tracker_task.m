@@ -2,7 +2,7 @@ function success = layer_tracker_task(param)
 % success = layer_tracker_task(param)
 %
 % layer_tracker_task is used to load and prepare the data and metadata and
-% run the tracker. See layer_tracker.m.
+% run the tracker. See run_layer_tracker.m.
 %
 % param: parameter structure from parameter spreadsheet
 %   param.layer_tracker.echogram_source: The normal cluster mode is for
@@ -14,6 +14,11 @@ function success = layer_tracker_task(param)
 %   In cluster mode: logical scalar, true when task completes successfully
 %   In qlook_combine_task mode: surface twtt corresponding to the
 %   param.layer_tracker.echogram_source.GPS_time.
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% Input Checks: track field
 % =====================================================================

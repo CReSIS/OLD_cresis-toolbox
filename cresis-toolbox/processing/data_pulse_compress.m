@@ -1015,7 +1015,7 @@ for img = 1:length(param.load.imgs)
           %% Pulse compress: FFT and Deskew
           
           % Window and DFT (raw deramped time to regular time)
-          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
+          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).Tadc_adjust + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
           
           tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
              .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
@@ -1303,6 +1303,7 @@ for img = 1:length(param.load.imgs)
       end
       
     else
+      %% No pulse compress
       if wf_adc == 1
         if strcmpi(radar_type,'pulsed')
           hdr.time{img} = wfs(wf).time_raw;
