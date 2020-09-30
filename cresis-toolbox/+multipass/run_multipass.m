@@ -13,6 +13,25 @@ param = [];
 %% User Settings
 % =========================================================================
 
+%% Thwaites Line 1 20190201_01, 20191225_01, 20200127_01
+if 0
+  if ispc
+    param.multipass.fn = fullfile('X:\ct_data\rds\2018_Antarctica_TObas\CSARP_multipass\',sprintf('Thwaites_201902_201912_202001.mat'));
+  else
+    param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/accum/2018_Antarctica_TObas/CSARP_multipass/Thwaites_201902_201912_202001.mat');
+  end
+  
+  param.multipass.rbins = [];
+  
+  param.multipass.baseline_master_idx = 1;
+  param.multipass.master_idx = 1;
+  
+  param.multipass.pass_en_mask = [];
+  param.multipass.output_fn_midfix = [];
+  param.multipass.coregistration_time_shift = [0 0 0];
+  param.multipass.comp_mode = 2;
+end
+
 %% Petermann Line 1 2014
 % if ispc
 %   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2014.mat'));
