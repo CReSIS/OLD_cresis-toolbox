@@ -529,7 +529,7 @@ for break_idx = 1:length(breaks)
   dparam.file_success = {};
   success_error = 64;
   % Loading in the data: cpu_time and mem
-  dparam.mem = 250e6;
+  dparam.mem = 500e6;
   for img = 1:length(param.analysis.imgs)
     dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
     dparam.mem = dparam.mem + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult;
@@ -729,14 +729,14 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           num_sam_hint = 1;
           sparam.cpu_time = sparam.cpu_time + Nx*num_sam_hint*log2(Nx)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx*num_sam_hint*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx*num_sam_hint*mem_mult);
         end
         
       case {'coh_noise'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'qlook'}
@@ -749,14 +749,14 @@ for img = 1:length(param.analysis.imgs)
         Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult*1.5);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult*1.5);
         end
         
       case {'statistics'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'waveform'}
@@ -768,7 +768,7 @@ for img = 1:length(param.analysis.imgs)
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*Nt*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*Nt*mem_mult);
         end
         
     end

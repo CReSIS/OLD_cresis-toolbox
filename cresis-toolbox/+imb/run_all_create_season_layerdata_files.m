@@ -55,21 +55,14 @@ else
   keyboard
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
-  layer_params(1).layerdata_source = 'layerData_koenig';
+  layer_params(1).layerdata_source = 'layer_koenig';
   layer_params(2).existence_check = true;
   layer_params(1).fix_broken_layerdata = true; % Found some bad files
   layer_params(2).name = 'bottom';
   layer_params(2).source = 'layerdata';
-  layer_params(2).layerdata_source = 'layerData_koenig';
+  layer_params(2).layerdata_source = 'layer_koenig';
   layer_params(2).existence_check = false;
   layer_params(2).fix_broken_layerdata = true; % Found some bad files
-  for lay_idx=2:30
-    layer_params(lay_idx+1).name = sprintf('Koenig_%d',lay_idx);
-    layer_params(lay_idx+1).source = 'layerdata';
-    layer_params(lay_idx+1).layerdata_source = 'layerData_koenig';
-    layer_params(lay_idx+1).existence_check = false;
-    layer_params(lay_idx+1).fix_broken_layerdata = true; % Found some bad files
-  end
 end
 
 param_override = [];

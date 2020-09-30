@@ -2294,6 +2294,15 @@ if (strcmpi(param.season_name,'2009_Greenland_P3') && strcmpi(radar_name,'snow')
   LAtx(1,:)   = [335.6]*0.0254; % m
   LAtx(2,:)   = [18.9]*0.0254; % m
   LAtx(3,:)   = [146]*0.0254; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
 end
 
 if (strcmpi(param.season_name,'2010_Antarctica_DC8') && strcmpi(radar_name,'snow')) ...
