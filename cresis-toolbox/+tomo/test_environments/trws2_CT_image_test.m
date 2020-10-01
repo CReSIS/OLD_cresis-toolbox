@@ -17,14 +17,14 @@ Ssv = NaN;
 Sx  = NaN;
 
 % End index
-Et  = NaN;
+Et  = 500;
 Esv = NaN;
-Ex  = NaN;
+Ex  = 500;
 
 % Num sampled points (resolutions)
-Nt  = 100;
+Nt  = NaN;
 Nsv = NaN;
-Nx  = 100;
+Nx  = NaN;
 
 MAX_LOOPS = 4; % Number of iterations of TRWS to perform
 AT_WEIGHT = 1; % Along track weight used in TRWS2
@@ -117,7 +117,7 @@ param.day_seg = '20200107_01';
 frm = 1;
 
 %% PRESETS
-if 1
+if 0
   % Find surface of antarctica data
   echogram_fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
@@ -138,7 +138,7 @@ elseif 0
   SAVE_SURF = false;
   SAVE_IMAGE = false;
   Esv = 64;
-elseif 0
+elseif 1
   % Find surface of Greenland data
   param.season_name = '2014_Greenland_P3';
   param.day_seg = '20140502_01';
@@ -156,6 +156,7 @@ elseif 0
   layer_params.name = 'bottom';
   layer_params.source = 'layerdata';
   layer_params.layerdata_source = 'layer';
+  layer_params.existence_check = false;
 elseif 0
   % Load surface from simulator
   surf_fn = 'C:/Users/mathe/Documents/MATLAB/TRWS_CT results/paden_sim/output images/result/surf.mat';
@@ -275,6 +276,7 @@ if USE_SURF_BOUNDS
     surface_names = {surfaces.surf.name};
     top_surface = surfaces.surf(strcmp(surface_names, 'top'));
     bottom_surface = surfaces.surf(strcmp(surface_names, 'bottom'));
+    
   end
 end
 
