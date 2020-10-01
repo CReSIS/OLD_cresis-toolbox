@@ -65,11 +65,11 @@ if ~strcmp(SURFACE, 'NONE')
     ct_weight = ones(1, Nsv);
 
     if strcmp(SURFACE, 'FT')
-        correct_surface = tomo.trws2_bounded(single(trws_data),single(at_slope), ...
+        correct_surface = tomo.trws2(single(trws_data),single(at_slope), ...
           single(at_weight),single(ct_slope),single(ct_weight), ...
-          uint32(MAX_LOOPS), uint32(bounds - 1), uint32(min_bounds - 1), uint32(max_bounds - 1));
+          uint32(MAX_LOOPS), uint32(bounds - 1), 1, uint32(min_bounds - 1), uint32(max_bounds - 1));
     else
-        correct_surface = tomo.trws2_CT_perm(trws_data, at_slope, at_weight, MAX_LOOPS, bounds - 1, min_bounds - 1, max_bounds - 1);
+        correct_surface = tomo.trws2_CT_perm(trws_data, at_slope, at_weight, MAX_LOOPS, bounds - 1, 1, min_bounds - 1, max_bounds - 1);
     end
 end
 
