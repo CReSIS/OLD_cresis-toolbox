@@ -235,7 +235,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',home_dir);
   
   username = getenv('USER');
-  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/ct_user_tmp/',username); % scratch may be on dcwan or dc2
+  profile(pidx).tmp_file_path             = sprintf('/N/slate/%s/ct_user_tmp/',username); % scratch may be on dcwan or slate
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
   profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
@@ -270,7 +270,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 10;
   profile(pidx).cluster.file_check_pause      = 0;
 
-  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:slate,pmem=%m,walltime=%t';
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
