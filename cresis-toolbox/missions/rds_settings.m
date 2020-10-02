@@ -498,7 +498,7 @@ for param_idx = 1:length(params)
                   params(param_idx).collate_coh_noise.firdec_fs{img} = 1/30;
                   params(param_idx).collate_coh_noise.firdec_fcutoff{img} = @(t) 1/120*(t<1.834e-6) + -1*(t>=1.834e-6);
                   params(param_idx).collate_coh_noise.dft_corr_time(img) = inf;
-                  params(param_idx).collate_coh_noise.wf_adcs{img} = [1:4,6:16];
+                  params(param_idx).collate_coh_noise.wf_adcs{img} = 1:15;
                   
                 elseif mode_2018_Greenland_P3 == 2
                   params(param_idx).collate_coh_noise.imgs = 3:length(params(param_idx).radar.wfs);
