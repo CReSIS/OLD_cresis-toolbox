@@ -337,7 +337,7 @@ else
   records.raw.seconds = nan(size(epri));
   records.raw.fraction = nan(size(epri));
   if param.records.file.version == 8
-    records.settings.nyquist_zone = nan(size(epri));
+    records.settings.nyquist_zone_sig = nan(size(epri));
     records.settings.waveform_ID = nan(size(epri));
   end
   for board_idx = 1:length(boards)
@@ -369,7 +369,7 @@ else
     end
     records.raw.fraction(out_idxs) = board_hdrs{board_idx}.fraction(in_idxs);
     if param.records.file.version == 8
-      records.settings.nyquist_zone(out_idxs) = board_hdrs{board_idx}.nyquist_zone(in_idxs);
+      records.settings.nyquist_zone_sig(out_idxs) = board_hdrs{board_idx}.nyquist_zone_sig(in_idxs);
       records.settings.waveform_ID(out_idxs) = board_hdrs{board_idx}.waveform_ID(in_idxs);
     end
   end

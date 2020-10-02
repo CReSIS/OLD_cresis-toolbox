@@ -14,6 +14,30 @@ param_override = [];
 param = [];
 passes = [];
 
+%% Thwaites Line 1 20190201_01, 20191225_01, 20200127_01
+% pass_name = sprintf('Thwaites_201902_201912_202001');
+% dist_min = 300;
+% master_pass_idx = 1;
+% start = struct('lat',-75.137955,'lon',-105.538244);
+% stop = struct('lat',-75.259933,'lon',-105.418265);
+% input_type = 'echo';
+% passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+% 
+% param_fn = 'accum_param_2018_Antarctica_TObas.xls';
+% day_seg = '20190201_01';
+% frms = 33:34;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+% 
+% param_fn = 'accum_param_2019_Antarctica_TObas.xls';
+% day_seg = '20191225_01';
+% frms = 20:22;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% 
+% param_fn = 'accum_param_2019_Antarctica_TObas.xls';
+% day_seg = '20200127_01';
+% frms = 33:34;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+
 %% Petermann Line 1 2002
 % pass_name = sprintf('Petermann_line1_2002');
 % dist_min = 500;

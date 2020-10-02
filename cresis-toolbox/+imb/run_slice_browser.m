@@ -28,7 +28,7 @@ elseif 0
   param.radar_name = 'rds';
   param.season_name = '2018_Greenland_P3';
   out_type = 'music_imgs4_Nsig2';
-  surfdata_source = 'surfData';
+  surfdata_source = 'surf';
 %   surfdata_source = 'surfData_englacial';
   param.day_seg = '20180404_02';
   frm = 1;
@@ -43,29 +43,30 @@ elseif 0
   ice_mask_fn = '';
   bounds_relative = [3 2 0 0];
   
-elseif 0
+elseif 1
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
-  out_type = 'music3D';
-  surfdata_source = 'surfData';
+  out_type = 'music3D_old';
+  surfdata_source = '';
   param.day_seg = '20140325_05';
-  frm = 2;
+  frm = 1;
   geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
-  ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+  %ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+  ice_mask_fn = '';
   bounds_relative = [3 2 0 0];
   
 elseif 0
   param.radar_name = 'rds';
   param.season_name = '2009_Antarctica_TO';
   out_type = 'music3D';
-  surfdata_source = 'surfData';
+  surfdata_source = '';
   param.day_seg = '20091224_01';
   frm = 26;
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
   
-elseif 1
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2019_Antarctica_Ground';
   out_type = 'music3D_paden';
@@ -102,10 +103,13 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,echogram
   
   run_slice_browser_fn = echogram_fn;
   fprintf('  Done loading data (%s)\n', datestr(now));
+else
+  fprintf('Using already loaded data. Run "clear run_slice_browser_fn" to load new data (%s)\n', datestr(now));
+  
 end
 
 if ~exist('surfdata_source','var') || isempty(surfdata_source)
-  surfdata_source = 'surfData';
+  surfdata_source = 'surf';
 end
 sb_param = [];
 sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
