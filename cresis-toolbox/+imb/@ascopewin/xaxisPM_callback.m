@@ -10,10 +10,13 @@ physical_constants
 uicontrol(obj.right_panel.status_panel.statusText);
 
 % Convert all x-limits to twtt
-obj.xlims = xlim(obj.h_axes);
+xlims = xlim(obj.h_axes);
 if obj.cur_xaxis == 2
+  xlims = xlims*2/c*1e6;
   obj.xlims = obj.xlims*2/c*1e6;
 elseif obj.cur_xaxis == 3
+  xlims(obj.xlims<0) = xlims(obj.xlims<0)*2/c*1e6;
+  xlims(obj.xlims>0) = xlims(obj.xlims>0)*2*sqrt(er_ice)/c*1e6;
   obj.xlims(obj.xlims<0) = obj.xlims(obj.xlims<0)*2/c*1e6;
   obj.xlims(obj.xlims>0) = obj.xlims(obj.xlims>0)*2*sqrt(er_ice)/c*1e6;
 end
@@ -62,10 +65,13 @@ end
 
 % Convert all x-limits to depth if needed
 if val == 2
+  xlims = xlims/1e6 * c/2;
   obj.xlims = obj.xlims/1e6 * c/2;
 elseif val == 3
+  xlims(obj.xlims<0) = xlims(obj.xlims<0)/1e6 * c/2;
+  xlims(obj.xlims>0) = xlims(obj.xlims>0)/1e6 * c/2/sqrt(er_ice);
   obj.xlims(obj.xlims<0) = obj.xlims(obj.xlims<0)/1e6 * c/2;
   obj.xlims(obj.xlims>0) = obj.xlims(obj.xlims>0)/1e6 * c/2/sqrt(er_ice);
 end
-xlim(obj.h_axes,obj.xlims);
+xlim(obj.h_axes,xlims);
 obj.cur_xaxis = val;

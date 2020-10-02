@@ -1,5 +1,8 @@
 function plot_update(obj)
 % plot_update(obj)
+%
+% This function is called any time anything changes that requires an update
+% in the ascope plot (change of order, new ascope, hide/visible, etc.)
 
 % Update plot based on selection
 set(obj.h_ascope(obj.ascope.selected),'Color','red');
