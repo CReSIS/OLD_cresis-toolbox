@@ -135,7 +135,11 @@ while frm_idx <= length(param.cmd.frms)
     
     % Compute matrix size
     % ---------------------------------------------------------------------
-    data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    else
+      data_fn = fullfile(in_fn_dir,sprintf('Data_img_%02d_%s_%03d.mat',param.layer_tracker.echogram_img,param.day_seg,frm));
+    end
     try
       mdata = load(data_fn, 'GPS_time','Time');
       if (subblock_idx==1)
