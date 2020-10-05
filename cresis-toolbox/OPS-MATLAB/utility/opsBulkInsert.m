@@ -65,9 +65,13 @@ end
 failed_segments = {}; % STORE SEGMENTS THAT FAIL
 
 % START LOGGING
-fn_log = fullfile(settings.tmp_path,strcat('OPS_PATHINSERT_',datestr(now,'yyyy.mm.dd'),'_',datestr(now,'HH.MM.SS'),'.txt'));
-diary(fn_log);
-fprintf('Logs will be saved to: %s\n',fn_log);
+log_fn = fullfile(settings.tmp_path,mfilename,sys,strcat(season_name,'_',datestr(now,'yyyymmdd_HHMMSS'),'.txt'));
+log_fn_dir = fileparts(log_fn);
+if ~exist(log_fn_dir,'dir')
+  mkdir(log_fn_dir);
+end
+diary(log_fn);
+fprintf('Logs will be saved to: %s\n',log_fn);
 
 % FOR EACH SEGMENT PROCESS THE INPUT AND PUSH THE DATA TO THE SERVER
 for param_idx = 1:length(params)
