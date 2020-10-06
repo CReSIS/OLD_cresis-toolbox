@@ -271,6 +271,7 @@ for param_idx = 1:length(params)
   
   %% radar.wfs
   for wf = 1:length(params(param_idx).radar.wfs)
+    params(param_idx).radar.wfs(wf).bad_value = NaN;
     params(param_idx).radar.wfs(wf).deconv.en = 0;
     if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
       params(param_idx).radar.wfs(wf).deconv.en = 1;
@@ -309,6 +310,13 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;
       params(param_idx).radar.wfs(wf).chan_equal_dB = [6.8 -0.6 3 0.1 0 3.5 3.9 7 3.3 4.8 6.1 6.2 4.6 3.1 6.2];
       params(param_idx).radar.wfs(wf).chan_equal_deg = [-166.2 -142.7 177 -95.9 0 -25.9 -86.5 -27.4 128.1 41.6 -46.8 43 90.7 121.3 31.6];
+      if ~isempty(regexpi(params(param_idx).cmd.notes,'DECONVOLUTION.xml'))
+        % Deconvolution segment
+        params(param_idx).radar.wfs(wf).coh_noise_method = [];
+      else
+        params(param_idx).radar.wfs(wf).coh_noise_method = 'analysis';
+        params(param_idx).radar.wfs(wf).coh_noise_arg.fn = 'analysis_threshold';
+      end
     elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.259e-6;
       if wf == 1
@@ -364,11 +372,50 @@ for param_idx = 1:length(params)
     end
   end
   
-  %% analysis coh_noise cmd
-  if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'coh_noise')
-    for wf = 1:length(params(param_idx).radar.wfs)
-      params(param_idx).radar.wfs(wf).bad_value = NaN;
+  %% analysis specular cmd (deconvolution)
+  if isfield(params(param_idx),'analysis') && ~isempty(params(param_idx).analysis.cmd) ...
+      && strcmp(params(param_idx).analysis.cmd{1}.method,'specular')
+    
+    if isfield(param_override,'collate_deconv')
+      param_override.collate_deconv.debug_out_dir = regexprep(param_override.collate_deconv.in_path,'analysis','collate_deconv');
+      for img = 1:length(params(param_idx).analysis.imgs)
+        for wf_adc = 1:size(params(param_idx).analysis.imgs{img},1)
+          wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+          adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+          Tpd = params(param_idx).radar.wfs(wf).Tpd;
+          BW = abs(params(param_idx).radar.wfs(wf).f1-params(param_idx).radar.wfs(wf).f0);
+          if strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
+            param_override.collate_deconv.rbins{1} = [-(50+104) 520+104];
+            params = ct_set_params(params,'collate_deconv.f0',615e6);
+            params = ct_set_params(params,'collate_deconv.f1',885e6);
+            params = ct_set_params(params,'collate_deconv.abs_metric',[90 3.8 -34 -34 -30 -30]);
+            params = ct_set_params(params,'collate_deconv.SL_guard_bins',6);
+          elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+            if wf == 1
+              param_override.collate_deconv.rbins{img} = round([-Tpd*BW*1.1 Tpd*BW*1.1]);
+              params = ct_set_params(params,'collate_deconv.abs_metric',[60 3.3 -34 -45 -24 -35]);
+            elseif wf == 2
+              param_override.collate_deconv.rbins{img} = round([-Tpd*BW*1.1 Tpd*BW*1.1]);
+              params = ct_set_params(params,'collate_deconv.abs_metric',[60 3.4 -34 -45 -24 -35]);
+            elseif wf == 3
+              %param_override.collate_deconv.rbins{img} = round([-Tpd*BW*1.1 Tpd*BW*1.1]);
+              param_override.collate_deconv.rbins{img} = [-20 20];
+              params = ct_set_params(params,'collate_deconv.abs_metric',[60 3.4 -34 -45 -24 -35]);
+            end
+            params = ct_set_params(params,'collate_deconv.f0',181e6);
+            params = ct_set_params(params,'collate_deconv.f1',209e6);
+            params = ct_set_params(params,'collate_deconv.SL_guard_bins',6);
+          elseif strcmpi(params(param_idx).season_name,'2019_Greenland_P3')
+          end
+        end
+      end
     end
+    
+  end
+
+  %% analysis coh_noise cmd
+  if isfield(params(param_idx),'analysis') && ~isempty(params(param_idx).analysis.cmd) ...
+      && strcmp(params(param_idx).analysis.cmd{1}.method,'coh_noise')
     
     if any(strcmp(params(param_idx).day_seg,{'20200127_01'}))
       params(param_idx).analysis.cmd{1}.threshold_coh_ave = 101;
@@ -453,7 +500,7 @@ for param_idx = 1:length(params)
             params(param_idx).collate_coh_noise.threshold_en = true;
             
             if any(wf == [1 2])
-              params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;';
+              params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -110; threshold(time<=Tpd+0.85e-6) = inf; threshold = threshold+20;';
             elseif any(wf == [3 4])
               params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -130; threshold = threshold+20;';
             elseif any(wf == [5 6])
@@ -468,16 +515,19 @@ for param_idx = 1:length(params)
               % Only a single pass required
               params(param_idx).collate_coh_noise.method{img} = 'dft';
               params(param_idx).collate_coh_noise.dft_corr_time(img) = inf;
-              params(param_idx).collate_coh_noise.in_path = 'analysis_threshold';
+              params(param_idx).collate_coh_noise.in_path = 'analysis';
               params(param_idx).collate_coh_noise.out_path = 'analysis_threshold';
               
             elseif length(params(param_idx).radar.wfs) == 4 ...
                 || length(params(param_idx).radar.wfs) == 6
               
               if isempty(regexp(param_override.collate_coh_noise.in_path,'threshold'))
+                % First pass
                 if img < 3
+                  % Waveforms 1 and 2
                   params(param_idx).collate_coh_noise.method{img} = 'firdec';
                 else
+                  % Waveforms 3, 4, 5, and 6
                   params(param_idx).collate_coh_noise.method{img} = 'dft';
                 end
                 params(param_idx).collate_coh_noise.firdec_fs{img} = 1/30;
@@ -490,9 +540,12 @@ for param_idx = 1:length(params)
                 mode_2018_Greenland_P3 = 1;
                 
                 if mode_2018_Greenland_P3 == 1
+                  % (except adc 9-10 for Apr 21 and later)
                   if img < 3
+                    % Waveforms 1 and 2
                     params(param_idx).collate_coh_noise.method{img} = 'firdec';
                   else
+                    % Waveforms 3, 4, 5, and 6
                     params(param_idx).collate_coh_noise.method{img} = 'dft';
                   end
                   params(param_idx).collate_coh_noise.firdec_fs{img} = 1/30;
@@ -501,6 +554,9 @@ for param_idx = 1:length(params)
                   params(param_idx).collate_coh_noise.wf_adcs{img} = 1:15;
                   
                 elseif mode_2018_Greenland_P3 == 2
+                  if datenum(param.day_seg,'yyyymmdd') < datenum('20180421','yyyymmdd')
+                    error('Do not run mode 2 on segments before April 21.');
+                  end
                   params(param_idx).collate_coh_noise.imgs = 3:length(params(param_idx).radar.wfs);
                   params(param_idx).collate_coh_noise.wf_adcs{img} = [9 10];
                   params(param_idx).collate_coh_noise.method{img} = 'firdec';
@@ -543,7 +599,8 @@ for param_idx = 1:length(params)
   end
   
   %% analysis waveform cmd (equalization)
-  if isfield(params(param_idx),'analysis') && strcmp(params(param_idx).analysis.cmd{1}.method,'waveform') && isfield(param_override,'analysis')
+  if isfield(params(param_idx),'analysis') && ~isempty(params(param_idx).analysis.cmd) ...
+      && strcmp(params(param_idx).analysis.cmd{1}.method,'waveform') && isfield(param_override,'analysis')
     if strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
       if strcmp(param_override.analysis.out_path,'analysis_equal_001')
         params(param_idx).analysis.imgs = {[1*ones([8 1]),(1:8).']};
