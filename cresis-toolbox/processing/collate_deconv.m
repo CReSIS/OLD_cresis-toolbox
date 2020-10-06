@@ -269,7 +269,7 @@ if param.collate_deconv.stage_one_en
       % If no wf-adc pairs specified, then do them all.
       wf_adcs = 1:size(param.analysis.imgs{img},1);
     else
-      wf_adcs = param.collate_deconv.wf_adcs;
+      wf_adcs = param.collate_deconv.wf_adcs{img};
     end
     for wf_adc = wf_adcs
       %% Stage 1: Load specular analysis file
@@ -574,7 +574,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(1), param.collate_deconv.SL_guard_bins*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(1), 'Range bin');
           ylabel(h_axes(1), 'Relative power (dB)');
-          title(h_axes(1), 'Impulse response falling edge');
+          title(h_axes(1), sprintf('Impulse response falling edge (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
           legend(h_axes(1), 'sample','deconvolved','ideal','location','best');
           xlim(h_axes(1), [0 2*param.collate_deconv.rbins{img}(2)]);
           ylim(h_axes(1), [-debug_ylim 0]);
@@ -591,7 +591,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(2), (1+param.collate_deconv.SL_guard_bins)*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(2), 'Range bin');
           ylabel(h_axes(2), 'Relative power (dB)');
-          title(h_axes(2), 'Impulse response rising edge');
+          title(h_axes(2), sprintf('Impulse response rising edge (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
           legend(h_axes(2), 'sample','deconvolved','ideal','location','best');
           xlim(h_axes(2), [0 -2*param.collate_deconv.rbins{img}(1)]);
           ylim(h_axes(2), [-debug_ylim 0]);
@@ -606,10 +606,43 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(3), lp(h_filled_inverse) - max(lp(h_filled_inverse)) + max(lp(h_filled)))
           xlabel(h_axes(3), 'Frequency bin');
           ylabel(h_axes(3), 'Relative power (dB)');
-          title(h_axes(3), 'Transfer function');
+          title(h_axes(3), sprintf('Transfer function (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
           legend(h_axes(3), 'sample','window','inverse','location','best');
           grid(h_axes(3), 'on');
           
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_falling_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+          fprintf('Saving %s\n', fig_fn);
+          fig_fn_dir = fileparts(fig_fn);
+          if ~exist(fig_fn_dir,'dir')
+            mkdir(fig_fn_dir);
+          end
+          ct_saveas(h_fig(1),fig_fn);
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_falling_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+          fprintf('Saving %s\n', fig_fn);
+          ct_saveas(h_fig(1),fig_fn);
+          
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_rising_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+          fprintf('Saving %s\n', fig_fn);
+          fig_fn_dir = fileparts(fig_fn);
+          if ~exist(fig_fn_dir,'dir')
+            mkdir(fig_fn_dir);
+          end
+          ct_saveas(h_fig(2),fig_fn);
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_rising_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+          fprintf('Saving %s\n', fig_fn);
+          ct_saveas(h_fig(2),fig_fn);
+          
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+          fprintf('Saving %s\n', fig_fn);
+          fig_fn_dir = fileparts(fig_fn);
+          if ~exist(fig_fn_dir,'dir')
+            mkdir(fig_fn_dir);
+          end
+          ct_saveas(h_fig(3),fig_fn);
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+          fprintf('Saving %s\n', fig_fn);
+          ct_saveas(h_fig(3),fig_fn);
+        
           keyboard
         end
         
