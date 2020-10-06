@@ -71,6 +71,11 @@ if ~isfield(param.collate_deconv,'abs_metric') || isempty(param.collate_deconv.a
   param.collate_deconv.abs_metric = [58 5 -25 -35 inf inf];
 end
 
+% param.collate_deconv.bad_gps_times: specify ranges of gps-times to
+% exclude. Nrng by 2 numeric matrix. Nrng is the number of ranges to
+% exclude. The first column is the start time of the range and the second
+% column is the end time of the range. bad_gps_times has no effect on
+% waveforms that are selected via gps_times.
 if ~isfield(param.collate_deconv,'bad_gps_times') || isempty(param.collate_deconv.bad_gps_times)
   param.collate_deconv.bad_gps_times = [];
 end
@@ -1057,6 +1062,8 @@ if param.collate_deconv.stage_two_en
         adjusted_score = min_score + score - (100-100*exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2)) ...
           - (50-50*exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2));
         if ~isempty(param.collate_deconv.gps_times)
+          % The user has specifies a list of gps_times to use rather than
+          % using the default best waveform search method.
           gps_times_mask = false(size(deconv_lib.gps_time));
           for gps_times_idx = 1:size(param.collate_deconv.gps_times,1)
             if param.collate_deconv.gps_times(gps_times_idx,2) <= layer.gps_time(rline) ...
@@ -1065,8 +1072,25 @@ if param.collate_deconv.stage_two_en
               gps_times_mask(min_idx) = true;
             end
           end
+          if all(~gps_times_mask)
+            % If this record does not have any waveforms specified by
+            % gps_times field, then revert to the default best waveform
+            % search method:
+            gps_times_mask = true(size(deconv_lib.gps_time));
+            % Remove bad regions
+            for gps_times_idx = 1:size(param.collate_deconv.bad_gps_times,1)
+              gps_times_mask(deconv_lib.gps_time >= param.collate_deconv.bad_gps_times(gps_times_idx,1) ...
+                & deconv_lib.gps_time <= param.collate_deconv.bad_gps_times(gps_times_idx,2)) = false;
+            end
+          end
         else
           gps_times_mask = true(size(deconv_lib.gps_time));
+          % Remove bad regions
+          for gps_times_idx = 1:size(param.collate_deconv.bad_gps_times,1)
+            gps_times_mask(deconv_lib.gps_time >= param.collate_deconv.bad_gps_times(gps_times_idx,1) ...
+              & deconv_lib.gps_time <= param.collate_deconv.bad_gps_times(gps_times_idx,2)) = false;
+          end
+          
         end
         adjusted_score(~gps_times_mask) = NaN;
         
