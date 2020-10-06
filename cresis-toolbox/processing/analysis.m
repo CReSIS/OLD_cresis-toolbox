@@ -73,6 +73,8 @@ end
 % Never check for the existence of files
 param.analysis.surf_layer.existence_check = false;
 
+%% Input Checks: cmd
+% =====================================================================
 % For each command in the list, set its default settings
 enabled_cmds = {};
 for cmd_idx = 1:length(param.analysis.cmd)
@@ -252,12 +254,13 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.rlines = 128;
       end
       
+      guard = round(cmd.rlines/32);
       if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
-        cmd.noise_doppler_bins = [12:cmd.rlines-11];
+        cmd.noise_doppler_bins = [1+3*guard:cmd.rlines-3*guard];
       end
       
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
-        cmd.signal_doppler_bins = [1:4 cmd.rlines+(-3:0)];
+        cmd.signal_doppler_bins = [1:guard cmd.rlines+(-guard+1:0)];
       end
       
       if ~isfield(cmd,'threshold') || isempty(cmd.threshold)

@@ -3,6 +3,11 @@ function success = layer_tracker_combine_task(param)
 %
 % Combines temporary layer data from layer_tracker_task.m and stores the
 % output with opsCopyLayers. See run_layer_tracker.m.
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% Create output directory path
 if strcmp(param.layer_tracker.layer_params.source,'ops')

@@ -106,7 +106,7 @@ obj.eg.image_surf_twtt = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.image_g
 
 obj.eg.image_ecef = zeros(3,length(obj.eg.image_gps_time));
 [obj.eg.image_ecef(1,:),obj.eg.image_ecef(2,:),obj.eg.image_ecef(3,:)] ...
-  = geodetic2ecef(obj.eg.image_lat/180*pi,obj.eg.image_lon/180*pi,obj.eg.image_elev,WGS84.ellipsoid);
+  = geodetic2ecef(obj.eg.image_lat/180*pi,obj.eg.image_lon/180*pi,zeros(size(obj.eg.image_elev)),WGS84.ellipsoid);
 [z_vec_x,z_vec_y,z_vec_z] = geodetic2ecef(obj.eg.image_lat/180*pi,obj.eg.image_lon/180*pi,obj.eg.image_elev-1,WGS84.ellipsoid);
 
 obj.eg.image_y_vec = zeros(3,length(obj.eg.image_gps_time));

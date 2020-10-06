@@ -144,6 +144,10 @@ classdef layerdata < handle
         obj.layer_organizer_modified = false;
         obj.fix_layer_organizer();
       end
+      % If old files, then we need to check one frames file (this code
+      % assumes all frames are the same format) to properly fill the
+      % layer_organizer field
+      obj.check(1);
     end
     
     %% load_records: load records and frames
