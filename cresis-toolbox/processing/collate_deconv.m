@@ -71,6 +71,11 @@ if ~isfield(param.collate_deconv,'abs_metric') || isempty(param.collate_deconv.a
   param.collate_deconv.abs_metric = [58 5 -25 -35 inf inf];
 end
 
+% param.collate_deconv.bad_gps_times: specify ranges of gps-times to
+% exclude. Nrng by 2 numeric matrix. Nrng is the number of ranges to
+% exclude. The first column is the start time of the range and the second
+% column is the end time of the range. bad_gps_times has no effect on
+% waveforms that are selected via gps_times.
 if ~isfield(param.collate_deconv,'bad_gps_times') || isempty(param.collate_deconv.bad_gps_times)
   param.collate_deconv.bad_gps_times = [];
 end
@@ -269,7 +274,7 @@ if param.collate_deconv.stage_one_en
       % If no wf-adc pairs specified, then do them all.
       wf_adcs = 1:size(param.analysis.imgs{img},1);
     else
-      wf_adcs = param.collate_deconv.wf_adcs;
+      wf_adcs = param.collate_deconv.wf_adcs{img};
     end
     for wf_adc = wf_adcs
       %% Stage 1: Load specular analysis file
@@ -574,7 +579,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(1), param.collate_deconv.SL_guard_bins*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(1), 'Range bin');
           ylabel(h_axes(1), 'Relative power (dB)');
-          title(h_axes(1), 'Impulse response falling edge');
+          title(h_axes(1), sprintf('Impulse response falling edge (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
           legend(h_axes(1), 'sample','deconvolved','ideal','location','best');
           xlim(h_axes(1), [0 2*param.collate_deconv.rbins{img}(2)]);
           ylim(h_axes(1), [-debug_ylim 0]);
@@ -591,7 +596,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(2), (1+param.collate_deconv.SL_guard_bins)*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(2), 'Range bin');
           ylabel(h_axes(2), 'Relative power (dB)');
-          title(h_axes(2), 'Impulse response rising edge');
+          title(h_axes(2), sprintf('Impulse response rising edge (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
           legend(h_axes(2), 'sample','deconvolved','ideal','location','best');
           xlim(h_axes(2), [0 -2*param.collate_deconv.rbins{img}(1)]);
           ylim(h_axes(2), [-debug_ylim 0]);
@@ -606,10 +611,43 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(3), lp(h_filled_inverse) - max(lp(h_filled_inverse)) + max(lp(h_filled)))
           xlabel(h_axes(3), 'Frequency bin');
           ylabel(h_axes(3), 'Relative power (dB)');
-          title(h_axes(3), 'Transfer function');
+          title(h_axes(3), sprintf('Transfer function (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
           legend(h_axes(3), 'sample','window','inverse','location','best');
           grid(h_axes(3), 'on');
           
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_falling_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+          fprintf('Saving %s\n', fig_fn);
+          fig_fn_dir = fileparts(fig_fn);
+          if ~exist(fig_fn_dir,'dir')
+            mkdir(fig_fn_dir);
+          end
+          ct_saveas(h_fig(1),fig_fn);
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_falling_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+          fprintf('Saving %s\n', fig_fn);
+          ct_saveas(h_fig(1),fig_fn);
+          
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_rising_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+          fprintf('Saving %s\n', fig_fn);
+          fig_fn_dir = fileparts(fig_fn);
+          if ~exist(fig_fn_dir,'dir')
+            mkdir(fig_fn_dir);
+          end
+          ct_saveas(h_fig(2),fig_fn);
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_rising_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+          fprintf('Saving %s\n', fig_fn);
+          ct_saveas(h_fig(2),fig_fn);
+          
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+          fprintf('Saving %s\n', fig_fn);
+          fig_fn_dir = fileparts(fig_fn);
+          if ~exist(fig_fn_dir,'dir')
+            mkdir(fig_fn_dir);
+          end
+          ct_saveas(h_fig(3),fig_fn);
+          fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+          fprintf('Saving %s\n', fig_fn);
+          ct_saveas(h_fig(3),fig_fn);
+        
           keyboard
         end
         
@@ -1024,6 +1062,8 @@ if param.collate_deconv.stage_two_en
         adjusted_score = min_score + score - (100-100*exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2)) ...
           - (50-50*exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2));
         if ~isempty(param.collate_deconv.gps_times)
+          % The user has specifies a list of gps_times to use rather than
+          % using the default best waveform search method.
           gps_times_mask = false(size(deconv_lib.gps_time));
           for gps_times_idx = 1:size(param.collate_deconv.gps_times,1)
             if param.collate_deconv.gps_times(gps_times_idx,2) <= layer.gps_time(rline) ...
@@ -1032,8 +1072,25 @@ if param.collate_deconv.stage_two_en
               gps_times_mask(min_idx) = true;
             end
           end
+          if all(~gps_times_mask)
+            % If this record does not have any waveforms specified by
+            % gps_times field, then revert to the default best waveform
+            % search method:
+            gps_times_mask = true(size(deconv_lib.gps_time));
+            % Remove bad regions
+            for gps_times_idx = 1:size(param.collate_deconv.bad_gps_times,1)
+              gps_times_mask(deconv_lib.gps_time >= param.collate_deconv.bad_gps_times(gps_times_idx,1) ...
+                & deconv_lib.gps_time <= param.collate_deconv.bad_gps_times(gps_times_idx,2)) = false;
+            end
+          end
         else
           gps_times_mask = true(size(deconv_lib.gps_time));
+          % Remove bad regions
+          for gps_times_idx = 1:size(param.collate_deconv.bad_gps_times,1)
+            gps_times_mask(deconv_lib.gps_time >= param.collate_deconv.bad_gps_times(gps_times_idx,1) ...
+              & deconv_lib.gps_time <= param.collate_deconv.bad_gps_times(gps_times_idx,2)) = false;
+          end
+          
         end
         adjusted_score(~gps_times_mask) = NaN;
         

@@ -137,25 +137,25 @@ elseif nargin == 2 && isnumeric(varargin{1})
   if any(strcmp('phase_correction',{mat_vars.name}))
     records.phase_correction = records_mat.phase_correction(:,recs(1):recs(2));
   else
-    records.phase_correction = zeros(size(records.gps_time));
+    records.phase_correction = nan(size(records.gps_time));
   end
   
   if any(strcmp('Tadc_correction',{mat_vars.name}))
     records.Tadc_correction = records_mat.Tadc_correction(:,recs(1):recs(2));
   else
-    records.Tadc_correction = zeros(size(records.gps_time));
+    records.Tadc_correction = nan(size(records.gps_time));
   end
   
   if any(strcmp('nyquist_zone_sig',{mat_vars.name}))
     records.nyquist_zone_sig = records_mat.nyquist_zone_sig(:,recs(1):recs(2));
   else
-    records.nyquist_zone_sig = zeros(size(records.gps_time));
+    records.nyquist_zone_sig = nan(size(records.gps_time));
   end
   
   if any(strcmp('nyquist_zone_hw',{mat_vars.name}))
     records.nyquist_zone_hw = records_mat.nyquist_zone_hw(:,recs(1):recs(2));
   else
-    records.nyquist_zone_hw = zeros(size(records.gps_time));
+    records.nyquist_zone_hw = nan(size(records.gps_time));
   end
 
 elseif nargin > 1 && all(cellfun(@ischar,varargin))

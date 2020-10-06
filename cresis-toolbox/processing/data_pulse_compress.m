@@ -1327,17 +1327,11 @@ for img = 1:length(param.load.imgs)
       
       if strcmpi(wfs(wf).coh_noise_method,'estimated')
         % Apply coherent noise methods that require estimates derived now
- 
-        if wfs(wf).coh_noise_arg.DC_remove_en
-          if isfield(wfs(wf),'estimated') && ~isempty(wfs(wf).estimated.B_filter)
-              data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-                fir_dec(data{img}(1:wfs(wf).Nt,:,wf_adc),wfs(wf).estimated.B_filter,1));
-          else
-            data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-              nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
-          end
-        end
         
+        if wfs(wf).coh_noise_arg.DC_remove_en
+          data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
+            nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
+        end
         
         if length(wfs(wf).coh_noise_arg.B_coh_noise) > 1
           if length(wfs(wf).coh_noise_arg.A_coh_noise) > 1
