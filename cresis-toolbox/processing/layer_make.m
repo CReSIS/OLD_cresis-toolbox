@@ -1,13 +1,12 @@
-function layer_file_make(param,param_override)
-% layer_file_make(param,param_override)
+function layer_make(param,param_override)
+% layer_make(param,param_override)
 %
-% Makes layer files for the picker.m program. This should be run
-% from run_layer_file_make.m (that script sets up all the control
-% variables).
+% Makes layer files for the imb.picker.m program. This should be run from
+% run_layer_make.m (that script sets up all the control variables).
 %
 % Author: John Paden
 %
-% See also: run_layer_file_make
+% See also: layer_make, run_layer_make
 
 param = merge_structs(param,param_override);
 

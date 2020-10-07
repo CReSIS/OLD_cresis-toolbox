@@ -592,7 +592,8 @@ for img = param.collate_coh_noise.imgs
     noise_simp.param_records  = noise.param_records;
     noise_simp.param_analysis = noise.param_analysis;
     if enable_threshold
-      noise_simp.threshold    = threshold;
+      noise_simp.threshold      = threshold;
+      noise_simp.threshold_time = time;
     end
     
     if param.ct_file_lock

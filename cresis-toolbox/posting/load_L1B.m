@@ -67,12 +67,60 @@ if isfield(mdata,'param_get_heights')
     mdata.param_qlook = rmfield(mdata.param_qlook,'get_heights');
     mdata.param_qlook.qlook = mdata.param_get_heights;
     mdata.file_version = '0';
+    mdata.file_type = 'echo';
   else
     % param_get_heights is complete structure, just rename to qlook
     mdata.param_qlook = mdata.param_get_heights;
     mdata.param_qlook.qlook = mdata.param_qlook.get_heights;
     mdata.param_qlook = rmfield(mdata.param_qlook,'get_heights');
+    % Ensure param_records has standard 3 fields (some old files do not
+    % have)
+    mdata.param_records.day_seg = mdata.param_qlook.day_seg;
+    mdata.param_records.season_name = mdata.param_qlook.season_name;
+    mdata.param_records.radar_name = mdata.param_qlook.radar_name;
+    if isfield(mdata.param_records,'gps')
+      mdata.param_records.records.gps = mdata.param_records.gps;
+      mdata.param_qlook.records.gps = mdata.param_records.gps;
+      mdata.param_records = rmfield(mdata.param_records,'gps');
+    end
+    if isfield(mdata.param_records,'file')
+      mdata.param_records.records.file = mdata.param_records.file;
+      mdata.param_records = rmfield(mdata.param_records,'file');
+    end
+    if isfield(mdata.param_records,'gps_source')
+      mdata.param_records.records.gps_source = mdata.param_records.gps_source;
+      mdata.param_records = rmfield(mdata.param_records,'gps_source');
+    end
+    if isfield(mdata.param_records,'records_fn')
+      mdata.param_records = rmfield(mdata.param_records,'records_fn');
+    end
+    % Ensure both parameter structs have sw_version
+    if ~isfield(mdata.param_records,'sw_version')
+      mdata.param_records.sw_version.ver = '';
+      mdata.param_records.sw_version.date_time = '';
+      mdata.param_records.sw_version.cur_date_time = '';
+      mdata.param_records.sw_version.rev = '';
+      mdata.param_records.sw_version.URL = '';
+    end
+    if ~isfield(mdata.param_qlook,'sw_version')
+      mdata.param_qlook.sw_version = mdata.param_records.sw_version;
+    end
+    % Ensure both parameter structs have radar.lever_arm_fh
+    if ~isfield(mdata.param_records,'radar')
+      mdata.param_records.radar = [];
+    end
+    if ~isfield(mdata.param_qlook,'radar')
+      mdata.param_qlook.radar = [];
+    end
+    if ~isfield(mdata.param_records.radar,'lever_arm_fh')
+      mdata.param_records.radar.lever_arm_fh = [];
+    end
+    if ~isfield(mdata.param_qlook.radar,'lever_arm_fh')
+      mdata.param_qlook.radar.lever_arm_fh = [];
+    end
+    % Add file_version
     mdata.file_version = '0';
+    mdata.file_type = 'echo';
   end
   mdata = rmfield(mdata,'param_get_heights');
   if isfield(mdata.param_qlook,'proc')
@@ -81,21 +129,85 @@ if isfield(mdata,'param_get_heights')
 end
 
 if isfield(mdata,'param_csarp')
-  mdata.param_sar.sar = mdata.param_csarp;
+  mdata.param_sar = mdata.param_csarp;
   mdata = rmfield(mdata,'param_csarp');
+  mdata.param_sar.sar = mdata.param_sar.csarp;
+  mdata.param_sar = rmfield(mdata.param_sar,'csarp');
   mdata.file_version = '0';
+  mdata.file_type = 'echo';
 end
 
 if isfield(mdata,'param_combine')
   mdata.param_array = mdata.param_combine;
   mdata = rmfield(mdata,'param_combine');
   mdata.file_version = '0';
+  mdata.file_type = 'echo';
 end
 
 if isfield(mdata,'param_combine_wf_chan')
   mdata.param_array.array = mdata.param_combine_wf_chan;
   mdata = rmfield(mdata,'param_combine_wf_chan');
+  
+  % Ensure param_records has standard 3 fields (some old files do not
+  % have)
+  mdata.param_records.day_seg = mdata.param_sar.day_seg;
+  mdata.param_records.season_name = mdata.param_sar.season_name;
+  mdata.param_records.radar_name = mdata.param_sar.radar_name;
+  mdata.param_array.day_seg = mdata.param_sar.day_seg;
+  mdata.param_array.season_name = mdata.param_sar.season_name;
+  mdata.param_array.radar_name = mdata.param_sar.radar_name;
+  if isfield(mdata.param_records,'gps')
+    mdata.param_records.records.gps = mdata.param_records.gps;
+    mdata.param_array.records.gps = mdata.param_records.gps;
+    mdata.param_records = rmfield(mdata.param_records,'gps');
+  end
+  if isfield(mdata.param_records,'file')
+    mdata.param_records.records.file = mdata.param_records.file;
+    mdata.param_records = rmfield(mdata.param_records,'file');
+  end
+  if isfield(mdata.param_records,'gps_source')
+    mdata.param_records.records.gps_source = mdata.param_records.gps_source;
+    mdata.param_records = rmfield(mdata.param_records,'gps_source');
+  end
+  if isfield(mdata.param_records,'records_fn')
+    mdata.param_records = rmfield(mdata.param_records,'records_fn');
+  end
+  % Ensure both parameter structs have sw_version
+  if ~isfield(mdata.param_records,'sw_version')
+    mdata.param_records.sw_version.ver = '';
+    mdata.param_records.sw_version.date_time = '';
+    mdata.param_records.sw_version.cur_date_time = '';
+    mdata.param_records.sw_version.rev = '';
+    mdata.param_records.sw_version.URL = '';
+  end
+  if ~isfield(mdata.param_array,'sw_version')
+    mdata.param_array.sw_version = mdata.param_records.sw_version;
+  end
+  if ~isfield(mdata.param_array,'sw_version')
+    mdata.param_sar.sw_version = mdata.param_records.sw_version;
+  end
+  % Ensure both parameter structs have radar.lever_arm_fh
+  if ~isfield(mdata.param_records,'radar')
+    mdata.param_records.radar = [];
+  end
+  if ~isfield(mdata.param_array,'radar')
+    mdata.param_array.radar = [];
+  end
+  if ~isfield(mdata.param_sar,'radar')
+    mdata.param_sar.radar = [];
+  end
+  if ~isfield(mdata.param_records.radar,'lever_arm_fh')
+    mdata.param_records.radar.lever_arm_fh = [];
+  end
+  if ~isfield(mdata.param_array.radar,'lever_arm_fh')
+    mdata.param_array.radar.lever_arm_fh = [];
+  end
+  if ~isfield(mdata.param_sar.radar,'lever_arm_fh')
+    mdata.param_sar.radar.lever_arm_fh = [];
+  end
+  
   mdata.file_version = '0';
+  mdata.file_type = 'echo';
 end
 
 if ~isfield(mdata,'Roll') && isfield(mdata,'GPS_time')

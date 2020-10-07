@@ -253,7 +253,11 @@ for file_idx = 1:length(atm_fns)
     %% Use the "CSV" Read Method
     % =====================================================================
     fid = fopen(atm_fn);
-    A = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f', 'Delimiter',',', 'HeaderLines', 10);
+    if year >= 2019
+      A = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f', 'Delimiter',',', 'HeaderLines', 11);
+    else
+      A = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f', 'Delimiter',',', 'HeaderLines', 10);
+    end
     fclose(fid);
 
     % Some files are empty so skip these
