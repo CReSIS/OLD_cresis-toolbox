@@ -517,20 +517,28 @@ elseif run_example == 6
   % Setup loading parameters for example 6
   %  - Examines BW_window (coherent ave of elev compensated raw data)
   % =======================================================================
-  switch 1 % Check multiple specular surfaces
+  try hm; end
+  try user_window_style = get(0,'DefaultFigureWindowStyle');
+    set(0,'DefaultFigureWindowStyle','docked'); end
+  
+  switch 3 % Check multiple specular surfaces
     case 1
       param = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170407_02'); % 2-18
       param.load_data.recs = 9124619+ [500 900]; % [-1000 +1000] frm = 486;
+      pick_index = 13263; % used to remove phase variation
     case 2
       param = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170323_02'); % 2-8
       frames = load(ct_filename_support(param,'','frames'));
       frm = 363;
       param.load_data.recs = frames.frame_idxs(frm) + [2600 3100]; % [1200 3400]
+      pick_index = 9200; % used to remove phase variation
     case 3
-      param = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170410_01'); % 2-8 another
+      param = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170410_01'); 
+      % 2-8 rx saturated? operator switched from 2-18 to 2-8 for this segment
       frames = load(ct_filename_support(param,'','frames'));
       frm = 3;
       param.load_data.recs = frames.frame_idxs(frm) + [10300 11200];
+      pick_index = 10363; % used to remove phase variation
   end
   
   % param to load raw data
@@ -588,38 +596,39 @@ elseif run_example == 6
   for compressing_this = 1
     
     fig_id = 10; fig_h = figure(fig_id); clf(fig_id);
+    aa(1) = subplot(1,2,1);
     imagesc([],hdr.time{img}/1e-6, lp(abs(data{img}(:,:,wf_adc_idx)).^2/2/50)+30);
-    grid on; colorbar; ylabel('Time, us');
+    grid on; colorbar; ylabel('Fast-time, us'); xlabel('rlines');
     title('Pre-compensation Time-space domain (dBm signal)');
     
     fig_id = 20; fig_h = figure(fig_id); clf(fig_id);
+    bb(1) = subplot(1,2,1);
     plot_data = lp(data_f{img});
     [~,max_idxs] = max(plot_data(2:end/2,:));
     max_idxs = max_idxs+1; % add 1 if max from 2nd rbin
     imagesc([],hdr.freq{img}/1e6,plot_data); hold on; clear plot_data data_f;
     plot(f_beat/1e6,'.-');
     plot(hdr.freq{img}(max_idxs)/1e6,'.-');
-    grid on; ylabel('Freq, MHz'); zoom on;
+    grid on; ylabel('Freq, MHz'); xlabel('rlines'); zoom on;
     colorbar;legend('fb','max');
     title('Pre-compensation lp( FT(data) )');
     
     fig_id = 30; fig_h = figure(fig_id); clf(fig_id);
-    imagesc([],hdr.freq{img}/1e6,angle(data{img})); hold on;
-    plot(f_beat/1e6,'.-');
-    plot(hdr.freq{img}(max_idxs)/1e6,'.-');
-    grid on; ylabel('Freq, MHz'); zoom on;
-    colorbar;legend('fb','max');
+    cc(1) = subplot(1,2,1);
+    imagesc([],hdr.time{img}/1e-6,angle(data{img})); hold on;
+    grid on; ylabel('Fast-time, us'); xlabel('rlines'); zoom on;
+    colorbar;
     title('Pre-compensation angle(data)');
     
     fig_id = 123; fig_h = figure(fig_id); clf(fig_id); hold on;
     mean_data = mean(data{img},2);
-    aa(1) = subplot(2,2,1);
+    dd(1) = subplot(2,2,1);
     plot(time2freq_xaxis, real(mean_data)); grid on; title('Pre-compensation mean');
     xlabel('Freq, in GHz'); ylabel('Voltage, V');
-    aa(2) = subplot(2,2,3);
+    dd(2) = subplot(2,2,3);
     plot(time2freq_xaxis, lp(mean_data)); grid on; title('Pre-compensation lp(mean)');
     xlabel('Freq, in GHz'); ylabel('Magnitude, dB');
-    linkaxes(aa,'x'); zoom on;
+    linkaxes(dd,'x'); zoom on;
     clear mean_data;
     
   end
@@ -629,51 +638,57 @@ elseif run_example == 6
   ttt2 = -(td(1)+elev_td-elev_td(1)).^2 + td(1)^2; % second order
   phase_comp = +2*pi*chirp_rate*time*(ttt) + 2*pi*f0*(ttt) + pi*chirp_rate*(ttt2);
   data{img} = data{img} .* exp(-1i* (-1)^nz *( phase_comp ));
+  if 1 % enable for additional phase correction, uses row specified by pick_index  
+    data{img} = fir_dec(data{img}, ones(1,11),1);
+    filt_phase = angle(data{img});
+    pick_phase = filt_phase(pick_index,:);
+    data{img} = bsxfun(@times,data{img}, exp(-1i*pick_phase));
+  end
   data_f{img} = fft(data{img});
   
-  clear ttt ttt2 phase_comp;
+  clear phase_comp;
   
   % Post-compensation PLOTS
   for compressing_this = 1
     
-    fig_id = 11; fig_h = figure(fig_id); clf(fig_id);
+    fig_id = 10; fig_h = figure(fig_id); %clf(fig_id);
+    aa(2) = subplot(1,2,2);
     imagesc([],hdr.time{img}/1e-6, lp(abs(data{img}(:,:,wf_adc_idx)).^2/2/50)+30);
-    grid on; colorbar; ylabel('Time, us');
+    grid on; colorbar; ylabel('Fast-time, us'); xlabel('rlines');
     title('Post-compensation Time-space domain (dBm signal)');
     
-    fig_id = 21; fig_h = figure(fig_id); clf(fig_id);
+    fig_id = 20; fig_h = figure(fig_id); %clf(fig_id);
+    bb(2) = subplot(1,2,2);
     plot_data = lp(data_f{img});
     [~,max_idxs] = max(plot_data(2:end/2,:));
     max_idxs = max_idxs+1; % add 1 if max from 2nd rbin
     imagesc([],hdr.freq{img}/1e6,plot_data); hold on; clear plot_data data_f;
     plot(f_beat/1e6,'.-');
     plot(hdr.freq{img}(max_idxs)/1e6,'.-');
-    grid on; ylabel('Freq, MHz'); zoom on;
+    grid on; ylabel('Freq, MHz'); xlabel('rlines'); zoom on;
     colorbar;legend('fb','max');
     title('Post-compensation lp( FT(data) )');
     
-    fig_id = 31; fig_h = figure(fig_id); clf(fig_id);
-    imagesc([],hdr.freq{img}/1e6,angle(data{img})); hold on;
-    plot(f_beat/1e6,'.-');
-    plot(hdr.freq{img}(max_idxs)/1e6,'.-');
-    grid on; ylabel('Freq, MHz'); zoom on;
-    colorbar;legend('fb','max');
+    fig_id = 30; fig_h = figure(fig_id); %clf(fig_id);
+    cc(2) = subplot(1,2,2);
+    imagesc([],hdr.time{img}/1e-6,angle(data{img})); hold on;
+    grid on; ylabel('Fast-time, us'); xlabel('rlines'); zoom on;
+    colorbar;
     title('Post-compensation angle(data)');
     
     fig_id = 123; fig_h = figure(fig_id); % clf(fig_id); hold on;
     mean_data = mean(data{img},2);
-    aa(3) = subplot(2,2,2);
+    dd(3) = subplot(2,2,2);
     plot(time2freq_xaxis, real(mean_data)); grid on; title('Post-compensation mean');
     xlabel('Freq, in GHz'); ylabel('Voltage, V');
-    aa(4) = subplot(2,2,4);
+    dd(4) = subplot(2,2,4);
     plot(time2freq_xaxis, lp(mean_data)); grid on; title('Post-compensation lp(mean)');
     xlabel('Freq, in GHz'); ylabel('Magnitude, dB');
-    linkaxes(aa,'x'); zoom on;
+    linkaxes(dd,'x'); zoom on;
     clear mean_data;
     
   end
   
-  try link_axes([20,30, 21,31]); end
-  clear data_f
-  
+  try linkaxes([aa]); linkaxes([bb]); linkaxes([cc]); end
+  try set(0,'DefaultFigureWindowStyle',user_window_style); end
 end
