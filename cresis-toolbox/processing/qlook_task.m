@@ -305,7 +305,7 @@ if param.qlook.inc_dec >= 1
   for img = 1:length(param.load.imgs)
     
     % Remove elevation variations
-    if param.load.motion_comp
+    if param.load.motion_comp && ~isempty(hdr.freq{img})
       % Relative time delay to reference time delay in time bin units
       relative_bins = round( relative_td / dt);
       % Add zero padding (NaNs)
@@ -325,7 +325,7 @@ if param.qlook.inc_dec >= 1
     end
     
     % Reapply elevation variations
-    if param.load.motion_comp
+    if param.load.motion_comp && ~isempty(hdr.freq{img})
       % Apply circular shift
       relative_bins = round(fir_dec(relative_bins, param.qlook.inc_B_filter, ...
       param.qlook.inc_dec, rline0, Nidxs));
