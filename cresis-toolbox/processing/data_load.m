@@ -516,6 +516,9 @@ for state_idx = 1:length(states)
               %  - Supports interleaved data channels ("adcs")
               start_bin = 1+rec_offset + wfs(wf).offset + wfs(wf).time_raw_trim(1)*wfs(wf).adc_per_board*wfs(wf).sample_size;
               stop_bin = start_bin + (1+wfs(wf).complex)*Nt{img}(1)*wfs(wf).adc_per_board*wfs(wf).sample_size-1;
+              if stop_bin>length(file_data)
+                stop_bin = length(file_data);
+              end
               if swap_bytes_en
                 tmp = single(swapbytes(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type)));
               else
@@ -699,6 +702,9 @@ for state_idx = 1:length(states)
               % matrix to find this out. We remove this value at the end of
               % the loop.
               data{img}(1) = data{img}(1) + 1i;
+            end
+            if Nt{img}(1) ~= length(state.data{ai})
+              Nt{img}(1) = length(state.data{ai});
             end
             if state.reset_sum(ai)
               data{img}(1:Nt{img}(1),out_rec,wf_adc) = state.weight(ai)*state.data{ai} / num_accum(ai);

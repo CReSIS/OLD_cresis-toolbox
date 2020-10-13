@@ -106,14 +106,22 @@ for param_idx = 1:length(param_fns)
   end
   
   % Run all segments (except "do not process")
-  if 1
+  if 0
     params = ct_set_params(params,'cmd.generic',1);
     params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else
     % HACK!!!
-    keyboard
-    params = ct_set_params(params,'cmd.generic',0);
-    params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+%     keyboard
+%     params = ct_set_params(params,'cmd.generic',0);
+%     params = ct_set_params(params,'cmd.generic',1,'day_seg','20200128_02');
+% 
+  params = ct_set_params(params,'cmd.generic',1);
+  params = ct_set_params(params,'cmd.generic',0,'day_seg','20191211');
+  params = ct_set_params(params,'cmd.generic',0,'day_seg','20200116');
+%   params = ct_set_params(params,'cmd.generic',0,'day_seg','20200128_01');
+  params = ct_set_params(params,'cmd.generic',0,'day_seg','20200202_02');
+  params = ct_set_params(params,'cmd.generic',0,'day_seg','20200202_03');
+  params = ct_set_params(params,'cmd.generic',0,'day_seg','20200202_04');
   end
   
   %% Load each segment

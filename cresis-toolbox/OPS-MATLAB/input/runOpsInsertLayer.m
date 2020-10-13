@@ -459,9 +459,21 @@ elseif strcmpi(example_str,'south_dakota_grid')
   physical_constants;
   insert_param = [];
   
+<<<<<<< HEAD
+  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_N1KU.xls'),'','post');
+=======
   params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_CESSNA.xls'),'');
+>>>>>>> ee86fda02fc8d3dcccd2380c0302d1d687df4c58
   params = ct_set_params(params,'cmd.generic',0);
-  %params = ct_set_params(params,'cmd.generic',1,'day_seg','20200129_01');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20200128_01');
+
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20191211');
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20200116');
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20200128_01');
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20200202_02');
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20200202_03');
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20200202_04');
   
   grid_fn = ct_filename_gis([],fullfile('usa','DEM','NED','National_Elevation_Data_DEM_10m.tif'));
   
@@ -474,7 +486,7 @@ elseif strcmpi(example_str,'south_dakota_grid')
   
   insert_param.proj = geotiffinfo(grid_fn);
   
-  insert_param.eval.cmd = 's = (elev - s)/(c/2);';
+  insert_param.eval.cmd = 'source = (elev - s)/(c/2);'; %output needs to be source based on opsInsertLayers line 243-251
   insert_param.x = x_axis;
   insert_param.y = y_axis;
   insert_param.data = points.elev;

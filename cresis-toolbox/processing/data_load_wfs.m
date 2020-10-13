@@ -313,7 +313,7 @@ for wf = 1:length(param.radar.wfs)
   elseif any(param.records.file.version == [405 406 410]) % [acords mcrds]
     wfs(wf).presums = records.settings.wfs(1).wfs(wf).presums(1);
   elseif isfield(records.settings.wfs,'presums')
-    wfs(wf).presums = records.settings.wfs(wf).presums;
+    wfs(wf).presums = records.settings.wfs(1).presums;
   else
     wfs(wf).presums = 1;
   end
