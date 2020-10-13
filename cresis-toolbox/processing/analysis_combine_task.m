@@ -372,6 +372,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
 
         % Constant noise fields carried over from last file loaded:
         %   dt, fc, param_analysis, param_records
+        % Handle special case where a block had all bad records and fc and
+        % dt were NaN.
         noise.fc = fc;
         noise.dt = dt;
         
