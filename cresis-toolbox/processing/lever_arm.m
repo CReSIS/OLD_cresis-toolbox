@@ -513,7 +513,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(gps_source,'gravi
 end
 
 if (strcmpi(param.season_name,'2009_Antarctica_DC8') && strcmpi(gps_source,'DMS')) ...
-    || (strcmpi(param.season_name,'2010_Antarctica_DC8') && strcmpi(gps_source,'DMSATM'))
+    || (strcmpi(param.season_name,'2010_Antarctica_DC8') && any(strcmpi(gps_source,{'DMSATM','DMSATM_20101026'}))) ...
   % Absolute position of ATM antenna
   % For 2009:
   %  DMS data are processed to the GPS antenna.

@@ -3,9 +3,39 @@
 % Used by run_all scripts to select parameter spreadsheets to run
 
 param_fns = {};
-% param_fns{end+1} = 'accum_param_2015_Antarctica_Ground.xls';
+
+%% Accumulation Radar
+% param_fns{end+1} = 'accum_param_2010_Greenland_P3.xls';
+% param_fns{end+1} = 'accum_param_2011_Greenland_P3.xls';
+% param_fns{end+1} = 'accum_param_2012_Greenland_P3.xls';
+% param_fns{end+1} = 'accum_param_2013_Greenland_P3.xls';
+% param_fns{end+1} = 'accum_param_2013_Antarctica_P3.xls';
+% param_fns{end+1} = 'accum_param_2013_Antarctica_Ground.xls'; Sridar Anandakrishnan Ice Stream A/B
+% param_fns{end+1} = 'accum_param_2014_Greenland_P3.xls';
+% param_fns{end+1} = 'accum_param_2015_Greenland_Ground.xls'; % Bo Vinther Renland Ice Cap
+% param_fns{end+1} = 'accum_param_2015_Antarctica_Ground.xls'; % Howard Conway Crary Ice Rise 
+% param_fns{end+1} = 'accum_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
 % param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
+
+%% Kuband Radar
+% param_fns{end+1} = 'kuband_param_2009_Antarctica_DC8.xls';
+% param_fns{end+1} = 'kuband_param_2010_Greenland_P3.xls';
+% param_fns{end+1} = 'kuband_param_2010_Antarctica_DC8.xls';
+% param_fns{end+1} = 'kuband_param_2011_Greenland_P3.xls';
+% param_fns{end+1} = 'kuband_param_2011_Antarctica_DC8.xls';
+% param_fns{end+1} = 'kuband_param_2011_Antarctica_TO.xls';
+% param_fns{end+1} = 'kuband_param_2012_Greenland_P3.xls';
+% param_fns{end+1} = 'kuband_param_2012_Antarctica_DC8.xls';
+% param_fns{end+1} = 'kuband_param_2013_Greenland_P3.xls';
+% param_fns{end+1} = 'kuband_param_2013_Antarctica_P3.xls';
+% param_fns{end+1} = 'kuband_param_2014_Greenland_P3.xls';
+% param_fns{end+1} = 'kuband_param_2014_Antarctica_DC8.xls';
+% param_fns{end+1} = 'kuband_param_2015_Greenland_C130.xls';
+% param_fns{end+1} = 'kuband_param_2016_Greenland_P3.xls';
+% param_fns{end+1} = 'kuband_param_2016_Antarctica_DC8.xls';
+
+%% Radar Depth Sounder (RDS)
 % param_fns{end+1} = 'rds_param_1993_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1995_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1996_Greenland_P3.xls';
@@ -52,12 +82,14 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
-param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
+% param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
+
+%% Snow Radar
 % param_fns{end+1} = 'snow_param_2009_Antarctica_DC8.xls';
 % param_fns{end+1} = 'snow_param_2009_Greenland_P3.xls';
 % param_fns{end+1} = 'snow_param_2010_Antarctica_DC8.xls';

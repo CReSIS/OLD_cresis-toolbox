@@ -163,7 +163,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
         ice_mask = sb.sd.surf(mask_idx).y(:,slices);
       end
 
-      theta_ice = asin(sin(theta)/sqrt(er_ice));
+      theta_ice = asin(sin(theta(:))/sqrt(er_ice));
       
       master.GPS_time = sb.sd.gps_time(slices);
       [master.Latitude,master.Longitude,master.Elevation] = ecef2geodetic(sb.sd.fcs.origin(1,slices),sb.sd.fcs.origin(2,slices),sb.sd.fcs.origin(3,slices),WGS84.ellipsoid);
@@ -174,9 +174,9 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       dr = dt*c/2;
       at_slope = single([diff(master.Elevation / dr) 0]);
       
-      H = interp_finite(sb.sd.time(Surface).')*c/2;
-      T = interp_finite(sb.sd.time(Bottom).')*c/2/sqrt(er_ice);
-      theta_threshold = theta;
+      H = interp_finite(sb.sd.time(Surface))*c/2;
+      T = interp_finite(sb.sd.time(Bottom))*c/2/sqrt(er_ice);
+      theta_threshold = theta(:);
       theta_threshold(theta_threshold > pi/2*0.75) = pi/2*0.75;
       theta_threshold(theta_threshold < -pi/2*0.75) = -pi/2*0.75;
       R = 1./cos(theta_threshold) * H + 1./cos(theta_ice) * T;
@@ -192,6 +192,9 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
         bounds = uint32([ones(1,Nx); Nt*ones(1,Nx)]);
         
       else
+        for lay_idx = 1:length(tomo_params)
+          tomo_params(lay_idx).existence_check = false;
+        end
         tomo_layers = opsLoadLayers(sb.sd.param,tomo_params);
         
         %% Interpolate tomo_layers information to mdata
