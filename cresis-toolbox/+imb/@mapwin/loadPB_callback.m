@@ -166,7 +166,7 @@ if strcmpi(param.layer_source,'layerdata')
   param_layerdata.records.gps.time_offset = NaN;
   param_layerdata.radar.lever_arm_fh = [];
   layers = layerdata(param_layerdata,param.layer_data_source);
-  layers.check_all();
+  layers.check_layer_organizer();
   
   for frm = 1:num_frm
     % Stores the filename for all frames in the segment
