@@ -30,11 +30,14 @@ for img = 1:length(param.load.imgs)
         nz_prev = NaN;
         nz_signal_prev = NaN;
         for rec = 1:size(data{img},2)
+          if hdr.bad_rec{img}(rec)
+            continue;
+          end
           rx = param.radar.wfs(wf).rx_paths(adc);
           nz = double(hdr.nyquist_zone_hw{img}(rec));
           % Check and load measured filter response for corresponding Nyquist Zone
           if ~(nz==nz_prev)
-            prepulse_fn = fullfile(ct_filename_out(param,'analysis','',1),...
+            prepulse_fn = fullfile(ct_filename_out(param,prepulse_H.dir,'',1),...
               sprintf('%s_rx_%d_nz_%d.mat', param.radar.wfs(wf).prepulse_H.fn, rx, nz));
             prepulse = load(prepulse_fn);
             nz_signal_prev = NaN;
@@ -182,46 +185,39 @@ for img = 1:length(param.load.imgs)
     %% Coherent noise: Analysis Load
     % ===================================================================
     if strcmpi(wfs(wf).coh_noise_method,'analysis')
-      noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
+      noise_fn_dir = fileparts(ct_filename_out(param,param.radar.wfs(wf).coh_noise_arg.fn, ''));
       noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-      
-      fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
-      noise = load(noise_fn);
-      if ~isfield(noise,'param_collate_coh_noise') || isempty(noise.param_collate_coh_noise)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise = noise.param_collate;
-        noise = rmfield(noise,'param_collate');
-        ct_save(noise_fn,'-struct','noise')
-      end
+      fprintf('  Loading coherent noise: %s (%s)\n', noise_fn, datestr(now));
+      noise = collate_coh_noise_load(param,wf,adc);
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
-      if ~isfield(noise,'param_records') || isempty(noise.param_records)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_records = param;
-        ct_save(noise_fn,'-struct','noise')
-      end
       param.collate_coh_noise.param_records = noise.param_records;
-      if ~isfield(noise.param_collate_coh_noise.collate_coh_noise,'method') || isempty(noise.param_collate_coh_noise.collate_coh_noise.method)
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate_coh_noise.collate_coh_noise.method = 'dft';
-        ct_save(noise_fn,'-struct','noise')
-      end
-      if isfield(noise,'coh_noise') && isfield(noise,'coh_noise_gps_time')
-        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.firdec_gps_time = noise.coh_noise_gps_time;
-        noise.firdec_noise    = noise.coh_noise;
-        noise = rmfield(noise,{'coh_noise','coh_noise_gps_time'});
-        ct_save(noise_fn,'-struct','noise')
-      end
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate_coh_noise.collate_coh_noise.cmd_idx};
       
       noise.Nx = length(noise.gps_time);
       
-      if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
+      % Find the matching image index that includes this wf-adc pair.
+      match_found = false;
+      for collate_coh_noise_img = 1:length(noise.param_analysis.analysis.imgs)
+        for match_wf_adc = 1:size(noise.param_analysis.analysis.imgs{collate_coh_noise_img},1)
+          if noise.param_analysis.analysis.imgs{collate_coh_noise_img}(match_wf_adc,1) == wf ...
+              && noise.param_analysis.analysis.imgs{collate_coh_noise_img}(match_wf_adc,2) == adc
+            match_found = true;
+            break;
+          end
+        end
+        if match_found
+          break;
+        end
+      end
+      if ~match_found
+        error('Could not find matching wf-adc pair in noise.param_analysis.analysis.imgs and therefore the collate_coh_noise.method cannot be verified.');
+      end
+      if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'dft')
         coh_noise = noise.dft_noise;
         noise = rmfield(noise,'dft_noise');
-      elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
+      elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'firdec')
         coh_noise = noise.firdec_noise;
         noise = rmfield(noise,'firdec_noise');
       end
@@ -262,10 +258,19 @@ for img = 1:length(param.load.imgs)
         noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
         - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
       
+      % Tadc_adjust changes do not matter since they do not affect the data
+      % (only the time axis is affected).
+      
       % Correct any changes in Tsys
       Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
       Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-      dTsys = Tsys-Tsys_old;
+      if strcmpi(radar_type,'pulsed')
+        time_correction = param.radar.wfs(wf).time_correction;
+        time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
+        dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
+      else
+        dTsys = Tsys-Tsys_old;
+      end
       noise.Nt = size(coh_noise,1);
       noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
       if dTsys ~= 0
@@ -349,7 +354,7 @@ for img = 1:length(param.load.imgs)
           plot(lp(coh_noise))
         end
         
-        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
+        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'dft')
           cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
@@ -359,7 +364,7 @@ for img = 1:length(param.load.imgs)
               cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
             end
           end
-        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
+        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'firdec')
           % Interpolate coherent noise onto current data's gps time
           if all(hdr.gps_time>noise.firdec_gps_time(end))
             % All current data's gps time is after the coherent noise
@@ -428,7 +433,7 @@ for img = 1:length(param.load.imgs)
         
         
       elseif strcmpi(radar_type,'deramp')
-        %% Pulse compress: Deramp
+        %% Pulse compress: Deramp Debug
         if 0
           % ENABLE_FOR_DEBUG
           % Create simulated data
@@ -605,6 +610,7 @@ for img = 1:length(param.load.imgs)
           hdr.Nt{img} = store_Nt;
         end
         
+        %% Pulse compress: Deramp
         freq_axes_changed = false;
         for rec = 1:size(data{img},2)
           
@@ -676,7 +682,7 @@ for img = 1:length(param.load.imgs)
             % and store this in p,q.
             Nt_desired = wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
             if abs(Nt_desired/2 - round(Nt_desired/2)) > 1e-6
-              error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+              error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency. See BW_window_gen.m for help.');
             end
             % Remove rounding errors
             Nt_desired = round(Nt_desired);
@@ -1009,7 +1015,7 @@ for img = 1:length(param.load.imgs)
           %% Pulse compress: FFT and Deskew
           
           % Window and DFT (raw deramped time to regular time)
-          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
+          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).Tadc_adjust + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
           
           tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
              .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
@@ -1059,9 +1065,9 @@ for img = 1:length(param.load.imgs)
             tmp = tmp(cn.unique_idxs);
             tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
             if wfs(wf).f0 > wfs(wf).f1
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*cn.time));
             else
-              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(cn.freq))*cn.time));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*cn.time));
             end
             tmp = tmp .* cn.time_correction_freq;
             tmp = ifft(tmp);
@@ -1104,11 +1110,11 @@ for img = 1:length(param.load.imgs)
               % Undo tmp = tmp .* time_correction;
               tmp = tmp ./ cn.time_correction_freq;
               if wfs(wf).f0 > wfs(wf).f1
-                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
-                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-min(freq))*time);
+                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-f_rf(H_idxs(1)))*time);
               else
-                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
-                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-min(freq))*time);
+                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
+                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-f_rf(H_idxs(1)))*time);
               end
               % Undo tmp = tmp(unique_idxs);
               tmp = tmp(cn.return_idxs);
@@ -1119,9 +1125,9 @@ for img = 1:length(param.load.imgs)
               tmp = tmp(unique_idxs);
               tmp(conjugate_unique) = conj(tmp(conjugate_unique));
               if wfs(wf).f0 > wfs(wf).f1
-                tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
               else
-                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
               end
               tmp = tmp .* time_correction_freq;
               tmp = ifft(tmp);
@@ -1160,7 +1166,7 @@ for img = 1:length(param.load.imgs)
               %
               % Therefore, only a circular shift is required to complex baseband
               % the data.
-              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-f_rf(H_idxs(1)))*time));
             else
               % Positive chirp: the initial DFT causes a frequency domain reversal
               % which flips the frqeuency domain so that the RF frequency mapping
@@ -1297,6 +1303,7 @@ for img = 1:length(param.load.imgs)
       end
       
     else
+      %% No pulse compress
       if wf_adc == 1
         if strcmpi(radar_type,'pulsed')
           hdr.time{img} = wfs(wf).time_raw;
@@ -1304,7 +1311,7 @@ for img = 1:length(param.load.imgs)
           
         elseif strcmpi(radar_type,'deramp')
           % Time axis is not valid if DDC or time offset changes
-          hdr.time{img} = hdr.t0_raw{img}(1) + hdr.DDC_dec{1}(1)/wfs(wf).fs_raw*(0:hdr.Nt{img}-1).';
+          hdr.time{img} = hdr.t0_raw{img}(1) + wfs(wf).Tadc_adjust + hdr.DDC_dec{1}(1)/wfs(wf).fs_raw*(0:hdr.Nt{img}-1).';
           % Frequency is not valid
           df = wfs(wf).fs_raw / hdr.Nt{img}(1);
           hdr.freq{img} = df*(0:hdr.Nt{img}-1).';
@@ -1323,7 +1330,7 @@ for img = 1:length(param.load.imgs)
         
         if wfs(wf).coh_noise_arg.DC_remove_en
           data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-            mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
+            nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
         end
         
         if length(wfs(wf).coh_noise_arg.B_coh_noise) > 1
@@ -1348,7 +1355,7 @@ for img = 1:length(param.load.imgs)
     end
     if strcmpi(radar_type,'pulsed')
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
+        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'dft')
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
             % coh_noise(bin,dft_idx): Coefficient for the matched filter
@@ -1358,7 +1365,7 @@ for img = 1:length(param.load.imgs)
             end
           end
           
-        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
+        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method{collate_coh_noise_img},'firdec')
           blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
           rel_gps_time = single(noise.firdec_gps_time - noise.firdec_gps_time(1));
           rel_gps_time_interp = single(hdr.gps_time - noise.firdec_gps_time(1));

@@ -8,8 +8,11 @@ function check_surface(param,param_override)
 %    Uses elevation to interpolate where data are not available.
 % 4. Estimates Tadc_adjust or t_ref error by comparing radar surface from
 %    the specified layer source and the LIDAR/DEM combination.
-%    This error should be subtracted from param.radar.wfs.Tadc_adjust for pulsed systems.
-%    This error should be added to param.radar.wfs.t_ref for deramp systems.
+%    * The error is calculated as the correction that needs to be applied. In
+%      other words if the radar surface twtt is too large, then the error is
+%      reported as a negative number.
+%    * This error should be added to param.radar.wfs.Tadc_adjust for pulsed systems.
+%    * This error should be added to param.radar.wfs.t_ref for deramp systems.
 % 5. Estimates GPS offset by comparing radar surface and LIDAR/DEM. This offset
 %    should be added to param.records.gps.time_offset.
 % 6. For deramp systems, uses the LIDAR/DEM data to determine the Nyquist
@@ -102,7 +105,7 @@ end
 
 if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
   param.check_surface.radar_layer_params.name = 'surface';
-  param.check_surface.radar_layer_params.source = 'layer';
+  param.check_surface.radar_layer_params.source = 'layerdata';
 end
 
 if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)
@@ -486,16 +489,16 @@ if strcmpi(radar_type,'deramp')
   nz(nz<min(param.radar.nz_valid)) = min(param.radar.nz_valid);
   nz(nz>max(param.radar.nz_valid)) = max(param.radar.nz_valid);
   
-  if isfield(records.settings,'nyquist_zone')
-    original_nz = records.settings.nyquist_zone;
+  if isfield(records,'nyquist_zone_sig')
+    original_nz = records.nyquist_zone_sig;
   else
     original_nz = nan(size(records.gps_time));
   end
-  records.settings.nyquist_zone = interp1(layers(radar_idx).gps_time,nz,records.gps_time,'nearest','extrap');
+  records.nyquist_zone_sig = interp1(layers(radar_idx).gps_time,nz,records.gps_time,'nearest','extrap');
   
   if param.check_surface.save_records_en
     records_fn = ct_filename_support(param,'','records');
-    save(records_fn,'-append','-struct','records','settings');
+    ct_save(records_fn,'-append','-struct','records','nyquist_zone_sig');
   end
   
   clf(h_fig(5));
@@ -524,7 +527,7 @@ if strcmpi(radar_type,'deramp')
   % Find the new t_ref value
   BW = diff(param.radar.wfs(wf).BW_window);
   dt = 1/BW;
-  t_ref_new = param.radar.wfs(wf).t_ref - param.check_surface.radar_twtt_offset - round(nanmedian(twtt_error)/dt)*dt;
+  t_ref_new = param.radar.wfs(wf).t_ref + param.check_surface.radar_twtt_offset + round(nanmedian(twtt_error)/dt)*dt;
 else
   % Find the new Tadc_adjust (called t_ref_new to match deramp) value
   t_ref_new = param.radar.wfs(wf).Tadc_adjust + param.check_surface.radar_twtt_offset + round(nanmedian(twtt_error)*1e10)/1e10;
@@ -542,7 +545,7 @@ fprintf(fid,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
   'Std error', ...
   'Max error', ...
   'Mean error all', ...
-  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
+  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref_or_Tadc_adjust', 'DEM');
 fclose(fid);
 
 txt_fn = [ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'time') '.txt'];
@@ -566,7 +569,7 @@ fprintf(1,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
   'Std error', ...
   'Max error', ...
   'Mean error all', ...
-  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
+  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref_or_Tadc_adjust', 'DEM');
 fprintf(1,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...

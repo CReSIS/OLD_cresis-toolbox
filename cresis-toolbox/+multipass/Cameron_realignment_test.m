@@ -18,9 +18,9 @@ temp_corr = NaN(length(AT_data.elevS.P2011),2*max_lag + 1);
 xcorr = [];
 temp_shift = [];
 
-
 %%
-[temp_corr] = xcorr(tmp_signal_1, tmp_signal_2);
+[temp_corr,lags] = xcorr(tmp_signal_1, tmp_signal_2, maxlag,'coeff');
+
 %% 2011-2014 surface adjustment
 for cidx = ((corr_window/2)+1):(length(AT_data.window_S_11) - (corr_window/2) - 1)
   % create tmp_signals 1 and 2

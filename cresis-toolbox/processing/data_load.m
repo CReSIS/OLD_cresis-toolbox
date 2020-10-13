@@ -323,7 +323,7 @@ for state_idx = 1:length(states)
         else
           % Next record is in the next file, rec_size is set to the rest of
           % the data in this file
-          rec_size = (length(file_data)-file_data_offset) - records.offset(board_idx,rec);
+          rec_size = (length(file_data)+file_data_offset) - records.offset(board_idx,rec);
         end
         
         % Process all wf-adc pairs in this record
@@ -481,28 +481,30 @@ for state_idx = 1:length(states)
               nyquist_zone_hw{img}(num_accum(ai)+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum(ai)+1) = file_data(wf_hdr_offset+45);
+            elseif any(param.records.file.version == [4])
+              nyquist_zone_hw{img}(num_accum(ai)+1) = 0;
             else
               % nyquist_zone_hw defaults to 1 for all other file versions
               % (ideally this is overridden by
-              % records.settings.nyquist_zone)
+              % records.nyquist_zone_sig)
               nyquist_zone_hw{img}(num_accum(ai)+1) = 1;
             end
             % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
             nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
           end
-          if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
-%             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.settings.nyquist_zone_hw(rec)
-%               fprintf('Overwriting nz fro rec:%d from records.settings\n',rec);
+          if isfield(records,'nyquist_zone_hw') && ~isnan(records.nyquist_zone_hw(rec))
+%             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.nyquist_zone_hw(rec)
+%               fprintf('Overwriting nz fro rec:%d from records\n',rec);
 %             end              
-            nyquist_zone_hw{img}(num_accum(ai)+1) = records.settings.nyquist_zone_hw(rec);
+            nyquist_zone_hw{img}(num_accum(ai)+1) = records.nyquist_zone_hw(rec);
           end
           % For the records generated using old data_load
           % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
           nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
           
           nyquist_zone_signal{img}(num_accum(ai)+1) = nyquist_zone_hw{img}(1);
-          if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
-            nyquist_zone_signal{img}(num_accum(ai)+1) = records.settings.nyquist_zone(rec);
+          if isfield(records,'nyquist_zone_sig') && ~isnan(records.nyquist_zone_sig(rec))
+            nyquist_zone_signal{img}(num_accum(ai)+1) = records.nyquist_zone_sig(rec);
           end
           
           % Extract waveform for this wf-adc pair

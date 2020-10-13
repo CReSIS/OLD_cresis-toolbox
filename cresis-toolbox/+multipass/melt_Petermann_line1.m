@@ -25,7 +25,7 @@ AT_data.elevB.P2011 = (pass(1).layers(2).layer_elev);
 AT_data.elevB.P2014 = (pass(2).layers(2).layer_elev);
 %AT_data.elevB.P2015 = pass(3).layers(2).layer_elev);
 %AT_data.elevB.P2017 = pass(4).layers(2).layer_elev);
-AT_data.elevB.P2018 = (pass(3).layers(2).layer_elev);
+AT_data.elevB.P2018 = (pass(5).layers(2).layer_elev);
 %AT_data.elevB.P2019 = pass(6).layers(2).layer_elev);
 
 % Save Surface profiles

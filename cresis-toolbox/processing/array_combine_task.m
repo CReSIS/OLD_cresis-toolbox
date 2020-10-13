@@ -54,7 +54,7 @@ along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.ele
 array_proc_methods;
 
 % Radiometric correction (dB)
-radiometric_corr = param.qlook.radiometric_corr_dB;
+radiometric_corr_dB = param.array.radiometric_corr_dB;
 
 %% Combine chunks into each frame
 % =====================================================================
@@ -285,16 +285,20 @@ for frm_idx = 1:length(param.cmd.frms);
       file_version = '1';
     end
     file_type = 'array';
-    Data = single(Data);
+    if isnan(radiometric_corr_dB)
+      Data = single(Data);
+    else
+      Data = single(Data * 10^(radiometric_corr_dB/10));
+    end
     if ~param.array.tomo_en
       % Do not save 3D surface
-      ct_save('-v7.3',out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
+      ct_save('-v7.3',out_fn,'Time','Latitude','Longitude', 'radiometric_corr_dB', ...
         'Elevation','GPS_time','Data','Surface','Bottom', ...
         'param_array','param_records','param_sar', ...
         'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');
     else
       % Save 3D surface
-      ct_save('-v7.3',out_fn,'Tomo','Time','Latitude', 'radiometric_corr', ...
+      ct_save('-v7.3',out_fn,'Tomo','Time','Latitude', 'radiometric_corr_dB', ...
         'Longitude','Elevation','GPS_time','Data','Surface','Bottom', ...
         'param_array','param_records','param_sar', ...
         'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');
@@ -335,7 +339,7 @@ for frm_idx = 1:length(param.cmd.frms);
     fprintf('  Writing output to %s\n', out_fn);
     % Note that image combining here never includes "Tomo" variable. Use
     % tomo.run_collate.m to create the combined image with the "Tomo" variable.
-    ct_save('-v7.3',out_fn,'Time','Latitude','Longitude', 'radiometric_corr', ...
+    ct_save('-v7.3',out_fn,'Time','Latitude','Longitude', 'radiometric_corr_dB', ...
       'Elevation','GPS_time','Data','Surface','Bottom', ...
       'param_array','param_records','param_sar', ...
       'Roll', 'Pitch', 'Heading', 'file_type', 'file_version');

@@ -55,5 +55,3 @@ end
 [gps.lat,gps.lon,gps.elev] = ecef2geodetic(phase_center(1,:),phase_center(2,:),phase_center(3,:),WGS84.ellipsoid);
 gps.lat = gps.lat*180/pi;
 gps.lon = gps.lon*180/pi;
-
-return;

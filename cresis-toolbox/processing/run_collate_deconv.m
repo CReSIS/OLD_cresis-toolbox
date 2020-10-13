@@ -6,25 +6,51 @@
 
 %% USER SETTINGS
 % =========================================================================
-
-param_override = [];
+clear param_override;
 
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-
 
 % params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170410_01');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20180322_04');
 
 params = ct_set_params(params,'collate_deconv.f0',2.85e9);
 params = ct_set_params(params,'collate_deconv.f1',7.5e9);
+params = ct_set_params(params,'collate_deconv.rbins',{[-100 100]});
 params = ct_set_params(params,'collate_deconv.abs_metric',[58 9.8 -25 -35 inf inf]);
 params = ct_set_params(params,'collate_deconv.SL_guard_bins',10);
-param_override.collate_deconv.out_dir = 'analysis';
 
+% STEP 1: Check peakiness to ensure that enough waveforms qualify. If
+% peakiness threshold has to be adjusted to let more waveforms in, then
+% analysis spec must be run again.
+param_override.collate_deconv.debug_plots = {'peakiness','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+
+% STEP 2: Use the "metric" table output to choose debug_rlines
+%param_override.collate_deconv.debug_plots = {'metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+
+% STEP 3: To evaluate individual waveforms, set debug_rlines to these
+% waveforms and enable rbins (evaluate SNR for the rbins setting you have
+% chosen) and/or deconv (evaluate the SL_guard_bins, abs_metric, and
+% sidelobe suppression achieved):
+%param_override.collate_deconv.debug_rlines = [227];
+%param_override.collate_deconv.debug_plots = {'deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+%param_override.collate_deconv.debug_plots = {'rbins','deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+
+% STEP 4: Once rbins are set and waveforms appear to be deconvolving well,
+% run stage one and stage two (recommend disabling "visible" if many
+% segments or wf_adc pairs).
+%param_override.collate_deconv.debug_plots = {'metric','final','visible'};
+%param_override.collate_deconv.debug_plots = {'metric','final'};
+
+if 0
+  % For debugging, use this to select specific images and wf_adc pairs to
+  % collate instead of doing them all
+  param_override.collate_deconv.wf_adcs = {[1],[1],[1]};
+  param_override.collate_deconv.imgs = [1];
+end
 
 %% Automated Section
 % =====================================================================

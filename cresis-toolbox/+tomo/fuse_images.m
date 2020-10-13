@@ -213,8 +213,8 @@ for v_img = 1:length(param.tomo_collate.imgs)
         Time = Time(1:last_idx);
         Data = Data(1:last_idx,:);
         Tomo.img = Tomo.img(1:last_idx,:,:);
-        Tomo.theta = Tomo.theta(1:last_idx,:,:);
         if doa_method_flag
+          Tomo.theta = Tomo.theta(1:last_idx,:,:);
           Tomo.cost = Tomo.cost(1:last_idx,:,:);
           Tomo.hessian = Tomo.hessian(1:last_idx,:,:);
         end
@@ -289,6 +289,7 @@ for v_img = 1:length(param.tomo_collate.imgs)
     
     % Second row of img_bins indicates the end of the blend-region
     img_bins(2,:) = img_bins(1,:) + 10;
+    img_bins(2,img_bins(2,:)>length(Time)) = length(Time);
     
     difference = 10^(-0/10);
     

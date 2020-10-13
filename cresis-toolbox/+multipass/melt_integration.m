@@ -346,7 +346,6 @@ legend('2011-2018 annual average');
 Crevasse_apex = localmax(AT_data.elevB.P2011);
 Crevasse_base = localmin(AT_data.elevB.P2011);
 
-
 %% Correlation Window approach
 maxlag = 250; % minimum bin offset used by cameron
 corr_window = 4* max_lag; 
@@ -499,55 +498,7 @@ end
   legend({'2011', '2018'}, 'Location', 'northeast');
   xlabel('Longitude (degrees)');
   ylabel('Latitude (degrees)');
-  
-  
-  
-%   AT_data.CP = [];
-%   AT_data.CP(1) = (pass(3).along_track(1,2:end) + pass(1).vel); 
-%   AT_data.CP(2) = (pass(3).along_track(1,2:end) + pass(2).vel); 
-%   AT_data.CP(3) = (pass(3).along_track(1,2:end) + pass(3).vel); 
-  
-%   for pass_idx = 1:length(pass)
-%     AT_data.CP(pass_idx) = (pass(3).along_track(1,2:end)/1e3 + pass(pass_idx).vel);
-%   end
-    %% Interpolations for each profile
-  for pass_idx = 1:length(pass)
-    AT_data.interp_data(pass_idx) = interpr1();
-  end
-  
-  
-  
 
- 
-  
- %% 
-    %Resample to same size
-  AT_data.CP.P2011 = (AT_data.pass.P2011(1), length(AT_data.pass.P2011), length(AT_data.pass.P2018));
-%%
-  along_track
-
-% AT_11 = linspace(along_track_11(1), along_track_11(end), along_track_18); 
-%      AT_14 = linspace(along_track_14(1), along_track_14(end), along_track_18);
-%      AT_18 = along_track_18;
-    
-  %Save Velocity correction data as individual variables (all same size)
-  
-  
-  %Make new interpolated array using vel data for new along track
-%   alongtrack_int = interp1(along);
-  
-  
-  
-  % Linspace data Testing for new along track interpolation
-  lsTest = linspace(Bprof_2018(1),Bprof_2018(end),length(Bprof_2011));
-  %alongtrack_int = interp1(lsTest, newprof11,  
-  
-  
-  %alongtrack_int1 = interp1(AT_data.AT_vel.P2011, newprof11 ,AT_data.AT_vel.P2018);
-  %alongtrack_int2 = interp1(AT_data.AT_vel.P2018, newprof18 ,AT_data.AT_vel.P2011);
-  %alongtrack_int3 = interp1(newprof11, AT_data.AT_vel.P2018, newprof18);
-  
-  %alongtrack_new = cat(2, AT_data.AT_vel.P2011, nan_arrary_tran);
   %%
   figure(28)
   h1 = plot(tmp/1e3, newprof11);
