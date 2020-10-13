@@ -285,6 +285,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         % =====================================================================
         Nt = [];
         t0 = [];
+        fc = NaN;
+        dt = NaN;
         gps_time = [];
         lat = [];
         lon = [];
@@ -326,6 +328,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
           
           Nt(block_idx) = noise.Nt;
           t0(block_idx) = noise.t0;
+          if ~isnan(noise.fc)
+            fc = noise.fc;
+          end
+          if ~isnan(noise.dt)
+            dt = noise.dt;
+          end
           
           gps_time(end+(1:length(noise.gps_time))) = noise.gps_time;
           lat(end+(1:length(noise.lat))) = noise.lat;
@@ -364,6 +372,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
 
         % Constant noise fields carried over from last file loaded:
         %   dt, fc, param_analysis, param_records
+        noise.fc = fc;
+        noise.dt = dt;
         
         % Overwrite concatenated dynamic fields for the whole segment:
         noise.Nt = Nt;
