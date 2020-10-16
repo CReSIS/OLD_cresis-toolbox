@@ -147,7 +147,8 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
   
   param.multipass.rbins = [];
   
-  if 0
+  if 1
+    % 2014 only: useful for estimating cross-track slope, equalization
     param.multipass.comp_mode = 2;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 8;
@@ -155,6 +156,7 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(1:15) = true;
   elseif 0
+    % All passes: useful for coregistration, equalization and differential interferometry
     param.multipass.comp_mode = 3;
     param.multipass.slope_correction_en = true;
     param.multipass.baseline_master_idx = 8;
@@ -162,7 +164,8 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
     param.multipass.output_fn_midfix = '';
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(1:30) = true;
-  elseif 1
+  elseif 0
+    % 2012 only using 2014 as master: useful for 2012 equalization
     param.multipass.comp_mode = 2;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 15+8;
@@ -170,6 +173,7 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(16:30) = true;
   else 0
+    % 2012 only using 2012 as master: useful for 2012 equalization
     param.multipass.comp_mode = 2;
     param.multipass.baseline_master_idx = 15+8;
     param.multipass.master_idx = 15+8;
