@@ -624,9 +624,16 @@ for img = 1:length(store_param.load.imgs)
         
         %% Coh Noise: Save results
         Nt = length(tmp_hdr.time{1});
-        fc = tmp_hdr.freq{1}(1);
-        t0 = tmp_hdr.time{1}(1);
-        dt = tmp_hdr.time{1}(2)-tmp_hdr.time{1}(1);
+        if isempty(tmp_hdr.freq{1})
+          % All records were bad
+          fc = NaN;
+          t0 = NaN;
+          dt = NaN;
+        else
+          fc = tmp_hdr.freq{1}(1);
+          t0 = tmp_hdr.time{1}(1);
+          dt = tmp_hdr.time{1}(2)-tmp_hdr.time{1}(1);
+        end
         
         out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
