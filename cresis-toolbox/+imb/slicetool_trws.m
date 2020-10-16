@@ -174,8 +174,8 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       dr = dt*c/2;
       at_slope = single([diff(master.Elevation / dr) 0]);
       
-      H = interp_finite(sb.sd.time(Surface).')*c/2;
-      T = interp_finite(sb.sd.time(Bottom).')*c/2/sqrt(er_ice);
+      H = interp_finite(sb.sd.time(Surface))*c/2;
+      T = interp_finite(sb.sd.time(Bottom))*c/2/sqrt(er_ice);
       theta_threshold = theta;
       theta_threshold(theta_threshold > pi/2*0.75) = pi/2*0.75;
       theta_threshold(theta_threshold < -pi/2*0.75) = -pi/2*0.75;
