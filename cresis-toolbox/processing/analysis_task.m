@@ -376,9 +376,13 @@ for img = 1:length(store_param.load.imgs)
         
         %% Burst Noise: Smooth and Threshold
         data_signal = abs(raw_data{1}(:,:,wf_adc).').^2;
-        
-        data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
-        data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+
+        if strcmpi(cmd.noise_filt_type,'fir')
+          data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
+          data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+        else
+          data_noise = medfilt2(data_signal,cmd.noise_filt).';
+        end
         data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
         data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
         
