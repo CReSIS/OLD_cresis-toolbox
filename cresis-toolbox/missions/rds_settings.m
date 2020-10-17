@@ -8,8 +8,7 @@
 params = ct_set_params(params,['cmd.' cmd_method],0);
 
 
-% =========================================================================
-% Accumulation Radar
+%% Accumulation Radar
 % =========================================================================
 % -------------------------------------------------------------------------
 % 2018 Antarctica TObas
@@ -37,8 +36,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01'); % DECONV
 % params = ct_set_params(params,'cmd.frms',[],'day_seg','20200128_01'); % DECONV
 
-% =========================================================================
-% Multipass
+%% Multipass
 % =========================================================================
 % -------------------------------------------------------------------------
 % Eqip Line 1
@@ -113,8 +111,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140502_01');
 % params = ct_set_params(params,'cmd.frms',[41 42]);
 
-% =========================================================================
-% Radar Depth Sounder
+%% Radar Depth Sounder
 % =========================================================================
 
 % -------------------------------------------------------------------------
@@ -124,7 +121,34 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140512_01');
 
 % -------------------------------------------------------------------------
+% 2018 Greenland P3
+% params = ct_set_params(params,'cmd.generic',0,'day_seg','20180315_10');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180404_02'); % 4 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180405');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180406'); % 2 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180421');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180422');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180423');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180425');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180427_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180427_03');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180429');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180430');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180501');
+
 % 2018 Antarctica Ground
+% -------------------------------------------------------------------------
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_02');
 params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
@@ -152,6 +176,9 @@ params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
 % params = ct_set_params(params,['cmd.' cmd_method],0,'cmd.notes','do not process');
 
 % -------------------------------------------------------------------------
+% 2019 Greenland P3
+
+% -------------------------------------------------------------------------
 % 2019 Antarctica Ground
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190925_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200107_01');
@@ -163,36 +190,6 @@ params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20181224_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200106');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200107');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200108');
-
-% -------------------------------------------------------------------------
-% 2018 Greenland P3
-% params = ct_set_params(params,'cmd.generic',0,'day_seg','20180315_10');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_03');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_04');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180404_02'); % 4 wfs
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180405');
-params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180406'); % 2 wfs
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180421');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180422');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180423');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180425');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_03');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180426_04');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180427_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180427_03');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180429');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180430');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180501');
-
-% -------------------------------------------------------------------------
-% 2019 Greenland P3
 
 for param_idx = 1:length(params)
   param = params(param_idx);
@@ -207,10 +204,21 @@ for param_idx = 1:length(params)
   %% qlook
   params = ct_set_params(params,'qlook.out_path','qlook');
   params = ct_set_params(params,'qlook.surf_layer',struct('name','surface','source','layerdata','layerdata_source','layer'));
+  params = ct_set_params(params,'qlook.resample',[2 1; 1 1]);
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
     param_override.qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
     param_override.qlook.surf.en = false;
+  elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.out_path = 'qlook';
+    params(param_idx).qlook.motion_comp = false;
+    adcs = [13:16]; Nchan = length(adcs);
+    if length(params(param_idx).radar.wfs) == 6
+      params(param_idx).qlook.imgs = {[ones(1,Nchan) 2*ones(1,Nchan); adcs adcs].', [3*ones(1,Nchan) 4*ones(1,Nchan); adcs adcs].', [5*ones(1,Nchan) 6*ones(1,Nchan); adcs adcs].'};
+    elseif length(params(param_idx).radar.wfs) == 4
+      params(param_idx).qlook.imgs = {[ones(1,Nchan) 2*ones(1,Nchan); adcs adcs].', [3*ones(1,Nchan) 4*ones(1,Nchan); adcs adcs].'};
+    end
   elseif strcmpi(params(param_idx).season_name,'2018_Antarctica_Ground')
     %params(param_idx).qlook.out_path = 'qlook_test';
     params(param_idx).qlook.out_path = 'qlook_test_adcs5678';
@@ -306,6 +314,7 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).Tsys = [3.73 3.09 0 5.59 3.05 0.92 2.28 -19.24 -22.03 -26.23 -29.8 -28.74 -25.71 -22.8 -19.42]/1e9;
     elseif strcmpi(params(param_idx).season_name,'2016_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+      params(param_idx).radar.wfs(wf).deconv.en = true;
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.00000164;
       params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;
       params(param_idx).radar.wfs(wf).chan_equal_dB = [6.8 -0.6 3 0.1 0 3.5 3.9 7 3.3 4.8 6.1 6.2 4.6 3.1 6.2];
@@ -399,7 +408,7 @@ for param_idx = 1:length(params)
               params = ct_set_params(params,'collate_deconv.abs_metric',[60 3.4 -34 -45 -24 -35]);
             elseif wf == 3
               %param_override.collate_deconv.rbins{img} = round([-Tpd*BW*1.1 Tpd*BW*1.1]);
-              param_override.collate_deconv.rbins{img} = [-20 20];
+              param_override.collate_deconv.rbins{img} = [-25 30];
               params = ct_set_params(params,'collate_deconv.abs_metric',[60 3.4 -34 -45 -24 -35]);
             end
             params = ct_set_params(params,'collate_deconv.f0',181e6);
