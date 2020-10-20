@@ -116,6 +116,7 @@ for img = param.collate_deconv_update.imgs
     if param.collate_deconv_update.delete_existing
       delete(fn);
     end
+    % Load existing waveforms for this segment
     if exist(fn,'file')
       deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
       if ~isfield(deconv,'param_collate_deconv') || isempty(deconv.param_collate_deconv) ...
@@ -216,15 +217,14 @@ for img = param.collate_deconv_update.imgs
               deconv_lib.ref_nonnegative = [];
               deconv_lib.roll = [];
               deconv_lib.twtt = [];
-              
-              deconv.param_collate_deconv = tmp_deconv{cmd_idx}{seg_idx}.param_collate_deconv;
-              deconv.param_analysis = tmp_deconv{cmd_idx}{seg_idx}.param_analysis;
-              deconv.param_records = tmp_deconv{cmd_idx}{seg_idx}.param_records;
             end
             
             if isfield(deconv_lib,'dt') && abs(tmp_deconv{cmd_idx}{seg_idx}.dt - deconv_lib.dt)/deconv_lib.dt > 1e-6
               error('Time bins do not align %g ~= deconv_lib.dt == %g', tmp_deconv{cmd_idx}{seg_idx}.dt, deconv_lib.dt);
             end
+            deconv.param_collate_deconv = tmp_deconv{cmd_idx}{seg_idx}.param_collate_deconv;
+            deconv.param_analysis = tmp_deconv{cmd_idx}{seg_idx}.param_analysis;
+            deconv.param_records = tmp_deconv{cmd_idx}{seg_idx}.param_records;
             
             % Make sure selected waveforms to add/replace exist
             param.collate_deconv_update.cmd{cmd_idx}.idxs{seg_idx}  ...

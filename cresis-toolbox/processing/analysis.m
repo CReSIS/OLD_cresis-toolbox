@@ -170,6 +170,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.max_bad_waveforms = 100;
       end
       
+      if ~isfield(cmd,'noise_filt_type') || isempty(cmd.noise_filt_type)
+        cmd.noise_filt_type = 'fir';
+      end
+      
       if ~isfield(cmd,'noise_filt') || isempty(cmd.noise_filt)
         cmd.noise_filt = [11 101];
       end

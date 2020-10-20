@@ -127,7 +127,7 @@ for frm_idx = 1:length(param.cmd.frms);
       time_vector_changed = false;
       if block_idx == 1
         Time = tmp.Time;
-      elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
+      elseif ~isequal(Time,tmp.Time)
         % Determine the new time axis
         %   Note that even though time axis is aligned with multiples of
         %   dt, there will be rounding errors which need to be dealt with
@@ -211,7 +211,7 @@ for frm_idx = 1:length(param.cmd.frms);
     % Truncate deramp data to nonnegative time if this is going to be the
     % final combined file
     if (length(param.qlook.imgs) == 1 || (img == 1 && isempty(param.qlook.img_comb))) ...
-        && Time(1) < 0 && strcmpi(radar_type,'deramp')
+        && ~isempty(Time) && Time(1) < 0 && strcmpi(radar_type,'deramp')
       good_bins = Time>=0;
       Time = Time(good_bins);
       Data = Data(good_bins,:);
@@ -272,7 +272,12 @@ for frm_idx = 1:length(param.cmd.frms);
     surf_param = param;
     surf_param.layer_tracker.frms = frm;
     surf_param.layer_tracker.echogram_source = struct('Data',Data_Surface,'Time',Time_Surface,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation,'Roll',Roll);
-    Surface = layer_tracker_task(surf_param);
+    if length(Time_Surface) < 2
+      % This frame has all bad records, so surface tracking cannot be completed.
+      Surface = nan(size(GPS_time));
+    else
+      Surface = layer_tracker_task(surf_param);
+    end
   end
   
   %% Save combined image output

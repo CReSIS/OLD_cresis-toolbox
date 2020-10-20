@@ -24,6 +24,13 @@
 %   Co-register images using GPS and nadir squint angle assumption
 %   Quits after plotting results
 %
+% param.multipass.fn: string containing the full file to the file created
+% by multipass.combine_passes.
+%
+% param.multipass.layer: opsLoadLayers layer parameter structure that
+% specifies all the layers to load for each pass and to synchronize. The
+% default is struct('name',{'surface','bottom'}).
+%
 
 %% Setup
 % =========================================================================
