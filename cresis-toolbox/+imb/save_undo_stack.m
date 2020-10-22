@@ -343,7 +343,7 @@ if strcmpi(undo_stack.user_data.layer_source,'layerdata')
     else
       lay = undo_stack.user_data.layer_info(frm);
       layer_fn = undo_stack.user_data.filename{frm};
-      ct_save(layer_fn,'-struct','lay') % saving to layerData file
+      ct_save(layer_fn,'-struct','lay') % saving to layer data file
     end
   end
 end

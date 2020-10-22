@@ -286,33 +286,33 @@ end
 if obj.map.fline_source == 1
   
   %% Plot flightlines
-  obj.layerdata.x = [];
-  obj.layerdata.y = [];
-  obj.layerdata.frm_id = [];
-  obj.layerdata.season_idx = [];
-  obj.layerdata.frm_info = struct('frm_id',{},'start_gps_time',{},'stop_gps_time',{});
+  obj.trackdata.x = [];
+  obj.trackdata.y = [];
+  obj.trackdata.frm_id = [];
+  obj.trackdata.season_idx = [];
+  obj.trackdata.frm_info = struct('frm_id',{},'start_gps_time',{},'stop_gps_time',{});
   
   % Looping through the seasons
-  layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
+  tracks_fn_dir = ct_filename_support(struct('radar_name','rds'),'tracks','');
   for season_idx = 1:length(obj.cur_map_pref_settings.seasons)
-    %Loading the season layerdata files
-    layer_fn_name = sprintf('layer_%s_%s.mat', obj.cur_map_pref_settings.map_zone, obj.cur_map_pref_settings.seasons{season_idx});
-    layer_fn = fullfile(layer_fn_dir,layer_fn_name);
-    S = load(layer_fn);
+    %Loading the csarp_support/tracks files
+    tracks_fn_name = sprintf('tracks_%s_%s.mat', obj.cur_map_pref_settings.map_zone, obj.cur_map_pref_settings.seasons{season_idx});
+    tracks_fn = fullfile(tracks_fn_dir,tracks_fn_name);
+    S = load(tracks_fn);
     if obj.map.source == 1
       [x,y] = google_map.latlon_to_world(S.lat, S.lon); y = 256-y;
     else
       [x,y] = projfwd(obj.map.proj, S.lat, S.lon);
     end
     x = x/obj.map.scale; y = y/obj.map.scale;
-    obj.layerdata.x = [obj.layerdata.x x];
-    obj.layerdata.y = [obj.layerdata.y y];
-    obj.layerdata.frm_id = [obj.layerdata.frm_id S.frm_id];
-    obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(x))];
-    obj.layerdata.frm_info(season_idx) = S.frm_info;
+    obj.trackdata.x = [obj.trackdata.x x];
+    obj.trackdata.y = [obj.trackdata.y y];
+    obj.trackdata.frm_id = [obj.trackdata.frm_id S.frm_id];
+    obj.trackdata.season_idx = [obj.trackdata.season_idx season_idx*ones(size(x))];
+    obj.trackdata.frm_info(season_idx) = S.frm_info;
     
     % Plot flight lines
-    set(obj.map_panel.h_flightline,'XData',obj.layerdata.x,'YData',obj.layerdata.y);
+    set(obj.map_panel.h_flightline,'XData',obj.trackdata.x,'YData',obj.trackdata.y);
   end
   
 else
