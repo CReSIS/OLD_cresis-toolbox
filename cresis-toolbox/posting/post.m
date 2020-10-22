@@ -69,6 +69,12 @@ if ~isfield(param.post,'echo_en') || isempty(param.post.echo_en)
   param.post.echo_en = false;
 end
 
+% echo_with_no_layer_en: only activated if echo_en is true. When true, an
+% echogram image file will be created with no layers plotted on it.
+if ~isfield(param.post,'echo_with_no_layer_en') || isempty(param.post.echo_with_no_layer_en)
+  param.post.echo_with_no_layer_en = true;
+end
+
 if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
   param.post.frm_types = {-1,0,-1,-1,-1};
 end
@@ -402,8 +408,10 @@ for frm_idx = 1:length(param.cmd.frms)
     set(echo_info.fig_hand(1),'PaperUnits','inches');
     set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
     set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
-    fprintf('    Saving output %s\n', echo_fn);
-    print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
+    if param.post.echo_with_no_layer_en
+      fprintf('    Saving output %s\n', echo_fn);
+      print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
+    end
     
     if param.post.pdf_en
       % Remove current file and save new file
