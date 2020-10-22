@@ -35,15 +35,28 @@ param_override.collate_deconv.debug_plots = {'peakiness','metric','visible'}; pa
 % waveforms and enable rbins (evaluate SNR for the rbins setting you have
 % chosen) and/or deconv (evaluate the SL_guard_bins, abs_metric, and
 % sidelobe suppression achieved):
-%param_override.collate_deconv.debug_rlines = [227];
+%param_override.collate_deconv.debug_rlines = [1];
 %param_override.collate_deconv.debug_plots = {'deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
 %param_override.collate_deconv.debug_plots = {'rbins','deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+% STEP 3 ALTERNATE: To evaluate just the best individual waveform, just enable
+% "rbins_best" and/or "deconv_best"
+% param_override.collate_deconv.debug_plots = {'deconv_best','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+% param_override.collate_deconv.debug_plots = {'deconv_best','metric'}; param_override.collate_deconv.stage_two_en = false;
 
 % STEP 4: Once rbins are set and waveforms appear to be deconvolving well,
 % run stage one and stage two (recommend disabling "visible" if many
 % segments or wf_adc pairs).
 %param_override.collate_deconv.debug_plots = {'metric','final','visible'};
 %param_override.collate_deconv.debug_plots = {'metric','final'};
+
+if 0
+  % For debugging, use this to test specific waveforms for the whole
+  % segment.
+  param_override.collate_deconv.metric_mode = 'each'; % Default mode
+  %param_override.collate_deconv.metric_mode = 'best'; param_override.collate_deconv.stage_two_en = false;
+  %param_override.collate_deconv.metric_mode = 'final'; param_override.collate_deconv.stage_two_en = false;
+  %param_override.collate_deconv.metric_mode = 1; param_override.collate_deconv.stage_two_en = false;
+end
 
 if 0
   % For debugging, use this to select specific images and wf_adc pairs to
