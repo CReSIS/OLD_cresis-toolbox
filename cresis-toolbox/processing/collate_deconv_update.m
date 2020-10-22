@@ -440,6 +440,7 @@ for img = param.collate_deconv_update.imgs
       h_axes(4) = subplot(5,1,3:5,'parent',h_fig(3));
       
       legend_str = {};
+      max_val_overall = -inf;
       for idx = 1:length(final.gps_time)
         % Get the reference function
         h_nonnegative = final.ref_nonnegative{idx};
@@ -463,6 +464,10 @@ for img = param.collate_deconv_update.imgs
         h_filled_phase = unwrap(h_filled_phase)*180/pi;
         h_filled_phase = h_filled_phase - h_filled_phase(fc_idx);
         
+        if max(h_filled_lp) > max_val_overall
+          max_val_overall = max(h_filled_lp);
+        end
+        
         if max(freq) > 2e9
           freq_scale = 1e9;
         else
@@ -472,9 +477,13 @@ for img = param.collate_deconv_update.imgs
         hold(h_axes(3),'on');
         plot(h_axes(4), freq/freq_scale, h_filled_phase);
         hold(h_axes(4),'on');
-        legend_str{idx} = sprintf('%d %s_%03.2f %4.0f %4.2fus',idx, ...
-          final.map_day_seg{idx},final.frm(idx),round(lp(final.ref_nonnegative{idx}(1),2)), ...
-          round(final.twtt(idx)*1e7)/10);
+        radiometric_error_dB = lp(1/(c*final.twtt(idx)).^2) - lp(final.ref_nonnegative{idx}(1));
+        legend_str{idx} = sprintf('%d %s_%03.0f %7.0f %4.0fdB %4.1fus',idx, ...
+          final.map_day_seg{idx},floor(final.frm(idx)),final.rec(idx),radiometric_error_dB, ...
+          final.twtt(idx)*1e6);
+      end
+      if isfinite(max_val_overall)
+        ylim(h_axes(3), max_val_overall + [-31 1]);
       end
       
       if freq_scale == 1e9
@@ -484,7 +493,7 @@ for img = param.collate_deconv_update.imgs
       end
       ylabel(h_axes(3), 'Relative power (dB)');
       ylabel(h_axes(4), 'Relative angle (deg)');
-      title(h_axes(3), regexprep(sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg),'_','\\_'));
+      title(h_axes(3), regexprep(sprintf('%s (Legend idx:frm:rec:radio:twtt)', param.day_seg),'_','\\_'));
       grid(h_axes(3), 'on');
       grid(h_axes(4), 'on');
       h_legend = legend(h_axes(3), legend_str, 'location', 'northeastoutside', 'interpreter','none');
@@ -493,10 +502,10 @@ for img = param.collate_deconv_update.imgs
       pos4 = get(h_axes(4),'Position');
       set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_final_transfer_func_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_final_transfer_func_wf_%02d_adc_%02d',param.collate_deconv_update.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
     end
