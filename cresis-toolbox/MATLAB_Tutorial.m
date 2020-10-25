@@ -3065,7 +3065,7 @@ if section_number == 12
   % =======================================================================
   % This example shows how to load and plot an echogram with a depth axis
   % (rather than two way travel time) using a dielectric profile
-  % See plot_L1B.m and elevation_compensation.m
+  % See echo_plot.m and elevation_compensation.m
   
   fn=fullfile(data_folder_path,'CRESIS_MAT_ECHODATA.mat');
   mdata=load_L1B(fn);

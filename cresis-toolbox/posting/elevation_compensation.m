@@ -47,11 +47,11 @@ function [mdata,depth_axis] = elevation_compensation(mdata,param)
 %   mode 2: depth axis
 %   mode 3: indices specified by param.depth
 %
-% Examples: See plot_L1B.m
+% Examples: See echo_plot.m
 %
 % Author: John Paden
 %
-% See also: load_L1B.m, plot_L1B.m
+% See also: load_L1B.m, echo_plot.m
 
 if ~exist('param','var')
   param = [];

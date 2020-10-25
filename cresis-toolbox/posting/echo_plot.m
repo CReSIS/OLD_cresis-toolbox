@@ -1,4 +1,4 @@
-% script plot_L1B
+% script echo_plot
 %
 % Example of loading data with load_L1B.m and using elevation_compensation.m
 %

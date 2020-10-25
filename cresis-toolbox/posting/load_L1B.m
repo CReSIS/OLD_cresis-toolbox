@@ -18,7 +18,7 @@ function mdata = load_L1B(fn)
 %
 % Author: John Paden
 %
-% See also: plot_L1B.m, uncompress_echogram.m
+% See also: echo_plot.m, uncompress_echogram.m
 
 [fn_dir,fn_name,fn_ext] = fileparts(fn);
 
