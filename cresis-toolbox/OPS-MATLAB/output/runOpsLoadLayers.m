@@ -135,6 +135,7 @@ global gRadar;
 %% Load each of the day segments
 layers = {};
 day_seg = {};
+new_layer_params = [];
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) ...
