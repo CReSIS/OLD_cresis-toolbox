@@ -375,20 +375,41 @@ for img = 1:length(store_param.load.imgs)
         adc = param.load.imgs{img}(wf_adc,2);
         
         %% Burst Noise: Smooth and Threshold
-        data_signal = abs(raw_data{1}(:,:,wf_adc).').^2;
-
-        if strcmpi(cmd.noise_filt_type,'fir')
-          data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
-          data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+        if strcmpi(cmd.noise_filt_type,'custom')
+          data_signal = cmd.signal_function{cmd_img}(raw_data,wf_adc,wfs(wf));
+          bad_samples = cmd.bad_samples_function{cmd_img}(data_signal,wfs(wf));
+          if 0 && ~isdeployed
+            % Debug code (enable for debugging, does not run when compiled)
+            figure(1); clf;
+            subplot(3,1,1);
+            imagesc(lp(data_signal));
+            axis tight
+            subplot(3,1,2);
+            plot(cmd.debug_function{cmd_img}(data_signal,wfs));
+            grid on;
+            axis tight
+            subplot(3,1,3);
+            imagesc(bad_samples);
+            axis tight
+            link_figures(1,'x');
+            keyboard;
+          end
         else
-          data_noise = medfilt2(data_signal,cmd.noise_filt).';
+          data_signal = abs(raw_data{1}(:,:,wf_adc).').^2;
+          if strcmpi(cmd.noise_filt_type,'fir')
+            data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
+            data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
+          elseif strcmpi(cmd.noise_filt_type,'median')
+            data_noise = medfilt2(data_signal,cmd.noise_filt).';
+          end
+          data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
+          data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
+          
+          % Find peaks in data_signal relative to data_noise (constant false
+          % alarm rate detector)
+          bad_samples = lp(data_signal) > lp(data_noise) + cmd.threshold;
         end
-        data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
-        data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
         
-        % Find peaks in data_signal relative to data_noise (constant false
-        % alarm rate detector)
-        bad_samples = lp(data_signal) > lp(data_noise) + cmd.threshold;
         % Convert peaks to range-bin/records
         bad_idxs = find(bad_samples);
         Nt = size(raw_data{1},1);

@@ -242,7 +242,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           noise = load(out_fn);
           
           bad_bins(end+(1:length(noise.bad_bins))) = noise.bad_bins;
-          bad_recs(end+(1:length(noise.bad_recs))) = rec_load_start + noise.bad_recs - 1;
+          bad_recs(end+(1:length(noise.bad_recs))) = rec_load_start-1 + noise.bad_recs;
           bad_recs_unique = unique(noise.bad_recs);
           bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(noise.bad_waveforms,2)) - 1;
           bad_waveforms{block_idx} = noise.bad_waveforms;

@@ -493,7 +493,7 @@ if isunix
 else
   set(obj.right_panel.status_panel.mouseCoordText,'FontSize',8)
 end
-set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','right');
+set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.mouseCoordText,'String','');
 set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Frame Latitude (deg, N) Longitude (deg, W) |X-coordinate|Y-coordinate|Z-coordinate/intensity.');
 

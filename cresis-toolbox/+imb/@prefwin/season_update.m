@@ -13,7 +13,7 @@ else
 end
 
 if strcmp(flightlines{1}(1:3),'OPS')
-  unique_systems = setdiff(unique(obj.systems),{'layerdata'});
+  unique_systems = setdiff(unique(obj.systems),{'tracks'});
   set(obj.h_gui.systemsLB,'String',unique_systems);
   system_value = find(strcmp(system_name,unique_systems),1);
   if isempty(system_value)
@@ -27,8 +27,8 @@ if strcmp(flightlines{1}(1:3),'OPS')
     system_name = unique_systems{system_value};
   end
 else
-  system_name = 'layerdata';
-  set(obj.h_gui.systemsLB,'String',{'layerdata'});
+  system_name = 'tracks';
+  set(obj.h_gui.systemsLB,'String',{'tracks'});
   set(obj.h_gui.systemsLB,'Value',1);
 end
 
