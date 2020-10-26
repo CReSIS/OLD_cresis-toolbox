@@ -14,10 +14,10 @@ classdef (HandleCompatible = true) prefwin < handle
     % default_params.season_names: cell array of selected season names
     % default_params.layer_names: cell array of selected layers
     % default_params.system: String containing system name
-    %   ('accum','kuband','rds', 'snow', 'layerdata')
+    %   ('accum','kuband','rds', 'snow', 'tracks')
     % default_params.map_name: string containing map selection
     % default_params.flightlines: string containing flightline selection
-    %   ('layerdata Flightlines','OPS Flightlines','OPS Quality
+    %   ('tracks files Flightlines','OPS Flightlines','OPS Quality
     %   Flightlines','OPS Coverage Flightlines', 'OPS Crossover
     %   Errors','OPS Bottom Elevation')
     % default_params.layer_source: string containing layer source ('OPS' or
@@ -46,7 +46,7 @@ classdef (HandleCompatible = true) prefwin < handle
     % settings have changed.
     settings
     % settings.layer_source: string containing the current layer source
-    % settings.layer_data_source: string containing the current layer layerData source
+    % settings.layer_data_source: string containing the current layer layerdata source
     % settings.layers: cell array of currently selected layers (OPS layer source only)
     % settings.seasons: cell array of currently selected seasons
     % settings.system: string containing current system

@@ -23,9 +23,9 @@ if strcmpi(obj.eg.layers.source,'OPS')
   obj.eg.map_x = double(data.properties.X)/obj.eg.map.scale;
   obj.eg.map_y = double(data.properties.Y)/obj.eg.map.scale;
   
-%% LayerData: Loading flight path from layerData
+%% LayerData: Loading flight path from tracks files
 else
-  fprintf(' Loading flight path from layerData(%s)\n', datestr(now,'HH:MM:SS'));
+  fprintf(' Loading flight path from csarp_support/tracks files (%s)\n', datestr(now,'HH:MM:SS'));
   obj.eg.map_id = [];
   obj.eg.map_gps_time = [];
   obj.eg.map_elev = [];
