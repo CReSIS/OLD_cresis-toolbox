@@ -323,11 +323,6 @@ if param.collate_deconv.stage_one_en
       [~,spec.frm,spec.rec] = get_frame_id(param,spec.gps_time);
       fprintf('  File contains %d waveforms\n', length(spec.deconv_gps_time));
       
-      % Load surface layer
-      layer = opsLoadLayers(param,param.collate_deconv.surf_layer);
-      spec.surface = interp_finite(interp1(layer.gps_time, layer.twtt, spec.gps_time));
-      spec.deconv_twtt = interp_finite(interp1(layer.gps_time, layer.twtt, spec.deconv_gps_time));
-      
       if any(strcmp('peakiness',param.collate_deconv.debug_plots))
         % Plot peakiness
         clf(h_fig(1));
@@ -361,6 +356,11 @@ if param.collate_deconv.stage_one_en
         warning('No specular waveforms found.');
         continue;
       end
+      
+      % Load surface layer
+      layer = opsLoadLayers(param,param.collate_deconv.surf_layer);
+      spec.surface = interp_finite(interp1(layer.gps_time, layer.twtt, spec.gps_time));
+      spec.deconv_twtt = interp_finite(interp1(layer.gps_time, layer.twtt, spec.deconv_gps_time));
       
       %% Stage 1: Preallocation
       deconv = [];
@@ -931,7 +931,7 @@ if param.collate_deconv.stage_two_en
         
       end
       if isempty(deconv_lib) || isempty(deconv_lib.gps_time)
-        warning('There are no deconvolution waveforms in the files loaded!!!\nSpecify other cmd.day_seg to load or remake current day_seg files with lower metric thresholds.');
+        warning(sprintf('There are no deconvolution waveforms in the files loaded!!!\nSpecify other cmd.day_seg to load or remake current day_seg files with lower metric thresholds.'));
         continue
       end
       
