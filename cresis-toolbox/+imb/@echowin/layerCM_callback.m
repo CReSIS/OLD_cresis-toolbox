@@ -256,7 +256,7 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
   
 elseif source == obj.left_panel.layerCM_edit
   %% edit
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
     if length(vals) == 1
@@ -346,7 +346,7 @@ elseif source == obj.left_panel.layerCM_edit
   
 elseif source == obj.left_panel.layerCM_sequence
   %% sequence
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     vals = get(obj.left_panel.layerLB,'Value');
     vals = vals(vals>1);
     
@@ -402,7 +402,7 @@ elseif source == obj.left_panel.layerCM_sequence
   
 elseif source == obj.left_panel.layerCM_order
   %% order
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     vals = get(obj.left_panel.layerLB,'Value');
     vals = vals(vals>1);
     done = false;
@@ -480,7 +480,7 @@ elseif source == obj.left_panel.layerCM_order
   
 elseif source == obj.left_panel.layerCM_up
   %% up
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>1);
@@ -520,7 +520,7 @@ elseif source == obj.left_panel.layerCM_up
   
 elseif source == obj.left_panel.layerCM_down
   %% down
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val<length(obj.eg.layers.lyr_name));
@@ -560,7 +560,7 @@ elseif source == obj.left_panel.layerCM_down
   
 elseif source == obj.left_panel.layerCM_top
   %% top
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>2);
@@ -605,7 +605,7 @@ elseif source == obj.left_panel.layerCM_top
   
 elseif source == obj.left_panel.layerCM_bottom
   %% bottom
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     if ~isempty(val)
@@ -649,7 +649,7 @@ elseif source == obj.left_panel.layerCM_bottom
   
 elseif source == obj.left_panel.layerCM_merge
   %% merge
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
     vals = vals(vals>1);
@@ -772,7 +772,7 @@ elseif source == obj.left_panel.layerCM_merge
   
 elseif source == obj.left_panel.layerCM_delete
   %% delete
-  if strcmpi(obj.eg.layers.source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerdata')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
     if length(vals) > 1

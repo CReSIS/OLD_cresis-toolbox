@@ -1,5 +1,5 @@
-% script run_all_create_season_layerdata_files
-% run_all_create_season_layerdata_files
+% script run_all_create_track_files
+% run_all_create_track_files
 %
 % Creates a season layer file containing the lat, lon. The imb.picker loads
 % this file when plotting flightlines without OPS. Loading all the
@@ -7,13 +7,15 @@
 % loading.
 %
 % Output filenames are of the form:
-% .../csarp_support/layer/layer_SYSTEM_SEASONNAME.mat
+% .../csarp_support/tracks/tracks_SYSTEM_SEASONNAME.mat
 % For example:
-% .../csarp_support/layer/layer_accum_2018_Antarctica_TObas.mat
+% .../csarp_support/tracks/tracks_accum_2018_Antarctica_TObas.mat
 %
 % Output file:
+%
 % These variables are all 1 by Nx vectors of the same length, segments are
-% terminated with NaN:
+% terminated with NaN and all segments are included in these Nx length
+% vectors:
 %   bottom: ice bottom two way travel time in seconds
 %   elev: elevation in meters
 %   frm_id: full frame ID 2019020401123
@@ -29,8 +31,8 @@
 %   
 % Author: John Paden, Rohan Choudhari
 %
-% See also: imb.run_all_create_season_layerdata_files.m,
-% imb.create_season_layerdata_files.m
+% See also: imb.run_all_create_track_files.m,
+% imb.create_track_files.m
 
 %% User Settings
 % =========================================================================
@@ -66,9 +68,9 @@ else
 end
 
 param_override = [];
-param_override.create_season_layerdata_files.layer_params = layer_params;
-run_create_season_layerdata_files.mode = 'create';
-% run_create_season_layerdata_files.mode = 'append';
+param_override.create_track_files.layer_params = layer_params;
+run_create_track_files.mode = 'create';
+% run_create_track_files.mode = 'append';
 
 %% Automated Section
 % =========================================================================
@@ -86,6 +88,7 @@ for param_idx = 1:length(param_fns)
   % Initialize variables to be extracted from layers
   lat = [];
   lon = [];
+  gps_time = [];
   frm_id = [];
   surf = [];
   bottom = [];
@@ -125,38 +128,38 @@ for param_idx = 1:length(param_fns)
       continue;
     end
     
-    % Input checks: run_create_season_layerdata_files
-    if ~exist('run_create_season_layerdata_files','var')
-      run_create_season_layerdata_files = [];
+    % Input checks: run_create_track_files
+    if ~exist('run_create_track_files','var')
+      run_create_track_files = [];
     end
-    % run_create_season_layerdata_files.mode: string containing the mode. Must be either
+    % run_create_track_files.mode: string containing the mode. Must be either
     % 'create' (default) or 'append'. The create mode overwrites the existing file. The
     % append mode adds segments to the existing file. Append is slower for doing whole seasons,
     % but is faster if just adding a few segments.
-    if ~isfield(run_create_season_layerdata_files,'mode') || isempty(run_create_season_layerdata_files.mode)
-      run_create_season_layerdata_files.mode = 'create';
+    if ~isfield(run_create_track_files,'mode') || isempty(run_create_track_files.mode)
+      run_create_track_files.mode = 'create';
     end
     
     tmp = [];
     try
       param.cmd.frms = [];
-      [tmp.lat,tmp.lon,tmp.frm_id,tmp.elev,tmp.surf,tmp.bottom,tmp.quality,tmp.frm_info,gps_source] = imb.create_season_layerdata_files(param,param_override);
+      [tmp.lat,tmp.lon,tmp.gps_time,tmp.frm_id,tmp.elev,tmp.surf,tmp.bottom,tmp.quality,tmp.frm_info,gps_source] = imb.create_track_files(param,param_override);
     catch ME
       fprintf('%s\terror!!!\t%s\n', param.day_seg, ME.getReport);
       continue;
     end
     
-    if strcmpi(run_create_season_layerdata_files.mode,'append')
+    if strcmpi(run_create_track_files.mode,'append')
       %% Append to existing season file
       
       % Load existing file for this season
       % -------------------------------------------------------------------
-      out_fn_dir = ct_filename_support(param,'layer','');
-      out_fn_name = sprintf('layer_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
+      out_fn_dir = ct_filename_support(param,'tracks','');
+      out_fn_name = sprintf('tracks_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
       out_fn = fullfile(out_fn_dir,out_fn_name);
       if ~exist(out_fn,'file')
         % If file does not exist, switch to create mode
-        run_create_season_layerdata_files.mode = 'create';
+        run_create_track_files.mode = 'create';
       else
         fprintf('%s\tloaded\t%d\t%d\t', param.day_seg, length(tmp.lat), sum(~isnan(tmp.bottom)));
         fprintf('Appending\t%s\n', out_fn);
@@ -185,6 +188,7 @@ for param_idx = 1:length(param_fns)
         % it was there.
         lat = [old.lat(1:stop_idx) tmp.lat NaN old.lat(start_idx:end)];
         lon = [old.lon(1:stop_idx) tmp.lon NaN old.lon(start_idx:end)];
+        gps_time = [old.gps_time(1:stop_idx) tmp.lon NaN old.gps_time(start_idx:end)];
         frm_id = [old.frm_id(1:stop_idx) tmp.frm_id NaN old.frm_id(start_idx:end)];
         elev = [old.elev(1:stop_idx) tmp.elev NaN old.elev(start_idx:end)];
         surf = [old.surf(1:stop_idx) tmp.surf NaN old.surf(start_idx:end)];
@@ -213,12 +217,13 @@ for param_idx = 1:length(param_fns)
       end
     end
     
-    if strcmpi(run_create_season_layerdata_files.mode,'create')
+    if strcmpi(run_create_track_files.mode,'create')
       % Concatenate on new season file
       % -------------------------------------------------------------------
       fprintf('%s\tloaded\t%d\t%d\n', param.day_seg, length(tmp.lat), sum(~isnan(tmp.bottom)));
       lat = [lat tmp.lat NaN];
       lon = [lon tmp.lon NaN];
+      gps_time = [gps_time tmp.gps_time NaN];
       % Store full frame ID number 20190204_01_003 --> 2019020401003
       frm_id = [frm_id tmp.frm_id NaN];
       elev = [elev tmp.elev NaN];
@@ -229,30 +234,30 @@ for param_idx = 1:length(param_fns)
       frm_info.frm_id = [frm_info.frm_id tmp.frm_info.frm_id];
       frm_info.start_gps_time = [frm_info.start_gps_time tmp.frm_info.start_gps_time];
       frm_info.stop_gps_time = [frm_info.stop_gps_time tmp.frm_info.stop_gps_time];
-    elseif ~strcmpi(run_create_season_layerdata_files.mode,'append')
-      error('Valid modes are append or create. Invalid mode specified for run_create_season_layerdata_files.mode: %s', run_create_season_layerdata_files.mode);
+    elseif ~strcmpi(run_create_track_files.mode,'append')
+      error('Valid modes are append or create. Invalid mode specified for run_create_track_files.mode: %s', run_create_track_files.mode);
     end
   end
   
-  if strcmpi(run_create_season_layerdata_files.mode,'create')
+  if strcmpi(run_create_track_files.mode,'create')
     if isempty(lat)
       %% No data error
       error('There is no data available and so no season layer file can be saved.');
       
     else
       %% Save output for this season
-      out_fn_dir = ct_filename_support(param,'layer','');
-      out_fn_name = sprintf('layer_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
+      out_fn_dir = ct_filename_support(param,'tracks','');
+      out_fn_name = sprintf('tracks_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
       out_fn = fullfile(out_fn_dir,out_fn_name);
       fprintf('  Saving %s\n\n', out_fn);
       if ~exist(out_fn_dir,'dir')
         mkdir(out_fn_dir);
       end
-      file_type = 'layer_season';
+      file_type = 'tracks';
       file_version = '1';
       param = struct('day_seg',param.day_seg,'radar_name',param.radar_name, ...
         'season_name',param.season_name,'sw_version',param.sw_version);
-      ct_save(out_fn,'bottom','elev','file_type','file_version','frm_id','frm_info','gps_source','lat','lon','param','quality','surf');
+      ct_save(out_fn,'bottom','elev','file_type','file_version','frm_id','frm_info','gps_source','gps_time','lat','lon','param','quality','surf');
     end
   end
 end

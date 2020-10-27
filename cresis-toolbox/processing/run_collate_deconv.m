@@ -46,8 +46,8 @@ param_override.collate_deconv.debug_plots = {'peakiness','metric','visible'}; pa
 % STEP 4: Once rbins are set and waveforms appear to be deconvolving well,
 % run stage one and stage two (recommend disabling "visible" if many
 % segments or wf_adc pairs).
-%param_override.collate_deconv.debug_plots = {'metric','final','visible'};
-%param_override.collate_deconv.debug_plots = {'metric','final'};
+%param_override.collate_deconv.debug_plots = {'deconv_best','metric','final','visible'};
+%param_override.collate_deconv.debug_plots = {'deconv_best','metric','final'};
 
 if 0
   % For debugging, use this to test specific waveforms for the whole

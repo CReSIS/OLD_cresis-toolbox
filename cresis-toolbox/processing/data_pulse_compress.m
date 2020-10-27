@@ -612,6 +612,7 @@ for img = 1:length(param.load.imgs)
         
         %% Pulse compress: Deramp
         freq_axes_changed = false;
+        first_good_rec = true; % true until the time/freq axes created for the first time
         for rec = 1:size(data{img},2)
           
           if hdr.bad_rec{img}(rec)
@@ -637,12 +638,16 @@ for img = 1:length(param.load.imgs)
           DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
           hdr.DDC_freq{img}(rec) = hdr.DDC_freq{img}(rec) - DDC_freq_adjust;
 
-          % Check to see if axes has changed since last record
-          if rec == 1 ...
+          % Check to see if this is the first good record and the time/freq
+          % axis need to be created for the first time or if the time/freq
+          % axes has changed since the last record because of header
+          % changes and need to be regenerated
+          if first_good_rec ...
               || hdr.DDC_dec{img}(rec) ~= hdr.DDC_dec{img}(rec-1) ...
               || hdr.DDC_freq{img}(rec) ~= hdr.DDC_freq{img}(rec-1) ...
               || hdr.nyquist_zone_signal{img}(rec) ~= hdr.nyquist_zone_signal{img}(rec-1)
             
+            first_good_rec = false;
             freq_axes_changed = true;
             
             %% Pulse compress: Output time
