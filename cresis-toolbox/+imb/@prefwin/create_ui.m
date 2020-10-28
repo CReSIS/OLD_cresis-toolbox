@@ -40,7 +40,7 @@ for track_idx = 1:length(track_fns)
   if strcmpi(file_type_str,'tracks')
     [location_str,remain] = strtok(remain,'_');
     [sys_str,remain] = strtok(remain,'_');
-    if any(strcmpi(location_str,{'arctic','antarctic'))
+    if any(strcmpi(location_str,{'arctic','antarctic'}))
       % sys_token: accum, kuband, rds, or snow string
       % remain: _YYYY_LOCATION_PLATFORM string
       obj.systems{end+1} = 'tracks';
