@@ -10,7 +10,7 @@
 %   (Motion compensation with phase correction)
 %   Quits after computing equalization coefficients
 % 2: to do coregistration and (if input_type=='sar') array process
-%   This is the mode to run when using input_type='echo'
+%   This is the mode that must be used when using input_type='echo'
 %   Co-register images using GPS and nadir squint angle assumption
 %   (Motion compensation without phase correction)
 %   Runs array processing if input_type=='sar' and is used for cross-track

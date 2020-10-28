@@ -35,7 +35,7 @@ if ~isfield(param.records.gps,'fn')
 end
 
 %% Load the GPS data
-gps = load(ct_filename_support(param,param.records.gps.fn,'gps',true));
+gps = gps_load(ct_filename_support(param,param.records.gps.fn,'gps',true));
 
 %% Check for non-monotonically increasing gps time
 if any(diff(gps.gps_time) <= 0)
