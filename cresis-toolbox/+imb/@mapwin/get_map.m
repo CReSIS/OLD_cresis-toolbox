@@ -28,7 +28,7 @@ else
   obj.map.fline_source = 1;
 end
 
-%% Check which settings have changed
+%% Which settings changed?
 if ~strcmpi(obj.cur_map_pref_settings.system, obj.map_pref.settings.system)
   system_changed = true;
 else
@@ -76,21 +76,23 @@ if ~system_changed && ~seasons_changed && ~map_name_changed && ~map_zone_changed
   return;
 end
 
-%% Copy current preference window settings over
+%% Copy current preference window settings
 obj.cur_map_pref_settings = obj.map_pref.settings;
 
-%% Update map selection (also called at startup)
+%% Update map selection
 % =================================================================
 flightlines = obj.cur_map_pref_settings.flightlines;
 map_name = obj.cur_map_pref_settings.map_name;
 map_zone = obj.cur_map_pref_settings.map_zone;
 fprintf('Loading and plotting map %s:%s (%s)\n', map_zone, map_name, datestr(now,'HH:MM:SS'));
 
+%% Connect to OPS if needed
 if obj.map.source == 0 || obj.map.fline_source == 0
   opsCmd;
   
   if obj.map.fline_source == 0
-    %% Create season and group ID strings for OPS flightline requests
+    % Create season and group ID strings for OPS flightline requests
+    % ---------------------------------------------------------------------
     
     % 1. create seasons viewparam
     if ~isempty(obj.cur_map_pref_settings.seasons)
@@ -141,7 +143,7 @@ if obj.map.source == 0 || obj.map.fline_source == 0
 end
 
 if obj.map.source == 0
-  %% Setup OPS map and flightlines for OPS maps
+  %% Setup "OPS" map and flightlines
   
   % Update axes labels
   xlabel(obj.map_panel.h_axes,'X (km)');
@@ -187,7 +189,7 @@ if obj.map.source == 0
   end
   
 elseif obj.map.source == 1
-  %% Get Map: Google
+  %% Setup "Google" map and flightlines
   
   % Setup the Google map
   if isempty(obj.google.map)
@@ -241,7 +243,7 @@ elseif obj.map.source == 1
   obj.map.yaxis_default = sort(256-obj.map.yaxis_default);
   
 elseif obj.map.source == 2
-  %% Setup blank map and flightlines for OPS maps
+  %% Setup "blank" map and flightlines
   
   % Update axes labels
   xlabel(obj.map_panel.h_axes,'X (km)');
@@ -283,25 +285,34 @@ elseif obj.map.source == 2
   end
 end
 
+%% Plot tracks files flightlines
+% =========================================================================
 if obj.map.fline_source == 1
-  
-  %% Plot flightlines
+  % Init tracks files data
+  % -----------------------------------------------------------------------
   obj.trackdata.x = [];
   obj.trackdata.y = [];
   obj.trackdata.frm_id = [];
   obj.trackdata.season_idx = [];
   obj.trackdata.frm_info = struct('frm_id',{},'start_gps_time',{},'stop_gps_time',{});
   
-  % Looping through the seasons
+  % Load each tracks file (tracks file list created in
+  % imb.prefwin.create_ui)
+  % -----------------------------------------------------------------------
   tracks_fn_dir = ct_filename_support(struct('radar_name','rds'),'tracks','');
   for season_idx = 1:length(obj.cur_map_pref_settings.seasons)
-    %Loading the csarp_support/tracks files
+    % Load the csarp_support/tracks file
+    % ---------------------------------------------------------------------
     tracks_fn_name = sprintf('tracks_%s_%s.mat', obj.cur_map_pref_settings.map_zone, obj.cur_map_pref_settings.seasons{season_idx});
     tracks_fn = fullfile(tracks_fn_dir,tracks_fn_name);
-    S = load(tracks_fn);
+    S = load(tracks_fn,'lat','lon','frm_id','frm_info');
+    % Concatenate data to tracks files data
+    % ---------------------------------------------------------------------
     if obj.map.source == 1
+      % Google map
       [x,y] = google_map.latlon_to_world(S.lat, S.lon); y = 256-y;
     else
+      % OPS or Blank map
       [x,y] = projfwd(obj.map.proj, S.lat, S.lon);
     end
     x = x/obj.map.scale; y = y/obj.map.scale;
@@ -312,28 +323,39 @@ if obj.map.fline_source == 1
     obj.trackdata.frm_info(season_idx) = S.frm_info;
     
     % Plot flight lines
+    % ---------------------------------------------------------------------
     set(obj.map_panel.h_flightline,'XData',obj.trackdata.x,'YData',obj.trackdata.y);
   end
   
 else
+  % OPS flightlines are integrated into the web map service (WMS) request
+  % so we don't need to worry about flightlines here
   set(obj.map_panel.h_flightline,'XData',NaN,'YData',NaN);
 end
 
+%% Update GUI
+% =========================================================================
+
 % Turn map axes on if this is the first time a map is being loaded
+% -------------------------------------------------------------------------
 set(obj.map_panel.h_axes,'Visible', 'on');
 set(obj.map_panel.h_image,'Visible', 'on');
 
 % Set map bounds to default if this is the first time a map is being loaded
 % or if the projection changed
+% -------------------------------------------------------------------------
 if isempty(obj.map.xaxis) || ~strcmpi(obj.ops.request.CoordRefSysCode,obj.map.CoordRefSysCode)
   obj.map.xaxis = obj.map.xaxis_default;
   obj.map.yaxis = obj.map.yaxis_default;
   obj.map.CoordRefSysCode = obj.ops.request.CoordRefSysCode;
 end
 
+% Update map axes
+% -------------------------------------------------------------------------
 obj.query_redraw_map(obj.map.xaxis(1),obj.map.xaxis(end),obj.map.yaxis(1),obj.map.yaxis(end));
 
 % Reset selection
+% -------------------------------------------------------------------------
 obj.map.sel.frm_str = ''; % Current frame name
 obj.map.sel.seg_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
 obj.map.sel.season_name = ''; % Current season name
@@ -343,11 +365,16 @@ set(obj.map_panel.h_cur_sel,{'XData','YData'},{[],[]});
 % Change map title to the currently selected frame
 set(obj.top_panel.flightLabel,'String',obj.map.sel.frm_str);
 
+% Cleanup
+% -------------------------------------------------------------------------
+
 % Redraw table to ensure everything is the right size
 table_draw(obj.table);
 
+% Force map view into foreground
 figure(obj.h_fig);
 
+% Save current settings
 obj.save_default_params();
 
 fprintf('  Done (%s)\n', datestr(now));
