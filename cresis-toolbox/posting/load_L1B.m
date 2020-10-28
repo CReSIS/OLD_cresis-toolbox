@@ -3,7 +3,7 @@ function mdata = load_L1B(fn)
 %
 % fn = filename string and must contain correct extension ('.nc' or '.mat')
 %
-% Loads L1B cresis echogram files.
+% Loads L1B cresis echogram (radar image) files.
 % L1B files can be in netcdf or mat format.
 % They can be "compressed" (compression is used for Snow and Kuband radar data
 % to make them smaller... main difference is that the surface is tracked

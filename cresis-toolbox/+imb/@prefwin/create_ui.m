@@ -17,33 +17,35 @@ flightlines = {'tracks files Flightlines','Connect to OPS'};
 
 wms_maps = {'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map';'Connect to OPS'};
 
-%% Get System Info from csarp_support/tracks files
+%% Load tracks files
 % =========================================================================
+
+% Create tracks file paths
+% -------------------------------------------------------------------------
 track_fn_dir = ct_filename_support(struct('radar_name','rds'),'tracks',''); % Setting radar_name to rds is arbitrary
 fprintf('Finding the csarp_support/tracks files in %s\n', track_fn_dir);
 track_fns = get_filenames(track_fn_dir,'tracks','','.mat');
+
+% Parse tracks filenames one at a time to populate
+%   obj.systems
+%   obj.seasons
+%   obj.locations
+% -------------------------------------------------------------------------
 valid_file_count = 0;
 for track_idx = 1:length(track_fns)
   track_fn = track_fns{track_idx};
   % Parse track_fn: layer_SYSTEM_SEASONNAME.mat
   [~,track_fn_name] = fileparts(track_fn);
-  [token,remain] = strtok(track_fn_name,'_');
-  if strcmpi(token,'tracks')
-    [token,remain] = strtok(remain,'_');
-    [sys_token,remain] = strtok(remain,'_');
-    if strcmpi(token,'arctic')
+  [file_type_str,remain] = strtok(track_fn_name,'_');
+  if strcmpi(file_type_str,'tracks')
+    [location_str,remain] = strtok(remain,'_');
+    [sys_str,remain] = strtok(remain,'_');
+    if any(strcmpi(location_str,{'arctic','antarctic'))
       % sys_token: accum, kuband, rds, or snow string
       % remain: _YYYY_LOCATION_PLATFORM string
       obj.systems{end+1} = 'tracks';
-      obj.seasons{end+1} = sprintf('%s_%s',sys_token,remain(2:end));
-      obj.locations{end+1} = 'arctic';
-      valid_file_count = valid_file_count+1;
-    elseif strcmpi(token,'antarctic')
-      % sys_token: accum, kuband, rds, or snow string
-      % remain: _YYYY_LOCATION_PLATFORM string
-      obj.systems{end+1} = 'tracks';
-      obj.seasons{end+1} = sprintf('%s_%s',sys_token,remain(2:end));
-      obj.locations{end+1} = 'antarctic';
+      obj.seasons{end+1} = sprintf('%s_%s',sys_str,remain(2:end));
+      obj.locations{end+1} = location_str;
       valid_file_count = valid_file_count+1;
     end
   end
