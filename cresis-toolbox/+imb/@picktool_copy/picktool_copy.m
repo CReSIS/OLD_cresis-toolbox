@@ -1,4 +1,4 @@
-classdef picktool_convert < imb.picktool
+classdef picktool_copy < imb.picktool
   
   properties
     table
@@ -11,7 +11,7 @@ classdef picktool_convert < imb.picktool
   end
   
   methods
-    function obj = picktool_convert(h_fig,parent)
+    function obj = picktool_copy(h_fig,parent)
       %%% Pre Initialization %%%
       % Any code not using output argument (obj)
       if nargin == 0 || isempty(h_fig)
@@ -27,7 +27,7 @@ classdef picktool_convert < imb.picktool
       obj.tool_name = '(c)opy';
       obj.tool_name_title = 'copy';
       obj.tool_shortcut = 'c';
-      obj.help_string = sprintf('Left click: No function\nLeft click and drag: Convert selected layers to match the layer specified in the tool param window (p)\n\n');
+      obj.help_string = sprintf('Left click: No function\nLeft click and drag: Copy the selected portion of the source layer specified in the tool param window (p) into the selected layers.\n\n');
       obj.w = 190; 
       obj.h = 170;
       

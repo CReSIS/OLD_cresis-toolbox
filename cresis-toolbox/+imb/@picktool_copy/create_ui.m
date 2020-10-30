@@ -1,4 +1,5 @@
 function create_ui(obj)
+% picktool_copy.create_ui(obj)
 
 set(obj.h_fig,'DockControls','off')
 set(obj.h_fig,'NumberTitle','off');
@@ -41,14 +42,14 @@ obj.panel.source_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.source_label,'Style','text');
 set(obj.panel.source_label,'String','Source layer:');
 set(obj.panel.source_label,'FontSize',10)
-set(obj.panel.source_label,'TooltipString','This is the source layer to convert all active layers to. Select parts of this layer in the echogram to convert layers to the selected section.');
+set(obj.panel.source_label,'TooltipString','This is the source layer to copy into all active layers. Select parts of this layer in the echogram to copy layers for the selected section.');
 
 %----source layer edit
 obj.panel.sourceTB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.sourceTB,'Style','edit');
 set(obj.panel.sourceTB,'String','1');
 set(obj.panel.sourceTB,'FontSize',10);
-set(obj.panel.sourceTB,'TooltipString','This is the source layer to convert all active layers to. Select parts of this layer in the echogram to convert layers to the selected section.');
+set(obj.panel.sourceTB,'TooltipString','This is the source layer to copy into all active layers. Select parts of this layer in the echogram to copy layers for the selected section.');
 
 %----source eval label
 obj.panel.source_eval_label = uicontrol('Parent',obj.panel.handle);
