@@ -106,7 +106,7 @@ function old_time = records_check_support_func(records_fn,param,old_time)
 % =========================================================================
 
 % Setup records_check output file
-command_window_out_fn = ct_filename_ct_tmp(param,'','records_check', sprintf('output.txt',param.day_seg));
+command_window_out_fn = ct_filename_ct_tmp(param,'','records_check', 'output.txt');
 command_window_out_fn_dir = fileparts(command_window_out_fn);
 if ~exist(command_window_out_fn_dir,'dir')
   mkdir(command_window_out_fn_dir);

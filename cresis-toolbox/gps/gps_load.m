@@ -12,13 +12,13 @@ old_gps = gps;
 
 %% Update header fields
 if ~isfield(gps,'file_version') || isempty(gps.file_version)
-  warning('gps file missing file_version field. Adding file_version field.');
+  warning('gps file missing file_version field. Adding field.');
   gps.file_version = '0';
 end
 
 file_version = gps.file_version(isstrprop(gps.file_version,'digit'));
 if str2double(file_version) < 2
-  warning('gps file is old file_version. Updating file_version.');
+  warning('gps file is old file_version. Updating field.');
   if any(file_version == 'L')
     gps.file_version = '2L';
   else
@@ -27,7 +27,7 @@ if str2double(file_version) < 2
 end
 
 if ~isfield(gps,'season_name') || isempty(gps.season_name)
-  warning('gps file missing season_name field. Adding season_name field.');
+  warning('gps file missing season_name field. Adding field.');
   % Default param.season_name is the directory where the file is if the
   % file is in the standard location.
   [gps_fn_dir,gps_fn_name] = fileparts(gps_fn);
@@ -42,7 +42,7 @@ if ~isfield(gps,'season_name') || isempty(gps.season_name)
 end
 
 if ~isfield(gps,'date_str') || isempty(gps.date_str)
-  warning('gps file missing file_version field. Adding file_version field.');
+  warning('gps file missing date_str field. Adding field.');
   % Default param.date_str is in the gps filename by default.
   gps.date_str = gps_fn_name(5:end);
   if 0
@@ -54,17 +54,17 @@ if ~isfield(gps,'date_str') || isempty(gps.date_str)
 end
 
 if ~isfield(gps,'file_type') || isempty(gps.file_type)
-  warning('gps file missing file_type field. Adding file_type field.');
+  warning('gps file missing file_type field. Adding field.');
   gps.file_type = 'gps';
 end
 
 if ~isfield(gps,'gps_source') || isempty(gps.gps_source)
-  warning('gps file missing gps_source field. Adding gps_source field.');
+  warning('gps file missing gps_source field. Adding field.');
   gps.gps_source = '';
 end
 
 if ~isfield(gps,'sw_version') || isempty(gps.sw_version)
-  warning('gps file missing sw_version field. Adding sw_version field.');
+  warning('gps file missing sw_version field. Adding field.');
   gps.sw_version = current_software_version;
 end
 
