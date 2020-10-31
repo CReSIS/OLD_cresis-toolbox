@@ -389,7 +389,6 @@ ylim([-100, 400]);
 % ylim([-100, 400]);
 % xlabel('Along Track Distance (km)');
 
-
 % Annual melt rate average based off 2011-2019 melt subtraction
 % figure(6)
 % plot(AT_data.query_array.P11/1e3, AT_data.melt_rates.P11_P19/8, 'color','g');

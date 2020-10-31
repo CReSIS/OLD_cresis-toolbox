@@ -149,7 +149,7 @@ AT_data.array_size.P18_elev = size(AT_data.elev_End_Clip.P2018);
 % interpolate by which ever line you choose. Sample spacing is every 0.1m
 % Switch middle value to change sample step
   
-AT_data.query_array.P11 = (AT_data.AT_vel.P2011(1):0.1:...
+AT_data.query_array.P11 = (AT_data.AT_vel.P2011(1):10:...
   AT_data.AT_vel.P2011(end));
 %AT_data.query_array.P14 = (AT_data.AT_vel.P2014(1):0.1:...
 %AT_data.AT_vel.P2014(end));
@@ -343,8 +343,18 @@ legend('2011-2018 annual average');
   legend('new 2011', 'new 2014', 'new 2018','Location', 'southeast');
 
 %%
-Crevasse_apex = localmax(AT_data.elevB.P2011);
-Crevasse_base = localmin(AT_data.elevB.P2011);
+Crevasse_apex = islocalmax(AT_data.elevB.P2011);
+Crevasse_base = islocalmin(AT_data.elevB.P2011);
+
+%Test figures
+figure(1)
+h1 = plot(AT_data.CP.P2011/1e3, AT_data.elev.P2011);
+hold on
+h2 = plot(AT_data.CP.P2011/1e3, Crevasse_apex);
+xlabel = ('Along track distance (km)');
+ylabel = ('Elevation (m)');
+legend('2011', '2011 apex','Location', 'southeast');
+
 
 %% Correlation Window approach
 maxlag = 250; % minimum bin offset used by cameron
@@ -421,16 +431,7 @@ end
   ylabel('\Delta height (M');
   title(' 2014-2011 Basal ');
   
-  %%   
-%   surf1 = cumtrapz(pass(1).layers(1).layer_elev);
-%   base1 = cumtrapz(pass(1).layers(2).layer_elev);
-%   surf2 = cumtrapz(pass(2).layers(1).layer_elev);
-%   base2 = cumtrapz(pass(2).layers(2).layer_elev);
-%   
-%   prof2011 = trapz(pass(1).layers(1).layer_elev, pass(1).layers(2).layer_elev);
-%   prof2014 = trapz(pass(2).layers(1).layer_elev, pass(2).layers(2).layer_elev); 
-%   prof2018 = trapz(pass(3).layers(1).layer_elev, pass(3).layers(2).layer_elev);
-  
+
   %% difference in Heigh of Profiles 
   fig = figure(5); 
   h1 = subplot(3,1,1);
@@ -452,12 +453,7 @@ end
   set([h.YLabel],'string','\Delta Height(m)');
   set([h.XLabel], 'string','along track distance (km)');
   
-%   han = axes(fig, 'visible', 'off');
-%   han.Title.Visible = 'on';
-%   han.XLabel.Visible = 'on';
-%   han.YLabel.Visible = 'on';
-%   xlabel(han, 'Along-track (km)');
-%   ylabel(han, 'Vertical change in Height (m)');
+
   
   %% Basal Reflectors of all 3 years WORKING SPOT
   figure(26)
@@ -483,21 +479,6 @@ end
   ylabel('Cross-sectional Area(m^2)');
   title(' 2011, 2014, 2018 Petermann Basal Reflectors');
   
-  %%
-  lat11 = pass(1).layers(2).lat;
-  lat18 = pass(3).layers(2).lat;
-  lon11 = pass(1).layers(2).lon;
-  lon18 = pass(3).layers(2).lon;
-  
-  figure(31)
-  h_plot1 = plot(lon11, lat11);
-  hold on;
-  h_plot2 = plot(lon18, lat18);
-  grid on; 
-  title('flight trajectories 2011/2018');
-  legend({'2011', '2018'}, 'Location', 'northeast');
-  xlabel('Longitude (degrees)');
-  ylabel('Latitude (degrees)');
 
   %%
   figure(28)
@@ -546,7 +527,7 @@ end
   grid on;
   %%
   figure(33)
-  plot(tmp/1e3, (newprof18 - newprof11);
+  plot(tmp/1e3, (newprof18 - newprof11));
   legend({'2018-2011 melt'}, 'Location', 'southeast');
   title('Melt 2018-2011');
   xlabel('Cross-sectional area (km)');

@@ -14,7 +14,7 @@ param_override = [];
 param = [];
 passes = [];
 
-example_str = '79N_line1_2010_2014_2016_2018';
+example_str = 'Petermann_line1_2011_2014_2018';
 
 if strcmpi(example_str,'Thwaites_201902_201912_202001')
   %% Thwaites Line 1 20190201_01, 20191225_01, 20200127_01

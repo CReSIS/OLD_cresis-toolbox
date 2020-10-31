@@ -13,7 +13,9 @@
 param_override = [];
 param = [];
 
-example_str = 'Petermann_line4_2010_2011_2013_2014';
+example_str = 'Petermann_line1_2011_2014_2018';
+
+param_override.multipass.layer = struct('name',{'surface' 'bottom_qc'},'source','ops');
 
 if strcmpi(example_str,'Thwaites_201902_201912_202001')
   %% Thwaites Line 1 20190201_01, 20191225_01, 20200127_01
