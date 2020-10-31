@@ -211,8 +211,7 @@ for param_idx = 1:length(params)
       
       %% Check echogram outputs
       for output_idx = 1:length(outputs)
-        frames_fn = ct_filename_support(param,'','frames');
-        load(frames_fn);
+        frames = frames_load(param);
         out_dir = fullfile(ct_filename_out(param,'','',1),['CSARP_' outputs_post_dir], ...
           ['CSARP_' outputs{output_idx}],param.day_seg);
         fprintf('  Output %s\n', out_dir);

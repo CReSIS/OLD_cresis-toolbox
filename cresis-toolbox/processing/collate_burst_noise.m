@@ -41,6 +41,10 @@ if ~isfield(param.collate_burst_noise,'cmd_idx') || isempty(param.collate_burst_
   param.collate_burst_noise.cmd_idx = 1;
 end
 
+if ~isfield(param.collate_burst_noise,'bit_mask') || isempty(param.collate_burst_noise.bit_mask)
+  param.collate_burst_noise.bit_mask = 4;
+end
+
 if ~isfield(param.collate_burst_noise,'debug_plots') || isempty(param.collate_burst_noise.debug_plots)
   param.collate_burst_noise.debug_plots = {'bn_plot'};
 end
@@ -101,6 +105,9 @@ for img = param.collate_burst_noise.imgs
     
     cmd = noise.param_analysis.analysis.cmd{param.collate_burst_noise.cmd_idx};
     
+    % noise.bad_recs: a list of all the bad records for each burst noise
+    % event, there will be multiple entries for a record if there are
+    % multiple burst noise events in that record
     bad_recs_unique = unique(noise.bad_recs);
     
     % Determine the boards for this wf-adc pair
@@ -111,8 +118,12 @@ for img = param.collate_burst_noise.imgs
     % zero-pi mod sequences that are stored separately)
     boards = cell2mat({states.board_idx});
     
-    % Set bit 2 to true for the bad records
-    new_bit_mask(boards,bad_recs_unique) = bitor(4,new_bit_mask(boards,bad_recs_unique));
+    % Set bits (usually bit 2 or bit 4) to true for the bad records
+    new_bit_mask(boards,bad_recs_unique) = bitor(param.collate_burst_noise.bit_mask,new_bit_mask(boards,bad_recs_unique));
+    
+    % Add the specific section to be blanked out
+    % burst_noise_table(row,:) = [rline rbin0 rbin1]
+    burst_noise_table = [];
     
     %% Plot
     % =====================================================================
@@ -168,11 +179,13 @@ for img = param.collate_burst_noise.imgs
       keyboard
     end
     
+    %records.burst_noise(wf,adc).table(row,:) = [rline rbin0 rbin1]
+    records.burst_noise(wf,adc).table = burst_noise_table;
   end
 end
 
 %% Update records file
-records.bit_mask = records.bit_mask - bitand(4,records.bit_mask) + uint8(new_bit_mask);
+records.bit_mask = records.bit_mask - bitand(param.collate_burst_noise.bit_mask,records.bit_mask) + uint8(new_bit_mask);
 records_fn = ct_filename_support(param,'','records');
 ct_save(records_fn,'-append','-struct','records','bit_mask');
 

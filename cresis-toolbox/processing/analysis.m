@@ -165,27 +165,89 @@ for cmd_idx = 1:length(param.analysis.cmd)
   switch cmd.method
     case {'burst_noise'}
       % Set defaults for burst noise analysis method
+
+      % bad_samples_function: Used with 'custom' noise_filt_type. This
+      % function should return a logical value for every pixel in the
+      % image. A true value should mean that burst noise was detected.
+      if ~isfield(cmd,'bad_samples_function') || isempty(cmd.bad_samples_function)
+        for img = 1:length(param.analysis.imgs)
+          cmd.bad_samples_function{img} = @(data_signal,wfs)repmat(lp(mean(data_signal,1)) > lp(median(data_signal(:)))+20,[wfs.Nt_raw 1]);
+        end
+      end
+
+      % debug_function: Used with 'custom' noise_filt_type. Function should
+      % return a value for each range line/record.
+      if ~isfield(cmd,'debug_function') || isempty(cmd.debug_function)
+        for img = 1:length(param.analysis.imgs)
+          cmd.debug_function{img} = @(data_signal,wfs)-lp(mean(data_signal,1));
+        end
+      end
       
+      % max_bad_waveforms: wf-adc recorded waveforms/range-lines with burst
+      % noise detected are saved, but only up to this many. Set to inf to
+      % save all waveforms with burst noise detected.
       if ~isfield(cmd,'max_bad_waveforms') || isempty(cmd.max_bad_waveforms)
         cmd.max_bad_waveforms = 100;
       end
       
+      % param.analysis.cmd.noise_filt_type: String containing 'fir',
+      % 'median', or 'custom'. Default is 'fir'.
+      %
+      % custom: uses bad_samples_function and signal_function
+      % (debug_function is optional and only useful if the debug code is
+      % enabled in analysis_task.m)
+      %
+      % fir: uses noise_filt, signal_filt, and threshold to apply a
+      % constant false alarm rate (CFAR) detector. The filtering uses a
+      % standard FIR filter.
+      %
+      % median: uses noise_filt, signal_filt, and threshold to apply a
+      % constant false alarm rate (CFAR) detector. The filtering uses the
+      % median operator rather than a regular filter.
+      if ~isfield(cmd,'noise_filt_type') || isempty(cmd.noise_filt_type)
+        cmd.noise_filt_type = 'fir';
+      end
+      
+      % noise_filt: Used with 'fir' and 'median' noise_filt_type's. Filter
+      % for estimating background noise for CFAR detector. These are filter
+      % lengths in [fast-time slow-time]. They must be odd.
       if ~isfield(cmd,'noise_filt') || isempty(cmd.noise_filt)
         cmd.noise_filt = [11 101];
       end
       
+      % signal_filt: Used with 'fir' and 'median' noise_filt_type's. Filter
+      % for estimating signal for CFAR detector. These are filter lengths
+      % in [fast-time slow-time]. They must be odd.
       if ~isfield(cmd,'signal_filt') || isempty(cmd.signal_filt)
         cmd.signal_filt = [11 1];
       end
       
+      % signal_function: Used with 'custom' noise_filt_type. This
+      % function is a convenience function whose output will be stored in
+      % data_signal which is passed to noise_function and
+      % bad_samples_function.
+      if ~isfield(cmd,'signal_function') || isempty(cmd.signal_function)
+        for img = 1:length(param.analysis.imgs)
+          cmd.signal_function{img} = @(raw_data,wf_adc,wfs)abs(raw_data{1}(:,:,wf_adc)).^2;
+        end
+      end
+
+      % threshold: Used with 'fir' and 'median' noise_filt_type's. Filtered
+      % signal values that exceed this threshold will be marked as burst
+      % noise detections.
       if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
         cmd.threshold = 17;
       end
       
+      % valid_bins: Restricts the range of bins where burst detections are
+      % allowed to occur. The default is [1 inf] which allows burst
+      % detections anywhere in the range line. Typical usage would be to
+      % exclude the feedthrough or nadir surface signal that may be large
+      % and variable and lead to false alarms if it is nonstationary.
       if ~isfield(cmd,'valid_bins') || isempty(cmd.valid_bins)
         cmd.valid_bins = {};
         for img = 1:length(param.analysis.imgs)
-          cmd.valid_bins{img} = [501 inf];
+          cmd.valid_bins{img} = [1 inf];
         end
       end
 

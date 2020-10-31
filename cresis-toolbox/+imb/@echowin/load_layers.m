@@ -68,7 +68,7 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
   %% LayerData: Load layer points from layerdata
   
   %% LayerData: Preallocate layer arrays
-  fprintf(' Loading layer points from layerData (%s)\n',datestr(now));
+  fprintf(' Loading layer points from layer data files (%s)\n',datestr(now));
   obj.eg.layers.x = [];
   obj.eg.layers.y = {};
   obj.eg.layers.qual = {};

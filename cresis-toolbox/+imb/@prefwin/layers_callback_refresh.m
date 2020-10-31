@@ -10,7 +10,7 @@ end
 
 if ~isempty(system_name)
   %% layerdata systems
-  if strcmpi(system_name,'layerdata')
+  if strcmpi(system_name,'tracks')
     layer_sources = get(obj.h_gui.layerSourcePM,'String');
     layer_source = layer_sources{get(obj.h_gui.layerSourcePM,'Value')};
     if strcmp(layer_source,'OPS')

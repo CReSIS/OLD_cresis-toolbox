@@ -322,6 +322,13 @@ if (strcmpi(param.season_name,'2013_Antarctica_Sled'))% && strcmpi(gps_source,'n
   gps.z = 0;
 end
 
+if any(strcmpi(param.season_name,{'2015_Antarctica_Ground','2015_Greenland_Ground'}))
+  % NMEA data only and unknown lever arm
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(gps_source,'cresis'))
   % Absolute position of IMU for radar systems
   % For 2013:
@@ -506,7 +513,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(gps_source,'gravi
 end
 
 if (strcmpi(param.season_name,'2009_Antarctica_DC8') && strcmpi(gps_source,'DMS')) ...
-    || (strcmpi(param.season_name,'2010_Antarctica_DC8') && strcmpi(gps_source,'DMSATM'))
+    || (strcmpi(param.season_name,'2010_Antarctica_DC8') && any(strcmpi(gps_source,{'DMSATM','DMSATM_20101026'}))) ...
   % Absolute position of ATM antenna
   % For 2009:
   %  DMS data are processed to the GPS antenna.
@@ -937,6 +944,27 @@ if (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'accum'
   % Amplitude (not power) weightings for transmit side.
   if rxchannel == 0
     rxchannel = 2;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if any(strcmpi(param.season_name,{'2015_Antarctica_Ground','2015_Greenland_Ground'})) && strcmpi(radar_name,'accum')
+  % Accumulation antenna
+  % NMEA data only and unknown lever arm
+  LArx(1,:)   = ([0]) - gps.x; % m
+  LArx(2,:)   = ([0]) - gps.y; % m
+  LArx(3,:)   = ([0]) - gps.z; % m
+  
+  LAtx(1,:)   = ([0]) - gps.x; % m
+  LAtx(2,:)   = ([0]) - gps.y; % m
+  LAtx(3,:)   = ([0]) - gps.z; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
     tx_weights = ones(1,size(LAtx,2));
   end
 end
@@ -1598,7 +1626,9 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(radar_name,'r
 end
 
 if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(radar_name,'rds'))
-  % See notes in GPS section
+  % These values need to be updated with actual values. They appear to not
+  % be using the total station survey values that Craig from ATM provided
+  % and the offsets from those that Richard Hale provided.
     
   % Measurements, X,Y,Z are in aircraft coordinates, not IMU coordinates
   LArx(1,1:8) = 1.5859;

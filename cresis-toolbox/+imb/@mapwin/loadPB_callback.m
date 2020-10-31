@@ -86,7 +86,7 @@ param.cur_sel = obj.map.sel;
 param.cur_sel.frm = str2num(param.cur_sel.frm_str(13:end));
 param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
 param.cur_sel.day_seg = param.cur_sel.frm_str(1:11);
-if strcmp(obj.cur_map_pref_settings.system,'layerdata')
+if strcmp(obj.cur_map_pref_settings.system,'tracks')
   param.system = param.cur_sel.radar_name;
   param.cur_sel.radar_name = param.cur_sel.radar_name;
   param.cur_sel.season_name = param.cur_sel.season_name;
@@ -130,11 +130,11 @@ param.filename = {};
 param.map = obj.map;
 if strcmpi(param.layer_source,'layerdata')
   % Find this season in the list of seasons
-  if strcmp(obj.cur_map_pref_settings.system,'layerdata')
+  if strcmp(obj.cur_map_pref_settings.system,'tracks')
     % Season layer files: Load segment information
     season_idx = find(strcmp(system_name_full,obj.cur_map_pref_settings.seasons));
     % Create a mask that identifies the frames for the selected segment in this season
-    frm_idxs = find(param.cur_sel.seg_id == floor(obj.layerdata.frm_info(season_idx).frm_id/1000));
+    frm_idxs = find(param.cur_sel.seg_id == floor(obj.trackdata.frm_info(season_idx).frm_id/1000));
     num_frm = length(frm_idxs);
   else
     % OPS: Load segment information
@@ -166,7 +166,7 @@ if strcmpi(param.layer_source,'layerdata')
   param_layerdata.records.gps.time_offset = NaN;
   param_layerdata.radar.lever_arm_fh = [];
   layers = layerdata(param_layerdata,param.layer_data_source);
-  layers.check_all();
+  layers.check_layer_organizer();
   
   for frm = 1:num_frm
     % Stores the filename for all frames in the segment
@@ -200,9 +200,9 @@ if strcmpi(param.layer_source,'layerdata')
   param.layers.lyr_name = param.layers.lyr_name(new_order);
   param.layers.lyr_order = param.layers.lyr_order(new_order);
   
-  if strcmp(obj.cur_map_pref_settings.system,'layerdata')
-    param.start_gps_time = obj.layerdata.frm_info(season_idx).start_gps_time(frm_idxs);
-    param.stop_gps_time = obj.layerdata.frm_info(season_idx).stop_gps_time(frm_idxs);
+  if strcmp(obj.cur_map_pref_settings.system,'tracks')
+    param.start_gps_time = obj.trackdata.frm_info(season_idx).start_gps_time(frm_idxs);
+    param.stop_gps_time = obj.trackdata.frm_info(season_idx).stop_gps_time(frm_idxs);
   end
 
 else

@@ -1,7 +1,26 @@
+% script check_posted_images
+%
+% Checks posted images (map and echogram). This is a script for quickly and
+% conveniently checking a few CSARP_post images in each segment to ensure
+% proper operation. Often it is better to view the images in the Windows
+% file explorer since all images can be viewed quickly this way by setting
+% the view setting to "view large icons" or similar, but this script is
+% available when that is not an option.
+%
+% Author: John Paden
+
 base_dir = '/N/dc/projects/cresis/output/snow/2012_Antarctica_DC8/CSARP_post/images/';
 % base_dir = '/N/dc/projects/cresis/output/kuband/2012_Antarctica_DC8/CSARP_post/images/';
 
+% Set the search string here to select specific segments or all segments in
+% the base_dir
 input_dirs = get_filenames(base_dir, '2012','','',struct('type','d'));
+
+% Just look at a sample of num_images images per segment
+num_images = 4;
+
+% =========================================================================
+% Automated Section
 
 figure(1); clf;
 h_axes = axes;
@@ -19,8 +38,6 @@ for dir_idx = 1:length(input_dirs)
   fprintf('dir_idx = %d\n', dir_idx);
   input_dir = input_dirs{dir_idx};
   fns = get_filenames(input_dir,'','','echo.jpg');
-  % Just look at a sample of num_images images
-  num_images = 4;
   fn_idxs = unique(round(linspace(2,length(fns)-1,num_images)));
   % Look at every image:
   %fn_idxs = 1:length(fns);

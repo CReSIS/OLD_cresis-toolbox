@@ -10,17 +10,26 @@
 %   (Motion compensation with phase correction)
 %   Quits after computing equalization coefficients
 % 2: to do coregistration and (if input_type=='sar') array process
-%   This is the mode to run when using input_type='echo'
+%   This is the mode that must be used when using input_type='echo'
 %   Co-register images using GPS and nadir squint angle assumption
 %   (Motion compensation without phase correction)
-%   Runs array processing if input_type=='sar'
+%   Runs array processing if input_type=='sar' and is used for cross-track
+%   slope estimation and basal swath imaging
 % 3: to differential INSAR
 %   Co-register images using GPS and nadir squint angle assumption
 %   (Motion compensation with phase correction AND slope correction)
-%   Saves output for interferometry
+%   Saves output for (differential) interferometry and vertical velocity
+%   estimation.
 % 4: to plot results
 %   Co-register images using GPS and nadir squint angle assumption
 %   Quits after plotting results
+%
+% param.multipass.fn: string containing the full file to the file created
+% by multipass.combine_passes.
+%
+% param.multipass.layer: opsLoadLayers layer parameter structure that
+% specifies all the layers to load for each pass and to synchronize. The
+% default is struct('name',{'surface','bottom'}).
 %
 
 %% Setup
