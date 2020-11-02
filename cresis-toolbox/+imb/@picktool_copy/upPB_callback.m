@@ -1,5 +1,5 @@
 function upPB_callback(obj,hObj,event)
-% picktool_convert.upPB_callback(obj,hObj,event)
+% picktool_copy.upPB_callback(obj,hObj,event)
 %
 % up push button callback. Causes active layers to be shifted up according
 % to the "Shift Size" field

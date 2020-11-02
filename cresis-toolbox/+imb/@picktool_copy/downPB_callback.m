@@ -1,5 +1,5 @@
 function downPB_callback(obj,hObj,event)
-% picktool_convert.downPB_callback(obj,hObj,event)
+% picktool_copy.downPB_callback(obj,hObj,event)
 %
 % down push button callback. Causes active layers to be shifted down according
 % to the "Shift Size" field
