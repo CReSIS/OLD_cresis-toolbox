@@ -80,6 +80,7 @@ else
 end
 
 %  Draw the echo class in the selected echowin
+param = [];
 param.sources = obj.cur_map_pref_settings.sources;
 param.layers = obj.cur_map_pref_settings.layers;
 param.cur_sel = obj.map.sel;
