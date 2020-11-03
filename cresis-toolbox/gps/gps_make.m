@@ -44,6 +44,8 @@
 %    product
 %  atm-final_20110826: processed to ATM DGPS antenna, final version of GPS/INS
 %    product as of 20110826
+% date_str: 8 letter sequence containing the date 'YYYYMMDD'
+% season_name: string containing season name YYYY_LOCATION_PLATFORM
 %
 %
 % Author: John Paden
@@ -138,6 +140,9 @@ for file_idx = 1:length(in_fns)
     sync_gps.roll = sync_gps.roll(good_mask);
     sync_gps.pitch = sync_gps.pitch(good_mask);
     sync_gps.heading = sync_gps.heading(good_mask);
+    if isfield(sync_gps,'profileCntr')
+      sync_gps.profileCntr = sync_gps.profileCntr(good_mask);
+    end
     
     %% Check for day wraps
     % Find jumps in the GPS time that are probably due to day interval
@@ -475,6 +480,10 @@ for file_idx = 1:length(in_fns)
   
   %% Add software revision information
   gps.sw_version = current_software_version;
+  
+  %% Add date_str and season_name
+  gps.date_str = date_str{file_idx};
+  gps.season_name = season_name;
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
@@ -495,15 +504,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version','file_type');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version','file_type','season_name','date_str');
     else
-      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version','file_type');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version','file_type','season_name','date_str');
     end
   else
-    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type');
+    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type','season_name','date_str');
   end
   
-  if debug_level >= 2
-    gps_plot(out_fn);
-  end
 end

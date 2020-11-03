@@ -19,7 +19,7 @@ params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 params = ct_set_params(params,'update_surface_twtt_delta.data_types',{'qlook'});
 % params = ct_set_params(params,'update_surface_twtt_delta.data_types',{'qlook','deconv','qlook_uwb','qlook_kuband'}); % Snow Radar
 params = ct_set_params(params,'update_surface_twtt_delta.imgs',[0 1 2]); % 0: combined img, 1+: img_II files
-params = ct_set_params(params,'update_surface_twtt_delta.update_adc_gains_dB',0);
+params = ct_set_params(params,'update_surface_twtt_delta.update_radiometric',false);
 
 % Example to override parameters
 % for param_idx = 1:length(params)

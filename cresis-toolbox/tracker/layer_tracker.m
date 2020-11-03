@@ -1,13 +1,21 @@
 function [ctrl_chain,param] = layer_tracker(param,param_override)
 % [ctrl_chain,param] = layer_tracker(param,param_override)
 %
-% Check input parameters and create tasks for layer_tracker.
-% layer_tracker_task does the actual tracking.
+% Check input parameters and create tracking tasks for running on a cluster
+% with layer_tracker. See run_layer_tracker for an example of routine
+% tracking of echograms. See run_layer_tracker_tune for an example of
+% hyperparameter tuning to improve tracking parameters. The function
+% "layer_tracker_task" does the actual tracking and
+% "layer_tracker_combine_task" combines the tracking results and stores them
+% into standard layer storage locations (either the OPS database or
+% layerdata files).
 %
-% Outputs stored in:
-% /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_test/20140313_08/
+% First stage temporary outputs stored in:
+% /cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer/20140313_08/
+% Second stage output stored in any format supported by opsCopyLayers and
+% input parameters control where the final combiend output goes.
 %
-% Comparing four different methods:
+% Comparing four different methods for example might store the outputs like this:
 %   layer_tracker_001/t001_lsm.mat, ..., layer_tracker_00N/t001_lsm.mat
 %   layer_tracker_001/t002_mcmc.mat, ..., layer_tracker_00N/t002_mcmc.mat
 %   layer_tracker_001/t003_stereo.mat, ..., layer_tracker_00N/t003_stereo.mat
@@ -28,6 +36,11 @@ function [ctrl_chain,param] = layer_tracker(param,param_override)
 %   t002_lsm_surface_001, ..., t002_lsm_surface_016, t002_lsm_bottom_001, ..., t002_lsm_bottom_016
 %   t003_lsm_surface_001, ..., t003_lsm_surface_016, t003_lsm_bottom_001, ..., t003_lsm_bottom_016
 %   t004_lsm_surface_001, ..., t004_lsm_surface_016, t004_lsm_bottom_001, ..., t004_lsm_bottom_016
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% General Setup
 % =====================================================================
@@ -216,7 +229,11 @@ while frm_idx <= length(param.cmd.frms)
     
     % Compute matrix size
     % ---------------------------------------------------------------------
-    data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    if param.layer_tracker.echogram_img == 0
+      data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    else
+      data_fn = fullfile(in_fn_dir,sprintf('Data_img_%02d_%s_%03d.mat',param.layer_tracker.echogram_img,param.day_seg,frm));
+    end
     try
       mdata = load(data_fn, 'GPS_time','Time','Latitude','Longitude');
       if (subblock_idx==1)

@@ -2,7 +2,7 @@ function success = layer_tracker_task(param)
 % success = layer_tracker_task(param)
 %
 % layer_tracker_task is used to load and prepare the data and metadata and
-% run the tracker. See layer_tracker.m.
+% run the tracker. See run_layer_tracker.m.
 %
 % param: parameter structure from parameter spreadsheet
 %   param.layer_tracker.echogram_source: The normal cluster mode is for
@@ -14,6 +14,11 @@ function success = layer_tracker_task(param)
 %   In cluster mode: logical scalar, true when task completes successfully
 %   In qlook_combine_task mode: surface twtt corresponding to the
 %   param.layer_tracker.echogram_source.GPS_time.
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% Input Checks: track field
 % =====================================================================
@@ -42,7 +47,8 @@ end
 
 %% Load echogram data
 if isstruct(param.layer_tracker.echogram_source)
-  % echogram_source is the data structure
+  % echogram_source is the radar image/data structure
+  % =======================================================================
   mdata = param.layer_tracker.echogram_source;
   frm_str = {sprintf('%s_%03d',param.day_seg,param.layer_tracker.frms)};
   frm_start = 1;
@@ -51,6 +57,9 @@ if isstruct(param.layer_tracker.echogram_source)
   dt = mdata.Time(2) - mdata.Time(1);
   
 else
+  % Load in the specified frames from files
+  % =======================================================================
+  
   % Create input directory paths
   in_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
   
@@ -76,6 +85,7 @@ else
     else
       data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
     end
+    fprintf('Loading %s (%s)\n', data_fn, datestr(now));
     if frm_idx == 1
       mdata = load_L1B(data_fn);
       frm_start(frm_idx) = 1;
@@ -122,6 +132,7 @@ else
       data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
     end
     if exist(data_fn,'file')
+      fprintf('Loading previous frame %s (%s)\n', data_fn, datestr(now));
       tmp_data = load_L1B(data_fn);
       
       overlap(1) = min(param.layer_tracker.overlap,length(tmp_data.GPS_time));
@@ -157,6 +168,7 @@ else
       data_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s.mat',param.layer_tracker.echogram_img,frm_str{frm_idx}));
     end
     if exist(data_fn,'file')
+      fprintf('Loading next frame %s (%s)\n', data_fn, datestr(now));
       tmp_data = load_L1B(data_fn);
       
       overlap(2) = min(param.layer_tracker.overlap,length(tmp_data.GPS_time));

@@ -94,8 +94,8 @@ end
 if ~isfield(param.load_data,'resample') || isempty(param.load_data.resample)
   param.load_data.resample = [1 1; 1 1];
 end
-if size(param.load_data.resample,1) == 1
-  param.load_data.resample(2,1:2) = [1 1];
+if numel(param.load_data.resample) == 2
+  param.load_data.resample = [param.load_data.resample(1) param.load_data.resample(2); 1 1];
 end
 
 if ~isfield(param.load_data,'surf_layer') || isempty(param.load_data.surf_layer)

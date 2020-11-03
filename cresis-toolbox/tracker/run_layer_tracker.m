@@ -207,6 +207,10 @@ switch ct_output_dir(params(1).radar_name)
       
       track.layer_names                 = {'surface'};
       
+      % track_override.threshold = 5;
+      % track_override.threshold_rel_max = -9;
+      % track_override.init.method	= 'nan'; % May be necessary if bottom is brighter than surface
+      
       % Override default init method
       if 0
         track.init.method	= 'dem';
@@ -222,6 +226,69 @@ switch ct_output_dir(params(1).radar_name)
         track.method = 'snake';
         track.snake_rng	= [-0.15e-6 0.15e-6];
       end
+    end
+    
+    %% ACCUM: DEM
+    if 0
+      track_override.profile = 'ACCUM';
+      track_override.layer_names                 = {'surface_dem_class'};
+      
+      % Override default init method
+      track_override.init.method	= 'dem';
+      track_override.init.dem_offset = 0;
+      track_override.init.dem_layer = [];
+      track_override.init.max_diff = 0;
+      
+      track_override.method = ''; % Just use DEM surface
+      track_override.max_rng = [0 0];
+    end
+    
+    %% ACCUM: Viterbi
+    if 1
+      track_override.method                      = 'viterbi';
+      track_override.layer_names                 = {'bottom'};
+      
+      track_override.min_bin = struct('name','surface','eval',struct('cmd','s=s+1e-6;'));
+      % track_override.min_bin = struct('name','tomo_top');
+      % track_override.max_bin = struct('name','tomo_bottom');
+      
+      track_override.crossover.en = false;
+      track_override.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
+      % track_override.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
+      track_override.crossover.gps_time_good_eval = @(x) x > datenum_to_epoch(datenum('2010/01/01')); % Cross overs before this date are good
+      
+      if 1
+        track_override.ice_mask.en = false;
+      elseif 0
+        % Greenland
+        track_override.ice_mask.en = true;
+        track_override.ice_mask.type = 'geotiff';
+        track_override.ice_mask.fn = ct_filename_gis([], fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));
+      elseif 0
+        % Canada
+        track_override.ice_mask.en = true;
+        track_override.ice_mask.type = 'bin';
+        track_override.ice_mask.fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+        track_override.ice_mask.mat_fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
+      elseif 0
+        % Antarctica
+        track_override.ice_mask.en = true;
+        track_override.ice_mask.type = 'geotiff2';
+        track_override.ice_mask.fn = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif'));
+        track_override.ice_mask.fn2 = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif'));
+      end
+      track_override.init.dem_layer = struct('name','surface');
+      
+      track_override.viterbi.transition_weight   = 0.01; % Larger --> smoother
+      track_override.viterbi.gt_cutoff           = 50;
+      
+      track_override.mult_suppress.en = true;
+      track_override.init.max_diff    = inf;
+      track_override.init.method      = 'nan';
+      track_override.detrend          = [];
+      track_override.filter_trim      = [0 120];
+      track_override.norm.scale       = [-40 90];
+      track_override.xcorr            = echo_xcorr_profile('xlong_unitstep');
     end
     
   case {'snow','kuband','kaband'}

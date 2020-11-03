@@ -139,6 +139,10 @@ if ~isfield(param.qlook,'nan_dec') || isempty(param.qlook.nan_dec)
   end
 end
 
+if ~isfield(param.qlook,'nan_dec_normalize_threshold') || isempty(param.qlook.nan_dec_normalize_threshold)
+  param.qlook.nan_dec_normalize_threshold = 2;
+end
+
 if ~isfield(param.qlook,'presums') || isempty(param.qlook.presums)
   param.qlook.presums = 1;
 end
@@ -149,6 +153,9 @@ end
 
 if ~isfield(param.qlook,'resample') || isempty(param.qlook.resample)
   param.qlook.resample = [1 1; 1 1];
+end
+if numel(param.qlook.resample) == 2
+  param.qlook.resample = [param.qlook.resample(1) param.qlook.resample(2); 1 1];
 end
 
 if ~isfield(param.qlook,'surf') || isempty(param.qlook.surf)
@@ -336,13 +343,18 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.cpu_time = 0;
     dparam.mem = 250e6;
     for img = 1:length(param.qlook.imgs)
+      wf = abs(param.qlook.imgs{img}(1,1));
+      adc = abs(param.qlook.imgs{img}(1,2));
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      data_pulse_compress_mult = 1;
       if isfield(param.radar.wfs(wf),'deconv') ...
           && isfield(param.radar.wfs(wf).deconv,'en') && any(param.radar.wfs(wf).deconv.en)
-        dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult*1.7;
-      else
-        dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult;
+        data_pulse_compress_mult = data_pulse_compress_mult + 0.7;
       end
+      if strcmpi(param.radar.wfs(wf).coh_noise_method,'analysis')
+        data_pulse_compress_mult = data_pulse_compress_mult + 0.7;
+      end
+      dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult*data_pulse_compress_mult;
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
@@ -429,14 +441,16 @@ end
 % Account for averaging
 Nx_max = Nx_max / param.qlook.dec / max(1,param.qlook.inc_dec);
 Nx = Nx / param.qlook.dec / max(1,param.qlook.inc_dec);
+
+records_var = whos('records');
 for img = 1:length(param.qlook.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
   if isempty(param.qlook.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
+    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*total_num_sam(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
+    sparam.mem = 350e6 + records_var.bytes + Nx*sum(total_num_sam)*mem_mult;
   end
 end
 if param.qlook.surf.en

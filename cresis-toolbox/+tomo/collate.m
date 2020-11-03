@@ -58,6 +58,22 @@ if ~isfield(param.tomo_collate,'frm_types') || isempty(param.tomo_collate.frm_ty
   param.tomo_collate.frm_types = {-1,-1,-1,-1,-1};
 end
 
+if ~isfield(param.tomo_collate,'gt') || isempty(param.tomo_collate.gt)
+  param.tomo_collate.gt = [];
+end
+if ~isfield(param.tomo_collate.gt,'en') || isempty(param.tomo_collate.gt.en)
+  param.tomo_collate.gt.en = false;
+end
+if ~isfield(param.tomo_collate.gt,'path') || isempty(param.tomo_collate.gt.path)
+  param.tomo_collate.gt.path = 'surf';
+end
+if ~isfield(param.tomo_collate.gt,'range') || isempty(param.tomo_collate.gt.range)
+  param.tomo_collate.gt.range = 5;
+end
+if ~isfield(param.tomo_collate.gt,'surf_name') || isempty(param.tomo_collate.gt.surf_name)
+  param.tomo_collate.gt.surf_name = 'bottom gt';
+end
+
 if ~isfield(param.tomo_collate,'ground_based_flag') || isempty(param.tomo_collate.ground_based_flag)
   param.tomo_collate.ground_based_flag = false;
 end

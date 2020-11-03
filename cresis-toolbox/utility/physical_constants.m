@@ -30,6 +30,7 @@ e0 = 8.8541878176e-12;
 u0 = 4e-7*pi;
 % Speed of light in free-space
 c = 1/sqrt(e0*u0);
+%c = 2.997924580003452e+08;
 % Boltzmann's constant (J * K^-1 * Hz^-1), http://en.wikipedia.org/wiki/Boltzmann_constant
 BoltzmannConst = 1.380650524e-23;
 % Earth Radius (m) from WGS-84 ellipsoid (larger: equatorial radius,

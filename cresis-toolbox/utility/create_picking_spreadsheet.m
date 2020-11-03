@@ -20,8 +20,14 @@ function create_picking_spreadsheet(param_fn,xls_fn_dir,pick_param)
 %
 % EXAMPLE:
 %   param_fn = ct_filename_param('rds_param_2013_Antarctica_P3.xls');
-%   xls_fn_dir = 'C:\tmp\';
+%   xls_fn_dir = 'C:\';
 %   create_picking_spreadsheet(param_fn,xls_fn_dir);
+%
+%   params = read_param_xls(ct_filename_param('accum_param_2019_Antarctica_TObas.xls'));
+%   params = ct_set_params(params,'cmd.generic',1);
+%   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+%   xls_fn_dir = '~/';
+%   create_picking_spreadsheet(params,xls_fn_dir);
 %
 % Author: John King
 %
@@ -39,7 +45,11 @@ if ~isfield(pick_param,'mode') || isempty(pick_param.mode)
 end
 
 %% Read in the param spreadsheet
-params = read_param_xls(param_fn);
+if ischar(param_fn)
+  params = read_param_xls(param_fn);
+else
+  params = param_fn;
+end
 
 %% Create Excel spreadsheet
 output_dir = ct_output_dir(params(1).radar_name);
@@ -80,8 +90,7 @@ for params_idx = 1:length(params)
     continue;
   end
   
-  frames_fn = ct_filename_support(param,'','frames');
-  load(frames_fn); % Load frames into variable "frames"
+  frames = frames_load(param); % Load frames into variable "frames"
   
   if strcmpi(pick_param.mode,'ascii')
     for frm = 1:length(frames.frame_idxs)
