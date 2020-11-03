@@ -26,9 +26,15 @@ if strcmpi(get(obj.h_fig,'SelectionType'),'open')
   end
   
 else
+ 
+  str = 'Select layers to operate on, right click to open context menu to manipulate list of layers. Red font indicates layer visibility is off.';
   val = get(source,'Value');
-  disp(obj.eg.layers.lyr_desc{val})
-  set(obj.left_panel.layerLB,'TooltipString',obj.eg.layers.lyr_desc{val});
+  for i = 1:length(val)
+    str = sprintf('%s\n(%d):%s %s',str,val(i),obj.eg.layers.lyr_name{val(i)},obj.eg.layers.lyr_desc{val(i)});
+  end
+  sprintf(str)
+  set(obj.left_panel.layerLB,'TooltipString',str);
+  str = '';
   obj.eg.layers.selected_layers(:)=false;
   obj.eg.layers.selected_layers(val)=true;
   

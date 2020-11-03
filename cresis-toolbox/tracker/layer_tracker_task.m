@@ -243,28 +243,29 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Ice mask calculation
   if track.ice_mask.en
-    if strcmp(track.ice_mask.type,'bin')
-      mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
-      [fid,msg] = fopen(track.ice_mask.fn,'r');
-      if fid < 1
-        fprintf('Could not open file %s\n', track.ice_mask.fn);
-        error(msg);
-      end
-      mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
-      fclose(fid);
-    else
-      [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
-      mask.proj = geotiffinfo(track.ice_mask.fn);
-    end
-    [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
-    mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
-    mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
-    [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
-    ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
-    ice_mask.mask(isnan(ice_mask.mask)) = 1;
-    track.ice_mask = ice_mask.mask;
-  else
-    track.ice_mask = ones(1,Nx);
+%     if strcmp(track.ice_mask.type,'bin')
+%       mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
+%       [fid,msg] = fopen(track.ice_mask.fn,'r');
+%       if fid < 1
+%         fprintf('Could not open file %s\n', track.ice_mask.fn);
+%         error(msg);
+%       end
+%       mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
+%       fclose(fid);
+%     else
+%       [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
+%       mask.proj = geotiffinfo(track.ice_mask.fn);
+%     end
+%     [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
+%     mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
+%     mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
+%     [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
+%     ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
+%     ice_mask.mask(isnan(ice_mask.mask)) = 1;
+%     track.ice_mask = ice_mask.mask;
+%   else
+%     track.ice_mask = ones(1,Nx);
+    track.ice_mask = interp1(param.ice_mask.gps_time,param.ice_mask.mask,mdata.GPS_time);
   end
 
   %% Track: Crossover loading
@@ -559,6 +560,16 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: Tracking
+  if strcmpi(track.method, 'lsm')
+    surf = interp_finite(interp1(param.layer_tracker.gt_params.gps_time,param.layer_tracker.gt_params.twtt,mdata.GPS_time));
+    surf_bins = round(interp1(mdata.Time,1:length(mdata.Time),surf));
+    if track.flag == 1
+      if track.lsm.y == 1
+        track.lsm.y = mean(surf_bins);
+      end
+    end
+  end
+  
   if strcmpi(track.method,'threshold')
     track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
     if track.data_noise_en
@@ -674,7 +685,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
     
     %% Track: Debug plot
-    if tracked_images_en
+    if 0%tracked_images_en
       clf(h_fig(1));
       figure_name = sprintf('layer_tracker %s %d-%d layer %d',param.day_seg, param.layer_tracker.frms([1 end]), layer_idx);
       set(h_fig(1),'name',figure_name);

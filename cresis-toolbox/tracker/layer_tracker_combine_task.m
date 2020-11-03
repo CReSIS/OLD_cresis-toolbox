@@ -14,6 +14,7 @@ end
 layer_dest.name = [];
 layer_source.twtt = [];
 layer_source.gps_time = [];
+layer_source.desc = [];
 
 %% Track loop
 % Combine and Copy each tracking result
@@ -31,7 +32,13 @@ for track_idx = 1:length(param.layer_tracker.track)
     
     Nx = length(tmp.gps_time);
     gps_time(1,end+(1:Nx)) = tmp.gps_time;
-    twtt(:,end+(1:Nx)) = tmp.twtt;
+    try
+      twtt(:,end+(1:Nx)) = tmp.twtt;
+    catch ME
+      tmp.twtt(36,:) = tmp.twtt(35,:);
+      twtt(:,end+(1:Nx)) = tmp.twtt;
+    end
+      
   end
   
   %% Track: opsCopyLayer copy struct
@@ -57,9 +64,13 @@ for track_idx = 1:length(param.layer_tracker.track)
           if layer_idx <= length(track.lsm.storeIter)
             layer_dest.name{end+1} = sprintf('%s_%s_surface_%03d', ...
               track.name,track.method,layer_idx);
+            layer_source.desc{end+1} =  sprintf('y = %d, dy = %d, iter = %d', ...
+              track.lsm.y,track.lsm.dy,layer_idx);
           else
             layer_dest.name{end+1} = sprintf('%s_%s_bottom_%03d', ...
               track.name,track.method,layer_idx-length(track.lsm.storeIter));
+            layer_source.desc{end+1} =  sprintf('y = %d, dy = %d, iter = %d', ...
+              track.lsm.y,track.lsm.dy,layer_idx-length(track.lsm.storeIter));
           end
         case {'mcmc','stereo'}
           if layer_idx == 1
@@ -69,6 +80,7 @@ for track_idx = 1:length(param.layer_tracker.track)
           end
         case 'viterbi'
           layer_dest.name{end+1} = sprintf('%s_%s_bottom',track.name,track.method);
+          layer_source.desc{end+1} =  sprintf('smoothness = %d', track.viterbi.transition_weight);
         otherwise
           layer_dest.name{end+1} = sprintf('%s_%s_surface',track.name,track.method);
       end
@@ -83,6 +95,7 @@ end
 copy_param.layer_source.gps_time = layer_source.gps_time;
 copy_param.layer_source.twtt = layer_source.twtt;
 copy_param.layer_dest.name = layer_dest.name;
+copy_param.layer_source.desc = layer_source.desc;
 fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
 opsCopyLayers(param,copy_param);
 

@@ -72,6 +72,98 @@ sparam.cpu_time = 60;
 sparam.mem = 500e6;
 sparam.notes = '';
 
+
+track = param.layer_tracker.track{1};
+temp = [];
+track.gps_time = [];
+frm_filenames = {};
+in_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
+
+for frm_idx = 1:length(param.cmd.frms)
+   frm = param.cmd.frms(frm_idx);
+    % Load the previous frame
+   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+   if ~ismember(data_fn,frm_filenames)
+     frm_filenames{end+1} = data_fn;
+   end
+   
+   frm = param.cmd.frms(frm_idx)-1;
+   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+   if ~ismember(data_fn,frm_filenames)
+     frm_filenames{end+1} = data_fn;
+   end
+   
+   frm = param.cmd.frms(frm_idx)+1;
+   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+   if ~ismember(data_fn,frm_filenames)
+     frm_filenames{end+1} = data_fn;
+   end
+end
+
+for frm_idx = 1:length(frm_filenames)
+%   frm = param.cmd.frms(frm_idx);
+%   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+  data_fn = frm_filenames{frm_idx};
+  if exist(data_fn,'file')
+      mdata = load(data_fn, 'GPS_time','Time','Latitude','Longitude');
+      Nx = length(mdata.GPS_time);
+
+%   if track.ice_mask.en
+%     if strcmp(track.ice_mask.type,'bin')
+%       mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
+%       [fid,msg] = fopen(track.ice_mask.fn,'r');
+%       if fid < 1
+%         fprintf('Could not open file %s\n', track.ice_mask.fn);
+%         error(msg);
+%       end
+%       mask.mask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
+%       fclose(fid);
+%     else
+%       [mask.mask,mask.R,~] = geotiffread(track.ice_mask.fn);
+%       mask.proj = geotiffinfo(track.ice_mask.fn);
+%     end
+%     [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
+%     mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.mask,2));
+%     mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.mask,1));
+%     [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
+%     ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.mask), mask.x, mask.y));
+%     ice_mask.mask(isnan(ice_mask.mask)) = 1;
+%     track.ice_mask.ice_mask = cat(2,ice_mask.mask,track.ice_mask.ice_mask);
+%     track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
+%   end
+  if track.ice_mask.en
+    if strcmp(track.ice_mask.type,'bin')
+      mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
+      [fid,msg] = fopen(track.ice_mask.fn,'r');
+      if fid < 1
+        fprintf('Could not open file %s\n', track.ice_mask.fn);
+        error(msg);
+      end
+      mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
+      fclose(fid);
+    else
+      [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
+      mask.proj = geotiffinfo(track.ice_mask.fn);
+    end
+    [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
+    mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
+    mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
+    [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
+    ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
+    ice_mask.mask(isnan(ice_mask.mask)) = 1;
+    temp = cat(2,ice_mask.mask,temp);
+    track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
+  else
+    temp = cat(2,ice_mask.mask,ones(1,Nx));
+    track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
+  end
+  end
+end
+
+sparam.argsin{1}.ice_mask.mask = temp;
+sparam.argsin{1}.ice_mask.gps_time = track.gps_time;
+
+
 cpu_time_mult = zeros(size(param.layer_tracker.track));
 mem_mult = zeros(size(param.layer_tracker.track));
 for track_idx = 1:length(param.layer_tracker.track)
@@ -102,6 +194,8 @@ end
 mem_combine = 0;
 cputime_combine = 0;
 frm_idx = 1;
+idx = 1;
+
 while frm_idx <= length(param.cmd.frms)
   Nx = 0;
   Nt = 0;
@@ -124,7 +218,7 @@ while frm_idx <= length(param.cmd.frms)
     % ---------------------------------------------------------------------
     data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
     try
-      mdata = load(data_fn, 'GPS_time','Time');
+      mdata = load(data_fn, 'GPS_time','Time','Latitude','Longitude');
       if (subblock_idx==1)
         max_time = mdata.Time(end);
         min_time = mdata.Time(1);
