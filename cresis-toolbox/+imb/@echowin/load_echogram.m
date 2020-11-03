@@ -25,8 +25,24 @@ source_idx = find(strcmp(current_sources{source_idx},obj.eg.sources));
 
 % Determine the desired image
 sourceMenus = get(obj.left_panel.sourceCM,'Children');
-img = length(sourceMenus)-strmatch('on',get(sourceMenus,'Checked'))-3;
-
+img = [];
+for idx = 1:length(sourceMenus)
+  if strncmp(sourceMenus(idx).Label,'Image',5)
+    if isequal(sourceMenus(idx).Checked,'on')
+      img = str2double(sourceMenus(idx).Label(7:end));
+    end
+  elseif strcmp(sourceMenus(idx).Label,'Combined')
+    if isequal(sourceMenus(idx).Checked,'on')
+      img = 0;
+    end
+    % Combined is the last one so break
+    break;
+  end
+end
+if isempty(img)
+  sourceMenus(idx).Checked = 'on';
+end
+  
 % Determine if the sources exist for the desired frames, source, and image
 desire_exists = obj.eg.source_fns_existence(desire_frame_idxs,source_idx,img+1);
 
