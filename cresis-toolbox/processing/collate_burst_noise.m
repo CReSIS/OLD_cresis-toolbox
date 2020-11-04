@@ -45,19 +45,31 @@ if ~isfield(param.collate_burst_noise,'bit_mask') || isempty(param.collate_burst
   param.collate_burst_noise.bit_mask = 4;
 end
 
-if ~isfield(param.collate_burst_noise,'debug_plots') || isempty(param.collate_burst_noise.debug_plots)
+if ~isfield(param.collate_burst_noise,'debug_plots')
   param.collate_burst_noise.debug_plots = {'bn_plot'};
 end
 enable_visible_plot = any(strcmp('visible',param.collate_burst_noise.debug_plots));
 enable_bn_plot = any(strcmp('bn_plot',param.collate_burst_noise.debug_plots));
 if ~isempty(param.collate_burst_noise.debug_plots)
-  h_fig = get_figures(2,enable_visible_plot);
+  h_fig = get_figures(3,enable_visible_plot);
+end
+
+if ~isfield(param.collate_burst_noise,'debug_max_plot_size') || isempty(param.collate_burst_noise.debug_max_plot_size)
+  param.collate_burst_noise.debug_max_plot_size = 50e6;
 end
 
 if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
   param.(mfilename).debug_out_dir = mfilename;
 end
 debug_out_dir = param.(mfilename).debug_out_dir;
+
+if ~isfield(param.collate_burst_noise,'filt_length') || isempty(param.collate_burst_noise.filt_length)
+  param.collate_burst_noise.filt_length = 1;
+end
+
+if ~isfield(param.collate_burst_noise,'filt_threshold') || isempty(param.collate_burst_noise.filt_threshold)
+  param.collate_burst_noise.filt_threshold = 0.5;
+end
 
 if ~isfield(param.collate_burst_noise,'in_path') || isempty(param.collate_burst_noise.in_path)
   param.collate_burst_noise.in_path = 'analysis';
@@ -72,7 +84,7 @@ if ~isfield(param.collate_burst_noise,'out_path') || isempty(param.collate_burst
 end
 
 if ~isfield(param.collate_burst_noise,'wf_adcs') || isempty(param.collate_burst_noise.wf_adcs)
-  param.collate_burst_noise.wf_adcs = [];
+  param.collate_burst_noise.wf_adcs = {};
 end
 if ~isempty(param.collate_burst_noise.wf_adcs) && ~iscell(param.collate_burst_noise.wf_adcs)
   wf_adcs = param.collate_burst_noise.wf_adcs;
@@ -118,6 +130,19 @@ for img = param.collate_burst_noise.imgs
     % zero-pi mod sequences that are stored separately)
     boards = cell2mat({states.board_idx});
     
+    % Optional along-track filtering to handle missed detections and false
+    % alarms when there are groups of burst noise
+    if param.collate_burst_noise.filt_length > 1
+      % Create a mask of all the bad records
+      bad_recs_unique_filt = zeros(1,size(records.bit_mask,2));
+      bad_recs_unique_filt(bad_recs_unique) = 1;
+      % Filter the mask with a boxcar filter and then threshold the output
+      bad_recs_unique_filt = fir_dec(bad_recs_unique_filt,ones(1,param.collate_burst_noise.filt_length),1) ...
+        > param.collate_burst_noise.filt_length*param.collate_burst_noise.filt_threshold;
+      % Store the new filtered result back into bad_recs_unique
+      bad_recs_unique = find(bad_recs_unique_filt);
+    end
+
     % Set bits (usually bit 2 or bit 4) to true for the bad records
     new_bit_mask(boards,bad_recs_unique) = bitor(param.collate_burst_noise.bit_mask,new_bit_mask(boards,bad_recs_unique));
     
@@ -137,15 +162,17 @@ for img = param.collate_burst_noise.imgs
       ylabel(h_axes(1), 'Range bin');
       
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_rec_bin_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
-      fprintf('Saving %s\n', fig_fn);
+      fprintf('Saving %s %s\n', datestr(now), fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(1),fig_fn);
-      fig_fn(end-2:end) = 'fig';
-      fprintf('Saving %s\n', fig_fn);
-      ct_saveas(h_fig(1),fig_fn);
+      if 2*ct_whos(noise.bad_bins) < param.collate_burst_noise.debug_max_plot_size
+        fig_fn(end-2:end) = 'fig';
+        fprintf('Saving %s %s\n', datestr(now), fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
       
       clf(h_fig(2));
       set(h_fig(2), 'name', 'burst_noise waveforms');
@@ -159,17 +186,48 @@ for img = param.collate_burst_noise.imgs
       ylabel(h_axes(2), 'Relative power (dB)');
       
       fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_waveform_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
-      fprintf('Saving %s\n', fig_fn);
+      fprintf('Saving %s %s\n', datestr(now), fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(2),fig_fn);
-      fig_fn(end-2:end) = 'fig';
-      fprintf('Saving %s\n', fig_fn);
-      ct_saveas(h_fig(2),fig_fn);
+      if ct_whos(noise.bad_waveforms) < param.collate_burst_noise.debug_max_plot_size
+        fig_fn(end-2:end) = 'fig';
+        fprintf('Saving %s %s\n', datestr(now), fig_fn);
+        ct_saveas(h_fig(2),fig_fn);
+      end
+      
+      
+      if ~isempty(cmd.debug_function{img})
+        clf(h_fig(3));
+        set(h_fig(3), 'name', 'burst_noise debug_function');
+        h_axes(3) = axes('parent',h_fig(3));
+        for block_idx = 1:length(noise.bad_waveforms)
+          raw_data = noise.bad_waveforms(block_idx);
+          data_signal = cmd.signal_function{img}(raw_data,1,wfs);
+          plot(noise.bad_waveforms_recs{block_idx}, cmd.debug_function{img}(data_signal,wfs), '.-', 'parent', h_axes(3));
+          hold(h_axes(3),'on');
+        end
+        title(h_axes(3), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+        xlabel(h_axes(3), 'Record');
+        ylabel(h_axes(3), 'debug_function output', 'interpreter','none');
+        
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_debug_function_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+        fprintf('Saving %s %s\n', datestr(now), fig_fn);
+        fig_fn_dir = fileparts(fig_fn);
+        if ~exist(fig_fn_dir,'dir')
+          mkdir(fig_fn_dir);
+        end
+        ct_saveas(h_fig(3),fig_fn);
+        fig_fn(end-2:end) = 'fig';
+        fprintf('Saving %s %s\n', datestr(now), fig_fn);
+        ct_saveas(h_fig(3),fig_fn);
+        
+        linkaxes(h_axes([1 3]),'x');
+      end
     end
- 
+    
     if enable_visible_plot && ~isempty(bad_recs_unique)
       % Bring plots to front
       for h_fig_idx = 1:length(h_fig)

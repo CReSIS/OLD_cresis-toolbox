@@ -105,9 +105,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         case 4 % browse
           fprintf('Left click: Open ascope window.\n');
           fprintf('Alt + Left click and drag: No function\n\n');
-        case 5 % convert layers
+        case 5 % copy layers
           fprintf('Left click: No function\n');
-          fprintf('Left click and drag: Convert layers within selected region to the layers specified in the param window (p)\n\n');
+          fprintf('Left click and drag: Copy layers from source layer specified in the param window (p) to the selected region of the selected layers\n\n');
          case 6 % HMM detection
           fprintf('Left click: Enter point.\n');
           fprintf('Left click and drag: Perform HMM detection on selected region.\n\n');
@@ -193,7 +193,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         % enable or disable crossovers
         obj.crossovers.gui.visibility_toggle();
       else
-        % convert layer tool hotkey
+        % copy layer tool hotkey
         set(obj.left_panel.toolPM,'Value',5);
         tmp = obj.tool.list{5}; obj.tool.left_click_fh = @tmp.left_click;
         tmp = obj.tool.list{5}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;

@@ -221,9 +221,16 @@ for pass_idx = 1:length(pass)
   if ~pass_en_mask(pass_idx)
     continue
   end
+
+  % Update the parameters with current gRadar settings so that the paths
+  % are correct. A common issue is that multipass.combine_passes files are
+  % created in one environemnt and then loaded here under a different
+  % environment and the paths are different.
+  param_override = merge_structs(gRadar,param_override);
+  param_paths_updated = merge_structs(pass(pass_idx).param_pass,param_override);
   
   % Load layers
-  pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_pass,param.multipass.layer);
+  pass(pass_idx).layers = opsLoadLayers(param_paths_updated,param.multipass.layer);
   
   % Interpolate all layers onto a common reference (ref)
   for lay_idx = 1:length(pass(pass_idx).layers)

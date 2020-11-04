@@ -8,7 +8,7 @@
 params = ct_set_params(params,['cmd.' cmd_method],0);
 
 
-%% Accumulation Radar
+%% cmd: Accumulation Radar
 % =========================================================================
 % -------------------------------------------------------------------------
 % 2018 Antarctica TObas
@@ -36,7 +36,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20200128_01'); % DECONV
 % params = ct_set_params(params,'cmd.frms',[],'day_seg','20200128_01'); % DECONV
 
-%% Multipass
+%% cmd: Multipass
 % =========================================================================
 % -------------------------------------------------------------------------
 % Eqip Line 1
@@ -111,7 +111,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140502_01');
 % params = ct_set_params(params,'cmd.frms',[41 42]);
 
-%% Radar Depth Sounder
+%% cmd: Radar Depth Sounder
 % =========================================================================
 
 % -------------------------------------------------------------------------
@@ -129,7 +129,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180405');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180406'); % 2 wfs
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs, no digital errors
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02');
@@ -572,7 +572,9 @@ for param_idx = 1:length(params)
     
     if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
       params(param_idx).analysis.cmd{1}.signal_function = {};
-      params(param_idx).analysis.cmd{1}.noise_function = {};
+      params(param_idx).analysis.cmd{1}.debug_function = {};
+      params(param_idx).analysis.cmd{1}.bad_samples_function = {};
+      params(param_idx).analysis.cmd{1}.noise_filt_type = 'custom';
       if length(params(param_idx).radar.wfs) == 4
         for img = 1:2
           params(param_idx).analysis.cmd{1}.signal_function{img} = @(raw_data,wf_adc,wfs)abs(fft(raw_data{1}(300:end,:,wf_adc))).^2;
@@ -598,11 +600,13 @@ for param_idx = 1:length(params)
       else
         error('Burst noise settings not determined yet.');
       end
-      params(param_idx).analysis.cmd{1}.noise_filt_type = 'custom';
     end
     
     if isfield(param_override,'collate_burst_noise')
       if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+        params(param_idx).collate_burst_noise.debug_max_plot_size = 0;
+        params(param_idx).collate_burst_noise.filt_length = 51;
+        params(param_idx).collate_burst_noise.filt_threshold = 0.2;
       end
     end
   end

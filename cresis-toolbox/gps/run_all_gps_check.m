@@ -5,6 +5,8 @@
 % Author: John Paden
 %
 % See also: check_data_products, frames_check, gps_check, records_check
+% gps_load, gps_make
+% run_all_frames_check, run_all_gps_check, run_all_records_check
 
 run_all;
 
