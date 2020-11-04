@@ -220,6 +220,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         bad_recs = [];
         bad_waveforms_recs = {};
         bad_waveforms = {};
+        test_metric = [];
         
         for block_idx = 1:length(blocks)
           rec_load_start = blocks(block_idx);
@@ -246,6 +247,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           bad_recs_unique = unique(noise.bad_recs);
           bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(noise.bad_waveforms,2)) - 1;
           bad_waveforms{block_idx} = noise.bad_waveforms;
+          test_metric(:,end+(1:size(noise.test_metric,2))) = noise.test_metric;
         end
 
         % Constant noise fields carried over from last file loaded:
@@ -256,6 +258,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.bad_recs = bad_recs;
         noise.bad_waveforms_recs = bad_waveforms_recs;
         noise.bad_waveforms = bad_waveforms;
+        noise.test_metric = test_metric;
         
         if param.ct_file_lock
           noise.file_version = '1L';
