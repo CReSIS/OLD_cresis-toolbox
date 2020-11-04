@@ -248,12 +248,12 @@ end
 default_params.prefwin.sources = sort({'standard','qlook','mvdr','CSARP_post/standard','CSARP_post/mvdr','CSARP_post/qlook'});
 default_params.prefwin.season_names = {};
 default_params.prefwin.layer_names = {'surface'};
-default_params.prefwin.system = 'layerdata';
+default_params.prefwin.system = 'tracks';
 default_params.prefwin.map_name = '';
-default_params.prefwin.flightlines = 'layerdata Flightlines';
+default_params.prefwin.flightlines = 'tracks files Flightlines';
 %
 default_params.prefwin.layer_source = 'layerdata';
-default_params.prefwin.layer_data_source = 'layerData';
+default_params.prefwin.layer_data_source = 'layer';
 %
 default_params.prefwin.x = tmp.pref_x;
 default_params.prefwin.y = tmp.pref_y;

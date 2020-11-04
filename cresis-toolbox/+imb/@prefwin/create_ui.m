@@ -13,45 +13,47 @@ obj.ops.layers.lyr_name = {};
 
 layer_sources = {'layerdata','Connect to OPS'};
 
-flightlines = {'layerdata Flightlines','Connect to OPS'};
+flightlines = {'tracks files Flightlines','Connect to OPS'};
 
 wms_maps = {'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map';'Connect to OPS'};
 
-%% Get System Info from LayerData
+%% Load tracks files
 % =========================================================================
-layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer',''); % Setting radar_name to rds is arbitrary
-fprintf('Finding the season layerdata in %s\n', layer_fn_dir);
-layer_fns = get_filenames(layer_fn_dir,'layer','','.mat');
+
+% Create tracks file paths
+% -------------------------------------------------------------------------
+track_fn_dir = ct_filename_support(struct('radar_name','rds'),'tracks',''); % Setting radar_name to rds is arbitrary
+fprintf('Finding the csarp_support/tracks files in %s\n', track_fn_dir);
+track_fns = get_filenames(track_fn_dir,'tracks','','.mat');
+
+% Parse tracks filenames one at a time to populate
+%   obj.systems
+%   obj.seasons
+%   obj.locations
+% -------------------------------------------------------------------------
 valid_file_count = 0;
-for layer_idx = 1:length(layer_fns)
-  layer_fn = layer_fns{layer_idx};
-  % Parse layer_fn: layer_SYSTEM_SEASONNAME.mat
-  [~,layer_fn_name] = fileparts(layer_fn);
-  [token,remain] = strtok(layer_fn_name,'_');
-  if strcmpi(token,'layer')
-    [token,remain] = strtok(remain,'_');
-    [sys_token,remain] = strtok(remain,'_');
-    if strcmpi(token,'arctic')
+for track_idx = 1:length(track_fns)
+  track_fn = track_fns{track_idx};
+  % Parse track_fn: layer_SYSTEM_SEASONNAME.mat
+  [~,track_fn_name] = fileparts(track_fn);
+  [file_type_str,remain] = strtok(track_fn_name,'_');
+  if strcmpi(file_type_str,'tracks')
+    [location_str,remain] = strtok(remain,'_');
+    [sys_str,remain] = strtok(remain,'_');
+    if any(strcmpi(location_str,{'arctic','antarctic'}))
       % sys_token: accum, kuband, rds, or snow string
       % remain: _YYYY_LOCATION_PLATFORM string
-      obj.systems{end+1} = 'layerdata';
-      obj.seasons{end+1} = sprintf('%s_%s',sys_token,remain(2:end));
-      obj.locations{end+1} = 'arctic';
-      valid_file_count = valid_file_count+1;
-    elseif strcmpi(token,'antarctic')
-      % sys_token: accum, kuband, rds, or snow string
-      % remain: _YYYY_LOCATION_PLATFORM string
-      obj.systems{end+1} = 'layerdata';
-      obj.seasons{end+1} = sprintf('%s_%s',sys_token,remain(2:end));
-      obj.locations{end+1} = 'antarctic';
+      obj.systems{end+1} = 'tracks';
+      obj.seasons{end+1} = sprintf('%s_%s',sys_str,remain(2:end));
+      obj.locations{end+1} = location_str;
       valid_file_count = valid_file_count+1;
     end
   end
 end
 if valid_file_count == 0
-  warning('No season layerdata files found. Use create_season_layerdata_files.m to create season layerdata files. Continuing without layerdata.');
+  warning('No tracks files found. Use imb.create_track_files.m to create tracks files. Continuing without tracks files.');
 else
-  fprintf('  Found %d season layerdata files.\n', valid_file_count);
+  fprintf('  Found %d tracks files.\n', valid_file_count);
 end
 
 %% Set Prefwin Figure
@@ -113,7 +115,7 @@ set(obj.h_gui.sourceText,'String','Echogram Sources');
 
 % System list box
 obj.h_gui.systemsLB = uicontrol('Parent',obj.h_fig);
-set(obj.h_gui.systemsLB,'String',{'layerdata'});
+set(obj.h_gui.systemsLB,'String',{'tracks'});
 set(obj.h_gui.systemsLB,'Style','listbox');
 set(obj.h_gui.systemsLB,'HorizontalAlignment','Center');
 set(obj.h_gui.systemsLB,'FontName','fixed');
@@ -311,7 +313,7 @@ table_draw(obj.h_gui.table);
 
 % Check to see if default parameters require OPS
 load_ops = false;
-if ~strcmp(obj.default_params.system,'layerdata')
+if ~strcmp(obj.default_params.system,'tracks')
   load_ops = true;
 end
 if strcmp(obj.default_params.layer_source,'OPS')

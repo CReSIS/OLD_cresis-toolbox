@@ -159,6 +159,7 @@ for task_idx = 1:length(task_ids)
     ctrl.job_status(:) = 'C';
     ctrl.job_status(task_id) = 'T';
     ctrl.error_mask(task_id) = 0;
+    ctrl.retries(task_id) = 0;
     ctrl_chain = {{ctrl}};
     ctrl_chain = cluster_run(ctrl_chain);
     

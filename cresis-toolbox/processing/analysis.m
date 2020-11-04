@@ -166,30 +166,84 @@ for cmd_idx = 1:length(param.analysis.cmd)
     case {'burst_noise'}
       % Set defaults for burst noise analysis method
       
+      % max_bad_waveforms: wf-adc recorded waveforms/range-lines with burst
+      % noise detected are saved, but only up to this many. Set to inf to
+      % save all waveforms with burst noise detected.
       if ~isfield(cmd,'max_bad_waveforms') || isempty(cmd.max_bad_waveforms)
         cmd.max_bad_waveforms = 100;
       end
       
-      if ~isfield(cmd,'noise_filt_type') || isempty(cmd.noise_filt_type)
-        cmd.noise_filt_type = 'fir';
+      % noise_fh: This function is used to create the temporary variable
+      % data_noise in analysis burst. This output is available to test_fh
+      % and threshold_fh.
+      %
+      % Examples:
+      %  cmd.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+      %  cmd.noise_fh{img} = @(raw_data,wfs) lp(medfilt2(abs(raw_data).^2,[11 101]));
+      %  cmd.noise_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'noise_fh') || isempty(cmd.noise_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+        end
       end
       
-      if ~isfield(cmd,'noise_filt') || isempty(cmd.noise_filt)
-        cmd.noise_filt = [11 101];
+      % signal_fh: This function is used to create the temporary variable
+      % data_signal in analysis burst. This output is available to test_fh
+      % and threshold_fh.
+      %
+      % Examples:
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(abs(raw_data).^2,1));
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(abs(fft(raw_data(300:end,:))).^2);
+      %  cmd.signal_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'signal_fh') || isempty(cmd.signal_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
+        end
+      end
+
+      % test_fh: This function is used to create the output variable
+      % test_metric in analysis burst. This output is available to
+      % threshold_fh and is also stored in the output file.
+      %
+      % Examples:
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs) data_signal-data_noise;
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs)% max(data_signal(10:end-9,:))-median(data_signal(10:end-9,:));
+      %  cmd.test_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'test_fh') || isempty(cmd.test_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+        end
+      end
+
+      % test_fh: This function is used to create the temporary variable
+      % bad_samples in analysis burst. If the output is a row vector, then
+      % it is assumed to be a mask of the bad records (interpretation is
+      % that the entire record is bad). If the output is a matrix, then it
+      % is assumed to be a mask of the bad samples (interpretation is that
+      % just those samples are bad and not the whole record).
+      %
+      % Examples:
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) data_noise > 80;
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) test_metric > 20;
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) repmat(data_signal-data_noise > 20,[wfs.Nt_raw 1]);
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) max(data_signal(10:end-9,:))-median(data_signal(10:end-9,:));
+      if ~isfield(cmd,'threshold_fh') || isempty(cmd.threshold_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) test_metric > 20;
+        end
       end
       
-      if ~isfield(cmd,'signal_filt') || isempty(cmd.signal_filt)
-        cmd.signal_filt = [11 1];
-      end
-      
-      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
-        cmd.threshold = 17;
-      end
-      
+      % valid_bins: Restricts the range of bins where burst detections are
+      % allowed to occur. The default is [1 inf] which allows burst
+      % detections anywhere in the range line. Typical usage would be to
+      % exclude the feedthrough or nadir surface signal that may be large
+      % and variable and lead to false alarms if it is nonstationary.
       if ~isfield(cmd,'valid_bins') || isempty(cmd.valid_bins)
         cmd.valid_bins = {};
         for img = 1:length(param.analysis.imgs)
-          cmd.valid_bins{img} = [501 inf];
+          cmd.valid_bins{img} = [1 inf];
         end
       end
 

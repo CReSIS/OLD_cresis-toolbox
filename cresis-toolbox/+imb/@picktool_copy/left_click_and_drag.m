@@ -1,7 +1,7 @@
 function cmds = left_click_and_drag(obj,param)
-% cmds = left_click_and_drag(obj,param)
+% cmds = picktool_copy.left_click_and_drag(obj,param)
 %
-% Convert layer tool
+% Copy layer tool
 
 image_x = param.image_x;
 image_y = param.image_y;
@@ -10,7 +10,7 @@ x = param.x;
 y = param.y;
 cmds = [];
 
-fprintf('Convert points %f to %f, %f to %f\n', x, y);
+fprintf('Copy points %f to %f, %f to %f\n', x, y);
 
 try
   source_layer = round(str2double(get(obj.panel.sourceTB,'String')));
