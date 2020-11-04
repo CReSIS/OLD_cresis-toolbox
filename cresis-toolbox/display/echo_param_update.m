@@ -1,4 +1,4 @@
-function mdata = echo_param_update(mdata)
+function mdata = echo_param_update(mdata,param_override)
 % mdata = echo_param_update(mdata,param_override)
 %
 % Function to update the paths of each parameter structure in an echogram

@@ -42,7 +42,13 @@ if ~isfield(param.collate_burst_noise,'cmd_idx') || isempty(param.collate_burst_
 end
 
 if ~isfield(param.collate_burst_noise,'bit_mask') || isempty(param.collate_burst_noise.bit_mask)
+  % These are the records.bit_mask bits that will be set by collate_burst_noise
   param.collate_burst_noise.bit_mask = 4;
+end
+
+if ~isfield(param.collate_burst_noise,'bit_mask_clear') || isempty(param.collate_burst_noise.bit_mask_clear)
+  % These are the records.bit_mask bits that will be cleared/reset by collate_burst_noise
+  param.collate_burst_noise.bit_mask_clear = 12;
 end
 
 if ~isfield(param.collate_burst_noise,'debug_plots')
@@ -96,6 +102,7 @@ end
 
 records = records_load(param);
 new_bit_mask = zeros(size(records.bit_mask));
+[~,frm_id,~] = get_frame_id(param,records.gps_time);
 
 for img = param.collate_burst_noise.imgs
   
@@ -117,18 +124,14 @@ for img = param.collate_burst_noise.imgs
     
     cmd = noise.param_analysis.analysis.cmd{param.collate_burst_noise.cmd_idx};
     
+    % Determine the boards for this wf-adc pair, find the time axis
+    param.load.imgs = {[wf adc]};
+    [wfs,states] = data_load_wfs(param, records);
+
     % noise.bad_recs: a list of all the bad records for each burst noise
     % event, there will be multiple entries for a record if there are
     % multiple burst noise events in that record
     bad_recs_unique = unique(noise.bad_recs);
-    
-    % Determine the boards for this wf-adc pair
-    param.load.imgs = {[wf adc]};
-    [wfs,states] = data_load_wfs(param, records);
-    % Combine all boards: Some wf-adc pairs result in multiple waveforms
-    % being loaded (e.g. for IQ on transmit or separate IQ channels or
-    % zero-pi mod sequences that are stored separately)
-    boards = cell2mat({states.board_idx});
     
     % Optional along-track filtering to handle missed detections and false
     % alarms when there are groups of burst noise
@@ -142,13 +145,36 @@ for img = param.collate_burst_noise.imgs
       % Store the new filtered result back into bad_recs_unique
       bad_recs_unique = find(bad_recs_unique_filt);
     end
-
-    % Set bits (usually bit 2 or bit 4) to true for the bad records
-    new_bit_mask(boards,bad_recs_unique) = bitor(param.collate_burst_noise.bit_mask,new_bit_mask(boards,bad_recs_unique));
     
-    % Add the specific section to be blanked out
-    % burst_noise_table(row,:) = [rline rbin0 rbin1]
-    burst_noise_table = [];
+    % Force all wf-adc pairs to be considered bad
+    if bitand(param.collate_burst_noise.bit_mask,8)
+          
+      % Add the specific section to be blanked out
+      burst_noise_table = zeros(3,length(bad_recs_unique));
+      for col = 1:length(bad_recs_unique)
+        fasttime0 = -inf;
+        fasttime1 = inf;
+        if ~isempty(noise.bad_bins)
+          mask = noise.bad_recs == bad_recs_unique(col);
+          fasttime0 = wfs(wf).time_raw(min(noise.bad_bins(mask)));
+          fasttime1 = wfs(wf).time_raw(max(noise.bad_bins(mask)));
+        end
+        burst_noise_table(:,col) = [bad_recs_unique(col) fasttime0 fasttime1].';
+      end
+      
+    else
+      % Sub-rangeline/bin specific burst noise not being used so
+      % burst_noise_table is empty
+      burst_noise_table = [];
+    end
+    
+    % Combine all boards: Some wf-adc pairs result in multiple waveforms
+    % being loaded (e.g. for IQ on transmit or separate IQ channels or
+    % zero-pi mod sequences that are stored separately)
+    boards = cell2mat({states.board_idx});
+    
+    % Set bits (usually bit 2 (value 4) or bit 3 (value 8)) to true for the bad records
+    new_bit_mask(boards,bad_recs_unique) = bitor(param.collate_burst_noise.bit_mask,new_bit_mask(boards,bad_recs_unique));
     
     %% Plot
     % =====================================================================
@@ -156,7 +182,11 @@ for img = param.collate_burst_noise.imgs
       clf(h_fig(1));
       set(h_fig(1), 'name', 'burst_noise rec-bin');
       h_axes(1) = axes('parent',h_fig(1));
-      plot(noise.bad_recs, noise.bad_bins, 'x', 'parent', h_axes(1));
+      if isempty(noise.bad_bins)
+        plot(noise.bad_recs, ones(size(noise.bad_recs)), 'x', 'parent', h_axes(1));
+      else
+        plot(noise.bad_recs, noise.bad_bins, 'x', 'parent', h_axes(1));
+      end
       title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       xlabel(h_axes(1), 'Record');
       ylabel(h_axes(1), 'Range bin');
@@ -178,7 +208,8 @@ for img = param.collate_burst_noise.imgs
       set(h_fig(2), 'name', 'burst_noise waveforms');
       h_axes(2) = axes('parent',h_fig(2));
       for block_idx = 1:length(noise.bad_waveforms)
-        plot(lp(noise.bad_waveforms{block_idx}(:,1:min(param.collate_burst_noise.max_bad_waveforms,end))), 'parent', h_axes(2));
+        num_bad_waveforms = size(noise.bad_waveforms{block_idx},2);
+        plot(lp(noise.bad_waveforms{block_idx}(:,1:min(param.collate_burst_noise.max_bad_waveforms,num_bad_waveforms))), 'parent', h_axes(2));
         hold(h_axes(2),'on');
       end
       title(h_axes(2), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
@@ -199,21 +230,22 @@ for img = param.collate_burst_noise.imgs
       end
       
       
-      if ~isempty(cmd.debug_function{img})
+      if ~isempty(noise.test_metric)
         clf(h_fig(3));
-        set(h_fig(3), 'name', 'burst_noise debug_function');
-        h_axes(3) = axes('parent',h_fig(3));
-        for block_idx = 1:length(noise.bad_waveforms)
-          raw_data = noise.bad_waveforms(block_idx);
-          data_signal = cmd.signal_function{img}(raw_data,1,wfs);
-          plot(noise.bad_waveforms_recs{block_idx}, cmd.debug_function{img}(data_signal,wfs), '.-', 'parent', h_axes(3));
-          hold(h_axes(3),'on');
-        end
+        set(h_fig(3), 'name', 'burst_noise test_metric');
+        h_axes(3) = subplot(2,1,1,'parent',h_fig(3));
+        plot(noise.test_metric, '.-', 'parent', h_axes(3));
+        grid(h_axes(3),'on');
         title(h_axes(3), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
         xlabel(h_axes(3), 'Record');
-        ylabel(h_axes(3), 'debug_function output', 'interpreter','none');
+        ylabel(h_axes(3), 'test_metric output', 'interpreter','none');
+        h_axes(4) = subplot(2,1,2,'parent',h_fig(3));
+        plot(frm_id, noise.test_metric, '.-', 'parent', h_axes(4));
+        grid(h_axes(4),'on');
+        xlabel(h_axes(4), 'Frame');
+        ylabel(h_axes(4), 'test_metric output', 'interpreter','none');
         
-        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_debug_function_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_test_metric_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
         fprintf('Saving %s %s\n', datestr(now), fig_fn);
         fig_fn_dir = fileparts(fig_fn);
         if ~exist(fig_fn_dir,'dir')
@@ -225,6 +257,7 @@ for img = param.collate_burst_noise.imgs
         ct_saveas(h_fig(3),fig_fn);
         
         linkaxes(h_axes([1 3]),'x');
+        axis(h_axes([3 4]),'tight');
       end
     end
     
@@ -236,14 +269,20 @@ for img = param.collate_burst_noise.imgs
       % Enter debug mode
       keyboard
     end
-    
-    %records.burst_noise(wf,adc).table(row,:) = [rline rbin0 rbin1]
-    records.burst_noise(wf,adc).table = burst_noise_table;
+
+    if ~isempty(burst_noise_table)
+      %% Save the result
+      % =====================================================================
+      out_fn_dir = fileparts(ct_filename_out(param,param.collate_burst_noise.out_path, ''));
+      out_fn = fullfile(out_fn_dir,sprintf('burst_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+      fprintf('Saving %s (%s)\n', out_fn, datestr(now));
+      ct_save(out_fn,'burst_noise_table');
+    end
   end
 end
 
 %% Update records file
-records.bit_mask = records.bit_mask - bitand(param.collate_burst_noise.bit_mask,records.bit_mask) + uint8(new_bit_mask);
+records.bit_mask = records.bit_mask - bitand(param.collate_burst_noise.bit_mask_clear,records.bit_mask) + uint8(new_bit_mask);
 records_fn = ct_filename_support(param,'','records');
 ct_save(records_fn,'-append','-struct','records','bit_mask');
 

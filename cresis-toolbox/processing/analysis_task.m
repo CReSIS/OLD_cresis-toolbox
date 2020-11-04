@@ -374,56 +374,82 @@ for img = 1:length(store_param.load.imgs)
         wf = param.load.imgs{img}(wf_adc,1);
         adc = param.load.imgs{img}(wf_adc,2);
         
-        %% Burst Noise: Smooth and Threshold
-        if strcmpi(cmd.noise_filt_type,'custom')
-          data_signal = cmd.signal_function{cmd_img}(raw_data,wf_adc,wfs(wf));
-          bad_samples = cmd.bad_samples_function{cmd_img}(data_signal,wfs(wf));
-          if 0 && ~isdeployed
-            % Debug code (enable for debugging, does not run when compiled)
-            figure(1); clf;
-            subplot(3,1,1);
-            imagesc(lp(data_signal));
-            axis tight
-            subplot(3,1,2);
-            plot(cmd.debug_function{cmd_img}(data_signal,wfs));
-            grid on;
-            axis tight
-            subplot(3,1,3);
-            imagesc(bad_samples);
-            axis tight
-            link_figures(1,'x');
-            keyboard;
-          end
+        % data_signal: create the temporary "signal" variable Format is
+        % user defined and depends on how user plans to use data_signal in
+        % test_fh and threshold_fh. Set the function to return [] if not
+        % used.
+        data_signal = cmd.signal_fh{cmd_img}(raw_data{1}(:,:,wf_adc),wfs(wf));
+        % data_noise: create the temporary "noise" variable Format is user
+        % defined and depends on how user plans to use data_signal in
+        % test_fh and threshold_fh. Set the function to return [] if not
+        % used.
+        data_noise = cmd.noise_fh{cmd_img}(raw_data{1}(:,:,wf_adc),wfs(wf));
+        % test_metric: create the output "test_metric" variable Format is
+        % user defined and depends on how user plans to use data_signal in
+        % threshold_fh. Format is restricted by the concatenation operation
+        % in analysis_combine_task (i.e. some data types may not
+        % concatenate properly but regular matrices should have no
+        % problems). Set the function to return [] if not used.
+        test_metric = cmd.test_fh{cmd_img}(data_signal,data_noise,wfs(wf)); % optional
+        % bad_samples: create the output "bad_samples" variable The format
+        % of this must be a row vector or matrix equal to the size of the
+        % data. If a row vector, then bad_samples must be a mask
+        % representing bad records. If a matrix, then bad_samples must be a
+        % mask representing bad samples. Set the function to return [] if
+        % not used. This will cause bad bins, bad_recs, and bad_waveforms
+        % to all be [].
+        bad_samples = cmd.threshold_fh{cmd_img}(data_signal,data_noise,test_metric,wfs(wf));
+        
+        if size(bad_samples,1) < 2
+          % bad_samples (row vector or empty) represents bad records
+          % ---------------------------------------------------------------
+          bad_bins = [];
+          bad_recs = find(bad_samples);
         else
-          data_signal = abs(raw_data{1}(:,:,wf_adc).').^2;
-          if strcmpi(cmd.noise_filt_type,'fir')
-            data_noise = fir_dec(data_signal,ones(1,cmd.noise_filt(1))/cmd.noise_filt(1),1).';
-            data_noise = fir_dec(data_noise,ones(1,cmd.noise_filt(2))/cmd.noise_filt(2),1);
-          elseif strcmpi(cmd.noise_filt_type,'median')
-            data_noise = medfilt2(data_signal,cmd.noise_filt).';
-          end
-          data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(1))/cmd.signal_filt(1),1).';
-          data_signal = fir_dec(data_signal,ones(1,cmd.signal_filt(2))/cmd.signal_filt(2),1);
+          % bad_samples represents bad samples
+          % ---------------------------------------------------------------
           
-          % Find peaks in data_signal relative to data_noise (constant false
-          % alarm rate detector)
-          bad_samples = lp(data_signal) > lp(data_noise) + cmd.threshold;
+          % Convert peaks to range-bin/records
+          bad_idxs = find(bad_samples);
+          Nt = size(raw_data{1},1);
+          bad_bins = mod(bad_idxs-1,Nt)+1;
+          bad_recs = floor((bad_idxs-1)/Nt)+1;
+          % Remove detections that fall outside the valid bin range
+          valid_mask = bad_bins >= cmd.valid_bins{img}(1) & bad_bins <= cmd.valid_bins{img}(2);
+          bad_bins = bad_bins(valid_mask);
+          bad_recs = bad_recs(valid_mask);
         end
         
-        % Convert peaks to range-bin/records
-        bad_idxs = find(bad_samples);
-        Nt = size(raw_data{1},1);
-        bad_bins = mod(bad_idxs-1,Nt)+1;
-        bad_recs = floor((bad_idxs-1)/Nt)+1;
-        % Remove detections that fall outside the valid bin range
-        valid_mask = bad_bins >= cmd.valid_bins{img}(1) & bad_bins <= cmd.valid_bins{img}(2);
-        bad_bins = bad_bins(valid_mask);
-        bad_recs = bad_recs(valid_mask);
         % Extract waveforms
         bad_recs_unique = unique(bad_recs);
         bad_waveforms = raw_data{1}(:,bad_recs_unique(1:min(end,cmd.max_bad_waveforms)),wf_adc);
         
-        if 0
+        if 0 && ~isdeployed
+          % Debug code (enable for debugging, does not run when compiled)
+          figure(1); clf;
+          subplot(3,1,1);
+          imagesc(data_signal);
+          axis tight
+          subplot(3,1,2);
+          if size(data_noise,1) < 10
+            plot(test_metric.');
+          else
+            imagesc(test_metric);
+          end
+          grid on;
+          axis tight
+          subplot(3,1,3);
+          if size(data_noise,1) < 2
+            plot(bad_samples.');
+          else
+            imagesc(bad_samples);
+          end
+          axis tight
+          link_figures(1,'x');
+          keyboard;
+        end
+        
+        if 0 && ~isdeployed
           % Debug plots
           figure(1); clf;
           plot(bad_recs, bad_bins, 'x')
@@ -443,7 +469,7 @@ for img = 1:length(store_param.load.imgs)
           file_version = '1';
         end
         file_type = 'analysis_noise_tmp';
-        ct_save(out_fn, 'bad_recs', 'bad_bins', 'bad_waveforms', 'param_analysis', 'param_records','file_type','file_version');
+        ct_save(out_fn, 'bad_recs', 'bad_bins', 'bad_waveforms', 'test_metric', 'param_analysis', 'param_records','file_type','file_version');
       end
       
       

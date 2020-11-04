@@ -1,10 +1,14 @@
-% script run_update_frames
+% script run_quality_control
 %
-% Script for running "update_frames.m"
+% Script for running "quality_control.m"
+%
+% Author: John Paden
+%
+% See also: quality_control.m, run_quality_control.m
 
 clear param;
 
-if 1
+if 0
   param.radar_name = 'rds';
   
   param.day_seg = '20140514_01';
@@ -24,20 +28,20 @@ if 1
   img_sidelobe = -40;
   noise_threshold_offset_dB = 5.2;
   
-elseif 0
+elseif 1
   param.radar_name = 'snow';
   
-  param.day_seg = '20170330_01';
+  param.day_seg = '20170407_02';
   
   param.season_name = '2017_Greenland_P3';
   param.image_out_dir = {{ct_filename_out(rmfield(param,'day_seg'),'','post/images',1)},
-    {ct_filename_out(rmfield(param,'day_seg'),'','post/images_uwb',1)},
-    {ct_filename_out(rmfield(param,'day_seg'),'','post/images_kuband',1)},
-    {ct_filename_out(rmfield(param,'day_seg'),'','post/images_deconv',1)}};
-  param.mat_out_dir = {{'dummy_string'},
-    {'/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_qlook_uwb'},
-    {'/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_qlook_kuband'},
-    {'/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_deconv'}};
+    {ct_filename_out(rmfield(param,'day_seg'),'','post_uwb/images',1)},
+    {ct_filename_out(rmfield(param,'day_seg'),'','post_deconv/images',1)},
+    {ct_filename_out(rmfield(param,'day_seg'),'','post_kuband/images',1)}};
+  param.mat_out_dir = {{'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook'},
+    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook_uwb'},
+    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook_kuband'},
+    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_deconv'}};
   param.mat_out_img = {0,0,0,0};
   
   param.img_type = 'echo.jpg';
@@ -53,7 +57,7 @@ end
 % update_field: string containing the field in frames file to update.
 % Currently there are two options:
 %               ('proc_mode', 'quality')
-if 1
+if 0
   update_field = 'proc_mode'; update_field_type = 'double';
 else
   update_field = 'quality'; update_field_type = 'mask';
@@ -67,4 +71,4 @@ audio_tone_check_code = '~isnan(frames.(update_field)(frm)) && frames.(update_fi
 %update_field_match = [1 2 3];
 update_field_match = [];
 
-update_frames;
+quality_control;

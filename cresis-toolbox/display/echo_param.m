@@ -47,8 +47,7 @@ if mode == 0
   else
     error('There is no param_array, param_qlook, param_combine, or param_get_heights field in mdata.');
   end
-  global gRadar;
-  param = merge_structs(param,gRadar);
+  param = ct_param_path_update(param);
 
 else
   if isfield(mdata,'param')
