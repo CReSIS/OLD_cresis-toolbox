@@ -1,16 +1,18 @@
-% script update_frames
+% script quality_control
 %
-% Creates frames files for FMCW and accumulation radar. Requires
-% that the records file be created.
+% Updates the frames file's proc_mode or quality field. This is necessary
+% for kuband radar and snow radar sea ice data where artifacts need to be
+% indicated for NSIDC data products. The proc_mode field can be used during
+% processing to identify specific frames to process. To run this script,
+% the images and the records and frames files should be available.
+% records file be created.
 %
-% See run_update_frames.m to see how to run.
+% See run_quality_control.m to see how to run.
 %
 % Prompt
-%   F(FFF:PPPP:N[D]):
+%   F(FFF:PPPP):
 %     FFF = frame ID
-%     PPPP = processing type
-%     N = nyquist zone
-%     D = default nyquist zone if 'D' present
+%     PPPP = field to update (user specifies quality or proc_mode)
 %
 % Commands (case-insensitive except where noted)
 % empty or 'n'
@@ -19,8 +21,6 @@
 %   proceed to previous frame
 % #
 %   sets frame processing type to # and proceeds to next frame
-% n#
-%   sets nyquist zone to # (N# proceeds to next frames after setting)
 % c or k
 %   runs Matlab eval command in debug prompt
 % d
@@ -37,6 +37,8 @@
 %   quits without saving
 %
 % Author: John Paden
+%
+% See also: quality_control.m, run_quality_control.m
 
 
 %% Automated Section
@@ -47,12 +49,6 @@ elseif strcmpi(update_field_type,'mask')
 else
   error('Invalid field type update_field_type=%s', update_field_type);
 end
-
-fprintf('Loading records file %s\n',records_fn);
-records_fn = ct_filename_support(param,'','records');
-records = load(records_fn,'relative_filename','relative_rec_num');
-[records_fn_dir,records_fn_name] = fileparts(records_fn);
-param.day_seg = records_fn_name(9:end);
 
 img_type = param.img_type;
 
@@ -76,26 +72,8 @@ for img=1:num_img
   mat_fn_dir{img} = ct_filename_out(param,param.mat_out_dir{img}{:});
 end
 
-frames_fn = ct_filename_support(param,'','frames');
+frames = frames_load(param);
 
-if exist(frames_fn,'file')
-  fprintf('Loading frames file %s\n', frames_fn);
-  frames = load(frames_fn);
-  if isfield(frames,'nyquist_zone')
-    warning('Detected old file format with nyquist_zone field. This field will be removed when frames file is saved.');
-  end
-  if ~isfield(frames,'file_version')
-    warning('Detected old file format with no file_version field. This file will be updated to version ''1'' when frames file is saved.');
-    frames.file_version = '1';
-  end
-  file_version = frames.file_version;
-  frames = frames.frames;
-  if ~isfield(frames,update_field)
-    frames.(update_field) = NaN*zeros(size(frames.frame_idxs));
-  end
-else
-  error('No frames files exists yet\n');
-end
 old_frames = frames;
 
 frm_idx = 1;
@@ -229,7 +207,7 @@ while ~quit_cmd
               max_noise(idx) = max(mdata.Data(noise_surf:noise_end,idx));
             end
             max_val = lp(max(mdata.Data));
-            noise_threshold = median(max_noise)+noise_threshold_offset_dB;
+            noise_threshold = lp(median(max_noise))+noise_threshold_offset_dB;
             threshold = max(max_val+img_sidelobe,...
               noise_threshold*ones(size(max_noise)));
             if isfinite(noise_threshold)
@@ -316,13 +294,44 @@ while ~quit_cmd
       keyboard
       
     elseif strcmpi(val,'d')
-        diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
-          & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
-        fprintf('%-5s\t%-7s\t%-7s\t%7s\t%7s\n', 'Frm', 'Old', 'New');
-        for cur_frm = diff_frms
-          fprintf('%03.0f  \t%04.0f   \t%04.0f\n', cur_frm, ...
-            old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm));
+      fprintf('\n');
+      diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
+        & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
+      fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
+      for cur_frm = diff_frms
+        fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
+          old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
+          dec2bin(old_frames.(update_field)(cur_frm),8), dec2bin(frames.(update_field)(cur_frm),8));
       end
+      fprintf('\n');
+      
+    elseif strcmpi(val,'f')
+      nan_frms = find(isnan(frames.(update_field)));
+      fprintf('\nThere are %d frames with isnan(frames.%s).\n', length(nan_frms), update_field);
+      if ~isempty(nan_frms)
+        fprintf('These frames are: %s\n\n', mat2str_generic(find(nan_frms)));
+      else
+        fprintf('\n');
+      end
+      
+      zero_frms = find(frames.(update_field) == 0);
+      fprintf('There are %d frames with frames.%s == 0.\n', length(zero_frms), update_field);
+      if ~isempty(zero_frms)
+        fprintf('These frames are: %s\n\n', mat2str_generic(find(zero_frms)));
+      else
+        fprintf('\n');
+      end
+      
+      fprintf('Frames which are ~isnan and ~=0:\n');
+      fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
+      for cur_frm = 1:length(frames.(update_field))
+        if ~isnan(frames.(update_field)(cur_frm)) && frames.(update_field)(cur_frm) ~= 0
+          fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
+            old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
+            dec2bin(old_frames.(update_field)(cur_frm),8), dec2bin(frames.(update_field)(cur_frm),8));
+        end
+      end
+      fprintf('\n');
       
     elseif strcmp(val,'i')
       if strcmpi(param.img_type,img_type)
@@ -382,16 +391,16 @@ while ~quit_cmd
         mkdir(out_dir);
       end
       fprintf('  Saving frames file %s\n',frames_fn);
-      ct_save(frames_fn,'-v7.3','frames','file_version');
+      ct_save(frames_fn,'-struct','frames');
       old_frames = frames;
       
     elseif strcmpi(val,'?')
       fprintf(' <enter>: go to next frame\n');
       fprintf(' p: previous frame\n');
-      fprintf(' n#: set nyquist zone to # (e.g. "n3")\n');
       fprintf(' i: swap image type between mat and %s (currently %s)\n', param.img_type, img_type);
       fprintf(' I: toggle false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
-      fprintf(' d: print out changes to frames so far\n');
+      fprintf(' d: print out differences or changes to frames so far\n');
+      fprintf(' f: print out status of frames\n');
       fprintf(' j: jump to frame\n');
       fprintf(' c or k: enter matlab command\n');
       fprintf(' s: save frames file\n');
@@ -429,10 +438,8 @@ if ~isempty(diff_frms)
       mkdir(out_dir);
     end
     fprintf('  Saving frames file %s\n',frames_fn);
-    ct_save(frames_fn,'-v7.3','frames','file_version');
+    ct_save(frames_fn,'-struct','frames');
   else
-    fprintf('  Not saving (can still manually save by pasting commands)\n');
+    warning('Not saving (can still manually save by pasting save commands above this warning message).');
   end
 end
-
-return;

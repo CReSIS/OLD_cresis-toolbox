@@ -27,6 +27,16 @@ function [params] = read_param_xls(param_fn, day_seg_filter, generic_ws)
 % Author: Brady Maasen, John Paden
 %
 % See also: ct_set_params, master, read_param_xls
+%
+% See also for spreadsheet cell loading:
+%  read_param_xls_boolean.m, read_param_xls_general.m,
+%  read_param_xls_text.m
+%  
+% See also for worksheet loading:
+%  read_param_xls_generic.m, read_param_xls_radar.m: 
+%
+% See also for printing out spreadsheet to stdout:
+%  read_param_xls_print, read_param_xls_print_headers.m
 
 if isstruct(param_fn)
   day_seg_filter = param_fn.day_seg;

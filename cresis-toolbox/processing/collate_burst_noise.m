@@ -242,8 +242,7 @@ for img = param.collate_burst_noise.imgs
         h_axes(4) = subplot(2,1,2,'parent',h_fig(3));
         plot(frm_id, noise.test_metric, '.-', 'parent', h_axes(4));
         grid(h_axes(4),'on');
-        title(h_axes(4), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
-        xlabel(h_axes(4), 'Record');
+        xlabel(h_axes(4), 'Frame');
         ylabel(h_axes(4), 'test_metric output', 'interpreter','none');
         
         fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_test_metric_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
@@ -258,6 +257,7 @@ for img = param.collate_burst_noise.imgs
         ct_saveas(h_fig(3),fig_fn);
         
         linkaxes(h_axes([1 3]),'x');
+        axis(h_axes([3 4]),'tight');
       end
     end
     
