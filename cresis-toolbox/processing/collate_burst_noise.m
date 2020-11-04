@@ -102,6 +102,7 @@ end
 
 records = records_load(param);
 new_bit_mask = zeros(size(records.bit_mask));
+[~,frm_id,~] = get_frame_id(param,records.gps_time);
 
 for img = param.collate_burst_noise.imgs
   
@@ -232,12 +233,18 @@ for img = param.collate_burst_noise.imgs
       if ~isempty(noise.test_metric)
         clf(h_fig(3));
         set(h_fig(3), 'name', 'burst_noise test_metric');
-        h_axes(3) = axes('parent',h_fig(3));
+        h_axes(3) = subplot(2,1,1,'parent',h_fig(3));
         plot(noise.test_metric, '.-', 'parent', h_axes(3));
         grid(h_axes(3),'on');
         title(h_axes(3), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
         xlabel(h_axes(3), 'Record');
         ylabel(h_axes(3), 'test_metric output', 'interpreter','none');
+        h_axes(4) = subplot(2,1,2,'parent',h_fig(3));
+        plot(frm_id, noise.test_metric, '.-', 'parent', h_axes(4));
+        grid(h_axes(4),'on');
+        title(h_axes(4), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+        xlabel(h_axes(4), 'Record');
+        ylabel(h_axes(4), 'test_metric output', 'interpreter','none');
         
         fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('burst_test_metric_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
         fprintf('Saving %s %s\n', datestr(now), fig_fn);
