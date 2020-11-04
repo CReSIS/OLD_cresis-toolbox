@@ -40,8 +40,8 @@ elseif 1
     {ct_filename_out(rmfield(param,'day_seg'),'','post_kuband/images',1)}};
   param.mat_out_dir = {{'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook'},
     {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook_uwb'},
-    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook_kuband'},
-    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_deconv'}};
+    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_deconv'},
+    {'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_qlook_kuband'}};
   param.mat_out_img = {0,0,0,0};
   
   param.img_type = 'echo.jpg';
@@ -62,7 +62,7 @@ if 0
 else
   update_field = 'quality'; update_field_type = 'mask';
   update_field_mask = {'turn all masks off','coherent noise','deconvolution artifact', ...
-    'raised noise floor/vertical stripes','missing data','no good data','low SNR','unclassified','land or iceberg','sea ice'};
+    'raised noise floor/vertical stripes','missing data','no good data','low SNR','unclassified','land or iceberg'};
 end
 
 audio_tone_for_nonzero_nonisnan = true;

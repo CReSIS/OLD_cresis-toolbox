@@ -15,7 +15,7 @@
 %     PPPP = field to update (user specifies quality or proc_mode)
 %
 % Commands (case-insensitive except where noted)
-% empty or 'n'
+% empty
 %   proceed to next frame
 % 'p'
 %   proceed to previous frame
@@ -194,7 +194,7 @@ while ~quit_cmd
           else
             set(h_plot(img),'Color','black')
             for rline=1:size(mdata.Data,2)
-              mdata.Data(lp(mdata.Data(:,rline))<max(lp(mdata.Data(:,rline)))+img_sidelobe,rline) = 0;
+              mdata.Data(lp(mdata.Data(:,rline))<max(lp(mdata.Data(:,rline)))+img_sidelobe,rline) = NaN;
             end
             set(h_image(img),'CData',lp(mdata.Data));
             Nx = size(mdata.Data,2);
@@ -208,7 +208,7 @@ while ~quit_cmd
               max_noise(idx) = max(mdata.Data(noise_surf:noise_end,idx));
             end
             max_val = lp(max(mdata.Data));
-            noise_threshold = lp(median(max_noise))+noise_threshold_offset_dB;
+            noise_threshold = lp(nanmedian(max_noise))+noise_threshold_offset_dB;
             threshold = max(max_val+img_sidelobe,...
               noise_threshold*ones(size(max_noise)));
             if isfinite(noise_threshold)
@@ -217,6 +217,8 @@ while ~quit_cmd
               caxis(h_axes(img),img_caxis);
               img_cmap = [gray(64); flipud(hsv(128))];
               colormap(h_axes(img),img_cmap)
+            else
+              colormap(h_axes(img),jet(256));
             end
             if 0 && any(medfilt1(double(max_noise > threshold),5))
               figure(2); clf;
@@ -320,7 +322,7 @@ while ~quit_cmd
       nan_frms = find(isnan(frames.(update_field)));
       fprintf('\nThere are %d frames with isnan(frames.%s).\n', length(nan_frms), update_field);
       if ~isempty(nan_frms)
-        fprintf('These frames are: %s\n\n', mat2str_generic(find(nan_frms)));
+        fprintf('These frames are: %s\n\n', mat2str_generic(nan_frms));
       else
         fprintf('\n');
       end
@@ -328,7 +330,7 @@ while ~quit_cmd
       zero_frms = find(frames.(update_field) == 0);
       fprintf('There are %d frames with frames.%s == 0.\n', length(zero_frms), update_field);
       if ~isempty(zero_frms)
-        fprintf('These frames are: %s\n\n', mat2str_generic(find(zero_frms)));
+        fprintf('These frames are: %s\n\n', mat2str_generic(zero_frms));
       else
         fprintf('\n');
       end
@@ -396,6 +398,11 @@ while ~quit_cmd
         end
       end
       frames.(update_field)(frm) = num_val;
+      frm_idx = frm_idx + 1;
+      
+    elseif strcmpi(val,'n')
+      fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, NaN);
+      frames.(update_field)(frm) = NaN;
       frm_idx = frm_idx + 1;
       
     elseif strcmpi(val,'p')
