@@ -12,7 +12,17 @@ function [params] = read_param_xls_generic(param_fn, generic_ws, params, read_pa
 % 
 % Author: Theresa Stumpf, John Paden
 %
-% See also: read_param_xls
+% See also: ct_set_params, master, read_param_xls
+%
+% See also for spreadsheet cell loading:
+%  read_param_xls_boolean.m, read_param_xls_general.m,
+%  read_param_xls_text.m
+%  
+% See also for worksheet loading:
+%  read_param_xls_generic.m, read_param_xls_radar.m: 
+%
+% See also for printing out spreadsheet to stdout:
+%  read_param_xls_print, read_param_xls_print_headers.m
 
 %% Input checks and setup
 % =======================================================================

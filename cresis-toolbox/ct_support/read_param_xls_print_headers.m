@@ -1,5 +1,5 @@
-function [headers] = read_param_xls_headers(param_fn, generic_ws)
-% [headers] = read_param_xls_headers(param_fn, generic_ws)
+function [headers] = read_param_xls_print_headers(param_fn, generic_ws)
+% [headers] = read_param_xls_print_headers(param_fn, generic_ws)
 %
 % Support function for read_param_xls_print, generic worksheet printer.
 %
@@ -8,7 +8,13 @@ function [headers] = read_param_xls_headers(param_fn, generic_ws)
 %
 % Author: John Paden
 %
-% See also: read_param_xls_print
+% See also: ct_set_params, master, read_param_xls
+%
+% SUPPORT FUNCTIONS: read_param_xls_boolean.m, read_param_xls_general.m,
+% read_param_xls_generic.m, read_param_xls_headers.m,
+% read_param_xls_radar.m read_param_xls_text.m
+%
+% PRINT OUT XLS: read_param_xls_print
 
 %% Setup
 % ======================================================================%
