@@ -72,6 +72,7 @@ for img=1:num_img
   mat_fn_dir{img} = ct_filename_out(param,param.mat_out_dir{img}{:});
 end
 
+frames_fn = ct_filename_support(param,'','frames');
 frames = frames_load(param);
 
 old_frames = frames;
@@ -299,9 +300,19 @@ while ~quit_cmd
         & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
       fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
       for cur_frm = diff_frms
+        if isnan(old_frames.(update_field)(cur_frm))
+          old_dec2bin_str = 'NaN';
+        else
+          old_dec2bin_str = dec2bin(old_frames.(update_field)(cur_frm),8);
+        end
+        if isnan(frames.(update_field)(cur_frm))
+          dec2bin_str = 'NaN';
+        else
+          dec2bin_str = dec2bin(frames.(update_field)(cur_frm),8);
+        end
         fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
           old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
-          dec2bin(old_frames.(update_field)(cur_frm),8), dec2bin(frames.(update_field)(cur_frm),8));
+          old_dec2bin_str, dec2bin_str);
       end
       fprintf('\n');
       
@@ -326,9 +337,19 @@ while ~quit_cmd
       fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
       for cur_frm = 1:length(frames.(update_field))
         if ~isnan(frames.(update_field)(cur_frm)) && frames.(update_field)(cur_frm) ~= 0
+          if isnan(old_frames.(update_field)(cur_frm))
+            old_dec2bin_str = 'NaN';
+          else
+            old_dec2bin_str = dec2bin(old_frames.(update_field)(cur_frm),8);
+          end
+          if isnan(frames.(update_field)(cur_frm))
+            dec2bin_str = 'NaN';
+          else
+            dec2bin_str = dec2bin(frames.(update_field)(cur_frm),8);
+          end
           fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
             old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
-            dec2bin(old_frames.(update_field)(cur_frm),8), dec2bin(frames.(update_field)(cur_frm),8));
+            old_dec2bin_str, dec2bin_str);
         end
       end
       fprintf('\n');
@@ -419,15 +440,27 @@ while ~quit_cmd
 end
 
 %% Print out frames that changed
+% Code is copied from (d)iff function above
+fprintf('\n');
 diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
   & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
-if ~isempty(diff_frms)
-  fprintf('%-5s\t%-7s\t%-7s\n', 'Frm', 'Old', 'New');
-  for cur_frm = diff_frms
-    fprintf('%03.0f  \t%04.0f   \t%04.0f   \t%7.0f\t%7.0f\n', cur_frm, ...
-        old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm));
+fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
+for cur_frm = diff_frms
+  if isnan(old_frames.(update_field)(cur_frm))
+    old_dec2bin_str = 'NaN';
+  else
+    old_dec2bin_str = dec2bin(old_frames.(update_field)(cur_frm),8);
   end
+  if isnan(frames.(update_field)(cur_frm))
+    dec2bin_str = 'NaN';
+  else
+    dec2bin_str = dec2bin(frames.(update_field)(cur_frm),8);
+  end
+  fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
+    old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
+    old_dec2bin_str, dec2bin_str);
 end
+fprintf('\n');
 
 if ~isempty(diff_frms)
   %% Save Output
