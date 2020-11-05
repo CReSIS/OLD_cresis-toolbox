@@ -131,7 +131,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs, no digital errors
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs, 12 frames
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs, 12 frames, frames 9 and 11
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02'); % Remember to look at end of segment for false alarms and implement valid_gps_times
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180421');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180422');
@@ -608,11 +608,25 @@ for param_idx = 1:length(params)
       if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
         params(param_idx).collate_burst_noise.bit_mask = 8;
         params(param_idx).collate_burst_noise.debug_max_plot_size = 0;
-        params(param_idx).collate_burst_noise.filt_length = 51;
-        params(param_idx).collate_burst_noise.filt_threshold = 0.2;
+        params(param_idx).collate_burst_noise.filt_length = 101;
+        params(param_idx).collate_burst_noise.filt_threshold = 0.15;
         params(param_idx).collate_burst_noise.imgs = 3:length(params(param_idx).analysis.imgs);
+        %params(param_idx).collate_burst_noise.imgs = 3:2:length(params(param_idx).analysis.imgs);
         for img = 1:length(params(param_idx).analysis.imgs)
-          param_override.collate_burst_noise.wf_adcs{img} = [1 2 3 4 12 13 14 15];
+          param_override.collate_burst_noise.wf_adcs{img} = [1:4,12:15];
+          %param_override.collate_burst_noise.wf_adcs{img} = [1 12];
+          for wf_adc = 1:4
+            wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+            adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 2; wf 6];
+            params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 4;
+          end
+          for wf_adc = 12:15
+            wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+            adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 13; wf 6];
+            params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 10;
+          end
         end
       end
     end

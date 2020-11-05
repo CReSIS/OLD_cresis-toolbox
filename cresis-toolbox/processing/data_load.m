@@ -742,6 +742,8 @@ for img = 1:length(param.load.imgs)
   end
 end
 
+%% Corrections
+% =========================================================================
 if ~param.load.raw_data
   for img = 1:length(param.load.imgs)
     for wf_adc = 1:size(data{img},3)
@@ -811,6 +813,67 @@ if ~param.load.raw_data
         data{img}(1:hdr.Nt{img}(1),:,wf_adc) = data{img}(1:hdr.Nt{img}(1),:,wf_adc) ...
           .*interp1(reshape(chan_equal.gps_time,[numel(chan_equal.gps_time) 1]),chan_equal.chan_equal,records.gps_time,'linear','extrap').';
       end
+      
+      % Remove burst noise
+      if wf < 3
+        wfs(wf).burst.en = false;
+      else
+        wfs(wf).burst.en = true;
+        wfs(wf).burst.fn = 'analysis_burst';
+      end
+      if wfs(wf).burst.en
+        % Load the burst noise file
+        noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).burst.fn, ''));
+        noise_fn = fullfile(noise_fn_dir,sprintf('burst_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        fprintf('  Loading burst noise: %s (%s)\n', noise_fn, datestr(now));
+        if ~exist(noise_fn,'file')
+          warning('data_load:burst:missing_file', ...
+            'Burst noise file not found\t%s\t%s\n', noise_fn, datestr(now,'yyyymmdd_HHMMSS'));
+        else
+          burst = load(noise_fn);
+          % burst.burst_noise_table is created and described in
+          % collate_burst_noise.m
+          % ---------------------------------------------------------------
+          % burst_noise_table is a 3xNb table where Nb is the number of
+          % burst noise detections. Each column corresponds to one burst.
+          %
+          % burst_noise_table(1,:): The record that the burst occurs in.
+          %
+          % burst_noise_table(2,:): The start time of the burst
+          %
+          % burst_noise_table(3,:): The stop of the burst
+          
+          % start_idx to stop_idx: burst noise present in the current data
+          % block
+          start_idx = find(burst.burst_noise_table(1,:) >= param.load.recs(1),1);
+          if ~isempty(start_idx)
+            stop_idx = find(burst.burst_noise_table(1,:) <= param.load.recs(end),1,'last');
+            if ~isempty(stop_idx)
+              % Loop through each burst noise incident in this block of
+              % data
+              for idx = start_idx:stop_idx
+                % Convert absolute record into relative index into loaded
+                % data arrays.
+                rec_rel = burst.burst_noise_table(1,idx) - param.load.recs(1) + 1;
+                
+                % start_bin to stop_bin: burst noise present in the current
+                % record
+                dt = wfs(wf).time_raw(2)-wfs(wf).time_raw(1);
+                start_bin = max(1, ...
+                  (burst.burst_noise_table(2,idx)-wfs(wf).time_raw(1))/dt);
+                stop_bin = min(hdr.Nt{img}(rec_rel), ...
+                  (burst.burst_noise_table(3,idx)-wfs(wf).time_raw(1))/dt);
+                
+                if start_bin <= hdr.Nt{img}(rec_rel) && stop_bin >= 1
+                  data{img}(start_bin:stop_bin,rec_rel,wf_adc) = wfs(wf).bad_value;
+                end
+              end
+            end
+          end
+          
+        end
+      end % End burst noise removal
+      
     end
   end
 end
@@ -822,6 +885,7 @@ hdr.gps_time = fir_dec(records.gps_time,param.load.presums);
 hdr.surface = fir_dec(records.surface,param.load.presums);
 
 %% Create trajectories
+% =========================================================================
 
 % Create reference trajectory (rx_path == 0, tx_weights = [])
 trajectory_param = struct('gps_source',records.gps_source, ...
