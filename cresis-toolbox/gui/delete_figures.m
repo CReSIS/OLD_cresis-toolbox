@@ -4,7 +4,7 @@ function delete_figures(max_fig_num)
 % Convenience function to delete all figures. This is useful when figures
 % have on close callbacks or have visible set of "off".
 
-if ~exist(max_fig_num,'var')
+if ~exist('max_fig_num','var')
   max_fig_num = 10000;
 end
 
