@@ -211,6 +211,7 @@ for param_idx = 1:length(params)
     param_override.qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
     param_override.qlook.surf.en = false;
+    param.qlook.nan_dec = true;
     params(param_idx).qlook.out_path = 'qlook';
     params(param_idx).qlook.motion_comp = false;
     adcs = [13:16]; Nchan = length(adcs);
