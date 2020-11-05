@@ -206,12 +206,12 @@ for param_idx = 1:length(params)
   params = ct_set_params(params,'qlook.surf_layer',struct('name','surface','source','layerdata','layerdata_source','layer'));
   params = ct_set_params(params,'qlook.resample',[2 1; 1 1]);
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
-    param_override.qlook.surf.en = false;
-    param.qlook.nan_dec = true;
+    params(param_idx).qlook.surf.en = false;
+    params(param_idx).qlook.nan_dec = true;
     params(param_idx).qlook.out_path = 'qlook';
     params(param_idx).qlook.motion_comp = false;
     adcs = [13:16]; Nchan = length(adcs);
@@ -621,11 +621,11 @@ for param_idx = 1:length(params)
         %params(param_idx).collate_burst_noise.imgs = 3:2:length(params(param_idx).analysis.imgs);
         for img = 1:length(params(param_idx).analysis.imgs)
           param_override.collate_burst_noise.wf_adcs{img} = [1:4,12:15];
-          %param_override.collate_burst_noise.wf_adcs{img} = [1 12];
+          %param_override.collate_burst_noise.wf_adcs{img} = [1];
           for wf_adc = 1:4
             wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
             adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
-            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 2; wf 6];
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 13; wf 6];
             params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 4;
           end
           for wf_adc = 12:15
