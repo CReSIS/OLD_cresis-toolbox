@@ -314,6 +314,12 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).Tsys = [3.73 3.09 0 5.59 3.05 0.92 2.28 -19.24 -22.03 -26.23 -29.8 -28.74 -25.71 -22.8 -19.42]/1e9;
     elseif strcmpi(params(param_idx).season_name,'2016_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+      if wf < 3 || length(params(param_idx).radar.wfs) < 4
+        params(param_idx).radar.wfs(wf).burst.en = false;
+      else
+        params(param_idx).radar.wfs(wf).burst.en = true;
+        params(param_idx).radar.wfs(wf).burst.fn = 'analysis_burst';
+      end
       params(param_idx).radar.wfs(wf).deconv.en = false;
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.00000164;
       params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;

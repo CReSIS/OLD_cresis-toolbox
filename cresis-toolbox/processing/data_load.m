@@ -815,12 +815,6 @@ if ~param.load.raw_data
       end
       
       % Remove burst noise
-      if wf < 3
-        wfs(wf).burst.en = false;
-      else
-        wfs(wf).burst.en = true;
-        wfs(wf).burst.fn = 'analysis_burst';
-      end
       if wfs(wf).burst.en
         % Load the burst noise file
         noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).burst.fn, ''));
