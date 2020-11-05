@@ -437,14 +437,10 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).burst    = [];
   end
-  if isfield(param.radar.wfs(wf).burst,'en') && ~isempty(param.radar.wfs(wf).burst.en)
-    wfs(wf).burst.en = param.radar.wfs(wf).burst.en;
-  else
+  if ~isfield(wfs(wf).burst,'en') || isempty(wfs(wf).burst.en)
     wfs(wf).burst.en = false;
   end
-  if isfield(param.radar.wfs(wf).burst,'fn') && ~isempty(param.radar.wfs(wf).burst.fn)
-    wfs(wf).burst.fn = param.radar.wfs(wf).burst.fn;
-  else
+  if ~isfield(wfs(wf).burst,'fn') || isempty(wfs(wf).burst.fn)
     wfs(wf).burst.fn = 'analysis';
   end
   if isfield(param.radar.wfs(wf),'deconv') && ~isempty(param.radar.wfs(wf).deconv)
@@ -452,14 +448,10 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).deconv    = [];
   end
-  if isfield(param.radar.wfs(wf).deconv,'en') && ~isempty(param.radar.wfs(wf).deconv.en)
-    wfs(wf).deconv.en = param.radar.wfs(wf).deconv.en;
-  else
+  if ~isfield(wfs(wf).deconv,'en') || isempty(wfs(wf).deconv.en)
     wfs(wf).deconv.en = false;
   end
-  if isfield(param.radar.wfs(wf).deconv,'fn') && ~isempty(param.radar.wfs(wf).deconv.fn)
-    wfs(wf).deconv.fn = param.radar.wfs(wf).deconv.fn;
-  else
+  if ~isfield(wfs(wf).deconv,'fn') || isempty(wfs(wf).deconv.fn)
     wfs(wf).deconv.fn = 'analysis';
   end
   % Per wf-adc pair amplitude equalization
