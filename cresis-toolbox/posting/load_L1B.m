@@ -125,10 +125,17 @@ if isfield(mdata,'param_get_heights')
 end
 
 if isfield(mdata,'param_csarp')
-  mdata.param_sar = mdata.param_csarp;
-  mdata = rmfield(mdata,'param_csarp');
-  mdata.param_sar.sar = mdata.param_sar.csarp;
-  mdata.param_sar = rmfield(mdata.param_sar,'csarp');
+  if ~isfield(mdata.param_csarp,'csarp')
+    % Very old file format
+    mdata.param_sar.sar = mdata.param_csarp;
+    mdata.param_sar.sw_version= mdata.param_csarp.sw_version;
+    mdata = rmfield(mdata,'param_csarp');
+  else
+    mdata.param_sar = mdata.param_csarp;
+    mdata = rmfield(mdata,'param_csarp');
+    mdata.param_sar.sar = mdata.param_sar.csarp;
+    mdata.param_sar = rmfield(mdata.param_sar,'csarp');
+  end
   if isfield(mdata.param_records,'vectors') && isfield(mdata.param_records.vectors,'gps') && isfield(mdata.param_records.vectors.gps,'time_offset')
     mdata.param_records.records.gps.time_offset = mdata.param_records.vectors.gps.time_offset;
     mdata.param_sar.records.gps.time_offset = mdata.param_records.vectors.gps.time_offset;
