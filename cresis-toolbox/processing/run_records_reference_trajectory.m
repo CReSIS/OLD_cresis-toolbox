@@ -15,8 +15,8 @@ param_override = [];
 params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
 
 % Example to run a specific segment and frame by overriding parameter spreadsheet values
-params = ct_set_params(params,'cmd.records',0);
-params = ct_set_params(params,'cmd.records',1,'day_seg','20180419_01');
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20180419_01');
 
 dbstop if error;
 
@@ -34,7 +34,7 @@ end
 % Process each of the segments
 for param_idx = 1:length(params)
   param = params(param_idx);
-  if param.cmd.records
+  if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
     records_reference_trajectory(param,param_override);
   end
 end
