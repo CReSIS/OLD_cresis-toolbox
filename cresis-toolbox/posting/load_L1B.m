@@ -21,6 +21,7 @@ function mdata = load_L1B(fn)
 % See also: echo_plot.m, uncompress_echogram.m
 
 [fn_dir,fn_name,fn_ext] = fileparts(fn);
+Vp = (2.99792548*10^8)/(2.000*sqrt(3.15));
 
 if strcmpi(fn_ext,'.nc')
   mdata = netcdf_to_mat(fn);
@@ -60,6 +61,15 @@ end
 
 mdata = uncompress_echogram(mdata);
 
+if isfield(mdata,'twtt')
+  [x,~] = size(mdata.twtt);
+  for i = 1:x
+    mdata.layerData{i} = mdata.twtt(i,:)*Vp;
+  end
+  mdata.Surface = mdata.layerData{1};
+  mdata.Bottom = mdata.layerData{x};
+end
+
 if isfield(mdata,'param_get_heights')
   mdata.param_qlook.qlook = mdata.param_get_heights;
   mdata = rmfield(mdata,'param_get_heights');
@@ -85,5 +95,8 @@ end
 
 if ~isfield(mdata,'Heading') && isfield(mdata,'GPS_time')
   mdata.Heading = zeros(size(mdata.GPS_time));
+end
+  
+
 end
 
