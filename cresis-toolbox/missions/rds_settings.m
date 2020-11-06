@@ -131,7 +131,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs, no digital errors
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs, 12 frames
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs, 12 frames, frames 9 and 11
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02'); % Remember to look at end of segment for false alarms and implement valid_gps_times
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180421');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180422');
@@ -206,11 +206,12 @@ for param_idx = 1:length(params)
   params = ct_set_params(params,'qlook.surf_layer',struct('name','surface','source','layerdata','layerdata_source','layer'));
   params = ct_set_params(params,'qlook.resample',[2 1; 1 1]);
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
+    params(param_idx).qlook.nan_dec = true;
     params(param_idx).qlook.out_path = 'qlook';
     params(param_idx).qlook.motion_comp = false;
     adcs = [13:16]; Nchan = length(adcs);
@@ -314,6 +315,12 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).Tsys = [3.73 3.09 0 5.59 3.05 0.92 2.28 -19.24 -22.03 -26.23 -29.8 -28.74 -25.71 -22.8 -19.42]/1e9;
     elseif strcmpi(params(param_idx).season_name,'2016_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+      if wf < 3 || length(params(param_idx).radar.wfs) < 4
+        params(param_idx).radar.wfs(wf).burst.en = false;
+      else
+        params(param_idx).radar.wfs(wf).burst.en = true;
+        params(param_idx).radar.wfs(wf).burst.fn = 'analysis_burst';
+      end
       params(param_idx).radar.wfs(wf).deconv.en = false;
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.00000164;
       params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;
@@ -608,11 +615,25 @@ for param_idx = 1:length(params)
       if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
         params(param_idx).collate_burst_noise.bit_mask = 8;
         params(param_idx).collate_burst_noise.debug_max_plot_size = 0;
-        params(param_idx).collate_burst_noise.filt_length = 51;
-        params(param_idx).collate_burst_noise.filt_threshold = 0.2;
+        params(param_idx).collate_burst_noise.filt_length = 101;
+        params(param_idx).collate_burst_noise.filt_threshold = 0.15;
         params(param_idx).collate_burst_noise.imgs = 3:length(params(param_idx).analysis.imgs);
+        %params(param_idx).collate_burst_noise.imgs = 3:2:length(params(param_idx).analysis.imgs);
         for img = 1:length(params(param_idx).analysis.imgs)
-          param_override.collate_burst_noise.wf_adcs{img} = [1 2 3 4 12 13 14 15];
+          param_override.collate_burst_noise.wf_adcs{img} = [1:4,12:15];
+          %param_override.collate_burst_noise.wf_adcs{img} = [1];
+          for wf_adc = 1:4
+            wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+            adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 13; wf 6];
+            params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 4;
+          end
+          for wf_adc = 12:15
+            wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+            adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 13; wf 6];
+            params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 10;
+          end
         end
       end
     end

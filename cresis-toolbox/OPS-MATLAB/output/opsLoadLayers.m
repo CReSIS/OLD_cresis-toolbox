@@ -301,12 +301,7 @@ if ~isempty(lidar_layer_idx)
       warning('No lidar data exists.');
       lidar.elev = [];
     else
-      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
-      % the records field with this information.
-      trajectory_param = struct('gps_source',records.gps_source, ...
-        'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
-        'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
-      records = trajectory_with_leverarm(records,trajectory_param);
+      records = records_reference_trajectory_load(param,records);
       
       % Project to map coordinates
       proj_load_standard;
