@@ -1,22 +1,22 @@
-% script run_records_create
+% script run_records_reference_trajectory
 %
-% Script for running records_create.
+% Script for running records_reference_trajectory
 %
 % Authors: John Paden
 %
-% See also: run_master.m, master.m, run_records_create.m, records_create.m,
-%   run_records_create_sync.m, records_check.m
+% See also: records_reference_trajectory.m,
+% records_reference_trajectory_load.m, run_records_reference_trajectory.m,
+% run_all_records_reference_trajectory.m
 
 %% User Setup
 % =====================================================================
 param_override = [];
 
-params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
-% params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
 
 % Example to run a specific segment and frame by overriding parameter spreadsheet values
-% params = ct_set_params(params,'cmd.records',0);
-% params = ct_set_params(params,'cmd.records',1,'day_seg','20180817_01');
+params = ct_set_params(params,'cmd.records',0);
+params = ct_set_params(params,'cmd.records',1,'day_seg','20180419_01');
 
 dbstop if error;
 
@@ -35,6 +35,6 @@ end
 for param_idx = 1:length(params)
   param = params(param_idx);
   if param.cmd.records
-    records_create(param,param_override);
+    records_reference_trajectory(param,param_override);
   end
 end

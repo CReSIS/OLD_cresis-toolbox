@@ -1323,9 +1323,19 @@ classdef layerdata < handle
     end
     
     %% load_layers: load list of layers
+    % varargout = load_layers(mdata,layerdata_source,varargin)
+    %
+    % mdata: echogram structure (only GPS_time used)
+    %
+    % layerdata_source: optional string containing the directory of the
+    % layerdata files (default is "layer" for directory CSARP_layer).
+    %
+    % varargin: strings containing layer names
+    %
     % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
     % mdata = load(fn);
     % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
+    % [layer_list{1:N}] = layerdata.load_layers(mdata,'',layer_names{1:N});
     function varargout = load_layers(mdata,layerdata_source,varargin)
       layers = layerdata(echo_param(mdata),layerdata_source);
       
