@@ -125,7 +125,7 @@ set(obj.top_panel.layer_guard_TE,'String', '2');
 set(obj.top_panel.layer_guard_TE,'TooltipString', tooltip);
 
 %----along track weight label
-tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother';
+tooltip = 'The weight by which to multiply the binary cost. Greater weight = smoother. This value should be larger (e.g. 1) for low resolution radars or smooth layers. This value should be smaller (e.g. 0.001) for fine resolution radars or where the layer is changing rapidly.';
 obj.top_panel.along_track_weight_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.along_track_weight_label,'Style','text');
 set(obj.top_panel.along_track_weight_label,'String','Smoothness weight:');
@@ -133,7 +133,7 @@ set(obj.top_panel.along_track_weight_label,'TooltipString', tooltip);
 %----along track weight box
 obj.top_panel.along_track_weight_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.along_track_weight_TE,'Style','edit');
-set(obj.top_panel.along_track_weight_TE,'String', '1');
+set(obj.top_panel.along_track_weight_TE,'String', '0.1');
 set(obj.top_panel.along_track_weight_TE,'TooltipString', tooltip);
 
 %----gt cutoff label
@@ -145,7 +145,7 @@ set(obj.top_panel.ground_truth_cutoff_label,'TooltipString', tooltip);
 %----gt cutoff box
 obj.top_panel.ground_truth_cutoff_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.ground_truth_cutoff_TE,'Style','edit');
-set(obj.top_panel.ground_truth_cutoff_TE,'String', '5');
+set(obj.top_panel.ground_truth_cutoff_TE,'String', '0');
 set(obj.top_panel.ground_truth_cutoff_TE,'TooltipString', tooltip);
 %%
 %---------------------------------------------------------------------------------------------
