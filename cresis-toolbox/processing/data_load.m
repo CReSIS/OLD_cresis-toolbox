@@ -858,7 +858,10 @@ if ~param.load.raw_data
                 stop_bin = min(hdr.Nt{img}(rec_rel), ...
                   (burst.burst_noise_table(3,idx)-wfs(wf).time_raw(1))/dt);
                 
-                if start_bin <= hdr.Nt{img}(rec_rel) && stop_bin >= 1
+                if start_bin == 1 && stop_bin == hdr.Nt{img}(rec_rel)
+                  data{img}(:,rec_rel,wf_adc) = wfs(wf).bad_value;
+                  hdr.bad_rec{img}(1,rec_rel,wf_adc) = 1;
+                elseif start_bin <= hdr.Nt{img}(rec_rel) && stop_bin >= 1
                   data{img}(start_bin:stop_bin,rec_rel,wf_adc) = wfs(wf).bad_value;
                 end
               end

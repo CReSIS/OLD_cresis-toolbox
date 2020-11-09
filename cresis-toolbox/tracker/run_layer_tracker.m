@@ -126,7 +126,26 @@ switch ct_output_dir(params(1).radar_name)
       end
     end
     
-    %% RDS: Viterbi
+    %% RDS: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
+    if 0
+      track.profile = 'RDS';
+      track.layer_names                 = {'surface_dem'};
+      
+      % Override default init method
+      track.init.method	= 'dem';
+      track.init.dem_offset = 0;
+      track.init.dem_layer = [];
+      track.init.max_diff = 0;
+      track.init.max_diff_method = 'merge_vectors';
+      
+      track.method = ''; % Just use DEM surface
+      track.max_rng = [0 0];
+      track.medfilt = [];
+    end
+    
+    %% RDS: Viterbi bottom
     if 0
       track.method                      = 'viterbi';
       track.layer_names                 = {'bottom'};
@@ -172,7 +191,7 @@ switch ct_output_dir(params(1).radar_name)
       track.xcorr            = echo_xcorr_profile('short_unitstep');
     end
     
-    %% RDS: MCMC
+    %% RDS: MCMC bottom
     if 0
       track.method            = 'mcmc';
       track.layer_names       = {'surface','bottom'};
@@ -180,7 +199,7 @@ switch ct_output_dir(params(1).radar_name)
       track.init.max_diff     = inf;
     end
     
-    %% RDS: LSM
+    %% RDS: LSM bottom
     if 0
       track.method            = 'lsm';
       track.layer_names       = {'surface','bottom'};
@@ -193,7 +212,7 @@ switch ct_output_dir(params(1).radar_name)
       
     end
     
-    %% RDS: Stereo
+    %% RDS: Stereo bottom
     if 0
       track.method               = 'stereo';
       track.layer_names       = {'surface','bottom'};
@@ -238,10 +257,12 @@ switch ct_output_dir(params(1).radar_name)
       end
     end
     
-    %% ACCUM: DEM
+    %% ACCUM: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
     if 0
       track.profile = 'ACCUM';
-      track.layer_names                 = {'surface_dem_class'};
+      track.layer_names                 = {'surface_dem'};
       
       % Override default init method
       track.init.method	= 'dem';
@@ -252,9 +273,10 @@ switch ct_output_dir(params(1).radar_name)
       
       track.method = ''; % Just use DEM surface
       track.max_rng = [0 0];
+      track.medfilt = [];
     end
     
-    %% ACCUM: Viterbi
+    %% ACCUM: Viterbi bottom
     if 1
       track.method                      = 'viterbi';
       track.layer_names                 = {'bottom'};
@@ -334,6 +356,25 @@ switch ct_output_dir(params(1).radar_name)
         track.init.snake_rng = [-15e-9 15e-9];
         track.init.max_diff  = 0.3e-6;
       end
+    end
+    
+    %% SNOW: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
+    if 0
+      track.profile = 'snow';
+      track.layer_names                 = {'surface_dem'};
+      
+      % Override default init method
+      track.init.method	= 'dem';
+      track.init.dem_offset = 0;
+      track.init.dem_layer = [];
+      track.init.max_diff = 0;
+      track.init.max_diff_method = 'merge_vectors';
+      
+      track.method = ''; % Just use DEM surface
+      track.max_rng = [0 0];
+      track.medfilt = [];
     end
     
 end
