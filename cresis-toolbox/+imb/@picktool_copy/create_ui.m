@@ -41,22 +41,23 @@ table_draw(obj.table);
 obj.panel.source_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.source_label,'Style','text');
 set(obj.panel.source_label,'String','Source layer:');
-set(obj.panel.source_label,'FontSize',10)
-set(obj.panel.source_label,'TooltipString','This is the source layer to copy into all active layers. Select parts of this layer in the echogram to copy layers for the selected section.');
+set(obj.panel.source_label,'FontSize',10);
+tooptip_str = 'This is the source layer to copy into all active layers. Select parts of this layer in the echogram to copy layers for the selected section.';
+set(obj.panel.source_label,'TooltipString',tooptip_str);
 
 %----source layer edit
 obj.panel.sourceTB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.sourceTB,'Style','edit');
 set(obj.panel.sourceTB,'String','1');
 set(obj.panel.sourceTB,'FontSize',10);
-set(obj.panel.sourceTB,'TooltipString','This is the source layer to copy into all active layers. Select parts of this layer in the echogram to copy layers for the selected section.');
+set(obj.panel.sourceTB,'TooltipString',tooptip_str);
 
 %----source eval label
 obj.panel.source_eval_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.source_eval_label,'Style','text');
 set(obj.panel.source_eval_label,'String','Source eval:');
 set(obj.panel.source_eval_label,'FontSize',10)
-tooltip_str = 'The source layer will have this operation run on it. The source layer is stored in a variable called "s". Default is "s=s" which does no operation. "s=0.5*s" would halve the value of the source layer.';
+tooltip_str = 'Only used for "Copy" mode. The source layer will have this operation run on it. The source layer is stored in a variable called "s". Default is "s=s" which does no operation. "s=0.5*s" would halve the value of the source layer.';
 set(obj.panel.source_eval_label,'TooltipString',tooltip_str);
 
 %----source eval edit
@@ -71,27 +72,30 @@ obj.panel.correct_label = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.correct_label,'Style','text');
 set(obj.panel.correct_label,'String','Correct layer:');
 set(obj.panel.correct_label,'FontSize',10)
-set(obj.panel.correct_label,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
+tooltip_str = 'If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.';
+set(obj.panel.correct_label,'TooltipString',tooltip_str);
 
 %----correct layer edit
 obj.panel.correctTB = uicontrol('Parent',obj.panel.handle);
 set(obj.panel.correctTB,'Style','edit');
 set(obj.panel.correctTB,'String','1');
 set(obj.panel.correctTB,'FontSize',10);
-set(obj.panel.correctTB,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
+set(obj.panel.correctTB,'TooltipString',tooltip_str);
 
-%----diff mode label
-obj.panel.diff_mode_label = uicontrol('Parent',obj.panel.handle);
-set(obj.panel.diff_mode_label,'Style','text');
-set(obj.panel.diff_mode_label,'String','Enable Diff:');
-set(obj.panel.diff_mode_label,'FontSize',10);
-set(obj.panel.diff_mode_label,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
+%----mode label
+obj.panel.mode_label = uicontrol('Parent',obj.panel.handle);
+set(obj.panel.mode_label,'Style','text');
+set(obj.panel.mode_label,'String','Copy Mode:');
+set(obj.panel.mode_label,'FontSize',10);
+tooltip_str = sprintf('Copy: Copies the "Source layer" to the selected layers after running "Source eval"\nMerge: Merges the "Source layer" into the undefined sections of the selected layers.\nDiff: Applies the difference between the "Correct layer" and the "Source layer" to the selected layers.');
+set(obj.panel.mode_label,'TooltipString',tooltip_str);
 
-%----diff mode checkbox
-obj.panel.diff_modeCB = uicontrol('Parent',obj.panel.handle);
-set(obj.panel.diff_modeCB,'Style','checkbox');
-set(obj.panel.diff_modeCB,'Value', 0);
-set(obj.panel.diff_modeCB,'TooltipString','If Enable Diff selected, then selecting the source layer will cause active layers to change by correct - source.');
+%----mode checkbox
+obj.panel.modePM = uicontrol('Parent',obj.panel.handle);
+set(obj.panel.modePM,'Style','popupmenu');
+set(obj.panel.modePM,'String', {'Copy','Merge','Diff'});
+set(obj.panel.modePM,'Value', 1);
+set(obj.panel.modePM,'TooltipString',tooltip_str);
 
 %----shift layer label
 obj.panel.shift_label = uicontrol('Parent',obj.panel.handle);
@@ -177,14 +181,14 @@ obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 0;
 
 row = row+1; col = 1;
-obj.panel.table.handles{row,col}   = obj.panel.diff_mode_label;
+obj.panel.table.handles{row,col}   = obj.panel.mode_label;
 obj.panel.table.width(row,col)     = inf;
 obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
 obj.panel.table.height_margin(row,col) = 3;
 
 col = 2;
-obj.panel.table.handles{row,col}   = obj.panel.diff_modeCB;
+obj.panel.table.handles{row,col}   = obj.panel.modePM;
 obj.panel.table.width(row,col)     = inf;
 obj.panel.table.height(row,col)    = 20;
 obj.panel.table.width_margin(row,col) = 0;
