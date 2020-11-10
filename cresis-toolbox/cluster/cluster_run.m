@@ -54,6 +54,8 @@ end
 
 if iscell(ctrl_chain)
   %% Traverse chain list
+  global gctrl_chain;
+  gctrl_chain = ctrl_chain;
   active_stage = ones(numel(ctrl_chain),1);
   first_run = ones(numel(ctrl_chain),1);
   while any(isfinite(active_stage))
@@ -88,6 +90,7 @@ if iscell(ctrl_chain)
         
         % 4. Update ctrl_chain
         ctrl_chain{chain}{active_stage(chain)} = ctrl;
+        gctrl_chain = ctrl_chain;
         
         % 5. If all jobs completed in a batch and:
         %    If no errors, move to the next stage

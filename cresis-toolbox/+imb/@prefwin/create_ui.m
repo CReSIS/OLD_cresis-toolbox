@@ -85,7 +85,7 @@ set(obj.h_gui.layerSourcePM,'Callback',@obj.layerSourcePM_callback);
 
 % layerdata sources pop up menu (populate later from preference window)%%
 obj.h_gui.layerDataSourcePM = popupmenu_edit(obj.h_fig,{'layer','CSARP_post/layer'});
-set(obj.h_gui.layerDataSourcePM.h_valuePM,'TooltipString','Available layerdata filepath sources (select one). Right click to add, edit, or delete entries.');
+set(obj.h_gui.layerDataSourcePM.h_valuePM,'TooltipString','Available layerdata filepath sources (select one). Right click to add, edit, or delete entries. The entry "layer" will look in the CSARP_layer directory. The entry "CSARP_post/layer" will look in the CSARP_post/CSARP_layer directory.');
 
 % Layer selection class (populate later from preference file)
 obj.h_gui.h_layers = selectionbox(obj.h_fig,'Layers',[],1);
