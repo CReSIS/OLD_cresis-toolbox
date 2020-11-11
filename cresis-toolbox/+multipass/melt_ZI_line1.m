@@ -22,53 +22,53 @@ AT_data = struct('pass', [], 'vel', [], 'elevB', [], 'elevS', [],...
 'elev_pad', [], 'elev_NC',[], 'Btrack', []);
 %Save Bottom profiles
 AT_data.elevB.P2010 = (pass(1).layers(2).layer_elev);
-AT_data.elevB.P2010DC8 = (pass(2).layers(2).layer_elev);
-AT_data.elevB.P2014A = (pass(3).layers(2).layer_elev);
-AT_data.elevB.P2014B = (pass(4).layers(2).layer_elev);
-AT_data.elevB.P2016 = (pass(5).layers(2).layer_elev);
-AT_data.elevB.P2017 = (pass(6).layers(2).layer_elev);
-AT_data.elevB.P2018 = (pass(7).layers(2).layer_elev);
-AT_data.elevB.P2019 = pass(8).layers(2).layer_elev);
+%AT_data.elevB.P2010DC8 = (pass(2).layers(2).layer_elev);
+AT_data.elevB.P2014A = (pass(2).layers(2).layer_elev);
+%AT_data.elevB.P2014B = (pass(4).layers(2).layer_elev);
+AT_data.elevB.P2016 = (pass(3).layers(2).layer_elev);
+AT_data.elevB.P2017 = (pass(4).layers(2).layer_elev);
+AT_data.elevB.P2018 = (pass(5).layers(2).layer_elev);
+AT_data.elevB.P2019 = pass(6).layers(2).layer_elev);
 
 %Save Surface profiles
 AT_data.elevS.P2010 = (pass(1).layers(1).layer_elev);
-AT_data.elevS.P2010DC8 = (pass(2).layers(1).layer_elev);
-AT_data.elevS.P2014A = (pass(3).layers(1).layer_elev);
-AT_data.elevS.P2014B = (pass(4).layers(1).layer_elev);
-AT_data.elevS.P2016 = (pass(5).layers(1).layer_elev);
-AT_data.elevS.P2017 = (pass(6).layers(1).layer_elev);
-AT_data.elevS.P2018 = (pass(7).layers(1).layer_elev);
-AT_data.elevS.P2019 = (pass(8).layers(1).layer_elev);
+%AT_data.elevS.P2010DC8 = (pass(2).layers(1).layer_elev);
+AT_data.elevS.P2014A = (pass(2).layers(1).layer_elev);
+%AT_data.elevS.P2014B = (pass(4).layers(1).layer_elev);
+AT_data.elevS.P2016 = (pass(3).layers(1).layer_elev);
+AT_data.elevS.P2017 = (pass(4).layers(1).layer_elev);
+AT_data.elevS.P2018 = (pass(5).layers(1).layer_elev);
+AT_data.elevS.P2019 = (pass(6).layers(1).layer_elev);
 
 %Save annual alongtrack profile data
 AT_data.pass.P2010 = pass(1).along_track;
-AT_data.pass.P2010DC8 = pass(2).along_track;
-AT_data.pass.P2014A = pass(3).along_track;
-AT_data.pass.P2014B = pass(4).along_track;
-AT_data.pass.P2016 = pass(5).along_track;
-AT_data.pass.P2017 = pass(6).along_track;
-AT_data.pass.P2018 = pass(7).along_track;
-AT_data.pass.P2019 = pass(8).along_track;
+%AT_data.pass.P2010DC8 = pass(2).along_track;
+AT_data.pass.P2014A = pass(2).along_track;
+%AT_data.pass.P2014B = pass(4).along_track;
+AT_data.pass.P2016 = pass(3).along_track;
+AT_data.pass.P2017 = pass(4).along_track;
+AT_data.pass.P2018 = pass(5).along_track;
+AT_data.pass.P2019 = pass(6).along_track;
 
 %Save annual velocity correction data
 AT_data.vel.P2010 = pass(1).vel;
-AT_data.vel.P2010DC8 = pass(2).vel;
-AT_data.vel.P2014A = pass(3).vel;
-AT_data.vel.P2014B = pass(4).vel;
-AT_data.vel.P2016 = pass(5).vel;
-AT_data.vel.P2017 = pass(6).vel;
-AT_data.vel.P2018 = pass(7).vel;
-AT_data.vel.P2019 = pass(8).vel;
+%AT_data.vel.P2010DC8 = pass(2).vel;
+AT_data.vel.P2014A = pass(2).vel;
+%AT_data.vel.P2014B = pass(4).vel;
+AT_data.vel.P2016 = pass(3).vel;
+AT_data.vel.P2017 = pass(4).vel;
+AT_data.vel.P2018 = pass(5).vel;
+AT_data.vel.P2019 = pass(6).vel;
 
 %Save Velocity Corrected Along_track data
 AT_data.AT_vel.P2010 = pass(baseline_master_idx).along_track + pass(1).vel;
-AT_data.AT_vel.P2010DC8 = pass(baseline_master_idx).along_track + pass(2).vel;
-AT_data.AT_vel.P2014A = pass(baseline_master_idx).along_track + pass(3).vel;
-AT_data.AT_vel.P2014B = pass(baseline_master_idx).along_track + pass(4).vel;
-AT_data.AT_vel.P2016 = pass(baseline_master_idx).along_track + pass(5).vel;
-AT_data.AT_vel.P2017 = pass(baseline_master_idx).along_track + pass(6).vel;
-AT_data.AT_vel.P2018 = pass(baseline_master_idx).along_track + pass(7).vel;
-AT_data.AT_vel.P2019 = pass(baseline_master_idx).along_track + pass(8).vel;
+%AT_data.AT_vel.P2010DC8 = pass(baseline_master_idx).along_track + pass(2).vel;
+AT_data.AT_vel.P2014A = pass(baseline_master_idx).along_track + pass(2).vel;
+%AT_data.AT_vel.P2014B = pass(baseline_master_idx).along_track + pass(4).vel;
+AT_data.AT_vel.P2016 = pass(baseline_master_idx).along_track + pass(3).vel;
+AT_data.AT_vel.P2017 = pass(baseline_master_idx).along_track + pass(4).vel;
+AT_data.AT_vel.P2018 = pass(baseline_master_idx).along_track + pass(5).vel;
+AT_data.AT_vel.P2019 = pass(baseline_master_idx).along_track + pass(6).vel;
 
 %% Section 2 - Mask, indexing, and clipping of along track
   
@@ -81,10 +81,10 @@ AT_data.find_AT_value.P10 = find(AT_data.AT_vel.P2010 == ...
   AT_data.Btrack.P10(1));
 
 % 2010 DC8
-AT_data.Btrack.P10DC8 = AT_data.AT_vel.P2010DC8(AT_data.AT_vel.P2010DC8 >= ...
-  AT_data.AT_vel.P2010(1));
-AT_data.find_AT_value.P10DC8 = find(AT_data.AT_vel.P2010DC8 == ...
-  AT_data.Btrack.P10DC8(1));
+% AT_data.Btrack.P10DC8 = AT_data.AT_vel.P2010DC8(AT_data.AT_vel.P2010DC8 >= ...
+%   AT_data.AT_vel.P2010(1));
+% AT_data.find_AT_value.P10DC8 = find(AT_data.AT_vel.P2010DC8 == ...
+%   AT_data.Btrack.P10DC8(1));
 
 % 2014A  
 AT_data.Btrack.P14A = AT_data.AT_vel.P2014A(AT_data.AT_vel.P2014A >= ...
@@ -94,10 +94,10 @@ AT_data.find_AT_value.P14A = find(AT_data.AT_vel.P2014A == ...
 
 
 % 2014B  
-AT_data.Btrack.P14B = AT_data.AT_vel.P2014B(AT_data.AT_vel.P2014B >= ...
-  AT_data.AT_vel.P2010(1));
-AT_data.find_AT_value.P14B = find(AT_data.AT_vel.P2014B == ...
-  AT_data.Btrack.P14B(1));
+% AT_data.Btrack.P14B = AT_data.AT_vel.P2014B(AT_data.AT_vel.P2014B >= ...
+%   AT_data.AT_vel.P2010(1));
+% AT_data.find_AT_value.P14B = find(AT_data.AT_vel.P2014B == ...
+%   AT_data.Btrack.P14B(1));
 
 % 2016
 AT_data.Btrack.P16 = AT_data.AT_vel.P2016(AT_data.AT_vel.P2016 >= ...
@@ -126,12 +126,12 @@ AT_data.find_AT_value.P19 = find(AT_data.AT_vel.P2019 == ...
 % Clipping from start point in each profile to the end of the profile
 AT_data.Btrack_Beg_Clip.P10 = AT_data.AT_vel.P2010...
   (AT_data.find_AT_value.P10:end);
-AT_data.Btrack_Beg_Clip.P10DC8 = AT_data.AT_vel.P2010DC8...
-  (AT_data.find_AT_value.P10DC8:end);
+% AT_data.Btrack_Beg_Clip.P10DC8 = AT_data.AT_vel.P2010DC8...
+%   (AT_data.find_AT_value.P10DC8:end);
 AT_data.Btrack_Beg_Clip.P14A = AT_data.AT_vel.P2014A...
   (AT_data.find_AT_value.P14A:end);
-AT_data.Btrack_Beg_Clip.P14B = AT_data.AT_vel.P2014B...
-  (AT_data.find_AT_value.P14B:end);
+% AT_data.Btrack_Beg_Clip.P14B = AT_data.AT_vel.P2014B...
+%   (AT_data.find_AT_value.P14B:end);
 AT_data.Btrack_Beg_Clip.P16 = AT_data.AT_vel.P2016...
   (AT_data.find_AT_value.P16:end);
 AT_data.Btrack_Beg_Clip.P17 = AT_data.AT_vel.P2017...
@@ -144,61 +144,77 @@ AT_data.Btrack_Beg_Clip.P19 = AT_data.AT_vel.P2019...
 % Clipping from new start locations to a given value end element value 
 AT_data.Btrack_End_Clip.P10 = AT_data.Btrack_Beg_Clip.P10...
   (AT_data.Btrack_Beg_Clip.P10 <= 5.79e+04);
-AT_data.Btrack_End_Clip.P14 = AT_data.Btrack_Beg_Clip.P14...
-  (AT_data.Btrack_Beg_Clip.P14 <= 5.79e+04);
+% AT_data.Btrack_End_Clip.P10DC8 = AT_data.Btrack_Beg_Clip.P10DC8...
+%   (AT_data.Btrack_Beg_Clip.P10DC8 <= 5.79e+04);
+AT_data.Btrack_End_Clip.P14A = AT_data.Btrack_Beg_Clip.P14A...
+  (AT_data.Btrack_Beg_Clip.P14A <= 5.79e+04);
+% AT_data.Btrack_End_Clip.P14B = AT_data.Btrack_Beg_Clip.P14B...
+%   (AT_data.Btrack_Beg_Clip.P14B <= 5.79e+04);
 AT_data.Btrack_End_Clip.P16 = AT_data.Btrack_Beg_Clip.P16...
   (AT_data.Btrack_Beg_Clip.P16 <= 5.79e+04);
-%AT_data.Btrack_End_Clip.P17 = AT_data.Btrack_Beg_Clip.P17...
-%  (AT_data.Btrack_Beg_Clip.P17 <= 5.79e+04); 
+AT_data.Btrack_End_Clip.P17 = AT_data.Btrack_Beg_Clip.P17...
+  (AT_data.Btrack_Beg_Clip.P17 <= 5.79e+04); 
 AT_data.Btrack_End_Clip.P18 = AT_data.Btrack_Beg_Clip.P18...
   (AT_data.Btrack_Beg_Clip.P18 <= 5.79e+04);
-%AT_data.Btrack_End_Clip.P19 = AT_data.Btrack_Beg_Clip.P19...
-%  (AT_data.Btrack_Beg_Clip.P19 <= 5.79e+04);  
+AT_data.Btrack_End_Clip.P19 = AT_data.Btrack_Beg_Clip.P19...
+  (AT_data.Btrack_Beg_Clip.P19 <= 5.79e+04);  
 
 % Save along track data size as variable to see if there is any errors
 AT_data.array_size.P10_AT = size(AT_data.Btrack_End_Clip.P10);
-AT_data.array_size.P14_AT = size(AT_data.Btrack_End_Clip.P14);
+%AT_data.array_size.P10DC8_AT = size(AT_data.Btrack_End_Clip.P10DC8);
+AT_data.array_size.P14A_AT = size(AT_data.Btrack_End_Clip.P14A);
+%AT_data.array_size.P14B_AT = size(AT_data.Btrack_End_Clip.P14B);
 AT_data.array_size.P16_AT = size(AT_data.Btrack_End_Clip.P16);
-%AT_data.array_size.P17_AT = size(AT_data.Btrack_End_Clip.P17);
+AT_data.array_size.P17_AT = size(AT_data.Btrack_End_Clip.P17);
 AT_data.array_size.P18_AT = size(AT_data.Btrack_End_Clip.P18);
-%AT_data.array_size.P19_AT = size(AT_data.Btrack_End_Clip.P19);
+AT_data.array_size.P19_AT = size(AT_data.Btrack_End_Clip.P19);
 
 %% Elevation data Clipping to Section size of Along Track files
 % Elevation data beginning clipping from start element in Along Track
 AT_data.elev_Beg_Clip.P2010 = AT_data.elevB.P2010...
   (AT_data.find_AT_value.P10:end); 
+% AT_data.elev_Beg_Clip.P2010DC8 = AT_data.elevB.P2010DC8...
+%   (AT_data.find_AT_value.P10DC8:end); 
 AT_data.elev_Beg_Clip.P2014A = AT_data.elevB.P2014A...
-  (AT_data.find_AT_value.P14:end);
+  (AT_data.find_AT_value.P14A:end);
+% AT_data.elev_Beg_Clip.P2014B = AT_data.elevB.P2014B...
+%   (AT_data.find_AT_value.P14B:end);
 AT_data.elev_Beg_Clip.P2016 = AT_data.elevB.P2016...
   (AT_data.find_AT_value.P16:end);
-%AT_data.elev_Beg_Clip.P2017 = AT_data.elevB.P2017...
-%  (AT_data.find_AT_value.P17:end);
+AT_data.elev_Beg_Clip.P2017 = AT_data.elevB.P2017...
+  (AT_data.find_AT_value.P17:end);
 AT_data.elev_Beg_Clip.P2018 = AT_data.elevB.P2018...
   (AT_data.find_AT_value.P18:end);
-%AT_data.elev_Beg_Clip.P2019 = AT_data.elevB.P2019...
-%  (AT_data.find_AT_value.P19:end);  
+AT_data.elev_Beg_Clip.P2019 = AT_data.elevB.P2019...
+  (AT_data.find_AT_value.P19:end);  
 
 % Elevation data end clipping from end of Along track data
 AT_data.elev_End_Clip.P2010 = AT_data.elev_Beg_Clip.P2010...
   (1:length(AT_data.Btrack_End_Clip.P10));
+% AT_data.elev_End_Clip.P2010DC8 = AT_data.elev_Beg_Clip.P2010DC8...
+%   (1:length(AT_data.Btrack_End_Clip.P10DC8));
 AT_data.elev_End_Clip.P2014A = AT_data.elev_Beg_Clip.P2014A...
   (1:length(AT_data.Btrack_End_Clip.P14));
+% AT_data.elev_End_Clip.P2014B = AT_data.elev_Beg_Clip.P2014B...
+%   (1:length(AT_data.Btrack_End_Clip.P14B));
 AT_data.elev_End_Clip.P2016 = AT_data.elev_Beg_Clip.P2016...
   (1:length(AT_data.Btrack_End_Clip.P16));
-%AT_data.elev_End_Clip.P2017 = AT_data.elev_Beg_Clip.P2017...
-%  (1:length(AT_data.Btrack_End_Clip.P17));  
+AT_data.elev_End_Clip.P2017 = AT_data.elev_Beg_Clip.P2017...
+  (1:length(AT_data.Btrack_End_Clip.P17));  
 AT_data.elev_End_Clip.P2018 = AT_data.elev_Beg_Clip.P2018...
   (1:length(AT_data.Btrack_End_Clip.P18));
-%AT_data.elev_End_Clip.P2019 = AT_data.elev_Beg_Clip.P2019...
-%  (1:length(AT_data.Btrack_End_Clip.P19));  
+AT_data.elev_End_Clip.P2019 = AT_data.elev_Beg_Clip.P2019...
+  (1:length(AT_data.Btrack_End_Clip.P19));  
 
 % Save along elevation data size as variable to see if there is any errors
 AT_data.array_size.P10_elev = size(AT_data.elev_End_Clip.P2010);
-AT_data.array_size.P14_elev = size(AT_data.elev_End_Clip.P2014A);
+%AT_data.array_size.P10DC8_elev = size(AT_data.elev_End_Clip.P2010DC8);
+AT_data.array_size.P14A_elev = size(AT_data.elev_End_Clip.P2014A);
+AT_data.array_size.P14B_elev = size(AT_data.elev_End_Clip.P2014B);
 AT_data.array_size.P16_elev = size(AT_data.elev_End_Clip.P2016);
-%AT_data.array_size.P17_elev = size(AT_data.elev_End_Clip.P2017);
+AT_data.array_size.P17_elev = size(AT_data.elev_End_Clip.P2017);
 AT_data.array_size.P18_elev = size(AT_data.elev_End_Clip.P2018);
-%AT_data.array_size.P19_elev = size(AT_data.elev_End_Clip.P2019);
+AT_data.array_size.P19_elev = size(AT_data.elev_End_Clip.P2019);
 
 %% Derive Along track spacing array, interpolated profiles and melt by Year
   
@@ -225,9 +241,17 @@ AT_data.query_array.P10 = (AT_data.AT_vel.P2010(1):0.1:...
 AT_data.interp_data.P10 = interp1(AT_data.Btrack_End_Clip.P10, ...
   AT_data.elev_End_Clip.P2010, AT_data.query_array.P10);
 
+% 2010CD8
+% AT_data.interp_data.P10DC8 = interp1(AT_data.Btrack_End_Clip.P10DC8, ...
+%   AT_data.elev_End_Clip.P2010DC8, AT_data.query_array.P10);
+
 % 2014A
-AT_data.interp_data.P14 = interp1(AT_data.Btrack_End_Clip.P14, ...
+AT_data.interp_data.P14A = interp1(AT_data.Btrack_End_Clip.P14A, ...
   AT_data.elev_End_Clip.P2014A, AT_data.query_array.P10);
+
+% 2014B
+% AT_data.interp_data.P14B = interp1(AT_data.Btrack_End_Clip.P14B, ...
+%   AT_data.elev_End_Clip.P2014B, AT_data.query_array.P10);
 
 % 2016
 AT_data.interp_data.P16 = interp1(AT_data.Btrack_End_Clip.P16, ...
@@ -247,11 +271,11 @@ AT_data.interp_data.P18 = interp1(AT_data.Btrack_End_Clip.P18, ...
 
 % Calculate melt rates from interpolated profile pairings
 % 2010-2014A melt (Vertical difference in Features)
-AT_data.melt_rates.P10_P14 = AT_data.interp_data.P14 - ...
+AT_data.melt_rates.P10_P14A = AT_data.interp_data.P14 - ...
   AT_data.interp_data.P10; 
   
 % 2014A-2016 melt (Vertical difference in Features)
-AT_data.melt_rates.P14_P16 = AT_data.interp_data.P16 - ...
+AT_data.melt_rates.P14A_P16 = AT_data.interp_data.P16 - ...
   AT_data.interp_data.P14;
   
 % 2016-2017 melt (Vertical difference in Features)
