@@ -1,6 +1,13 @@
 % script layer_tracker_input_check
 %
-% Support function for layer_tracker.m
+% Support function for layer_tracker.m and layer_tracker_task.m that checks
+% the inputs.
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
+% run_layer_tracker_tune.m
 
 %% Input Checks: layer_tracker
 % =====================================================================

@@ -126,13 +126,13 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180322_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180404_02'); % 4 wfs
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180405');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180406'); % 2 wfs
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180405'); % no digital errors
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180406'); % 2 wfs, no digital errors
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_05'); % 4 wfs, no digital errors
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180418_06');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_01'); % 4 wfs, 12 frames, frames 9 and 11
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180419_02'); % Remember to look at end of segment for false alarms and implement valid_gps_times
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180421');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180422');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180423');
@@ -206,11 +206,12 @@ for param_idx = 1:length(params)
   params = ct_set_params(params,'qlook.surf_layer',struct('name','surface','source','layerdata','layerdata_source','layer'));
   params = ct_set_params(params,'qlook.resample',[2 1; 1 1]);
   if strcmpi(params(param_idx).season_name,'2018_Antarctica_TObas')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2019_Antarctica_TObas')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
   elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
-    param_override.qlook.surf.en = false;
+    params(param_idx).qlook.surf.en = false;
+    params(param_idx).qlook.nan_dec = true;
     params(param_idx).qlook.out_path = 'qlook';
     params(param_idx).qlook.motion_comp = false;
     adcs = [13:16]; Nchan = length(adcs);
@@ -314,6 +315,12 @@ for param_idx = 1:length(params)
       params(param_idx).radar.wfs(wf).Tsys = [3.73 3.09 0 5.59 3.05 0.92 2.28 -19.24 -22.03 -26.23 -29.8 -28.74 -25.71 -22.8 -19.42]/1e9;
     elseif strcmpi(params(param_idx).season_name,'2016_Greenland_P3')
     elseif strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+      if wf < 3 || length(params(param_idx).radar.wfs) < 4
+        params(param_idx).radar.wfs(wf).burst.en = false;
+      else
+        params(param_idx).radar.wfs(wf).burst.en = true;
+        params(param_idx).radar.wfs(wf).burst.fn = 'analysis_burst';
+      end
       params(param_idx).radar.wfs(wf).deconv.en = false;
       params(param_idx).radar.wfs(wf).Tadc_adjust = -0.00000164;
       params(param_idx).radar.wfs(wf).Tsys = [0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9;
@@ -571,42 +578,63 @@ for param_idx = 1:length(params)
       && strcmp(params(param_idx).analysis.cmd{1}.method,'burst_noise')
     
     if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
-      params(param_idx).analysis.cmd{1}.signal_function = {};
-      params(param_idx).analysis.cmd{1}.debug_function = {};
-      params(param_idx).analysis.cmd{1}.bad_samples_function = {};
-      params(param_idx).analysis.cmd{1}.noise_filt_type = 'custom';
-      if length(params(param_idx).radar.wfs) == 4
+      params(param_idx).analysis.cmd{1}.signal_fh = {};
+      params(param_idx).analysis.cmd{1}.noise_fh = {};
+      params(param_idx).analysis.cmd{1}.test_fh = {};
+      params(param_idx).analysis.cmd{1}.threshold_fh = {};
+      params(param_idx).analysis.cmd{1}.max_bad_waveforms = 0;
+      if length(params(param_idx).radar.wfs) == 4 || length(params(param_idx).radar.wfs) == 6
         for img = 1:2
-          params(param_idx).analysis.cmd{1}.signal_function{img} = @(raw_data,wf_adc,wfs)abs(fft(raw_data{1}(300:end,:,wf_adc))).^2;
-          params(param_idx).analysis.cmd{1}.debug_function{img} = @(data_signal,wfs)lp(max(data_signal(10:end-9,:),[],1)./median(data_signal(10:end-9,:),1));
-          params(param_idx).analysis.cmd{1}.bad_samples_function{img} = @(data_signal,wfs)repmat(lp(max(data_signal(10:end-9,:),[],1)./median(data_signal(10:end-9,:),1)) > 20,[wfs.Nt_raw 1]);
+          % Frequency detection: good for detecting spurs
+          params(param_idx).analysis.cmd{1}.signal_fh{img} = @(raw_data,wfs) abs(fft(raw_data(end-255:end,:))).^2;
+          params(param_idx).analysis.cmd{1}.noise_fh{img} = @(raw_data,wfs) [];
+          params(param_idx).analysis.cmd{1}.test_fh{img} = @(data_signal,data_noise,wfs) lp(data_signal(146,:)) - lp(mean(data_signal(130:140,:),1));
+          params(param_idx).analysis.cmd{1}.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) lp(data_signal(146,:)) - lp(mean(data_signal(130:140,:),1)) > 20;
         end
-        for img = 3:4
-          params(param_idx).analysis.cmd{1}.signal_function{img} = @(raw_data,wf_adc,wfs)abs(raw_data{1}(:,:,wf_adc)).^2;
-          params(param_idx).analysis.cmd{1}.debug_function{img} = @(data_signal,wfs)-lp(mean(data_signal,1));
-          params(param_idx).analysis.cmd{1}.bad_samples_function{img} = @(data_signal,wfs)repmat(-lp(mean(data_signal,1)) > 80,[wfs.Nt_raw 1]);
-        end
-      elseif length(params(param_idx).radar.wfs) == 6
-        for img = 1:2
-          params(param_idx).analysis.cmd{1}.signal_function{img} = @(raw_data,wf_adc,wfs)abs(fft(raw_data{1}(300:end,:,wf_adc))).^2;
-          params(param_idx).analysis.cmd{1}.debug_function{img} = @(data_signal,wfs)lp(max(data_signal(10:end-9,:),[],1)./median(data_signal(10:end-9,:),1));
-          params(param_idx).analysis.cmd{1}.bad_samples_function{img} = @(data_signal,wfs)repmat(lp(max(data_signal(10:end-9,:),[],1)./median(data_signal(10:end-9,:),1)) > 20,[wfs.Nt_raw 1]);
-        end
-        for img = 3:6
-          params(param_idx).analysis.cmd{1}.signal_function{img} = @(raw_data,wf_adc,wfs)abs(raw_data{1}(:,:,wf_adc)).^2;
-          params(param_idx).analysis.cmd{1}.debug_function{img} = @(data_signal,wfs)-lp(mean(data_signal,1));
-          params(param_idx).analysis.cmd{1}.bad_samples_function{img} = @(data_signal,wfs)repmat(-lp(mean(data_signal,1)) > 80,[wfs.Nt_raw 1]);
+        for img = 3:length(params(param_idx).analysis.imgs)
+          % Total power detection: good for detecting cable disconnects
+          params(param_idx).analysis.cmd{1}.signal_fh{img} = @(raw_data,wfs) [];
+          params(param_idx).analysis.cmd{1}.noise_fh{img} = @(raw_data,wfs) -lp(mean(abs(raw_data).^2,1));
+          params(param_idx).analysis.cmd{1}.test_fh{img} = @(data_signal,data_noise,wfs) data_noise;
+          params(param_idx).analysis.cmd{1}.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) data_noise > 80;
         end
       else
         error('Burst noise settings not determined yet.');
+      end
+    else
+      for img = 1:length(params(param_idx).analysis.imgs)
+        % 2D filter for CFAR noise, 1D filter for signal: good for detecting short bursts.
+        params(param_idx).analysis.cmd{1}.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
+        params(param_idx).analysis.cmd{1}.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+        params(param_idx).analysis.cmd{1}.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+        params(param_idx).analysis.cmd{1}.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) data_signal-data_noise > 20;
       end
     end
     
     if isfield(param_override,'collate_burst_noise')
       if strcmpi(params(param_idx).season_name,'2018_Greenland_P3')
+        params(param_idx).collate_burst_noise.bit_mask = 8;
         params(param_idx).collate_burst_noise.debug_max_plot_size = 0;
-        params(param_idx).collate_burst_noise.filt_length = 51;
-        params(param_idx).collate_burst_noise.filt_threshold = 0.2;
+        params(param_idx).collate_burst_noise.filt_length = 101;
+        params(param_idx).collate_burst_noise.filt_threshold = 0.15;
+        params(param_idx).collate_burst_noise.imgs = 3:length(params(param_idx).analysis.imgs);
+        %params(param_idx).collate_burst_noise.imgs = 3:2:length(params(param_idx).analysis.imgs);
+        for img = 1:length(params(param_idx).analysis.imgs)
+          param_override.collate_burst_noise.wf_adcs{img} = [1:4,12:15];
+          %param_override.collate_burst_noise.wf_adcs{img} = [1];
+          for wf_adc = 1:4
+            wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+            adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 13; wf 6];
+            params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 4;
+          end
+          for wf_adc = 12:15
+            wf = params(param_idx).analysis.imgs{img}(wf_adc,1);
+            adc = params(param_idx).analysis.imgs{img}(wf_adc,2);
+            param_override.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf 13; wf 6];
+            params(param_idx).collate_burst_noise.threshold_fh{img}{wf_adc} = @(noise,wfs) 10*log10(fir_dec(10.^(interp_finite(noise{1}.test_metric)/10), ones(1,101)/101,1)) - 10*log10(fir_dec(10.^(interp_finite(noise{2}.test_metric)/10), ones(1,101)/101,1)) > 10;
+          end
+        end
       end
     end
   end

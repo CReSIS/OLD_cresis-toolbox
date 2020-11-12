@@ -13,7 +13,11 @@ function track = layer_tracker_profile(param,profile_str)
 % Example:
 %   Should only be used from layer_tracker.m
 %
-% Author: John Paden
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
+% run_layer_tracker_tune.m
 
 %% Check input arguments
 if ~exist('profile_str','var') || isempty(profile_str)

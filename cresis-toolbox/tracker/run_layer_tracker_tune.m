@@ -1,7 +1,11 @@
 % script run_layer_tracker_tune
-% If we want results for the surface mean, enter the value of 1 as the
-% first element of the y values and set flag to 1
-% Runs layer_tracker.m
+% Runs layer_tracker.m for tuning layer tracking hyperparameters.
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
+% run_layer_tracker_tune.m
 
 %% User Settings
 % ----------------------------------------------------------------------

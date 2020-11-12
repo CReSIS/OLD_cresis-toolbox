@@ -432,20 +432,26 @@ for wf = 1:length(param.radar.wfs)
         wfs(wf).coh_noise_arg.A_coh_noise   = 1;
       end
   end
+  if isfield(param.radar.wfs(wf),'burst') && ~isempty(param.radar.wfs(wf).burst)
+    wfs(wf).burst    = param.radar.wfs(wf).burst;
+  else
+    wfs(wf).burst    = [];
+  end
+  if ~isfield(wfs(wf).burst,'en') || isempty(wfs(wf).burst.en)
+    wfs(wf).burst.en = false;
+  end
+  if ~isfield(wfs(wf).burst,'fn') || isempty(wfs(wf).burst.fn)
+    wfs(wf).burst.fn = 'analysis';
+  end
   if isfield(param.radar.wfs(wf),'deconv') && ~isempty(param.radar.wfs(wf).deconv)
     wfs(wf).deconv    = param.radar.wfs(wf).deconv;
   else
     wfs(wf).deconv    = [];
-    param.radar.wfs(wf).deconv = [];
   end
-  if isfield(param.radar.wfs(wf).deconv,'en') && ~isempty(param.radar.wfs(wf).deconv.en)
-    wfs(wf).deconv.en = param.radar.wfs(wf).deconv.en;
-  else
+  if ~isfield(wfs(wf).deconv,'en') || isempty(wfs(wf).deconv.en)
     wfs(wf).deconv.en = false;
   end
-  if isfield(param.radar.wfs(wf).deconv,'fn') && ~isempty(param.radar.wfs(wf).deconv.fn)
-    wfs(wf).deconv.fn = param.radar.wfs(wf).deconv.fn;
-  else
+  if ~isfield(wfs(wf).deconv,'fn') || isempty(wfs(wf).deconv.fn)
     wfs(wf).deconv.fn = 'analysis';
   end
   % Per wf-adc pair amplitude equalization

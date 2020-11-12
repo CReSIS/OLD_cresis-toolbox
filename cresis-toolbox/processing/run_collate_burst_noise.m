@@ -9,30 +9,30 @@
 
 param_override = [];
 
-% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
-params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
-% params = read_param_xls(ct_filename_param('rds_param_2019_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
-% params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'',{'analysis_noise','analysis'});
+% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'',{'analysis_burst','analysis'});
+params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'',{'analysis_burst','analysis'});
+% params = read_param_xls(ct_filename_param('rds_param_2019_Greenland_P3.xls'),'',{'analysis_burst','analysis'});
+% params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'',{'analysis_burst','analysis'});
 
-% param_override.collate_burst_noise.in_path = 'analysis_burst';
-param_override.collate_burst_noise.in_path = 'analysis';
+param_override.collate_burst_noise.in_path = 'analysis_burst';
 
 % param_override.collate_burst_noise.debug_plots = {};
 param_override.collate_burst_noise.debug_plots = {'bn_plot'};
 % param_override.collate_burst_noise.debug_plots = {'visible','bn_plot'}; % <== CHOOSE to debug
 
+cmd_method = 'generic';
+rds_settings;
+
 if 0
   % For debugging, use this to select a specific image and wf_adc to
   % collate instead of doing them all
-  for idx=1:6
-    param_override.collate_burst_noise.wf_adcs{idx} = [];
-    param_override.collate_burst_noise.wf_adcs{idx} = [1 2 3 4 12 13 14 15];
+  for img=1:6
+    param_override.collate_burst_noise.wf_adcs{img} = [];
+    param_override.collate_burst_noise.wf_adcs{img} = [1 2 3 4 12 13 14 15];
+    param_override.collate_burst_noise.wf_adcs{img} = [2 13];
   end
   param_override.collate_burst_noise.imgs = [3 4];
 end
-
-cmd_method = 'generic';
-rds_settings;
 
 %% Automated Section
 % =====================================================================
