@@ -11,9 +11,9 @@ else
   vel_fn_dir = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/';
 end
 
-example_str = 'Petermann_line1_2011_2014_2018_TEST';
+example_str = 'Petermann_line1_2011_2014_2018';
 
-if strcmpi(example_str, 'Petermann_line1_2011_2014_2018_TEST')
+if strcmpi(example_str, 'Petermann_line1_2011_2014_2018')
   %% Petermann Line 1 - 2011, 2014, 2018 - TEST // WORKING SCRIPT
   if ispc
     fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018_multipass.mat'));
@@ -143,7 +143,7 @@ if strcmpi(example_str, '79N_line1_2010_2014_2016_2018_TEST')
   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
   vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2013_2014_vv_v02.1.tif');
   vel_mult{1} = [3 1];
-  vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif';
+  vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
   vel_mult{2} = [1 1];
   vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
