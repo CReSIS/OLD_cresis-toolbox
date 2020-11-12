@@ -1,4 +1,4 @@
-function [mdata,depth_axis] = elevation_compensation(mdata,param)
+function [mdata,depth_axis] = elevation_compensation(mdata,param, layers_twtt)
 % function [mdata,depth_axis] = elevation_compensation(mdata,param)
 %
 % Inputs
@@ -95,36 +95,37 @@ physical_constants;
 
 if param.update_surf
   %% Update surface:
+  surf_bin = zeros(1,size(mdata.Data,2));
   for rline = 1:size(mdata.Data,2)
     new_surf = find(mdata.Data(:,rline) ...
       > max(param.threshold,max(mdata.Data(:,rline))*param.sidelobe),1);
     if isempty(new_surf)
-      mdata.Surface_Bin(rline) = NaN;
+      surf_bin(rline) = NaN;
     else
-      mdata.Surface_Bin(rline) = new_surf;
+      surf_bin(rline) = new_surf;
     end
   end
-  mdata.Surface = interp1(1:length(mdata.Time),mdata.Time,mdata.Surface_Bin);
-  nan_mask = isnan(mdata.Surface);
-  mdata.Surface = interp1(find(~nan_mask),mdata.Surface(~nan_mask),1:length(mdata.Surface));
+  layers_twtt{1} = interp1(1:length(mdata.Time),mdata.Time, surf_bin);
+  nan_mask = isnan(layers_twtt{1});
+  layers_twtt{1} = interp1(find(~nan_mask),layers_twtt{1}(~nan_mask),1:length(layers_twtt{1}));
 end
 
 if param.filter_surf
   %% Filter surface
-  if length(mdata.Surface) >= 100
+  if length(layers_twtt{1}) >= 100
     [Bfilt,Afilt] = butter(2,0.02);
-    surf_filt = filtfilt(Bfilt,Afilt,mdata.Surface);
-    tmp = polyval(polyfit(1:51,reshape(mdata.Surface(1:51),[1 51]),2),1:51);
+    surf_filt = filtfilt(Bfilt,Afilt,layers_twtt{1});
+    tmp = polyval(polyfit(1:51,reshape(layers_twtt{1}(1:51),[1 51]),2),1:51);
     surf_filt(1:50) = tmp(1:50) - tmp(51) + surf_filt(51);
-    tmp = polyval(polyfit(1:51,reshape(mdata.Surface(end-50:end),[1 51]),2),1:51);
+    tmp = polyval(polyfit(1:51,reshape(layers_twtt{1}(end-50:end),[1 51]),2),1:51);
     surf_filt(end-49:end) = tmp(2:51) - tmp(1) + surf_filt(end-50);
-    mdata.Surface = surf_filt;
+    layers_twtt{1} = surf_filt;
   else
-    surf_filt = medfilt1(mdata.Surface,round(length(mdata.Surface)/20)*2+1);
-    mdata.Surface = surf_filt;
+    surf_filt = medfilt1(layers_twtt{1},round(length(layers_twtt{1})/20)*2+1);
+    layers_twtt{1} = surf_filt;
   end
 else
-  surf_filt = mdata.Surface;
+  surf_filt = layers_twtt{1};
 end
 
 %% Remove data before zero time
@@ -171,7 +172,7 @@ elseif param.elev_comp == 2
   newData = zeros(length(depth),size(mdata.Data,2));
   for rline = 1:size(mdata.Data,2)
     newData(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), ...
-      mdata.Surface(rline) + depth_time);
+      layers_twtt{1}(rline) + depth_time);
   end
   mdata.Data = newData;
   
@@ -202,6 +203,7 @@ elseif param.elev_comp == 3
   dtime = dRange/(c/2);
   
   warning off
+  
   for rline = 1:size(mdata.Data,2)
     % Determine elevation bins before surface
     surf_elev = mdata.Elevation(rline) - surf_filt(rline) * c/2;
@@ -222,19 +224,19 @@ elseif param.elev_comp == 3
     end
     mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
-    mdata.Surface(rline) = mdata.Surface(rline) + dtime(rline);
-    if isfield(mdata,'Bottom')
-      mdata.Bottom(rline) = mdata.Bottom(rline) + dtime(rline);
+    layers_twtt{1}(rline) = layers_twtt{1}(rline) + dtime(rline);
+    for layer_idx = 2:length(layers_twtt)
+       layers_twtt{layer_idx}(rline) = layers_twtt{layer_idx}(rline) + dtime(rline);
     end
   end
   warning on
   
   %% Limit plotted depths according to input param.depth
-  DSurface = mdata.Elevation - mdata.Surface*c/2;
+  DSurface = mdata.Elevation - layers_twtt{1}*c/2;
   Surface_Elev = DSurface;
   mdata.Surface_Elev = DSurface;
-  if isfield(mdata,'Bottom')
-    mdata.Bottom_Elev = DSurface - (mdata.Bottom - mdata.Surface) * (c/2/sqrt(param.er_ice));
+  for layer_idx = 2:length(layers_twtt)
+    mdata.layers_elev{layer_idx} = DSurface - (layers_twtt{layer_idx}- layers_twtt{1}) * (c/2/sqrt(param.er_ice));
   end
   % Example: param.depth = '[min(Surface_Elev)-15 max(Surface_Elev)+3]';
   % Example: param.depth = '[100 120]';

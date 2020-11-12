@@ -32,7 +32,7 @@ function [mdata] = echo_plot(echo_fn,layerdata_source, defaultlayer)
 % See also: load_L1B.m, elevation_compensation.m
 
 echo_fn = 'X:\ct_data\rds\2018_Antarctica_DC8\CSARP_post\CSARP_standard\20181016_01\Data_20181016_01_021.mat';
-layerdata_source = '';
+layerdata_source = 'layer';
 
 mdata = load_L1B(echo_fn);
 % mdata.Data: Nt by Nx matrix, Nt rows, Nx columns, t for fast-time, x for along-track
@@ -54,7 +54,7 @@ if ispc
 else
   echo_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2018_Antarctica_DC8/CSARP_post/CSARP_standard/20181016_01/Data_20181016_01_021.mat';
 end
-layerdata_source = '';
+layerdata_source = 'layer';
 
 mdata = load_L1B(echo_fn);
 % mdata.Data: Nt by Nx matrix, Nt rows, Nx columns, t for fast-time, x for along-track
@@ -72,26 +72,23 @@ if ~exist('defaultlayer','var') || isempty(defaultlayer)
 end
 
 % 
-% layer_names = {'surface','surface','bottom'}
-% 
-% [l1,l2,l3] = layerdata.load_layers(mdata,layerdata_source,'surface','surface','bottom');
-% 
-% [l1,l2,l3] = layerdata.load_layers(mdata,layerdata_source,layer_names{:});
-% 
-% [layers_twtt{1:length(layer_names)}] = layerdata.load_layers(mdata,layerdata_source,layer_names{:});
+layer_names = {'surface','layer_01','bottom'};
+
+
+[layers_twtt{1:length(layer_names)}] = layerdata.load_layers(mdata,layerdata_source,layer_names{:});
 
 if iscell(defaultlayer)
     % Replace L1B echogram surface and bottom with L2 surface and bottom from layer data file
   [mdata.Surface,mdata.Bottom] = layerdata.load_layers(mdata,layerdata_source,defaultlayer{1}, defaultlayer{length(defaultlayer)});
 
-  layers = {layerdata.load_layers(mdata,layerdata_source,defaultlayer{:})};
+  layers = {layerdata.load_layers(mdata,layerdata_source,layer_names{:})};
   
   
-  if length(defaultlayer) > 2
-  for i = 2:(length(defaultlayer)-1)
-    mdata.xlayer{i} = layerdata.load_layers(mdata,layerdata_source,defaultlayer{i});
-  end
-  end
+%   if length(defaultlayer) > 2
+%   for i = 2:(length(defaultlayer)-1)
+%     mdata.xlayer{i} = layerdata.load_layers(mdata,layerdata_source,defaultlayer{i});
+%   end
+%   end
   % A = {layerdata.load_layers(mdata,layerdata_source,third_arg{:})}
 end
 %% Set which bins to plot
@@ -105,8 +102,8 @@ ylabel('Two way travel time (us)')
 colormap(1-gray(256))
 hold on
 plot(mdata.Surface*1e6);
-if isfield(mdata,'Bottom')
-  plot(mdata.Bottom*1e6);
+for layer_idx = 2:length(layers_twtt)
+  plot(layers_twtt{layer_idx}*1e6);
 end
 hold off;
 
@@ -118,7 +115,7 @@ if 1
   param.er_ice = 3.15;
   param.elev_comp = 3;
   %param.depth = '[min(Surface_Elev)-20 max(Surface_Elev)+2]';
-  [mdata_WGS84,depth_good_idxs] = elevation_compensation(mdata,param); % PADEN: ADD third argument here (matrix of TWTT, Nlayer by Nx)
+  [mdata_WGS84,depth_good_idxs] = elevation_compensation(mdata,param,layers_twtt); % PADEN: ADD third argument here (matrix of TWTT, Nlayer by Nx)
   
   %% Plot versus range
   figure(2); clf;
@@ -128,8 +125,8 @@ if 1
   colormap(1-gray(256))
   hold on
   plot(mdata_WGS84.Elevation(1) - mdata_WGS84.Surface_Elev);
-  if isfield(mdata,'Bottom')
-    plot(mdata_WGS84.Elevation(1) - mdata_WGS84.Bottom_Elev);
+  for layer_idx = 2:length(layers_twtt)
+    plot(mdata_WGS84.Elevation(1) - mdata_WGS84.layers_elev{layer_idx});
   end
   hold off;
   
@@ -142,8 +139,8 @@ if 1
   colormap(1-gray(256))
   hold on
   plot(mdata_WGS84.Surface_Elev);
-  if isfield(mdata,'Bottom')
-    plot(mdata_WGS84.Bottom_Elev);
+  for layer_idx = 2:length(layers_twtt)
+    plot(mdata_WGS84.layers_elev{layer_idx});
   end
   hold off;
   
