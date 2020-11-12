@@ -13,7 +13,7 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140516_01');
-params = ct_set_params(params,'cmd.frms',[40:41]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
@@ -31,7 +31,7 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_s004';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_s006';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 

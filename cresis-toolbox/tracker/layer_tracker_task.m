@@ -194,8 +194,10 @@ else
   end
 
 end
+mdata = echo_param_update(mdata,param);
 Nx = size(mdata.Data,2);
 data = lp(mdata.Data);
+
 
 %% Track
 % =========================================================================
