@@ -619,4 +619,45 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
   end
   layers.save();
   
+elseif strcmpi(copy_param.layer_dest.source,'echogram')
+  %% Save echogram
+  for frm = param.cmd.frms
+    % Create file name for each frame
+    if copy_param.layer_source.echogram_source_img == 0
+      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
+        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+    else
+      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
+        sprintf('Data_img_%02d_%s_%03d.mat', copy_param.layer_source.echogram_source_img, param.day_seg, frm));
+    end
+    if ~exist(echo_fn,'file')
+      warning('Echogram data file does not exist: %s\n', echo_fn);
+      continue;
+    end
+    
+    % Load echogram
+    echo = load(echo_fn,'GPS_time');
+    
+    layers = layerdata(param, copy_param.layer_dest.layerdata_source);
+    for layer_idx = 1:length(layer_dest)
+      
+      % Create automated points:
+      if strcmpi(copy_param.layer_dest.name,'surface')
+        echo.Surface = interp1(all_points(layer_idx).gps_time,all_points(layer_idx).twtt_final,echo.GPS_time);
+        % Append the new results back to the echogram file
+        ct_save(echo_fn,'-append','-struct','echo','Surface');
+      elseif strcmpi(copy_param.layer_dest.name,'bottom')
+        echo.Bottom = interp1(all_points(layer_idx).gps_time,all_points(layer_idx).twtt_final,echo.GPS_time);
+        % Append the new results back to the echogram file
+        ct_save(echo_fn,'-append','-struct','echo','Bottom');
+      else
+        echo.(copy_param.layer_dest.name) = interp1(all_points(layer_idx).gps_time,all_points(layer_idx).twtt_final,echo.GPS_time);
+        % Append the new results back to the echogram file
+        ct_save(echo_fn,'-append','-struct','echo',copy_param.layer_dest.name);
+      end
+      
+    end
+  
+  end
+  
 end

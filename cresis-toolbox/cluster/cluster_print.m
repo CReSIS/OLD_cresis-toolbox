@@ -201,7 +201,10 @@ if print_mode == 1
     else
       % cluster job ID (e.g. torque job ID)
       job_id = id;
-      task_id = find(ctrl.job_id_list == id);
+      task_id = find(ctrl.job_id_list == id,1);
+      if isempty(task_id)
+        error('Task not found.');
+      end
     end
     if ctrl.job_id_list(task_id) == -1
       lead_task_id = task_id;

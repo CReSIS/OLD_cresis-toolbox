@@ -21,9 +21,9 @@ catch ME
   error('Source layer entered is invalid. Enter a single positive integer.\n');
 end
 
-diff_mode_en = get(obj.panel.diff_modeCB,'Value');
+copy_mode = get(obj.panel.modePM,'Value');
 
-if diff_mode_en
+if copy_mode == 3
   try
     correct_layer = round(str2double(get(obj.panel.correctTB,'String')));
     if length(correct_layer) ~= 1 || correct_layer < 1 || correct_layer > length(param.layer.y)
@@ -36,17 +36,18 @@ end
 
 param.x_bounds = 2;
 param.y_bounds = 2;
-if diff_mode_en
-  [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,correct_layer);
+if copy_mode == 3
+  [manual_idxs,auto_idxs,point_idxs] = obj.find_matching_pnts(param,correct_layer);
 else
-  [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,source_layer);
+  [manual_idxs,auto_idxs,point_idxs] = obj.find_matching_pnts(param,source_layer);
 end
 
 for layer_idx = 1:length(cur_layers)
   cur_layer = cur_layers(layer_idx);
   
   if ~isempty(point_idxs)
-    if diff_mode_en
+    if copy_mode == 3
+      %% Diff Mode
       cmds(end+1).undo_cmd = 'insert';
       cmds(end).undo_args = {cur_layer, point_idxs, ...
         param.layer.y{cur_layer}(point_idxs), ...
@@ -57,7 +58,25 @@ for layer_idx = 1:length(cur_layers)
         param.layer.y{cur_layer}(point_idxs) + param.layer.y{correct_layer}(point_idxs) - param.layer.y{source_layer}(point_idxs), ...
         param.layer.type{cur_layer}(point_idxs), ...
         param.layer.qual{cur_layer}(point_idxs)};
+    elseif copy_mode == 2
+      %% Merge Mode
+      cmds(end+1).undo_cmd = 'insert';
+      % Only update the NaN
+      mask = isnan(param.layer.y{cur_layer}(point_idxs));
+      cmds(end).undo_args = {cur_layer, point_idxs(mask), ...
+        param.layer.y{cur_layer}(point_idxs(mask)), ...
+        param.layer.type{cur_layer}(point_idxs(mask)), ...
+        param.layer.qual{cur_layer}(point_idxs(mask))};
+      cmds(end).redo_cmd = 'insert';
+      % Merge vectors
+      merged_layer = merge_vectors(param.layer.y{cur_layer}(point_idxs),param.layer.y{source_layer}(point_idxs));
+      % Insert the merged points
+      cmds(end).redo_args = {cur_layer, point_idxs(mask), ...
+        merged_layer(mask), ...
+        param.layer.type{source_layer}(point_idxs(mask)), ...
+        param.layer.qual{source_layer}(point_idxs(mask))};
     else
+      %% Copy Mode
       cmds(end+1).undo_cmd = 'insert';
       cmds(end).undo_args = {cur_layer, point_idxs, ...
         param.layer.y{cur_layer}(point_idxs), ...
