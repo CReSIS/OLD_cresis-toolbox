@@ -8,6 +8,10 @@ function update_source_fns_existence(obj)
 %   Frames, Sources, Images 
 obj.eg.source_fns_existence = logical(zeros(length(obj.eg.frm_strs),length(obj.eg.sources),1));
 
+if isempty(obj.eg.sources)
+  error('There must be at least one echogram source entered for "Echogram Sources" in the preferences.');
+end
+
 found_at_least_one_good_file = false;
 for source_idx = 1:length(obj.eg.sources)
   fn_dir = ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx});

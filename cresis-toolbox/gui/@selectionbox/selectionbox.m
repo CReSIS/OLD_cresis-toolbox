@@ -16,6 +16,12 @@ classdef selectionbox < handle
     fh_available
     fh_selected
     enable_mode
+    
+    % Data in listboxes
+    strings
+    ids
+    orders
+    selected_mask
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -26,9 +32,22 @@ classdef selectionbox < handle
   end
   
   methods
-    function obj = selectionbox(parent,name,list_values,init_value)
+    function obj = selectionbox(parent,name,list_values,init_value,list_ids,list_orders)
       % List boxes start enabled by default
       obj.enable_mode = true;
+      
+      obj.strings = list_values;
+      if exist('list_ids','var') && ~isempty(list_ids)
+        obj.ids = list_ids;
+      else
+        obj.ids = 1:length(list_values);
+      end
+      if exist('list_orders','var') && ~isempty(list_orders)
+        obj.orders = list_orders;
+      else
+        obj.orders = 1:length(list_values);
+      end
+      obj.selected_mask = false(size(obj.strings));
       
       obj.h_text = uicontrol('Parent',parent);
       set(obj.h_text,'Style','Text');
@@ -71,19 +90,38 @@ classdef selectionbox < handle
     
     function add_callback(obj,status,event)
       h_status = get(status);
-      if isfield(h_status,'Label') && strcmp(get(status,'Label'),'Add')
+      if (isfield(h_status,'Label') && strcmp(get(status,'Label'),'Add')) ...
+        || (isfield(h_status,'text') && strcmp(get(status,'text'),'Add'))
+        % Get the highlighted entries in the available box, return if
+        % nothing is selected since there will be nothing to do
         match_idxs = get(obj.h_list_available,'Value');
-        available_list = get(obj.h_list_available,'string');
-        if isempty(match_idxs) || isempty(available_list); return; end;
-        selected_list = get(obj.h_list_selected,'string');
-        selected_list = cat(1,selected_list,available_list{match_idxs});
-        selected_list = sort(selected_list);
-        moved_mask = zeros(size(available_list));
-        moved_mask(match_idxs) = 1;
-        available_list = available_list(~moved_mask);
-        set(obj.h_list_available,'value',1);
+        if isempty(match_idxs)
+          return
+        end
+        
+        % Create sorted selected_mask
+        [~,sort_idxs] = sort(obj.orders);
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        % Get indexes into the obj.selected_mask that are selected and then
+        % update these entries to be moved to the selected listbox
+        available_idxs = find(~sort_selected_mask);
+        available_idxs(match_idxs);
+        obj.selected_mask(available_idxs(match_idxs)) = true;
+        
+        % Create updated sorted selected_mask
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        % Reset selected entry in the available list
+        set(obj.h_list_available,'value',min(sum(~obj.selected_mask),min(match_idxs)));
+        
+        % Update the available and selected listboxes
+        available_list = obj.strings(sort_idxs(~sort_selected_mask));
         set(obj.h_list_available,'string',available_list);
+        selected_list = obj.strings(sort_idxs(sort_selected_mask));
         set(obj.h_list_selected,'string',selected_list);
+        
+        % Notify event that selection has changed
         notify(obj,'selection_changed');
       else
         obj.fh_available(status,event);
@@ -92,19 +130,38 @@ classdef selectionbox < handle
     
     function remove_callback(obj,status,event)
       h_status = get(status);
-      if isfield(h_status,'Label') && strcmp(get(status,'Label'),'Remove')
+      if isfield(h_status,'Label') && strcmp(get(status,'Label'),'Remove') ...
+        || (isfield(h_status,'text') && strcmp(get(status,'text'),'Remove'))
+        % Get the highlighted entries in the selected box, return if
+        % nothing is selected since there will be nothing to do
         match_idxs = get(obj.h_list_selected,'Value');
-        available_list = get(obj.h_list_available,'string');
-        selected_list = get(obj.h_list_selected,'string');
-        if isempty(match_idxs) || isempty(selected_list); return; end;
-        available_list = cat(1,available_list,selected_list{match_idxs});
-        available_list = sort(available_list);
-        moved_mask = zeros(size(selected_list));
-        moved_mask(match_idxs) = 1;
-        selected_list = selected_list(~moved_mask);
-        set(obj.h_list_selected,'value',1);
+        if isempty(match_idxs)
+          return
+        end
+        
+        % Create sorted selected_mask
+        [~,sort_idxs] = sort(obj.orders);
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        % Get indexes into the obj.selected_mask that are selected and then
+        % update these entries to be moved to the selected listbox
+        selected_idxs = find(sort_selected_mask);
+        selected_idxs(match_idxs);
+        obj.selected_mask(selected_idxs(match_idxs)) = false;
+        
+        % Create updated sorted selected_mask
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        % Reset selected entry in the available list
+        set(obj.h_list_selected,'value',min(sum(obj.selected_mask),min(match_idxs)));
+        
+        % Update the available and selected listboxes
+        available_list = obj.strings(sort_idxs(~sort_selected_mask));
         set(obj.h_list_available,'string',available_list);
+        selected_list = obj.strings(sort_idxs(sort_selected_mask));
         set(obj.h_list_selected,'string',selected_list);
+        
+        % Notify event that selection has changed
         notify(obj,'selection_changed');
       else
         obj.fh_available(status,event);
@@ -114,32 +171,55 @@ classdef selectionbox < handle
     function list_callback(obj, h_obj, event)
       if strcmpi(get(gcf,'SelectionType'),'Open')
         % Double click causes the currently selected item to switch lists
-        match_idx = get(h_obj,'Value');
-        if isempty(match_idx)
+        
+        % Get the highlighted entries in the available box, return if
+        % nothing is selected since there will be nothing to do
+        match_idxs = get(h_obj,'Value');
+        if isempty(match_idxs)
           return;
         end
-        available_list = get(obj.h_list_available,'string');
-        selected_list = get(obj.h_list_selected,'string');
+        
+        % Create sorted selected_mask
+        [~,sort_idxs] = sort(obj.orders);
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        % Determine which list was double clicked in
         if h_obj == obj.h_list_available
-          selected_list{end+1} = available_list{match_idx};
-          selected_list = sort(selected_list);
-          available_list = available_list([1:match_idx-1 match_idx+1:end]);
+          % Get indexes into the obj.selected_mask that are selected and then
+          % update these entries to be moved to the selected listbox
+          available_idxs = find(~sort_selected_mask);
+          available_idxs(match_idxs);
+          obj.selected_mask(available_idxs(match_idxs)) = true;
+          
+          % Create updated sorted selected_mask
+          sort_selected_mask = obj.selected_mask(sort_idxs);
+          
+          % Reset selected entry in the available list
+          set(obj.h_list_available,'value',min(sum(~obj.selected_mask),min(match_idxs)));
+          
         else
-          available_list{end+1} = selected_list{match_idx};
-          available_list = sort(available_list);
-          selected_list = selected_list([1:match_idx-1 match_idx+1:end]);
+          % Get indexes into the obj.selected_mask that are selected and then
+          % update these entries to be moved to the selected listbox
+          selected_idxs = find(sort_selected_mask);
+          selected_idxs(match_idxs);
+          obj.selected_mask(selected_idxs(match_idxs)) = false;
+          
+          % Create updated sorted selected_mask
+          sort_selected_mask = obj.selected_mask(sort_idxs);
+          
+          % Reset selected entry in the available list
+          set(obj.h_list_selected,'value',min(sum(obj.selected_mask),min(match_idxs)));
         end
-        avail_val = get(obj.h_list_available,'value');
-        if avail_val > length(available_list)
-          set(obj.h_list_available,'value',1);
-        end
-        select_val = get(obj.h_list_selected,'value');
-        if select_val > length(selected_list)
-          set(obj.h_list_selected,'value',1);
-        end
+        
+        % Update the available and selected listboxes
+        available_list = obj.strings(sort_idxs(~sort_selected_mask));
         set(obj.h_list_available,'string',available_list);
+        selected_list = obj.strings(sort_idxs(sort_selected_mask));
         set(obj.h_list_selected,'string',selected_list);
+        
+        % Notify event that selection has changed
         notify(obj,'selection_changed');
+        
       end
     end
     
@@ -147,19 +227,38 @@ classdef selectionbox < handle
       vals = get(obj.h_list_selected,'Value');
     end
     
-    function vals = get_selected_strings(obj)
-      vals = get(obj.h_list_selected,'string');
+    function strings = get_selected_strings(obj)
+      strings = get(obj.h_list_selected,'string');
     end
     
-    function set_list(obj, vals)
-      % val = cell vector of character strings
+    function set_list(obj, strings, ids, orders)
+      % strings: cell vector of character strings that will be displayed
+      %
+      % ids: corresponding id for each string (optional). Default is
+      % integers from 1 to length(strings)
+      %
+      % orders: corresponding order that determines in what order the
+      % strings will be listed (optional). Default is the order that the
+      % values are passed in.
       %
       % If items in val already exist in either available or selected then
       % they will stay in that listbox, items not in val are removed, new
       % items from val are placed in available.
       
-      vals = sort(vals);
+      obj.strings = strings;
+      if exist('ids','var') && ~isempty(ids)
+        obj.ids = ids;
+      else
+        obj.ids = 1:length(obj.strings);
+      end
+      if exist('orders','var') && ~isempty(orders)
+        obj.orders = orders;
+      else
+        obj.orders = 1:length(obj.strings);
+      end
       
+      % Keep track of which values are in the "available" box and which ones
+      % of those are selected.
       available_values = get(obj.h_list_available,'value');
       available_list = get(obj.h_list_available,'string');
       if ~isempty(available_list)
@@ -168,6 +267,8 @@ classdef selectionbox < handle
         available_highlighted = {};
       end
       
+      % Keep track of which values are in the "selected" box and which ones
+      % of those are selected.
       selected_values = get(obj.h_list_selected,'value');
       selected_list = get(obj.h_list_selected,'string');
       if ~isempty(selected_list)
@@ -176,14 +277,23 @@ classdef selectionbox < handle
         selected_highlighted = {};
       end
       
-      selected_list = intersect(vals,selected_list);
-      available_list = intersect(vals,available_list);
-      new_available_list = setdiff(vals,[available_list(:); selected_list(:)]);
-      available_list = [available_list(:); new_available_list(:)];
-      available_list = sort(available_list);
+      % Any items that were in the "selected" box, will stay in the
+      % selected box. All other items will be placed in the available box.
+      obj.selected_mask = false(size(obj.strings));
+      for idx = 1:length(obj.strings)
+        obj.selected_mask(idx) = any(strcmpi(obj.strings{idx},selected_list));
+      end
+      [~,sort_idxs] = sort(obj.orders);
+      sort_selected_mask = obj.selected_mask(sort_idxs);
+      
+      available_list = obj.strings(sort_idxs(~sort_selected_mask));
       set(obj.h_list_available,'string',available_list);
+      selected_list = obj.strings(sort_idxs(sort_selected_mask));
       set(obj.h_list_selected,'string',selected_list);
       
+      % Check which of the new items needs to be selected and also check to
+      % see if the selection has changed because an item is no longer
+      % available.
       available_values = [];
       available_highlighted_mask = false(size(available_highlighted));
       for idx = 1:length(available_highlighted)
@@ -204,81 +314,81 @@ classdef selectionbox < handle
         end
       end
       
+      % Reselect the same items that were selected before
       set(obj.h_list_available,'value',available_values);
       set(obj.h_list_selected,'value',selected_values);
       
+      % If the selection changed in either listbox, then notify event
       if any(~available_highlighted_mask) || any(~selected_highlighted_mask)
         notify(obj,'selection_changed');
       end
     end
     
-    function set_available(obj, vals)
-      % val = cell vector of character strings (resets selectionbox)
-      if ~isempty(vals)
-        set(obj.h_list_available,'value',1);
+    function set_available(obj, strings, ids, orders)
+      % Same as set_list, but resets the listbox so that everything shows
+      % up in the available box.
+      
+      obj.strings = strings;
+      if exist('ids','var') && ~isempty(ids)
+        obj.ids = ids;
+      else
+        obj.ids = 1:length(obj.strings);
       end
-      set(obj.h_list_available,'string',sort(vals));
-      set(obj.h_list_selected,'string',[]);
+      if exist('orders','var') && ~isempty(orders)
+        obj.orders = orders;
+      else
+        obj.orders = 1:length(obj.strings);
+      end
+      
+      % Any items that were in the "selected" box, will stay in the
+      % selected box. All other items will be placed in the available box.
+      obj.selected_mask = false(size(obj.strings));
+      
+      available_list = obj.strings;
+      set(obj.h_list_available,'string',available_list);
+      selected_list = {};
+      set(obj.h_list_selected,'string',selected_list);
+      
+      % Reselect the same items that were selected before
+      if ~isempty(obj.strings)
+        set(obj.h_list_available,'value',1);
+      else
+        set(obj.h_list_available,'value',[]);
+      end
+      set(obj.h_list_selected,'value',[]);
+      
+      % If the selection changed in either listbox, then notify event
       notify(obj,'selection_changed');
     end
     
-    function set_selected(obj, vals, selected)
-      % val = cell vector of character strings or array of indices to strings
-      % selected = logical (true to select, false to deselect)
+    function set_selected(obj, strings, selected_state)
+      % strings: cell vector of character strings or array of indices to
+      % strings
+      %
+      % selected_state: logical (true to select and move to the selected
+      % list, false to deselect and move to the available list)
       %
       % Strings or indices that match will be (de)selected
       
       selection_changed = false;
-      for val_idx = 1:length(vals)
-        if iscell(vals)
-          val = vals{val_idx};
-        else
-          val = vals(val_idx);
-        end
-        
-        available_list = get(obj.h_list_available,'string');
-        selected_list = get(obj.h_list_selected,'string');
-        
-        if selected == true
-          % User wishes to select val
-          string_list = available_list;
-        else
-          % User wishes to deselect val
-          string_list = selected_list;
-        end
-        if ischar(val)
-          % Search through string list for a match
-          match_idx = find(strcmp(string_list,val),1);
-        else
-          % Assume val is index into string list
-          match_idx = val;
-        end
-        if ~isempty(match_idx) && match_idx >= 1 && match_idx <= length(string_list)
-          % Move selection from one list to the other depending on selected
-          if selected == true
-            selected_list{end+1} = available_list{match_idx};
-            selected_list = sort(selected_list);
-            available_list = available_list([1:match_idx-1 match_idx+1:end]);
-          else
-            available_list{end+1} = selected_list{match_idx};
-            available_list = sort(available_list);
-            selected_list = selected_list([1:match_idx-1 match_idx+1:end]);
-          end
-          avail_val = get(obj.h_list_available,'value');
-          if avail_val > length(available_list)
-            set(obj.h_list_available,'value',1);
-          end
-          select_val = get(obj.h_list_selected,'value');
-          if select_val > length(selected_list)
-            set(obj.h_list_selected,'value',1);
-          end
-          set(obj.h_list_available,'string',available_list);
-          set(obj.h_list_selected,'string',selected_list);
+      for str_idx = 1:length(strings)
+        match_idx = find(strcmp(strings{str_idx},obj.strings));
+        if ~isempty(match_idx) && obj.selected_mask(match_idx) ~= selected_state
           selection_changed = true;
+          
+          obj.selected_mask(match_idx) = selected_state;
         end
       end
       
       if selection_changed
+        [~,sort_idxs] = sort(obj.orders);
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        available_list = obj.strings(sort_idxs(~sort_selected_mask));
+        set(obj.h_list_available,'string',available_list);
+        selected_list = obj.strings(sort_idxs(sort_selected_mask));
+        set(obj.h_list_selected,'string',selected_list);
+        
         notify(obj,'selection_changed');
       end
     end

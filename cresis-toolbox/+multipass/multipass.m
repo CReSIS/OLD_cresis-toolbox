@@ -73,6 +73,8 @@ end
 baseline_master_idx = param.multipass.baseline_master_idx;
 
 % coregistration_time_shift: Fast time time shift. Default is zero.
+% Positive values cause the image to move towards the radar. Units are in
+% range bins.
 if ~isfield(param.multipass,'coregistration_time_shift') || isempty(param.multipass.coregistration_time_shift)
   param.multipass.coregistration_time_shift = zeros(1,length(pass));
 end

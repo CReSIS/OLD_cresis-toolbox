@@ -42,7 +42,15 @@ classdef layerdata < handle
     sample_spacing_method % 'records' or 'along_track' (default)
     along_track_spacing % either 5 m (non-rds) or 15 m (rds) by default
     record_spacing % 200 by default
-
+    
+    % GUI
+    h_fig
+    h_fig_twtt
+    h_fig_metadata
+    h_axes_twtt
+    h_gui
+    h_gui_metadata
+    
   end
   
   %% Private Methods  ==========
@@ -215,9 +223,30 @@ classdef layerdata < handle
       obj.sample_spacing_method = '';
       obj.along_track_spacing = [];
       obj.record_spacing = 200;
+      
+      % GUI
+      obj.h_fig = [];
+      obj.h_fig_twtt = [];
+      obj.h_fig_metadata = [];
+      obj.h_axes_twtt = [];
+      obj.h_gui = [];
+      obj.h_gui_metadata = [];
     end
     
-    %% check: check that layer is loaded
+    %% destructor
+    function delete(obj)
+      try
+        delete(obj.h_fig);
+      end
+      try
+        delete(obj.h_fig_twtt);
+      end
+      try
+        delete(obj.h_fig_metadata);
+      end
+    end
+    
+    %% check: check that layers are loaded for a particular frame
     function check(obj,frm)
       if length(obj.layer) < frm || isempty(obj.layer{frm})
         % Load layer file
@@ -225,10 +254,18 @@ classdef layerdata < handle
       end
     end
     
-    %% check_all: check to make sure layer organizer and all layers loaded
+    %% check_all: check that records, frames, layer organizer and layers loaded
     function check_all(obj)
       obj.check_records();
       obj.check_layer_organizer();
+      for frm = 1:length(obj.frames.frame_idxs)
+        obj.check(frm);
+      end
+    end
+    
+    %% check: check that layers are loaded for all frames
+    function check_all_frames(obj)
+      obj.check_frames();
       for frm = 1:length(obj.frames.frame_idxs)
         obj.check(frm);
       end
@@ -1270,8 +1307,18 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
     end
-    
-  end
+
+    %% GUI function declarations
+    create_ui(obj);
+    callback_layersSB(obj,status,event);
+    callback_plotCB(obj,status,event);
+    callback_importPB(obj,status,event);
+    callback_presetPB(obj,status,event);
+    callback_savePB(obj,status,event);
+    callback_closePB(obj,status,event);
+    callback_save_metadataPB(obj,status,event); % metadata window okay button
+
+  end % Methods
   
   %% Static Methods ==========
   methods(Static)
@@ -1348,6 +1395,11 @@ classdef layerdata < handle
       end
       delete(layers);
     end
-  end
-  
-end
+    
+    % Functions for editing layerdata properties or merging two separate
+    % layerdata directories
+    run_merge();
+    merge(param,param_override);
+    
+  end % Static methods
+end % layerdata class
