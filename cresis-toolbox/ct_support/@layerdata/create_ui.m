@@ -62,10 +62,6 @@ set(obj.h_gui.h_layers.h_list_available,'TooltipString','Layers to delete (doubl
 set(obj.h_gui.h_layers.h_list_selected,'TooltipString','Layers to keep (double or right click to delete).');
 obj.h_gui.h_layers.set_enable(true);
 
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Up', 'Callback', @obj.callback_layers_SB);
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Down', 'Callback', @obj.callback_layers_SB);
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Top', 'Callback', @obj.callback_layers_SB);
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Bottom', 'Callback', @obj.callback_layers_SB);
 uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Order by twtt', 'Callback', @obj.callback_layers_SB);
 uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: overwrite diff frames', 'Callback', @obj.callback_layers_SB);
 uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: overwrite all', 'Callback', @obj.callback_layers_SB);

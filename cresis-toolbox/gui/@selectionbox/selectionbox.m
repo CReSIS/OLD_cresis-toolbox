@@ -70,11 +70,19 @@ classdef selectionbox < handle
       obj.h_list_availableCM = uicontextmenu('Parent',parent);
       % Define the context menu items and install their callbacks
       uimenu(obj.h_list_availableCM, 'Label', 'Add', 'Callback', @obj.add_callback);
+      uimenu(obj.h_list_availableCM, 'Label', 'Up', 'Callback', @obj.add_callback);
+      uimenu(obj.h_list_availableCM, 'Label', 'Down', 'Callback', @obj.add_callback);
+      uimenu(obj.h_list_availableCM, 'Label', 'Top', 'Callback', @obj.add_callback);
+      uimenu(obj.h_list_availableCM, 'Label', 'Bottom', 'Callback', @obj.add_callback);
       set(obj.h_list_available,'uicontextmenu',obj.h_list_availableCM)
       
       obj.h_list_selectedCM = uicontextmenu('Parent',parent);
       % Define the context menu items and install their callbacks
       uimenu(obj.h_list_selectedCM, 'Label', 'Remove', 'Callback', @obj.remove_callback);
+      uimenu(obj.h_list_selectedCM, 'Label', 'Up', 'Callback', @obj.remove_callback);
+      uimenu(obj.h_list_selectedCM, 'Label', 'Down', 'Callback', @obj.remove_callback);
+      uimenu(obj.h_list_selectedCM, 'Label', 'Top', 'Callback', @obj.remove_callback);
+      uimenu(obj.h_list_selectedCM, 'Label', 'Bottom', 'Callback', @obj.remove_callback);
       set(obj.h_list_selected,'uicontextmenu',obj.h_list_selectedCM)
 
     end
@@ -90,8 +98,14 @@ classdef selectionbox < handle
     
     function add_callback(obj,status,event)
       h_status = get(status);
-      if (isfield(h_status,'Label') && strcmp(get(status,'Label'),'Add')) ...
-        || (isfield(h_status,'text') && strcmp(get(status,'text'),'Add'))
+      if isfield(h_status,'Label')
+        context_menu = get(status,'Label');
+      elseif isfield(h_status,'text')
+        context_menu = get(status,'text');
+      else
+        context_menu = '';
+      end
+      if strcmpi(context_menu,'Add')
         % Get the highlighted entries in the available box, return if
         % nothing is selected since there will be nothing to do
         match_idxs = get(obj.h_list_available,'Value');
@@ -123,6 +137,49 @@ classdef selectionbox < handle
         
         % Notify event that selection has changed
         notify(obj,'selection_changed');
+      elseif strcmpi(context_menu,'Up')
+        keyboard
+        % Check to see if there is an element above the top selected
+        % element, if not quit and do nothing
+        match_idxs = get(obj.h_list_available,'Value');
+        if isempty(match_idxs) || match_idxs(1) == 1
+          return
+        end
+        
+        % Get the order for the element above the top selected element and
+        % all selected elements. Circularly shift the order so the element
+        % above is at the bottom.
+        % -----------------------------------------------------------------
+        match_idxs(2:end+1) = match_idxs;
+        match_idxs(1) = match_idxs(1)-1;
+        
+        % Create sorted selected_mask
+        [~,sort_idxs] = sort(obj.orders);
+        sort_selected_mask = obj.selected_mask(sort_idxs);
+        
+        % Get indexes into the obj.selected_mask that are selected and then
+        % update these entries to be moved to the selected listbox
+        available_idxs = find(~sort_selected_mask);
+        available_idxs(match_idxs);
+        obj.selected_mask(available_idxs(match_idxs)) = true;
+        
+        obj.orders
+      elseif strcmpi(context_menu,'Down')
+        keyboard
+      elseif strcmpi(context_menu,'Top')
+        keyboard
+        % Check to see if there is an element above the top selected
+        % element, if not quit and do nothing
+        match_idxs = get(obj.h_list_available,'Value');
+        if isempty(match_idxs) || match_idxs == 1
+          return
+        end
+        
+        % Get the order for all the elements and rearrange orders so
+        % selected elements occupy the first order values so that they are
+        % at the top of the list.
+      elseif strcmpi(context_menu,'Bottom')
+        keyboard
       else
         obj.fh_available(status,event);
       end

@@ -223,6 +223,9 @@ for track_idx = param.layer_tracker.tracks_in_task
         layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
       end
     end
+    if length(layers(lay_idx).gps_time) < 2
+      mdata.Surface = nan(size(mdata.GPS_time));
+    end
     mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time), NaN);
   end
   
