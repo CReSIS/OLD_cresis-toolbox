@@ -26,7 +26,7 @@ supplement_netcdf_param = param.nsidc.supplement_netcdf_param;
 
 %% Load the frames information
 frames_fn = ct_filename_support(param,'','frames');
-load(frames_fn);
+frames = frames_load(frames_fn);
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
@@ -79,6 +79,9 @@ elseif strcmpi(platform,'Basler')
 elseif strcmpi(platform,'SO')
   premet_param.nsidc_platform_short_name = 'DHC-3';
   premet_param.nsidc_aircraft_id = 'N226UT';
+elseif strcmpi(platform,'GV')
+  premet_param.nsidc_platform_short_name = 'G-V';
+  premet_param.nsidc_aircraft_id = 'N95NA';
 else
   error('Unsupported platform %s\n', platform);
 end
