@@ -422,15 +422,5 @@ table_draw(obj.h_gui_metadata.table);
 obj.check_layer_organizer();
 obj.check_all_frames();
 
-keyboard
-
 % Populate layers listbox
 obj.h_gui.h_layers.set_list(obj.layer_organizer.lyr_name, 1:length(obj.layer_organizer.lyr_id), obj.layer_organizer.lyr_order);
-
-
-
-
-
-
-
-
