@@ -91,7 +91,11 @@ else
       mdata = load_L1B(data_fn);
       frm_start(frm_idx) = 1;
       frm_stop(frm_idx) = length(mdata.GPS_time);
-      dt = mdata.Time(2) - mdata.Time(1);
+      if length(mdata.Time) >= 2
+        dt = mdata.Time(2) - mdata.Time(1);
+      else
+        dt = NaN;
+      end
       
     else
       tmp_data = load_L1B(data_fn);
@@ -109,6 +113,9 @@ else
       
       % Handle time axis that changes from one frame to the next
       min_time = min(tmp_data.Time(1),mdata.Time(1));
+      if isnan(dt) && length(mdata.Time) >= 2
+        dt = mdata.Time(2) - mdata.Time(1);
+      end
       Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
         : dt : max(tmp_data.Time(end),mdata.Time(end));
       % Interpolate data to new time axes
@@ -146,6 +153,9 @@ else
       
       % Handle time axis that changes from one frame to the next
       min_time = min(tmp_data.Time(1),mdata.Time(1));
+      if isnan(dt) && length(mdata.Time) >= 2
+        dt = mdata.Time(2) - mdata.Time(1);
+      end
       Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
         : dt : max(tmp_data.Time(end),mdata.Time(end));
       % Interpolate data to new time axes
@@ -182,6 +192,9 @@ else
       
       % Handle time axis that changes from one frame to the next
       min_time = min(tmp_data.Time(1),mdata.Time(1));
+      if isnan(dt) && length(mdata.Time) >= 2
+        dt = mdata.Time(2) - mdata.Time(1);
+      end
       Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
         : dt : max(tmp_data.Time(end),mdata.Time(end));
       % Interpolate data to new time axes
@@ -197,6 +210,10 @@ else
 end
 Nx = size(mdata.Data,2);
 data = lp(mdata.Data);
+if isnan(dt)
+  warning('This set of frame(s) does not have a fast-time axis because the data records were all bad.');
+  mdata.Time = [0 1];
+end
 
 %% Track
 % =========================================================================
@@ -222,6 +239,9 @@ for track_idx = param.layer_tracker.tracks_in_task
       if ~isempty(layers(lay_idx).(layers_fieldnames{field_idx}))
         layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
       end
+    end
+    if length(layers(lay_idx).gps_time) < 2
+      mdata.Surface = nan(size(mdata.GPS_time));
     end
     mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time), NaN);
   end
@@ -507,11 +527,19 @@ for track_idx = param.layer_tracker.tracks_in_task
   min_min_bin = round(max(1,min(track.min_bin)));
   max_max_bin = round(min(size(data,1),max(track.max_bin)));
   
-  track.init.max_diff = orig_track.init.max_diff/dt;
+  if isnan(dt)
+    track.init.max_diff = inf;
+  else
+    track.init.max_diff = orig_track.init.max_diff/dt;
+  end
   if strcmpi(track.max_rng_units,'bins')
     track.max_rng = orig_track.max_rng(1) : orig_track.max_rng(end);
   else
-    track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
+    if isnan(dt)
+      track.max_rng = 0;
+    else
+      track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
+    end
   end
   data = data(min_min_bin:max_max_bin,:);
   if track.data_noise_en
@@ -520,7 +548,11 @@ for track_idx = param.layer_tracker.tracks_in_task
   if ~isequal(track.max_rng_filter,track.filter)
     data_max_rng = data_max_rng(min_min_bin:max_max_bin,:);
   end
-  track.zero_bin = floor(-mdata.Time(min_min_bin)/dt + 1);
+  if isnan(dt)
+    track.zero_bin = 1;
+  else
+    track.zero_bin = floor(-mdata.Time(min_min_bin)/dt + 1);
+  end
   
   track.min_bin = track.min_bin - min_min_bin;
   track.max_bin = track.max_bin - min_min_bin;
@@ -531,7 +563,11 @@ for track_idx = param.layer_tracker.tracks_in_task
     % Correct for min_bin removal
     track.dem = track.dem - min_min_bin + 1;
   elseif strcmp(track.init.method,'snake')
-    track.init.search_rng = round(orig_track.init.snake_rng(1)/dt) : round(orig_track.init.snake_rng(2)/dt);
+    if isnan(dt)
+      track.init.search_rng = 0;
+    else
+      track.init.search_rng = round(orig_track.init.snake_rng(1)/dt) : round(orig_track.init.snake_rng(2)/dt);
+    end
     track.dem = tracker_snake_simple(data,track.init);
   elseif strcmp(track.init.method,'nan')
     track.dem = nan(1,Nx);
@@ -573,13 +609,18 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Tracking
   if strcmpi(track.method,'threshold')
-    track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
-    if track.data_noise_en
-      track.data_noise = data_noise;
+    if isnan(dt)
+      new_layers = nan(1,Nx);
+      new_quality = ones(1,Nx);
     else
-      track.data_noise = data;
+      track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
+      if track.data_noise_en
+        track.data_noise = data_noise;
+      else
+        track.data_noise = data;
+      end
+      [new_layers,new_quality] = tracker_threshold(data,track);
     end
-    [new_layers,new_quality] = tracker_threshold(data,track);
   elseif strcmpi(track.method,'max')
     new_layers = tracker_max(data,track);
     new_quality = ones(1,Nx);
@@ -596,9 +637,14 @@ for track_idx = param.layer_tracker.tracks_in_task
     new_layers = tracker_mcmc(data,track);
     new_quality = ones(1,Nx);
   elseif strcmpi(track.method,'snake')
-    track.search_rng = round(orig_track.snake_rng(1)/dt) : round(orig_track.snake_rng(2)/dt);
-    new_layers = tracker_snake_simple(data,track);
-    new_quality = ones(1,Nx);
+    if isnan(dt)
+      new_layers = nan(1,Nx);
+      new_quality = ones(1,Nx);
+    else
+      track.search_rng = round(orig_track.snake_rng(1)/dt) : round(orig_track.snake_rng(2)/dt);
+      new_layers = tracker_snake_simple(data,track);
+      new_quality = ones(1,Nx);
+    end
   elseif strcmpi(track.method,'fixed')
     new_layers = ones(size(mdata.GPS_time)) * track.fixed_value;
     new_quality = ones(1,Nx);
@@ -668,8 +714,14 @@ for track_idx = param.layer_tracker.tracks_in_task
       for rline = 1:Nx
         track_dem(rline) = interp1(1:size(resample_field,1),resample_field(:,rline),track.dem(rline)+min_min_bin-1,'linear','extrap');
       end
-      new_layer = mdata.Time(1) + (new_layer-1)*dt;
-      track_dem = mdata.Time(1) + (track_dem-1)*dt;
+      if isnan(dt)
+        % Use "fake" dt of  1 when isnan(dt)
+        new_layer = mdata.Time(1) + (new_layer-1)*1;
+        track_dem = mdata.Time(1) + (track_dem-1)*1;
+      else
+        new_layer = mdata.Time(1) + (new_layer-1)*dt;
+        track_dem = mdata.Time(1) + (track_dem-1)*dt;
+      end
     else
       % Some layer sources may not be "double", but we require that layers be double type:
       new_layer = interp1(1:length(mdata.Time), mdata.Time, new_layer + min_min_bin - 1,'linear','extrap');
