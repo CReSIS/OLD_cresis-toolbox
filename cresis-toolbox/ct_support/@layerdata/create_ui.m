@@ -62,10 +62,14 @@ set(obj.h_gui.h_layers.h_list_available,'TooltipString','Layers to delete (doubl
 set(obj.h_gui.h_layers.h_list_selected,'TooltipString','Layers to keep (double or right click to delete).');
 obj.h_gui.h_layers.set_enable(true);
 
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: diff frames', 'Callback', @obj.callback_layers_SB);
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: overwrite', 'Callback', @obj.callback_layers_SB);
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: NaN', 'Callback', @obj.callback_layers_SB);
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', '-', 'Callback', @obj.callback_layers_SB);
 uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Order by twtt', 'Callback', @obj.callback_layers_SB);
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: overwrite diff frames', 'Callback', @obj.callback_layers_SB);
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: overwrite all', 'Callback', @obj.callback_layers_SB);
-uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Merge: overwrite NaN', 'Callback', @obj.callback_layers_SB);
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Sequence layer names', 'Callback', @obj.callback_layers_SB);
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Set name based on twtt matches', 'Callback', @obj.callback_layers_SB);
+uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Undo name changes', 'Callback', @obj.callback_layers_SB);
 
 % Plot Deleted Button
 obj.h_gui.plot_deletedCB = uicontrol('Parent',obj.h_fig);
@@ -100,16 +104,16 @@ set(obj.h_gui.merge_presetPB,'TooltipString','Check to plot layers in the to be 
 % Save Button
 obj.h_gui.savePB = uicontrol('Parent',obj.h_fig);
 set(obj.h_gui.savePB,'Style','PushButton');
-set(obj.h_gui.savePB,'String','Save');
+set(obj.h_gui.savePB,'String','Save and Close');
 set(obj.h_gui.savePB,'Callback',@obj.callback_savePB);
-set(obj.h_gui.savePB,'TooltipString','Save GUI.');
+set(obj.h_gui.savePB,'TooltipString','Save and close.');
 
 % Close Button
 obj.h_gui.closePB = uicontrol('Parent',obj.h_fig);
 set(obj.h_gui.closePB,'Style','PushButton');
-set(obj.h_gui.closePB,'String','Close');
+set(obj.h_gui.closePB,'String','Close without Saving');
 set(obj.h_gui.closePB,'Callback',@obj.callback_closePB);
-set(obj.h_gui.closePB,'TooltipString','Hide GUI.');
+set(obj.h_gui.closePB,'TooltipString','Close without saving.');
 
 %% Main Figure: Create the table
 % =========================================================================
@@ -419,8 +423,16 @@ obj.h_gui_metadata.table.height_margin(row,col) = 1;
 clear row col
 table_draw(obj.h_gui_metadata.table);
 
-obj.check_layer_organizer();
-obj.check_all_frames();
+%% Load layers
+% =========================================================================
+obj.gui_layers{end+1} = obj;
+obj.gui_layers{end}.check_layer_organizer();
+obj.gui_layers{end}.check_all_frames();
 
-% Populate layers listbox
-obj.h_gui.h_layers.set_list(obj.layer_organizer.lyr_name, 1:length(obj.layer_organizer.lyr_id), obj.layer_organizer.lyr_order);
+%% Set auto-merge settings 
+% =========================================================================
+
+
+%% Update user interface
+% =========================================================================
+obj.update_ui();
