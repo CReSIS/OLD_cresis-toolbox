@@ -67,6 +67,16 @@ layers = layerdata(param,param.layerdata_merge.old);
 % Create or open the GUI
 layers.create_ui();
 
-% Import the new layerdata to merge
+%% Load layers
+% =========================================================================
+layers.gui_layers{end+1} = layerdata(layers.param,param.layerdata_merge.new);
+layers.gui_layers{end}.check_layer_organizer();
+layers.gui_layers{end}.check_all_frames();
 
-keyboard
+%% Set auto-merge settings 
+% =========================================================================
+
+
+%% Update user interface
+% =========================================================================
+layers.update_ui();

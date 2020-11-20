@@ -50,6 +50,7 @@ classdef layerdata < handle
     h_axes_twtt
     h_gui
     h_gui_metadata
+    gui_layers
     
   end
   
@@ -231,6 +232,7 @@ classdef layerdata < handle
       obj.h_axes_twtt = [];
       obj.h_gui = [];
       obj.h_gui_metadata = [];
+      obj.gui_layers = [];
     end
     
     %% destructor
@@ -243,6 +245,11 @@ classdef layerdata < handle
       end
       try
         delete(obj.h_fig_metadata);
+      end
+      for idx = 1:length(obj.gui_layers)
+        try
+          delete(obj.gui_layers{idx});
+        end
       end
     end
     
@@ -1310,6 +1317,7 @@ classdef layerdata < handle
 
     %% GUI function declarations
     create_ui(obj);
+    update_ui(obj);
     callback_layersSB(obj,status,event);
     callback_plotCB(obj,status,event);
     callback_importPB(obj,status,event);
