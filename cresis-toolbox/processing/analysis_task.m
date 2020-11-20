@@ -183,170 +183,189 @@ for img = 1:length(store_param.load.imgs)
         pitch = [];
         heading = [];
         
-        % Pulse compression
-        tmp_param.radar.wfs(wf).deconv.en = false;
-        [tmp_hdr,data,tmp_param] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
-        
-        [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
-        
-        [tmp_hdr,data] = data_trim(tmp_hdr,data,tmp_param.load.trim);
-
-        data = data{1};
-        
-        % Correct all the data to a constant elevation (no zero padding is
-        % applied so wrap around could be an issue for DDC data)
-        data(isnan(data)) = 0; % NaN values will create problems in ifft(fft(data))
-        for rline = 1:size(data,2)
-          elev_dt = (tmp_hdr.records{1,1}.elev(rline) - tmp_hdr.records{1,1}.elev(1)) / (c/2);
-          data(:,rline,1) = ifft(fft(data(:,rline,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*elev_dt));
-        end
-        
-        %% Specular: Coherence (STFT) Estimation
-        
-        % Grab the peak values
-        if ~isfield(cmd,'min_bin') || isempty(cmd.min_bin)
-          if strcmpi(radar_type,'deramp')
-            cmd.min_bin = 0;
-          else
-            cmd.min_bin = wfs(wf).Tpd;
+        if isempty(raw_data{1})
+          % There are no good records in the image
+          % ===============================================================
+          deconv_gps_time = [];
+          deconv_mean = [];
+          deconv_std = [];
+          deconv_sample = [];
+          deconv_twtt = [];
+          deconv_forced = [];
+          peakiness = nan(size(gps_time));
+          deconv_fc = NaN;
+          deconv_t0 = NaN;
+          dt = NaN;
+          
+        else
+          % There is at least one good record in the image
+          % ===============================================================
+          
+          % Pulse compression
+          tmp_param.radar.wfs(wf).deconv.en = false;
+          [tmp_hdr,data,tmp_param] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
+          
+          [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
+          
+          [tmp_hdr,data] = data_trim(tmp_hdr,data,tmp_param.load.trim);
+          
+          data = data{1};
+          
+          % Correct all the data to a constant elevation (no zero padding is
+          % applied so wrap around could be an issue for DDC data)
+          data(isnan(data)) = 0; % NaN values will create problems in ifft(fft(data))
+          for rline = 1:size(data,2)
+            elev_dt = (tmp_hdr.records{1,1}.elev(rline) - tmp_hdr.records{1,1}.elev(1)) / (c/2);
+            data(:,rline,1) = ifft(fft(data(:,rline,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*elev_dt));
           end
-        end
-        min_bin_idxs = find(tmp_hdr.time{1,1} >= cmd.min_bin,1);
-        [max_value,max_idx_unfilt] = max(data(min_bin_idxs:end,:,1));
-        max_idx_unfilt = max_idx_unfilt + min_bin_idxs(1) - 1;
-        
-        % Perform STFT (short time Fourier transform) (i.e. overlapping short FFTs in slow-time)
-        H = spectrogram(double(max_value),hanning(cmd.rlines),cmd.rlines/2,cmd.rlines);
-        
-        % Since there may be a little slope in the ice, we sum the powers from
-        % the lower frequency doppler bins rather than just taking DC. It seems to help
-        % a lot to normalize by the sum of the middle/high-frequency Doppler bins.   A coherent/specular
-        % surface will have high power in the low bins and low power in the high bins
-        % so this ratio makes sense.
-        peakiness = lp(max(abs(H(cmd.signal_doppler_bins,:)).^2) ./ mean(abs(H(cmd.noise_doppler_bins,:)).^2));
-        
-        if 0
-          figure(1); clf;
-          imagesc(lp(data(:,:,1)))
-          figure(2); clf;
-          plot(peakiness)
-          keyboard
-        end
-        
-        % Threshold to find high peakiness range lines. (Note these are not
-        % actual range line numbers, but rather indices into the STFT groups
-        % of range lines.)
-        good_rlines = find(peakiness > cmd.threshold);
-        
-        % Force there to be two good STFT groups in a row before storing
-        % it to the specular file for deconvolution.
-        good_rlines_idxs = diff(good_rlines) == 1;
-        final_good_rlines = good_rlines(good_rlines_idxs);
-        
-        if ~isempty(cmd.max_rlines)
-          [~,sort_idxs] = sort( peakiness(final_good_rlines)+peakiness(final_good_rlines+1) , 'descend');
-          final_good_rlines = final_good_rlines(sort_idxs);
-          final_good_rlines = final_good_rlines(1 : min(end,cmd.max_rlines));
-        end
-        
-        % Prepare outputs for file
-        peakiness_rlines = round((1:length(peakiness)+0.5)*cmd.rlines/2);
-        gps_time = tmp_hdr.gps_time(peakiness_rlines);
-        lat = tmp_hdr.records{1,1}.lat(peakiness_rlines);
-        lon = tmp_hdr.records{1,1}.lon(peakiness_rlines);
-        elev = tmp_hdr.records{1,1}.elev(peakiness_rlines);
-        roll = tmp_hdr.records{1,1}.roll(peakiness_rlines);
-        pitch = tmp_hdr.records{1,1}.pitch(peakiness_rlines);
-        heading = tmp_hdr.records{1,1}.heading(peakiness_rlines);
-        surface = tmp_hdr.surface(peakiness_rlines);
-        
-        %% Specular: Forced GPS Check
-        deconv_forced = zeros(size(final_good_rlines));
-        if isfield(cmd,'gps_times') && ~isempty(cmd.gps_times)
-          for idx = 1:length(cmd.gps_times)
-            force_gps_time = cmd.gps_times(idx);
-            if records.gps_time(1) <= force_gps_time && records.gps_time(end) >= force_gps_time
-              % This forced GPS time is in the block, find the peakiness block
-              % closest to this time and force it to be included in final_good_rlines
-              % if it is not already.
-              [~,force_final_good_rline] = min(abs(gps_time - force_gps_time));
-              match_idx = find(final_good_rlines == force_final_good_rline);
-              if isempty(match_idx)
-                final_good_rlines = [final_good_rlines force_final_good_rline];
-                [final_good_rlines,new_idxs] = sort(final_good_rlines);
-                deconv_forced(new_idxs(end)) = 1;
-              else
-                deconv_forced(match_idx) = 1;
+          
+          %% Specular: Coherence (STFT) Estimation
+          
+          % Grab the peak values
+          if ~isfield(cmd,'min_bin') || isempty(cmd.min_bin)
+            if strcmpi(radar_type,'deramp')
+              cmd.min_bin = 0;
+            else
+              cmd.min_bin = wfs(wf).Tpd;
+            end
+          end
+          min_bin_idxs = find(tmp_hdr.time{1,1} >= cmd.min_bin,1);
+          [max_value,max_idx_unfilt] = max(data(min_bin_idxs:end,:,1));
+          max_idx_unfilt = max_idx_unfilt + min_bin_idxs(1) - 1;
+          
+          % Perform STFT (short time Fourier transform) (i.e. overlapping short FFTs in slow-time)
+          H = spectrogram(double(max_value),hanning(cmd.rlines),cmd.rlines/2,cmd.rlines);
+          
+          % Since there may be a little slope in the ice, we sum the powers from
+          % the lower frequency doppler bins rather than just taking DC. It seems to help
+          % a lot to normalize by the sum of the middle/high-frequency Doppler bins.   A coherent/specular
+          % surface will have high power in the low bins and low power in the high bins
+          % so this ratio makes sense.
+          peakiness = lp(max(abs(H(cmd.signal_doppler_bins,:)).^2) ./ mean(abs(H(cmd.noise_doppler_bins,:)).^2));
+          
+          if 0
+            figure(1); clf;
+            imagesc(lp(data(:,:,1)))
+            figure(2); clf;
+            plot(peakiness)
+            keyboard
+          end
+          
+          % Threshold to find high peakiness range lines. (Note these are not
+          % actual range line numbers, but rather indices into the STFT groups
+          % of range lines.)
+          good_rlines = find(peakiness > cmd.threshold);
+          
+          % Force there to be two good STFT groups in a row before storing
+          % it to the specular file for deconvolution.
+          good_rlines_idxs = diff(good_rlines) == 1;
+          final_good_rlines = good_rlines(good_rlines_idxs);
+          
+          if ~isempty(cmd.max_rlines)
+            [~,sort_idxs] = sort( peakiness(final_good_rlines)+peakiness(final_good_rlines+1) , 'descend');
+            final_good_rlines = final_good_rlines(sort_idxs);
+            final_good_rlines = final_good_rlines(1 : min(end,cmd.max_rlines));
+          end
+          
+          % Prepare outputs for file
+          peakiness_rlines = round((1:length(peakiness)+0.5)*cmd.rlines/2);
+          gps_time = tmp_hdr.gps_time(peakiness_rlines);
+          lat = tmp_hdr.records{1,1}.lat(peakiness_rlines);
+          lon = tmp_hdr.records{1,1}.lon(peakiness_rlines);
+          elev = tmp_hdr.records{1,1}.elev(peakiness_rlines);
+          roll = tmp_hdr.records{1,1}.roll(peakiness_rlines);
+          pitch = tmp_hdr.records{1,1}.pitch(peakiness_rlines);
+          heading = tmp_hdr.records{1,1}.heading(peakiness_rlines);
+          surface = tmp_hdr.surface(peakiness_rlines);
+          
+          %% Specular: Forced GPS Check
+          deconv_forced = zeros(size(final_good_rlines));
+          if isfield(cmd,'gps_times') && ~isempty(cmd.gps_times)
+            for idx = 1:length(cmd.gps_times)
+              force_gps_time = cmd.gps_times(idx);
+              if records.gps_time(1) <= force_gps_time && records.gps_time(end) >= force_gps_time
+                % This forced GPS time is in the block, find the peakiness block
+                % closest to this time and force it to be included in final_good_rlines
+                % if it is not already.
+                [~,force_final_good_rline] = min(abs(gps_time - force_gps_time));
+                match_idx = find(final_good_rlines == force_final_good_rline);
+                if isempty(match_idx)
+                  final_good_rlines = [final_good_rlines force_final_good_rline];
+                  [final_good_rlines,new_idxs] = sort(final_good_rlines);
+                  deconv_forced(new_idxs(end)) = 1;
+                else
+                  deconv_forced(match_idx) = 1;
+                end
               end
             end
           end
-        end
-        
-        %% Specular: Extract specular waveforms
-        deconv_gps_time = [];
-        deconv_mean = {};
-        deconv_std = {};
-        deconv_sample = {};
-        deconv_twtt = [];
-        for good_rline_idx = 1:length(final_good_rlines)
-          % Get the specific STFT group we will be extracting an answer from
-          final_good_rline = final_good_rlines(good_rline_idx);
           
-          % Determine the center range line that this STFT group corresponds to
-          center_rline = (final_good_rline+0.5)*cmd.rlines/2;
-          
-          fprintf('    SPECULAR %d %s (%s)!\n', center_rline, ...
-            datestr(epoch_to_datenum(tmp_hdr.gps_time(center_rline)),'YYYYmmDD HH:MM:SS.FFF'), ...
-            datestr(now));
-          
-          % Find the max values and correponding indices for all the range lines
-          % in this group. Since we over-interpolate by Mt and the memory
-          % requirements may be prohibitive, we do this in a loop
-          % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
-          STFT_rlines = -cmd.rlines/4 : cmd.rlines/4-1;
-          %           if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
-          %             if any(diff(img_Mt(center_rline + STFT_rlines)))
-          %               fprintf('    Including different DDC filters, skipped.\n');
-          %               continue
-          %             end
-          %           end
-          Mt = 100;
-          max_value = zeros(size(STFT_rlines));
-          max_idx_unfilt = zeros(size(STFT_rlines));
-          for offset_idx = 1:length(STFT_rlines)
-            offset = STFT_rlines(offset_idx);
-            oversampled_rline = interpft(data(:,center_rline+offset),size(data,1)*Mt);
-            [max_value(offset_idx),max_idx_unfilt(offset_idx)] ...
-              = max(oversampled_rline(min_bin_idxs(1)*Mt:end));
-            max_idx_unfilt(offset_idx) = max_idx_unfilt(offset_idx) + min_bin_idxs(1)*Mt - 1;
+          %% Specular: Extract specular waveforms
+          deconv_gps_time = [];
+          deconv_mean = {};
+          deconv_std = {};
+          deconv_sample = {};
+          deconv_twtt = [];
+          for good_rline_idx = 1:length(final_good_rlines)
+            % Get the specific STFT group we will be extracting an answer from
+            final_good_rline = final_good_rlines(good_rline_idx);
+            
+            % Determine the center range line that this STFT group corresponds to
+            center_rline = (final_good_rline+0.5)*cmd.rlines/2;
+            
+            fprintf('    SPECULAR %d %s (%s)!\n', center_rline, ...
+              datestr(epoch_to_datenum(tmp_hdr.gps_time(center_rline)),'YYYYmmDD HH:MM:SS.FFF'), ...
+              datestr(now));
+            
+            % Find the max values and correponding indices for all the range lines
+            % in this group. Since we over-interpolate by Mt and the memory
+            % requirements may be prohibitive, we do this in a loop
+            % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
+            STFT_rlines = -cmd.rlines/4 : cmd.rlines/4-1;
+            %           if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
+            %             if any(diff(img_Mt(center_rline + STFT_rlines)))
+            %               fprintf('    Including different DDC filters, skipped.\n');
+            %               continue
+            %             end
+            %           end
+            Mt = 100;
+            max_value = zeros(size(STFT_rlines));
+            max_idx_unfilt = zeros(size(STFT_rlines));
+            for offset_idx = 1:length(STFT_rlines)
+              offset = STFT_rlines(offset_idx);
+              oversampled_rline = interpft(data(:,center_rline+offset),size(data,1)*Mt);
+              [max_value(offset_idx),max_idx_unfilt(offset_idx)] ...
+                = max(oversampled_rline(min_bin_idxs(1)*Mt:end));
+              max_idx_unfilt(offset_idx) = max_idx_unfilt(offset_idx) + min_bin_idxs(1)*Mt - 1;
+            end
+            
+            % Filter the max and phase vectors
+            max_idx = sgolayfilt(max_idx_unfilt/100,3,51);
+            phase_corr = sgolayfilt(double(unwrap(angle(max_value))),3,51);
+            
+            % Compensate range lines for amplitude, phase, and delay variance
+            % in the peak value
+            
+            % Apply true time delay shift to flatten surface
+            dt = diff(tmp_hdr.time{1,1}(1:2));
+            Nt = size(data,1);
+            comp_data = ifft(fft(data(:,center_rline+STFT_rlines,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*max_idx*dt) );
+            % Apply amplitude correction
+            %comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
+            % Apply phase correction (compensating for phase from time delay shift)
+            comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*tmp_hdr.freq{1,1}(1)*max_idx*dt)), [Nt 1]);
+            
+            deconv_gps_time(end+1) = tmp_hdr.gps_time(center_rline);
+            deconv_mean{end+1} = mean(comp_data,2);
+            deconv_std{end+1} = std(comp_data,[],2);
+            deconv_sample{end+1} = data(:,center_rline+1+cmd.rlines/4,1);
+            deconv_twtt(:,end+1) = tmp_hdr.time{1,1}(round(mean(max_idx)));
           end
           
-          % Filter the max and phase vectors
-          max_idx = sgolayfilt(max_idx_unfilt/100,3,51);
-          phase_corr = sgolayfilt(double(unwrap(angle(max_value))),3,51);
-          
-          % Compensate range lines for amplitude, phase, and delay variance
-          % in the peak value
-          
-          % Apply true time delay shift to flatten surface
-          dt = diff(tmp_hdr.time{1,1}(1:2));
-          Nt = size(data,1);
-          comp_data = ifft(fft(data(:,center_rline+STFT_rlines,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*max_idx*dt) );
-          % Apply amplitude correction
-          %comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
-          % Apply phase correction (compensating for phase from time delay shift)
-          comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*tmp_hdr.freq{1,1}(1)*max_idx*dt)), [Nt 1]);
-          
-          deconv_gps_time(end+1) = tmp_hdr.gps_time(center_rline);
-          deconv_mean{end+1} = mean(comp_data,2);
-          deconv_std{end+1} = std(comp_data,[],2);
-          deconv_sample{end+1} = data(:,center_rline+1+cmd.rlines/4,1);
-          deconv_twtt(:,end+1) = tmp_hdr.time{1,1}(round(mean(max_idx)));
+          deconv_fc = tmp_hdr.freq{1,1}(1) * ones(size(deconv_gps_time));
+          deconv_t0 = tmp_hdr.time{1,1}(1) * ones(size(deconv_gps_time));
+          dt = tmp_hdr.time{1,1}(2)-tmp_hdr.time{1,1}(1);
         end
-        
-        deconv_fc = tmp_hdr.freq{1,1}(1) * ones(size(deconv_gps_time));
-        deconv_t0 = tmp_hdr.time{1,1}(1) * ones(size(deconv_gps_time));
-        dt = tmp_hdr.time{1,1}(2)-tmp_hdr.time{1,1}(1);
         
         %% Specular: Save Results
         out_fn = fullfile(tmp_out_fn_dir, ...
