@@ -53,6 +53,13 @@ function [mdata,depth_axis] = elevation_compensation(mdata,param, layers_twtt)
 %
 % See also: load_L1B.m, echo_plot.m
 
+if ~exist('layers_twtt','var')
+  layers_twtt{1} = mdata.Surface;
+  if ~isfield('bottom', 'var')
+    layers_twtt{2} = mdata.Bottom;
+  end
+end
+
 if ~exist('param','var')
   param = [];
 end
