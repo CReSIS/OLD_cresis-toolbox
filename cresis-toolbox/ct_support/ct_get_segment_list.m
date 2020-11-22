@@ -1,6 +1,8 @@
 function day_segs = ct_get_segment_list(params,get_mode)
 % day_segs = ct_get_segment_list(params,get_mode)
 %
+% Returns a cell array of frame strings {'YYYYMMDD_SS_FFF', ...}
+%
 % params: this may be a struct or a filename. If a struct, it should be the
 % parameter structure returned from read_param_xls. If a filename, it
 % should be the parameter spreadsheet filename.
@@ -21,6 +23,8 @@ function day_segs = ct_get_segment_list(params,get_mode)
 %  day_segs = ct_get_segment_list(params,2)
 %
 % Author: John Paden
+%
+% See also: ct_get_segment_list, ct_get_frame_list
 
 if ~exist('get_mode','var') || isempty(get_mode)
   get_mode = 0;
