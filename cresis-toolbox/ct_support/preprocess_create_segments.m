@@ -1,5 +1,5 @@
-function [segs,stats] = create_segments(counters,file_idxs,day_wrap_offset,threshold)
-% [segs,stats] = create_segments(counters,file_idxs,day_wrap_offset,threshold)
+function [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,threshold)
+% [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,threshold)
 %
 % Support function for preprocess_task_cresis.m
 %
