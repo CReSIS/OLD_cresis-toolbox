@@ -145,7 +145,7 @@ for frm_idx = 1:length(param.cmd.frms)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
           adc = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,2));
-          rx_path = wfs(wf).rx_paths(adc);
+          rx_path = param.radar.wfs(wf).rx_paths(adc);
           
           % t_ref correction
           if ~isfield(param.radar.wfs(wf),'t_ref') ...
@@ -228,10 +228,14 @@ for frm_idx = 1:length(param.cmd.frms)
             delta_offset_system_dB_mask(img,wf_adc_pair) = true;
             
             % radiometric_corr_dB correction
-            if ~isfield(param.(echo_param_field),'radiometric_corr_dB')
+            if ~isfield(param.(echo_param_field),'radiometric_corr_dB')...
+                || isempty(param.(echo_param_field).radiometric_corr_dB) ...
+                || isnan(param.(echo_param_field).radiometric_corr_dB)
               param.(echo_param_field).radiometric_corr_dB = 0;
             end
-            if ~isfield(mdata.(['param_' echo_param_field]).(echo_param_field),'radiometric_corr_dB')
+            if ~isfield(mdata.(['param_' echo_param_field]).(echo_param_field),'radiometric_corr_dB') ...
+                || isempty(mdata.(['param_' echo_param_field]).(echo_param_field).radiometric_corr_dB) ...
+                || isnan(mdata.(['param_' echo_param_field]).(echo_param_field).radiometric_corr_dB)
               mdata.(['param_' echo_param_field]).(echo_param_field).radiometric_corr_dB = 0;
             end
             delta_offset_radiometric_corr_dB(img,wf_adc_pair) = param.(echo_param_field).radiometric_corr_dB ...
@@ -304,7 +308,7 @@ for frm_idx = 1:length(param.cmd.frms)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
           adc = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,2));
-          rx_path = wfs(wf).rx_paths(adc);
+          rx_path = param.radar.wfs(wf).rx_paths(adc);
           
           mdata.(param_field).radar.wfs(wf).t_ref = param.radar.wfs(wf).t_ref;
           mdata.(param_field).radar.wfs(wf).Tsys(rx_path) = param.radar.wfs(wf).Tsys(rx_path);
@@ -323,14 +327,14 @@ for frm_idx = 1:length(param.cmd.frms)
           || delta_offset_Tadc ~= 0 || delta_offset_Tadc_adjust ~= 0 ...
           || (param.update_surface_twtt_delta.update_radiometric ...
           && (delta_offset_adc_gains_dB ~= 0 || delta_offset_system_dB ~= 0 || delta_offset_radiometric_corr_dB ~= 0))
-        fprintf('  t_ref Offset  %g %s (%s)\n', delta_offset_t_ref, echo_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tsys Offset %g %s (%s)\n', delta_offset_Tsys, echo_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tadc Offset %g %s (%s)\n', delta_offset_Tadc, echo_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tadc_adjust Offset %g %s (%s)\n', delta_offset_Tadc_adjust, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  t_ref Offset\t\t\t\t %g \t\t%s (%s)\n', delta_offset_t_ref, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  Tsys Offset\t\t\t\t %g \t\t%s (%s)\n', delta_offset_Tsys, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  Tadc Offset\t\t\t\t %g \t\t%s (%s)\n', delta_offset_Tadc, echo_fn, datestr(now,'HH:MM:SS'));
+        fprintf('  Tadc_adjust Offset\t\t %g \t\t%s (%s)\n', delta_offset_Tadc_adjust, echo_fn, datestr(now,'HH:MM:SS'));
         if param.update_surface_twtt_delta.update_radiometric
-          fprintf('  adc_gains_dB Offset %g %s (%s)\n', delta_offset_adc_gains_dB, echo_fn, datestr(now,'HH:MM:SS'));
-          fprintf('  system_dB Offset %g %s (%s)\n', delta_offset_system_dB_dB, echo_fn, datestr(now,'HH:MM:SS'));
-          fprintf('  radiometric_corr Offset %g %s (%s)\n', delta_offset_radiometric_corr_dB, echo_fn, datestr(now,'HH:MM:SS'));
+          fprintf('  adc_gains_dB Offset\t\t %g \t\t%s (%s)\n', delta_offset_adc_gains_dB, echo_fn, datestr(now,'HH:MM:SS'));
+          fprintf('  system_dB Offset\t\t\t %g \t\t%s (%s)\n', delta_offset_system_dB, echo_fn, datestr(now,'HH:MM:SS'));
+          fprintf('  radiometric_corr Offset\t %g \t\t%s (%s)\n', delta_offset_radiometric_corr_dB, echo_fn, datestr(now,'HH:MM:SS'));
           if delta_offset_adc_gains_dB + delta_offset_system_dB + delta_offset_radiometric_corr_dB ~= 0
             tmp = load(echo_fn,'Data');
             tmp.Data = tmp.Data * 10^((-delta_offset_adc_gains_dB + delta_offset_system_dB + delta_offset_radiometric_corr_dB)/10);
