@@ -408,7 +408,8 @@ if param.collate_deconv.stage_one_en
       % Load best and final metric_mode information
       % ===================================================================
       if strcmpi(param.collate_deconv.metric_mode,'best')
-        out_fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        out_fn = fullfile(fileparts(ct_filename_out(param,param.collate_deconv.out_path, '')),...
+          sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         if ~exist(out_fn,'file')
           error('param.collate_deconv.metric_mode == "best" except there is no deconv_lib file. Run stage one first with metric_mode set to "each".');
         end
