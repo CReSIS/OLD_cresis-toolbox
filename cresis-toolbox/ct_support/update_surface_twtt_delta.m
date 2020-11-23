@@ -333,7 +333,7 @@ for frm_idx = 1:length(param.cmd.frms)
           fprintf('  radiometric_corr Offset %g %s (%s)\n', delta_offset_radiometric_corr_dB, echo_fn, datestr(now,'HH:MM:SS'));
           if delta_offset_adc_gains_dB + delta_offset_system_dB + delta_offset_radiometric_corr_dB ~= 0
             tmp = load(echo_fn,'Data');
-            tmp.Data = tmp.Data * 10^(-(delta_offset_adc_gains_dB + delta_offset_system_dB + delta_offset_radiometric_corr_dB)/10);
+            tmp.Data = tmp.Data * 10^((-delta_offset_adc_gains_dB + delta_offset_system_dB + delta_offset_radiometric_corr_dB)/10);
             mdata.Data = tmp.Data;
             fields_to_update{end+1} = 'Data';
           end
