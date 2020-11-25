@@ -459,7 +459,7 @@ elseif strcmpi(example_str,'south_dakota_grid')
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_CESSNA.xls'),'');
+  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_N1KU.xls'),'');
   params = ct_set_params(params,'cmd.generic',0);
   %params = ct_set_params(params,'cmd.generic',1,'day_seg','20200129_01');
   

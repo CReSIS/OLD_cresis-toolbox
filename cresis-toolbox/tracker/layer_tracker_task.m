@@ -748,7 +748,7 @@ for track_idx = param.layer_tracker.tracks_in_task
       colormap(h_axes(1), 1-gray(256));
       hold(h_axes(1),'on');
       plot(h_axes(1),find(new_quality==1),new_layer(new_quality==1),'g.');
-      plot(h_axes(1),find(new_quality==3),new_layer(new_quality==3),'r.');
+      plot(h_axes(1),find(new_quality==2|new_quality==3),new_layer(new_quality==2|new_quality==3),'r.');
       if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
         plot(h_axes(1),track_dem(:,overlap_rlines),'m--');
         plot(h_axes(1),track_dem(:,overlap_rlines)-orig_track.init.max_diff,'r--');
