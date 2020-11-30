@@ -35,7 +35,7 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_s006';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_s012';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
@@ -50,7 +50,7 @@ param_override.layer_tracker.track_per_task = 1;
 if strcmpi(tracker_method,'lsm')
   track_idx = 0;
   y_values = [1 140:20:280]; % Enter 1 as the first element if surface mean is calculated
-  dy_values = [5 10 20 40 60 80 100];%[5 10];%[5 10 20 40];
+  dy_values = [5 10 20 40 60 80 100];
   
   for y_idx = 1:length(y_values)
     y = y_values(y_idx);
@@ -69,7 +69,7 @@ if strcmpi(tracker_method,'lsm')
       track.flag             = 1; %to specify whether we want to consider mean of y
       track.lsm.y            = y; % = '' for y = mean(SURF)
       track.lsm.dy           = dy;
-      track.lsm.storeIter    = [75:25:500];%[400 425]; % [25:25:400];
+      track.lsm.storeIter    = [75:25:500];
       track.idx_dim_name     = {'storeIter' 'dy' 'y'};
       track.idx_reshape      = [length(track.lsm.storeIter) length(dy_values) length(y_values)];
       track.idx              = length(dy_values)*length(track.lsm.storeIter)*(y_idx-1) ...
@@ -84,7 +84,7 @@ if strcmpi(tracker_method,'lsm')
   end
 elseif strcmpi(tracker_method,'viterbi')
   track_idx = 0;
-  transition_weight_values = [0.1 0.316 1 3.16 10];
+  transition_weight_values = [0.1 0.316 1 3.16 10]; % Enter the transition weight (smoothness) values to consider
   
   for tw_idx = 1:length(transition_weight_values)
     transition_weight = transition_weight_values(tw_idx);

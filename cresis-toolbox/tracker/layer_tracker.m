@@ -89,94 +89,167 @@ sparam.notes = '';
 
 track = param.layer_tracker.track{1};
 temp = [];
+crossover_temp = [];
 track.gps_time = [];
 frm_filenames = {};
 in_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
-
+frm_str = [];
+frm_nam = [];
+lat = [];
+long = [];
 for frm_idx = 1:length(param.cmd.frms)
-   frm = param.cmd.frms(frm_idx);
-    % Load the previous frame
-   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-   if ~ismember(data_fn,frm_filenames)
-     frm_filenames{end+1} = data_fn;
-   end
-   
-   frm = param.cmd.frms(frm_idx)-1;
-   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-   if ~ismember(data_fn,frm_filenames)
-     frm_filenames{end+1} = data_fn;
-   end
-   
-   frm = param.cmd.frms(frm_idx)+1;
-   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-   if ~ismember(data_fn,frm_filenames)
-     frm_filenames{end+1} = data_fn;
-   end
+  frm = param.cmd.frms(frm_idx);
+  % Load the previous frame
+  data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+  if ~ismember(data_fn,frm_filenames)
+    frm_filenames{end+1} = data_fn;
+    frm_str{end+1} = sprintf('%s_%03d',param.day_seg,frm);
+  end
+  
+  frm = param.cmd.frms(frm_idx)-1;
+  data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+  if ~ismember(data_fn,frm_filenames)
+    frm_filenames{end+1} = data_fn;
+    frm_str{end+1} = sprintf('%s_%03d',param.day_seg,frm);
+  end
+  
+  frm = param.cmd.frms(frm_idx)+1;
+  data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+  if ~ismember(data_fn,frm_filenames)
+    frm_filenames{end+1} = data_fn;
+    frm_str{end+1} = sprintf('%s_%03d',param.day_seg,frm);
+  end
 end
 
 for frm_idx = 1:length(frm_filenames)
-%   frm = param.cmd.frms(frm_idx);
-%   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+  %   frm = param.cmd.frms(frm_idx);
+  %   data_fn = fullfile(in_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   data_fn = frm_filenames{frm_idx};
   if exist(data_fn,'file')
-      mdata = load(data_fn, 'GPS_time','Time','Latitude','Longitude');
-      Nx = length(mdata.GPS_time);
-
-%   if track.ice_mask.en
-%     if strcmp(track.ice_mask.type,'bin')
-%       mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
-%       [fid,msg] = fopen(track.ice_mask.fn,'r');
-%       if fid < 1
-%         fprintf('Could not open file %s\n', track.ice_mask.fn);
-%         error(msg);
-%       end
-%       mask.mask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
-%       fclose(fid);
-%     else
-%       [mask.mask,mask.R,~] = geotiffread(track.ice_mask.fn);
-%       mask.proj = geotiffinfo(track.ice_mask.fn);
-%     end
-%     [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
-%     mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.mask,2));
-%     mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.mask,1));
-%     [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
-%     ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.mask), mask.x, mask.y));
-%     ice_mask.mask(isnan(ice_mask.mask)) = 1;
-%     track.ice_mask.ice_mask = cat(2,ice_mask.mask,track.ice_mask.ice_mask);
-%     track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
-%   end
-  if track.ice_mask.en
-    if strcmp(track.ice_mask.type,'bin')
-      mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
-      [fid,msg] = fopen(track.ice_mask.fn,'r');
-      if fid < 1
-        fprintf('Could not open file %s\n', track.ice_mask.fn);
-        error(msg);
+    mdata = load(data_fn, 'GPS_time','Time','Latitude','Longitude');
+    Nx = length(mdata.GPS_time);
+    %% Ice Mask
+    if track.ice_mask.en
+      if strcmp(track.ice_mask.type,'bin')
+        mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
+        [fid,msg] = fopen(track.ice_mask.fn,'r');
+        if fid < 1
+          fprintf('Could not open file %s\n', track.ice_mask.fn);
+          error(msg);
+        end
+        mask.mask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
+        fclose(fid);
+      else
+        [mask.mask,mask.R,~] = geotiffread(track.ice_mask.fn);
+        mask.proj = geotiffinfo(track.ice_mask.fn);
       end
-      mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
-      fclose(fid);
+      [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
+      mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.mask,2));
+      mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.mask,1));
+      [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
+      ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.mask), mask.x, mask.y));
+      ice_mask.mask(isnan(ice_mask.mask)) = 1;
+      temp = cat(2,ice_mask.mask,temp);
+      track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
     else
-      [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
-      mask.proj = geotiffinfo(track.ice_mask.fn);
+      temp = cat(2,ice_mask.mask,ones(1,Nx));
+      track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
     end
-    [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
-    mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
-    mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
-    [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
-    ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
-    ice_mask.mask(isnan(ice_mask.mask)) = 1;
-    temp = cat(2,ice_mask.mask,temp);
-    track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
-  else
-    temp = cat(2,ice_mask.mask,ones(1,Nx));
-    track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
-  end
+    %% Crossovers
+    if track.crossover.en
+      sys = ct_output_dir(param.radar_name);
+      ops_param = [];
+      ops_param.properties.search_str = frm_str{frm_idx};
+      ops_param.properties.location = param.post.ops.location;
+      ops_param.properties.season = param.season_name;
+      [status,ops_data_segment] = opsGetFrameSearch(sys,ops_param);
+      if status == 1
+        ops_param = [];
+        ops_param.properties.location = param.post.ops.location;
+        ops_param.properties.lyr_name = track.crossover.name;
+        ops_param.properties.frame = frm_str{frm_idx};
+        ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
+        [status,ops_data] = opsGetCrossovers(sys,ops_param);
+        if status == 1
+          ops_data.properties.twtt = ops_data.properties.twtt(:).';
+          ops_data.properties.source_point_path_id = double(ops_data.properties.source_point_path_id(:).');
+          ops_data.properties.cross_point_path_id = double(ops_data.properties.cross_point_path_id(:).');
+          ops_data.properties.source_elev = ops_data.properties.source_elev.';
+          ops_data.properties.cross_elev = ops_data.properties.cross_elev.';
+          
+          % Get the OPS
+          ops_param = [];
+          ops_param.properties.location = param.post.ops.location;
+          ops_param.properties.point_path_id = [ops_data.properties.source_point_path_id ops_data.properties.cross_point_path_id];
+          [status,ops_data_gps_time] = opsGetPath(sys,ops_param);
+          
+          source_gps_time = zeros(size(ops_data.properties.source_point_path_id));
+          crossover_gps_time = zeros(size(ops_data.properties.source_point_path_id));
+          good_mask = true(size(ops_data.properties.source_point_path_id));
+          % Ensure crossover season is good
+          for idx = 1:length(ops_data.properties.source_point_path_id)
+            match_idx = find(ops_data.properties.source_point_path_id(idx) == ops_data_gps_time.properties.id,1);
+            source_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
+            match_idx = find(ops_data.properties.cross_point_path_id(idx) == ops_data_gps_time.properties.id,1);
+            crossover_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
+            if any(strcmp(ops_data.properties.season_name{idx}, track.crossover.season_names_bad))
+              good_mask(idx) = false;
+            end
+          end
+          % Ensure crossover gps_time is good
+          good_mask = good_mask & track.crossover.gps_time_good_eval(crossover_gps_time);
+          % Convert crossover twtt to source twtt and then convert from twtt
+          % to rows/bins
+          cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
+          rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
+            + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
+          crossover_temp{end+1} = [cols; rows];
+        end
+      end
+    else
+      crossover_temp{end+1} = zeros(2,0);
+    end
+    frm_nam{end+1} = frm_str{frm_idx};
+    
+    %% Track: Load ocean mask, land DEM, sea surface DEM
+    track.init.method = 'dem';
+    long = cat(2,mdata.Longitude,long);
+    lat = cat(2,mdata.Latitude,lat);
   end
 end
 
+%% Track: Load ocean mask, land DEM, sea surface DEM
+  if isfield(track,'init') && strcmpi(track.init.method,'dem')
+    global gdem;
+    if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
+      gdem = dem_class(param,500);
+    end
+    gdem.set_res(500);
+    gdem.ocean_mask_mode = 'l';
+    
+    gdem_str = sprintf('%s:%s:%s_%03d_%03d',param.radar_name,param.season_name,param.day_seg,param.cmd.frms([1 end]));
+    if ~strcmpi(gdem_str,gdem.name)
+      gdem.set_vector(lat,long,gdem_str);
+    end
+  end
+  
+  if strcmpi(track.init.method,'dem')
+    gdem.set_vector(lat,long);
+    [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
+  end
+
+%% Loading reference trajectory
+records = records_load(param);
+ref = records_reference_trajectory_load(param,records);
+
+%%
 sparam.argsin{1}.ice_mask.mask = temp;
 sparam.argsin{1}.ice_mask.gps_time = track.gps_time;
-
+sparam.argsin{1}.crossovers = crossover_temp;
+sparam.argsin{1}.frm_nam = frm_nam;
+sparam.argsin{1}.dem.land_dem = land_dem;
+sparam.argsin{1}.dem.ocean_mask = ocean_mask;
+sparam.argsin{1}.dem.msl = msl;
 
 cpu_time_mult = zeros(size(param.layer_tracker.track));
 mem_mult = zeros(size(param.layer_tracker.track));
@@ -300,7 +373,7 @@ while frm_idx <= length(param.cmd.frms)
       dparam.mem = dparam.mem + 2e9;
     end
     mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
-    cputime_combine = cputime_combine + 1e-1*Nx*length(tracks_in_task);
+    cputime_combine = cputime_combine + 1e-2*Nx*length(tracks_in_task);
     
     % Notes
     % ---------------------------------------------------------------------
@@ -330,8 +403,10 @@ sparam.argsin{1} = param;
 sparam.task_function = 'layer_tracker_combine_task';
 sparam.num_args_out = 1;
 
+records_fn = ct_filename_support(param,'','records');
+file_info = dir(records_fn);
 sparam.cpu_time = 30 + cputime_combine;
-sparam.mem = 500e6 + mem_combine;
+sparam.mem = 500e6 + 1.5*mem_combine + 1.5*file_info.bytes;
 sparam.notes = '';
 
 if strcmp(param.layer_tracker.layer_params.source,'ops')

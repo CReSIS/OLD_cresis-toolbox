@@ -227,27 +227,31 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
     mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time), NaN);
   end
-  
   %% Track: Load ocean mask, land DEM, sea surface DEM
+  track.init.method = 'dem';
   if isfield(track,'init') && strcmpi(track.init.method,'dem')
-    global gdem;
-    if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
-      gdem = dem_class(param,500);
-    end
-    gdem.set_res(500);
-    gdem.ocean_mask_mode = 'l';
-    
-    gdem_str = sprintf('%s:%s:%s_%03d_%03d',param.radar_name,param.season_name,param.day_seg,param.layer_tracker.frms([1 end]));
-    if ~strcmpi(gdem_str,gdem.name)
-      gdem.set_vector(mdata.Latitude,mdata.Longitude,gdem_str);
-    end
+%     global gdem;
+%     if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
+%       gdem = dem_class(param,500);
+%     end
+%     gdem.set_res(500);
+%     gdem.ocean_mask_mode = 'l';
+%     
+%     gdem_str = sprintf('%s:%s:%s_%03d_%03d',param.radar_name,param.season_name,param.day_seg,param.layer_tracker.frms([1 end]));
+%     if ~strcmpi(gdem_str,gdem.name)
+%       gdem.set_vector(mdata.Latitude,mdata.Longitude,gdem_str);
+%     end
   end
   
   %% Track: Interpolate GIMP and Geoid
   if strcmpi(track.init.method,'dem')
-    gdem.set_vector(mdata.Latitude,mdata.Longitude);
-    [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
-    
+%     gdem.set_vector(mdata.Latitude,mdata.Longitude);
+%     [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
+    land_dem = interp1(param.ice_mask.gps_time,param.dem.land_dem,mdata.GPS_time);
+    ocean_mask = interp1(param.ice_mask.gps_time,double(param.dem.ocean_mask),mdata.GPS_time);
+    msl = interp1(param.ice_mask.gps_time,param.dem.msl,mdata.GPS_time);
+
+    ocean_mask = logical(ocean_mask);
     % Merge land surface and sea surface DEMs
     track.dem = double(land_dem);
     track.dem(ocean_mask) = msl(ocean_mask);
@@ -258,86 +262,17 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Ice mask calculation
   if track.ice_mask.en
-%     if strcmp(track.ice_mask.type,'bin')
-%       mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
-%       [fid,msg] = fopen(track.ice_mask.fn,'r');
-%       if fid < 1
-%         fprintf('Could not open file %s\n', track.ice_mask.fn);
-%         error(msg);
-%       end
-%       mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
-%       fclose(fid);
-%     else
-%       [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
-%       mask.proj = geotiffinfo(track.ice_mask.fn);
-%     end
-%     [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
-%     mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
-%     mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
-%     [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
-%     ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
-%     ice_mask.mask(isnan(ice_mask.mask)) = 1;
-%     track.ice_mask = ice_mask.mask;
-%   else
-%     track.ice_mask = ones(1,Nx);
     track.ice_mask = interp1(param.ice_mask.gps_time,param.ice_mask.mask,mdata.GPS_time);
   end
 
   %% Track: Crossover loading
-  if track.crossover.en
-    sys = ct_output_dir(param.radar_name);
-    ops_param = [];
-    ops_param.properties.search_str = frm_str{frm_idx};
-    ops_param.properties.location = param.post.ops.location;
-    ops_param.properties.season = param.season_name;
-    [status,ops_data_segment] = opsGetFrameSearch(sys,ops_param);
-    if status == 1
-      ops_param = [];
-      ops_param.properties.location = param.post.ops.location;
-      ops_param.properties.lyr_name = track.crossover.name;
-      ops_param.properties.frame = frm_str;
-      ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
-      [status,ops_data] = opsGetCrossovers(sys,ops_param);
-      if status == 1
-        ops_data.properties.twtt = ops_data.properties.twtt(:).';
-        ops_data.properties.source_point_path_id = double(ops_data.properties.source_point_path_id(:).');
-        ops_data.properties.cross_point_path_id = double(ops_data.properties.cross_point_path_id(:).');
-        ops_data.properties.source_elev = ops_data.properties.source_elev.';
-        ops_data.properties.cross_elev = ops_data.properties.cross_elev.';
-
-        % Get the OPS 
-        ops_param = [];
-        ops_param.properties.location = param.post.ops.location;
-        ops_param.properties.point_path_id = [ops_data.properties.source_point_path_id ops_data.properties.cross_point_path_id];
-        [status,ops_data_gps_time] = opsGetPath(sys,ops_param);
-        
-        source_gps_time = zeros(size(ops_data.properties.source_point_path_id));
-        crossover_gps_time = zeros(size(ops_data.properties.source_point_path_id));
-        good_mask = true(size(ops_data.properties.source_point_path_id));
-        % Ensure crossover season is good
-        for idx = 1:length(ops_data.properties.source_point_path_id)
-          match_idx = find(ops_data.properties.source_point_path_id(idx) == ops_data_gps_time.properties.id,1);
-          source_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
-          match_idx = find(ops_data.properties.cross_point_path_id(idx) == ops_data_gps_time.properties.id,1);
-          crossover_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
-          if any(strcmp(ops_data.properties.season_name{idx}, track.crossover.season_names_bad))
-            good_mask(idx) = false;
-          end
-        end
-        % Ensure crossover gps_time is good
-        good_mask = good_mask & track.crossover.gps_time_good_eval(crossover_gps_time);
-        
-        % Convert crossover twtt to source twtt and then convert from twtt
-        % to rows/bins
-        cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
-        rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
-          + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
-        track.crossovers = [cols; rows];
-      end
+  for idx = 1:length(param.frm_nam)
+    if (isequal(param.frm_nam{idx},frm_str{1}))
+      frm_nam_idx = idx;
     end
-  else
-    track.crossovers = zeros(2,0);
   end
+  
+  track.crossovers = param.crossovers{frm_nam_idx};
   
   %% Track: Multiple Suppression
   if track.mult_suppress.en
