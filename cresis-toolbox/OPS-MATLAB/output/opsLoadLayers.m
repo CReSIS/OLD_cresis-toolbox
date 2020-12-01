@@ -182,6 +182,8 @@ for layer_idx = 1:length(layer_params)
       echogram_en = true;
     case 'lidar'
       lidar_layer_idx(end+1) = layer_idx;
+    otherwise
+      error('Invalid layer source specified: layer_params(%d).source == %s is not a valid source. Must be ops, layerdata, records, echogram, or lidar.', layer_idx, layer_params(layer_idx).source);
   end
 end
 

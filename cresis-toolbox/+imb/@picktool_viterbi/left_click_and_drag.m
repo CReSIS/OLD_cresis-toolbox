@@ -199,10 +199,20 @@ for layer_idx = 1:length(cur_layers)
   viterbi_data(~isfinite(viterbi_data)) = NaN;
   viterbi_data = echo_norm(viterbi_data,struct('scale',[-40 90]));
   viterbi_data(~isfinite(viterbi_data)) = -inf;
-
+  
   viterbi_timer = tic;
   y_new = tomo.viterbi2(single(viterbi_data), along_track_slope, along_track_weight, upper_bounds, lower_bounds);
   fprintf('Viterbi call took %.2f sec.\n', toc(viterbi_timer));
+
+  if 0
+    % Debug plots
+    figure;
+    imagesc(viterbi_data);
+    hold on
+    plot(upper_bounds);
+    plot(lower_bounds);
+    plot(y_new);
+  end
   
   bounding_idxs = hori_bounds(1):hori_bounds(end);
   
