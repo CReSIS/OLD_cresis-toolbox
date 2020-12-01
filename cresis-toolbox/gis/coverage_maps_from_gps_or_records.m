@@ -168,7 +168,7 @@ for param_fn_idx = 1:length(param_fns)
               [x_first,y_first] = projfwd(proj,gps.lat(first_idx),gps.lon(first_idx));
               if 0
                 % Just the first point of the frame in black
-                plot(x_first/1e3,y_first/1e3,'.','MarkerSize',12,'Color','Black');
+                label.h_plot(match_idx) = plot(x_first/1e3,y_first/1e3,'.','MarkerSize',12,'Color','Black');
               else
                 % Whole frame in black
                 if frm == length(frames.frame_idxs)

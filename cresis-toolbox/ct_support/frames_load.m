@@ -1,4 +1,17 @@
 function frames = frames_load(param)
+% frames = frames_load(param)
+%
+% Loads frames file. Handles old file formats.
+%
+% param: parameter spreadsheet structure
+%
+% frames: structure containing all of the frames file fields
+%
+% Example
+%   param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20191231_04');
+%   frames = frames_load(param);
+%
+% Author: John Paden
 
 if isempty(param)
   error('param is empty and should contain a radar parameter spreadsheet structure or a frames filename.');

@@ -447,8 +447,9 @@ if param.collate_deconv.stage_one_en
         
         %% Stage 1: Impulse response
         
-        if interp1(spec.gps_time,spec.peakiness,spec.deconv_gps_time(rline)) < param.collate_deconv.threshold
-          % Waveform peakiness is too low
+        if interp1(spec.gps_time,spec.peakiness,spec.deconv_gps_time(rline)) < param.collate_deconv.threshold ...
+          || isnan(spec.deconv_fc(rline)) || isnan(spec.deconv_t0(rline)) || isnan(spec.dt)
+          % Waveform peakiness is too low OR NaN in deconv_fc or dt
           deconv.metric(:,rline) = nan(6,1);
           [~,match_idx] = min(abs(spec.gps_time - spec.deconv_gps_time(rline)));
           deconv.gps_time(rline) = spec.gps_time(match_idx);
