@@ -198,7 +198,7 @@ if force_compile
   
   for input_idx = 1:length(fun)
     % Add in functions in case they are not in the hidden dependency list
-    if isempty(regexpi(fun{input_idx},cmd))
+    if isempty(regexpi(cmd, fun{input_idx}))
       cmd = [cmd ' ' fun{input_idx}];
     end
   end
