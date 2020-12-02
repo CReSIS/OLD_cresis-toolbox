@@ -63,6 +63,35 @@ else
   update_field = 'quality'; update_field_type = 'mask';
   update_field_mask = {'turn all masks off','coherent noise','deconvolution artifact', ...
     'raised noise floor/vertical stripes','missing data','no good data','low SNR','unclassified','land or iceberg'};
+  % 8-bit mask:
+  %
+  % 1: coherent noise -- horizontal lines in "i" view which plots against
+  % two way travel. In the posted image view which uses WGS-84, coherent
+  % noise is not horizontal but can be distinguished by parallel lines. If
+  % unusual line present, switch to "i" view that plots against two way
+  % travel time to verify this as coherent noise. Mark this bit even if a
+  % part of frame has them. Also, only mark as noise if the lines exceed
+  % the color threshold in the "I" view which shows gray scale + HSV scale.
+  %
+  % 2: deconvolution artifact -- rising edge sidelobe levels to high, use
+  % "i" mode to verify the sidelobe exceeds the threshold (use the "I" mode
+  % which shows a gray scale + HSV scale and mark sidelobes that are in
+  % color), ignore first sidelobe if very close in to peak as the first
+  % hanning sidelobe is expected to exceed 40 dB
+  %
+  % 3: raised noise floor/vertical stripes -- vertical stripes when noise
+  % level increases suddenly
+  %
+  % 4: missing data -- see a white space in posted image
+  % 5: no good data -- salt and pepper noise type (no obvious signal present)
+  %
+  % 6: low SNR -- barely visible sea ice or surface, usually caused by weak
+  % signal (e.g. caused by high altitude, vertical stripe noise, or very
+  % fast altitude changes)
+  %
+  % 7: unclassified -- any other kind of artifact that does not fit into the other categories
+  % 8: land or iceberg -- if any land or iceberg is present in the frame (iceberg > 3 m above average surface height)
+  % All bits are independent of each other. A frame with missing data+coherent noise+deconv artifact will be 124 instead of just 4
 end
 
 audio_tone_for_nonzero_nonisnan = true;

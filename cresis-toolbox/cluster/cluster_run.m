@@ -186,7 +186,25 @@ elseif isstruct(ctrl_chain)
         ctrl.cluster.max_time_per_job, ctrl.batch_id, task_id, task_cpu_time);
       keyboard;
     end
-    if ctrl.cluster.max_mem_per_job < task_mem
+    if ctrl.cluster.desired_time_per_job < job_cpu_time + task_cpu_time && ~isempty(job_tasks)
+      [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
+      fprintf('Submitted %d tasks in cluster job (%d): (%s)\n  %s\n  %d: %d', length(job_tasks), ...
+        new_job_id, datestr(now), ctrl.notes{job_tasks(1)}, ctrl.batch_id, job_tasks(1));
+      if length(job_tasks) > 1
+        fprintf(', %d', job_tasks(2:end));
+      end
+      fprintf('\n');
+      job_tasks = [];
+      job_cpu_time = 0;
+      job_mem = 0;
+      pause(ctrl.cluster.submit_pause);
+    end
+    if task_mem <= ctrl.cluster.max_mem_per_job
+      job_tasks(end+1) = task_id;
+      job_cpu_time = job_cpu_time + task_cpu_time;
+      job_mem = max(job_mem, task_mem);
+      ctrl.submission_queue = ctrl.submission_queue(2:end);
+    else
       warning('ctrl.cluster.max_mem_per_job (%.1f GB) is less than task %d:%d''s requested mem: %.1f GB', ...
         ctrl.cluster.max_mem_per_job/1e9, ctrl.batch_id, task_id, task_mem/1e9);
       if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'debug'))
@@ -202,32 +220,22 @@ elseif isstruct(ctrl_chain)
         keyboard;
       end
       if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'local'))
+        % Run the task now locally
         cur_cluster_type = ctrl.cluster.type;
         ctrl.cluster.type = 'debug';
-        ctrl = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
+        ctrl = cluster_submit_job(ctrl,task_id,task_cpu_time,task_mem);
         ctrl.cluster.type = cur_cluster_type;
       end
       if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'truncate'))
+        % Run the task anyway, but truncate the memory request to the
+        % maximum allowed.
         task_mem = ctrl.cluster.max_mem_per_job;
+        job_tasks(end+1) = task_id;
+        job_cpu_time = job_cpu_time + task_cpu_time;
+        job_mem = max(job_mem, task_mem);
       end
+      ctrl.submission_queue = ctrl.submission_queue(2:end);
     end
-    if ctrl.cluster.desired_time_per_job < job_cpu_time + task_cpu_time && ~isempty(job_tasks)
-      [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
-      fprintf('Submitted %d tasks in cluster job (%d): (%s)\n  %s\n  %d: %d', length(job_tasks), ...
-        new_job_id, datestr(now), ctrl.notes{job_tasks(1)}, ctrl.batch_id, job_tasks(1));
-      if length(job_tasks) > 1
-        fprintf(', %d', job_tasks(2:end));
-      end
-      fprintf('\n');
-      job_tasks = [];
-      job_cpu_time = 0;
-      job_mem = 0;
-      pause(ctrl.cluster.submit_pause);
-    end
-    job_tasks(end+1) = task_id;
-    job_cpu_time = job_cpu_time + task_cpu_time;
-    job_mem = max(job_mem, task_mem);
-    ctrl.submission_queue = ctrl.submission_queue(2:end);
     
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
