@@ -193,8 +193,8 @@ for img = 1:length(store_param.load.imgs)
           deconv_twtt = [];
           deconv_forced = [];
           peakiness = nan(size(gps_time));
-          deconv_fc = NaN;
-          deconv_t0 = NaN;
+          deconv_fc = [];
+          deconv_t0 = [];
           dt = NaN;
           
         else
