@@ -1420,11 +1420,35 @@ classdef surfdata < handle
         end
         
         if 0
-          figure(1);clf;
-          imagesc(DEM_x,DEM_y,DEM);
+          figure(10);clf;
+          % Convert DEM ecef points to geodetic
+          imagesc(DEM_x.*1e-3,DEM_y.*1e-3,DEM.*1e-3);
           hold on;
-          plot(frm_x,frm_y,'r');
-          keyboard;
+          plot(frm_x.*1e-3,frm_y.*1e-3,'rx','LineWidth',2);
+          set(gca,'TickLabelInterpreter','latex')
+          set(gca,'FontSize',14)
+          xlabel('X (km)','Interpreter','latex','FontSize',14)
+          ylabel('Y (km)','Interpreter','latex','FontSize',14)
+          title('ArcticDEM 20140325 07 002','FontSize',18,'Interpreter','latex')
+          xlim([-880 -810]);
+          ylim([-830 -750]);
+%           out_fn1 = 'arctic_dem_20140325_07_002.fig';
+%           savefig(10,out_fn1);
+          
+          figure(2);clf;
+          % Convert DEM ecef points to geodetic
+          imagesc(ice_mask_all.X.*1e-3,ice_mask_all.Y.*1e-3,ice_mask_all.mask);
+          hold on;
+          plot(frm_x.*1e-3,frm_y.*1e-3,'rx','LineWidth',2);
+          set(gca,'TickLabelInterpreter','latex')
+          set(gca,'FontSize',14)
+          xlabel('X (km)','Interpreter','latex','FontSize',14)
+          ylabel('Y (km)','Interpreter','latex','FontSize',14)
+          title('Ice Mask 20140325 07 002','FontSize',18,'Interpreter','latex')
+          xlim([-880 -810]);
+          ylim([-830 -750]);
+%            out_fn2 = 'ice_mask_20140325_07_002.fig';
+%           savefig(2,out_fn2);      
         end
         
         DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
@@ -1645,8 +1669,10 @@ classdef surfdata < handle
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
-      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-      params = ct_set_params(params,'cmd.frms',[29:34]);
+%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+%       params = ct_set_params(params,'cmd.frms',[29:34]);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
+      params = ct_set_params(params,'cmd.frms',[2]);
       %       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn','canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
       %       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',ct_filename_gis(params,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif')));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';

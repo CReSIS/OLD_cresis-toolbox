@@ -12,8 +12,8 @@ fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
 
 %% Cluster Parameters
 param_override = []; % X
-% param_override.cluster.type = 'torque'; 
-param_override.cluster.type = 'debug'; 
+param_override.cluster.type = 'torque'; 
+% param_override.cluster.type = 'debug'; 
 
 param_override.cpu_time = 50;
 param_override.mem = 1e9;

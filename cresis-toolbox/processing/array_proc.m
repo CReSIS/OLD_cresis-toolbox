@@ -488,6 +488,14 @@ if ~isfield(param.array,'sv_model') || isempty(param.array.sv_model)
   param.array.sv_model = 'ideal'; % 'ideal' or 'lookup_table'
 end
 
+if ~strcmpi(param.array.sv_model,'ideal') && isempty(param.array.sv_lut_path) 
+  param.array.sv_lut_path = [];
+end
+
+if ~isfield(param.array,'sv_lut_path')
+  param.array.sv_lut_path = [];
+end
+
 if strcmpi(param.array.sv_model,'lookup_table') && ~isfield(param.array,'sv_lut_path') || isempty(param.array.sv_lut_path)
   param.array.sv_lut_path = 'analysis';  
 end
@@ -1113,7 +1121,7 @@ for line_idx = 1:1:Nx_out
         surf_ice_mask(rbin_idx,1:length(bin_ice_mask)) = bin_ice_mask;
         
         if cfg.debug_plots
-          plot(bin_theta,y0,'mp','MarkerSize',4,'MarkerFaceColor','g','LineWidth',2)
+          plot(bin_theta,y0,'mo','MarkerSize',4,'MarkerFaceColor','g','LineWidth',2)
         end
       end     
     end

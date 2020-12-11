@@ -93,6 +93,12 @@ if ~isempty(LUT) && ~isempty(LUT_roll)
   sv_real = real(LUT.sv);
   sv_imag = imag(LUT.sv);
   sv_corr = (interp1(LUT.doa, sv_real, theta_lut,'linear','extrap') + 1i*interp1(LUT.doa, sv_imag,theta_lut,'linear','extrap')).';
+  if any(any(isnan(sv_corr)))
+    nan_mask = isnan(sv_corr);
+    badmask = cumsum(nan_mask,1) | cumsum(nan_mask,1,'reverse');
+    sv_corr(badmask) = 1*exp(1i*0);
+  end
+    
   
 %   sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
   sv = sv .* sv_corr;

@@ -661,12 +661,18 @@ for img = 1:length(param.array.imgs)
       % after the else below.
       
       % Does not support subband luts
-      if strcmpi(param.array.sv_lut_path,'estimate_sv_lut')
+      if regexp(param.array.sv_lut_path,'analysis')
+        lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
+      else
         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
-      else
-        lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
       end
+%       if strcmpi(param.array.sv_lut_path,'estimate_sv_lut')
+%         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
+%         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
+%       else
+%         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
+%       end
       load(lut_fn,'sv','doa','param_estimate_sv_lut');
       
       lut_sv = nan(length(doa),size(param.array.imgs{img}{1}(:,1),1));
