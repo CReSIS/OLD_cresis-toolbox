@@ -54,6 +54,8 @@ end
 
 if iscell(ctrl_chain)
   %% Traverse chain list
+  global gctrl_chain;
+  gctrl_chain = ctrl_chain;
   active_stage = ones(numel(ctrl_chain),1);
   first_run = ones(numel(ctrl_chain),1);
   while any(isfinite(active_stage))
@@ -82,14 +84,19 @@ if iscell(ctrl_chain)
           pause(ctrl.cluster.stat_pause);
         end
         
-        % 3. Submit jobs from the active stage for each parallel control structure
+        % 3. Update ctrl_chain
+        ctrl_chain{chain}{active_stage(chain)} = ctrl;
+        gctrl_chain = ctrl_chain;
+        
+        % 4. Submit jobs from the active stage for each parallel control structure
         %   ctrl.max_active_jobs.
         ctrl = cluster_run(ctrl,cluster_run_mode);
         
-        % 4. Update ctrl_chain
+        % 5. Update ctrl_chain
         ctrl_chain{chain}{active_stage(chain)} = ctrl;
+        gctrl_chain = ctrl_chain;
         
-        % 5. If all jobs completed in a batch and:
+        % 6. If all jobs completed in a batch and:
         %    If no errors, move to the next stage
         %    If errors, stop chain
         %    Note: cluster_update_task guarantees that a task that still has retries left will never have 'C' status if it had errors
@@ -113,7 +120,7 @@ if iscell(ctrl_chain)
           end
         end
         
-        % 6. Check to see if a hold has been placed on this batch
+        % 7. Check to see if a hold has been placed on this batch
         if cluster_run_mode >= 0 && exist(ctrl.hold_fn,'file')
           warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
           keyboard

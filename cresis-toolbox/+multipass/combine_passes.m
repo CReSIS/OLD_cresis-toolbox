@@ -203,11 +203,21 @@ for passes_idx = 1: length(passes)
       metadata{passes_idx}.heading = [metadata{passes_idx}.heading ,tmp_data.Heading];
       metadata{passes_idx}.surface = [metadata{passes_idx}.surface ,tmp_data.Surface];
       metadata{passes_idx}.bottom = [metadata{passes_idx}.bottom ,tmp_data.Bottom];
-      metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs.origin];
-      metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs.x];
-      metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs.y];
-      metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs.z];
-      metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs.pos];
+      % Handle old format, but print error message
+      if iscell(tmp_data.param_array.array_proc.fcs)
+        warning('OLD SAR DATA FORMAT. IF MULTIPLE WF-ADC PAIRS WERE USED IN THE DATA PRODUCT, THE FLIGHT COORDINATE SYSTEM WILL BE INCORRECT AND THE DATA SHOULD BE REPROCESSED.');
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs{1}{1}.origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs{1}{1}.x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs{1}{1}.y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs{1}{1}.z];
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs{1}{1}.pos];
+      else
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs.origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs.x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs.y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs.z];
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs.pos];
+      end
       data{passes_idx} = [data{passes_idx} ,tmp_data.Data];
     end
   else

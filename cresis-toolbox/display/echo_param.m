@@ -9,7 +9,8 @@ function param = echo_param(mdata,mode)
 % mdata: structure loaded from echogram file (e.g. CSARP_qlook or
 % CSARP_standard)
 %
-% modes: mode 0 returns parameter structure, mode 1 returns the string
+% modes: scalar numeric, default is zero. mode 0 returns parameter
+% structure, mode 1 returns the string
 %
 % OUTPUTS:
 %
@@ -47,8 +48,7 @@ if mode == 0
   else
     error('There is no param_array, param_qlook, param_combine, or param_get_heights field in mdata.');
   end
-  global gRadar;
-  param = merge_structs(param,gRadar);
+  param = ct_param_path_update(param);
 
 else
   if isfield(mdata,'param')
@@ -65,3 +65,9 @@ else
     error('There is no param_array, param_qlook, param_combine, or param_get_heights field in mdata.');
   end
 end
+
+% Merge the gRadar structure into the param structure so that the file
+% paths match the current environment rather than the file paths from when
+% it was processed.
+global gRadar;
+param = merge_structs(param,gRadar);

@@ -4,23 +4,33 @@
 % Synchronize, register, correct passes from combine_passes and then apply
 % array processing.
 %
-% param.multipass.comp_mode
-% 1 to find equalization coefficients
+% param.multipass.comp_mode: integer from 1 to 4 controlling the mode
+% 1: 1 to find equalization coefficients
 %   Motion compensation of FCS z-motion
 %   (Motion compensation with phase correction)
 %   Quits after computing equalization coefficients
-% 2 to do array processing on data, 4
+% 2: to do coregistration and (if input_type=='sar') array process
+%   This is the mode that must be used when using input_type='echo'
 %   Co-register images using GPS and nadir squint angle assumption
 %   (Motion compensation without phase correction)
-%   Runs array processing
-% 3 to differential INSAR
+%   Runs array processing if input_type=='sar' and is used for cross-track
+%   slope estimation and basal swath imaging
+% 3: to differential INSAR
 %   Co-register images using GPS and nadir squint angle assumption
 %   (Motion compensation with phase correction AND slope correction)
-%   Saves output for interferometry
-% 4 to plot results
+%   Saves output for (differential) interferometry and vertical velocity
+%   estimation.
+% 4: to plot results
 %   Co-register images using GPS and nadir squint angle assumption
 %   Quits after plotting results
-% 
+%
+% param.multipass.fn: string containing the full file to the file created
+% by multipass.combine_passes.
+%
+% param.multipass.layer: opsLoadLayers layer parameter structure that
+% specifies all the layers to load for each pass and to synchronize. The
+% default is struct('name',{'surface','bottom'}).
+%
 
 %% Setup
 % =========================================================================
@@ -41,12 +51,18 @@ load(fn,'param_combine_passes','pass');
 % =========================================================================
 
 % Confirm either SAR or echogram data
-if ~isfield(param.multipass,'input_type') 
+if ~isfield(param.multipass,'input_type')
   if ~isfield(pass(1),'input_type')
-      param.multipass.input_type = 'echo'; 
+    param.multipass.input_type = 'echo';
   else
     param.multipass.input_type = pass(1).input_type;
   end
+end
+
+% Confirm echo input type is running comp_mode==2
+if param.multipass.comp_mode ~= 2 && strcmpi(param.multipass.input_type,'echo')
+  warning('Only param.multipass.comp_mode == 2 may be used with input_type=="echo".');
+  param.multipass.comp_mode = 2;
 end
 
 % baseline_master_idx: All images are registered to the pass indicated by
@@ -57,6 +73,8 @@ end
 baseline_master_idx = param.multipass.baseline_master_idx;
 
 % coregistration_time_shift: Fast time time shift. Default is zero.
+% Positive values cause the image to move towards the radar. Units are in
+% range bins.
 if ~isfield(param.multipass,'coregistration_time_shift') || isempty(param.multipass.coregistration_time_shift)
   param.multipass.coregistration_time_shift = zeros(1,length(pass));
 end
@@ -205,16 +223,23 @@ for pass_idx = 1:length(pass)
   if ~pass_en_mask(pass_idx)
     continue
   end
+
+  % Update the parameters with current gRadar settings so that the paths
+  % are correct. A common issue is that multipass.combine_passes files are
+  % created in one environemnt and then loaded here under a different
+  % environment and the paths are different.
+  param_override = merge_structs(gRadar,param_override);
+  param_paths_updated = merge_structs(pass(pass_idx).param_pass,param_override);
   
   % Load layers
-  pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_pass,param.multipass.layer);
-
+  pass(pass_idx).layers = opsLoadLayers(param_paths_updated,param.multipass.layer);
+  
   % Interpolate all layers onto a common reference (ref)
   for lay_idx = 1:length(pass(pass_idx).layers)
     pass(pass_idx).layers(lay_idx).twtt ...
       = interp_finite(interp1(pass(pass_idx).layers(lay_idx).gps_time, ...
       pass(pass_idx).layers(lay_idx).twtt, ...
-      pass(pass_idx).gps_time,'linear'));
+      pass(pass_idx).gps_time,'linear'),0);
   end
 end
 
@@ -479,7 +504,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
       pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline));
     end
   end
-
+  
   % Motion compensation for layers
   time_shift = pass(pass_idx).ref_z/(c/2);
   for lay_idx = 1:length(pass(pass_idx).layers)
@@ -619,7 +644,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
         hold on;
         plot(pass(master_idx).along_track/1e3, pass(pass_idx).layers(lay_idx).layer_elev);
       end
-  
+      
     else
       imagesc(lp(data(rbins,:,pass_out_idx)))
       ylabel('Range bin');
@@ -768,10 +793,10 @@ for pass_out_idx = 1:length(pass_en_idxs)
   param.array.fcs{1}{pass_out_idx}.pos = along_track;
   param.array.fcs{1}{pass_out_idx}.pos(2,:) = pass(pass_idx).ref_y;
   param.array.fcs{1}{pass_out_idx}.pos(3,:) = pass(pass_idx).ref_z;
-  param.array.fcs{1}{pass_out_idx}.base_line ...        
+  param.array.fcs{1}{pass_out_idx}.base_line ...
     = sqrt( (pass(pass_idx).ref_z - pass(master_idx).ref_z).^2 ...
-      + (pass(pass_idx).ref_y - pass(master_idx).ref_y).^2 );
-
+    + (pass(pass_idx).ref_y - pass(master_idx).ref_y).^2 );
+  
   param.array.fcs{1}{pass_out_idx}.surface = ref.surface;
 end
 

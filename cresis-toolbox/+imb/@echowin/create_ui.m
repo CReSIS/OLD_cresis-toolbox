@@ -132,9 +132,9 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_convert([],obj);
+obj.tool.list{end+1} = imb.picktool_copy([],obj);
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click and drag: Converts selected layers to the specified layer
+% Left click and drag: Copy source layers to the selected layers
 %   Deletes all previous points in range
 % Right click: Set cursor point
 % Right click and drag: Nothing
@@ -493,7 +493,7 @@ if isunix
 else
   set(obj.right_panel.status_panel.mouseCoordText,'FontSize',8)
 end
-set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','right');
+set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.mouseCoordText,'String','');
 set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Frame Latitude (deg, N) Longitude (deg, W) |X-coordinate|Y-coordinate|Z-coordinate/intensity.');
 

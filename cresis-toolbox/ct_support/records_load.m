@@ -1,12 +1,20 @@
 function records = records_load(param,varargin)
 % records = records_load(param,varargin)
 %
-% records = records(param)
+% Loads records file. Handles old file formats. Three Modes:
+%
+% MODE 1
+% -------------------------------------------------------------------------
+% records = records_load(param)
 %   Loads records file.
 %
 % param: parameter spreadsheet structure
 %
-% records = records(param,recs)
+% records: struct with all the fields from the frames file are loaded
+%
+% MODE 2
+% -------------------------------------------------------------------------
+% records = records_load(param,recs)
 %   Loads only the specified records from the records file.
 %
 % param: parameter spreadsheet structure
@@ -15,12 +23,19 @@ function records = records_load(param,varargin)
 %   Set stop record to inf to read to end of file
 %   "inf" can be used for start or stop record to mean last record
 %
-% records = records(param,FIELD_STRING_ARGS ...)
+% records: struct with all the fields from the frames file are loaded
+%
+% MODE 3
+% -------------------------------------------------------------------------
+% records: records_load(param,FIELD_STRING_ARGS ...)
 %   Loads only the specified records from the records file. This
 %   functionality is slower, but reduces memory usage.
 %
 % param: parameter spreadsheet structure
 % FIELD_STRING_ARGS: Argument list of strings containing specific fields to load from the records file.
+%
+% records: struct with fields listed in FIELD_STRING_ARGS are loaded from
+% the records file
 %
 % Example
 %   param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20191231_04');
@@ -137,25 +152,25 @@ elseif nargin == 2 && isnumeric(varargin{1})
   if any(strcmp('phase_correction',{mat_vars.name}))
     records.phase_correction = records_mat.phase_correction(:,recs(1):recs(2));
   else
-    records.phase_correction = zeros(size(records.gps_time));
+    records.phase_correction = nan(size(records.gps_time));
   end
   
   if any(strcmp('Tadc_correction',{mat_vars.name}))
     records.Tadc_correction = records_mat.Tadc_correction(:,recs(1):recs(2));
   else
-    records.Tadc_correction = zeros(size(records.gps_time));
+    records.Tadc_correction = nan(size(records.gps_time));
   end
   
   if any(strcmp('nyquist_zone_sig',{mat_vars.name}))
     records.nyquist_zone_sig = records_mat.nyquist_zone_sig(:,recs(1):recs(2));
   else
-    records.nyquist_zone_sig = zeros(size(records.gps_time));
+    records.nyquist_zone_sig = nan(size(records.gps_time));
   end
   
   if any(strcmp('nyquist_zone_hw',{mat_vars.name}))
     records.nyquist_zone_hw = records_mat.nyquist_zone_hw(:,recs(1):recs(2));
   else
-    records.nyquist_zone_hw = zeros(size(records.gps_time));
+    records.nyquist_zone_hw = nan(size(records.gps_time));
   end
 
 elseif nargin > 1 && all(cellfun(@ischar,varargin))

@@ -410,11 +410,15 @@ for img = 1:length(param.load.imgs)
             
             % Pulse compression
             %   Apply matched filter and transform back to time domain
+            %   1. Extract the portion of the range line that is valid
             tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
+            %   2. Set ~isfinite values to zero (unless the whole record is bad,
+            %   then just leave the samples as is)
             tmp_data(bsxfun(@and,~isfinite(tmp_data),~hdr.bad_rec{img}(1,rlines,wf_adc))) = 0;
+            %   3. Apply pulse compression with zero padding
             tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
             
-            % Decimation
+            % Resampling
             data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
             
           end
@@ -612,6 +616,7 @@ for img = 1:length(param.load.imgs)
         
         %% Pulse compress: Deramp
         freq_axes_changed = false;
+        first_good_rec = true; % true until the time/freq axes created for the first time
         for rec = 1:size(data{img},2)
           
           if hdr.bad_rec{img}(rec)
@@ -637,12 +642,16 @@ for img = 1:length(param.load.imgs)
           DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
           hdr.DDC_freq{img}(rec) = hdr.DDC_freq{img}(rec) - DDC_freq_adjust;
 
-          % Check to see if axes has changed since last record
-          if rec == 1 ...
+          % Check to see if this is the first good record and the time/freq
+          % axis need to be created for the first time or if the time/freq
+          % axes has changed since the last record because of header
+          % changes and need to be regenerated
+          if first_good_rec ...
               || hdr.DDC_dec{img}(rec) ~= hdr.DDC_dec{img}(rec-1) ...
               || hdr.DDC_freq{img}(rec) ~= hdr.DDC_freq{img}(rec-1) ...
               || hdr.nyquist_zone_signal{img}(rec) ~= hdr.nyquist_zone_signal{img}(rec-1)
             
+            first_good_rec = false;
             freq_axes_changed = true;
             
             %% Pulse compress: Output time
@@ -1015,7 +1024,7 @@ for img = 1:length(param.load.imgs)
           %% Pulse compress: FFT and Deskew
           
           % Window and DFT (raw deramped time to regular time)
-          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
+          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).Tadc_adjust + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
           
           tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
              .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
@@ -1303,6 +1312,7 @@ for img = 1:length(param.load.imgs)
       end
       
     else
+      %% No pulse compress
       if wf_adc == 1
         if strcmpi(radar_type,'pulsed')
           hdr.time{img} = wfs(wf).time_raw;
@@ -1326,17 +1336,11 @@ for img = 1:length(param.load.imgs)
       
       if strcmpi(wfs(wf).coh_noise_method,'estimated')
         % Apply coherent noise methods that require estimates derived now
- 
-        if wfs(wf).coh_noise_arg.DC_remove_en
-          if isfield(wfs(wf),'estimated') && ~isempty(wfs(wf).estimated.B_filter)
-              data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-                fir_dec(data{img}(1:wfs(wf).Nt,:,wf_adc),wfs(wf).estimated.B_filter,1));
-          else
-            data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
-              nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
-          end
-        end
         
+        if wfs(wf).coh_noise_arg.DC_remove_en
+          data{img}(1:wfs(wf).Nt,:,wf_adc) = bsxfun(@minus, data{img}(1:wfs(wf).Nt,:,wf_adc), ...
+            nanmean(data{img}(1:wfs(wf).Nt,:,wf_adc),2));
+        end
         
         if length(wfs(wf).coh_noise_arg.B_coh_noise) > 1
           if length(wfs(wf).coh_noise_arg.A_coh_noise) > 1

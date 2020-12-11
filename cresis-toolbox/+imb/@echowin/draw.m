@@ -64,7 +64,9 @@ obj.eg.layers.data_source = param.layer_data_source;
 % Get the map info and projection for the current location
 obj.eg.map.source = param.map.source;
 obj.eg.map.scale = param.map.scale;
-obj.eg.proj = imb.get_proj_info(obj.eg.cur_sel.location);
+if obj.eg.map.source == 0 || obj.eg.map.source == 2
+  obj.eg.proj = imb.get_proj_info(obj.eg.cur_sel.location);
+end
 
 %% Drop all currently loaded data
 obj.eg.data = [];

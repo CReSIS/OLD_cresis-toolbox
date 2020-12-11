@@ -1,6 +1,12 @@
 % script run_layer_tracker
 %
 % Runs layer_tracker.m
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
+% run_layer_tracker_tune.m
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -95,7 +101,7 @@ switch ct_output_dir(params(1).radar_name)
         track.data_noise_en = true;
       end
       
-      % Override default init method
+      % Use DEM and LIDAR for init
       if 0
         track.init.method	= 'dem';
         track.init.dem_offset = 0;
@@ -103,7 +109,11 @@ switch ct_output_dir(params(1).radar_name)
         track.init.dem_layer.source = 'lidar';
         track.init.dem_layer.lidar_source = 'atm';
         track.init.max_diff = 1e-6;
-      elseif 0
+        track.init.max_diff_method = 'merge_vectors';
+      end
+      
+      % Use snake method for init
+      if 0
         track.init.method	= 'snake';
         track.init.snake_rng	= [-0.5e-6 0.5e-6];
         track.init.max_diff	= 0.5e-6;
@@ -116,7 +126,26 @@ switch ct_output_dir(params(1).radar_name)
       end
     end
     
-    %% RDS: Viterbi
+    %% RDS: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
+    if 0
+      track.profile = 'RDS';
+      track.layer_names                 = {'surface_dem'};
+      
+      % Override default init method
+      track.init.method	= 'dem';
+      track.init.dem_offset = 0;
+      track.init.dem_layer = [];
+      track.init.max_diff = 0;
+      track.init.max_diff_method = 'merge_vectors';
+      
+      track.method = ''; % Just use DEM surface
+      track.max_rng = [0 0];
+      track.medfilt = [];
+    end
+    
+    %% RDS: Viterbi bottom
     if 0
       track.method                      = 'viterbi';
       track.layer_names                 = {'bottom'};
@@ -162,7 +191,7 @@ switch ct_output_dir(params(1).radar_name)
       track.xcorr            = echo_xcorr_profile('short_unitstep');
     end
     
-    %% RDS: MCMC
+    %% RDS: MCMC bottom
     if 0
       track.method            = 'mcmc';
       track.layer_names       = {'surface','bottom'};
@@ -170,7 +199,7 @@ switch ct_output_dir(params(1).radar_name)
       track.init.max_diff     = inf;
     end
     
-    %% RDS: LSM
+    %% RDS: LSM bottom
     if 0
       track.method            = 'lsm';
       track.layer_names       = {'surface','bottom'};
@@ -183,7 +212,7 @@ switch ct_output_dir(params(1).radar_name)
       
     end
     
-    %% RDS: Stereo
+    %% RDS: Stereo bottom
     if 0
       track.method               = 'stereo';
       track.layer_names       = {'surface','bottom'};
@@ -207,9 +236,9 @@ switch ct_output_dir(params(1).radar_name)
       
       track.layer_names                 = {'surface'};
       
-      % track_override.threshold = 5;
-      % track_override.threshold_rel_max = -9;
-      % track_override.init.method	= 'nan'; % May be necessary if bottom is brighter than surface
+      % track.threshold = 5;
+      % track.threshold_rel_max = -9;
+      % track.init.method	= 'nan'; % May be necessary if bottom is brighter than surface
       
       % Override default init method
       if 0
@@ -228,67 +257,71 @@ switch ct_output_dir(params(1).radar_name)
       end
     end
     
-    %% ACCUM: DEM
+    %% ACCUM: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
     if 0
-      track_override.profile = 'ACCUM';
-      track_override.layer_names                 = {'surface_dem_class'};
+      track.profile = 'ACCUM';
+      track.layer_names                 = {'surface_dem'};
       
       % Override default init method
-      track_override.init.method	= 'dem';
-      track_override.init.dem_offset = 0;
-      track_override.init.dem_layer = [];
-      track_override.init.max_diff = 0;
+      track.init.method	= 'dem';
+      track.init.dem_offset = 0;
+      track.init.dem_layer = [];
+      track.init.max_diff = 0;
+      track.init.max_diff_method = 'merge_vectors';
       
-      track_override.method = ''; % Just use DEM surface
-      track_override.max_rng = [0 0];
+      track.method = ''; % Just use DEM surface
+      track.max_rng = [0 0];
+      track.medfilt = [];
     end
     
-    %% ACCUM: Viterbi
+    %% ACCUM: Viterbi bottom
     if 1
-      track_override.method                      = 'viterbi';
-      track_override.layer_names                 = {'bottom'};
+      track.method                      = 'viterbi';
+      track.layer_names                 = {'bottom'};
       
-      track_override.min_bin = struct('name','surface','eval',struct('cmd','s=s+1e-6;'));
-      % track_override.min_bin = struct('name','tomo_top');
-      % track_override.max_bin = struct('name','tomo_bottom');
+      track.min_bin = struct('name','surface','eval',struct('cmd','s=s+1e-6;'));
+      % track.min_bin = struct('name','tomo_top');
+      % track.max_bin = struct('name','tomo_bottom');
       
-      track_override.crossover.en = false;
-      track_override.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
-      % track_override.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
-      track_override.crossover.gps_time_good_eval = @(x) x > datenum_to_epoch(datenum('2010/01/01')); % Cross overs before this date are good
+      track.crossover.en = false;
+      track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
+      % track.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
+      track.crossover.gps_time_good_eval = @(x) x > datenum_to_epoch(datenum('2010/01/01')); % Cross overs before this date are good
       
       if 1
-        track_override.ice_mask.en = false;
+        track.ice_mask.en = false;
       elseif 0
         % Greenland
-        track_override.ice_mask.en = true;
-        track_override.ice_mask.type = 'geotiff';
-        track_override.ice_mask.fn = ct_filename_gis([], fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));
+        track.ice_mask.en = true;
+        track.ice_mask.type = 'geotiff';
+        track.ice_mask.fn = ct_filename_gis([], fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));
       elseif 0
         % Canada
-        track_override.ice_mask.en = true;
-        track_override.ice_mask.type = 'bin';
-        track_override.ice_mask.fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
-        track_override.ice_mask.mat_fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
+        track.ice_mask.en = true;
+        track.ice_mask.type = 'bin';
+        track.ice_mask.fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+        track.ice_mask.mat_fn = ct_filename_gis([], fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
       elseif 0
         % Antarctica
-        track_override.ice_mask.en = true;
-        track_override.ice_mask.type = 'geotiff2';
-        track_override.ice_mask.fn = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif'));
-        track_override.ice_mask.fn2 = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif'));
+        track.ice_mask.en = true;
+        track.ice_mask.type = 'geotiff2';
+        track.ice_mask.fn = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif'));
+        track.ice_mask.fn2 = ct_filename_gis([], fullfile('antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif'));
       end
-      track_override.init.dem_layer = struct('name','surface');
+      track.init.dem_layer = struct('name','surface');
       
-      track_override.viterbi.transition_weight   = 0.01; % Larger --> smoother
-      track_override.viterbi.gt_cutoff           = 50;
+      track.viterbi.transition_weight   = 0.01; % Larger --> smoother
+      track.viterbi.gt_cutoff           = 50;
       
-      track_override.mult_suppress.en = true;
-      track_override.init.max_diff    = inf;
-      track_override.init.method      = 'nan';
-      track_override.detrend          = [];
-      track_override.filter_trim      = [0 120];
-      track_override.norm.scale       = [-40 90];
-      track_override.xcorr            = echo_xcorr_profile('xlong_unitstep');
+      track.mult_suppress.en = true;
+      track.init.max_diff    = inf;
+      track.init.method      = 'nan';
+      track.detrend          = [];
+      track.filter_trim      = [0 120];
+      track.norm.scale       = [-40 90];
+      track.xcorr            = echo_xcorr_profile('xlong_unitstep');
     end
     
   case {'snow','kuband','kaband'}
@@ -317,11 +350,31 @@ switch ct_output_dir(params(1).radar_name)
         track.init.dem_layer.source = 'lidar';
         track.init.dem_layer.lidar_source = 'atm';
         track.init.max_diff = 0.3e-6;
+        track.init.max_diff_method = 'merge_vectors';
       elseif 0
         track.init.method  = 'snake';
         track.init.snake_rng = [-15e-9 15e-9];
         track.init.max_diff  = 0.3e-6;
       end
+    end
+    
+    %% SNOW: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
+    if 0
+      track.profile = 'snow';
+      track.layer_names                 = {'surface_dem'};
+      
+      % Override default init method
+      track.init.method	= 'dem';
+      track.init.dem_offset = 0;
+      track.init.dem_layer = [];
+      track.init.max_diff = 0;
+      track.init.max_diff_method = 'merge_vectors';
+      
+      track.method = ''; % Just use DEM surface
+      track.max_rng = [0 0];
+      track.medfilt = [];
     end
     
 end
