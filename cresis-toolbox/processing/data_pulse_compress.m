@@ -1444,7 +1444,7 @@ for img = 1:length(param.load.imgs)
           tmp_m = mean(lp(tmp));
           tmp_spikes = lp(tmp)-tmp_m;
           spike_idxs = find(tmp_spikes>wfs(wf).DSN.threshold);
-          tmp = fft(data{1}(rbin,:));
+%           tmp = fft(data{1}(rbin,:));
           if length(spike_idxs) >0
             for spike_idx = 1:length(spike_idxs)
               tmp(spike_idxs(spike_idx)) = 10^(-tmp_spikes(spike_idxs(spike_idx))/20)*tmp(spike_idxs(spike_idx));
