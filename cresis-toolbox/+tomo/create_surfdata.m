@@ -48,6 +48,14 @@ function create_surfdata(param,mdata)
 % mdata: 3D data file struct (Data_YYYYMMDD_SS_FFF.mat with Tomo)
 %   field)
 %
+%  .twtt: an Nsv by Nx double matrix of two way travel times to each point
+%  on the surface, default value is a matrix with twtt's set to equal the
+%  2D surface twtt read in with opsLoadLayers.
+%
+%  .ice_mask: an Nsv by Nx logical matrix representing whether or not ice
+%  is present for a given point of the surface (1 == ice, 0 == no ice).
+%  Default is all true (ice).
+%
 % Outputs:
 %   NONE
 %
@@ -74,6 +82,14 @@ if ~isfield(param.tomo_collate,'merge_bottom_above_top') ...
   param.tomo_collate.merge_bottom_above_top = true;
 end
 merge_bottom_above_top = param.tomo_collate.merge_bottom_above_top;
+
+%% Input data prep
+data = single(10*log10(mdata.Tomo.img));
+Nt = size(data,1);
+Nsv = size(data,2);
+Nx = size(data,3);
+theta = mdata.Tomo.theta(:,1);
+[~,nadir_idx] = min(abs(theta));
 
 %% Load surface and bottom information
 param_load_layers = param;
@@ -136,22 +152,17 @@ end
 Bottom(~isfinite(Bottom)) = NaN;
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
 Bottom_bin(isnan(Bottom_bin)) = -1;
+% ice_mask: an Nsv by Nx matrix, set to equal the 2D surface twtt if
+% missing
 if ~isfield(mdata,'twtt')
-  mdata.twtt = layers(1).twtt;
+  mdata.twtt = repmat(layers(1).twtt_ref, [Nsv 1]);
 end
+% ice_mask: an Nsv by Nx matrix, set to all ones if missing
 if isfield(mdata,'ice_mask')
   ice_mask = mdata.ice_mask;
 else
-  ice_mask = ones(size(mdata.twtt));
+  ice_mask = true(size(mdata.twtt));
 end
-
-%% Input data prep
-data = single(10*log10(mdata.Tomo.img));
-Nt = size(data,1);
-Nsv = size(data,2);
-Nx = size(data,3);
-theta = mdata.Tomo.theta(:,1);
-[~,nadir_idx] = min(abs(theta));
 
 %% Surface tracking prep
 % 1. Convert from twtt to bins
