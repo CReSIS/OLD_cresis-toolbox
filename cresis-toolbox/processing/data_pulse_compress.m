@@ -1434,7 +1434,8 @@ for img = 1:length(param.load.imgs)
     if isfield(wfs(wf),'DSN') && wfs(wf).DSN.en
       for rcluster = 1:size(wfs(wf).DSN.rbin_clusters,1)
         for rbin = wfs(wf).DSN.rbin_clusters(rcluster,1):wfs(wf).DSN.rbin_clusters(rcluster,2)
-          tmp = data{1}(rbin,:);
+          good_rline_idxs = ~isnan(data{1}(rbin,:));
+          tmp = data{1}(rbin,good_rline_idxs);
           thresholding_idxs = find(lp(tmp)>mean(lp(tmp))+wfs(wf).DSN.surf_threshold);
           if ~isempty(thresholding_idxs)
             continue                      % skipping surface remove most part of noise in general without  nulling artifact
@@ -1450,7 +1451,7 @@ for img = 1:length(param.load.imgs)
               tmp(spike_idxs(spike_idx)) = 10^(-tmp_spikes(spike_idxs(spike_idx))/20)*tmp(spike_idxs(spike_idx));
             end
           end
-          data{1}(rbin,:) = ifft(tmp);
+          data{1}(rbin,good_rline_idxs) = ifft(tmp);
         end
       end
     end
