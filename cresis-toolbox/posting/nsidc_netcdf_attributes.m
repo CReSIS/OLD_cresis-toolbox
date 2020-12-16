@@ -34,7 +34,7 @@ physical_constants;
 if isfield(data,'param_qlook')
   proc_param = data.param_qlook;
 else
-  proc_param = data.param_csarp;
+  proc_param = data.param_sar;
   if ~isfield(proc_param,'sw_version')
     %% Legacy file format fix
     proc_param.sw_version = proc_param.csarp.sw_version;
@@ -72,6 +72,8 @@ elseif strcmpi(parse_season_name{3},'Basler')
   netcdf.putAtt(ncid,varid,'location','NASABasler');
 elseif strcmpi(parse_season_name{3},'SO')
   netcdf.putAtt(ncid,varid,'location','UltraThuleSO');
+elseif strcmpi(parse_season_name{3},'GV')
+  netcdf.putAtt(ncid,varid,'location','NASAGV');
 else
   error('Platform not supported');
 end
@@ -96,8 +98,11 @@ elseif any(strcmpi(param.season_name,{'2009_Greenland_P3','2009_Antarctica_DC8',
     '2011_Greenland_P3','2011_Antarctica_DC8','2012_Greenland_P3', ...
     '2012_Antarctica_DC8'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, C. Allen, R. Hale, J. Paden, F. Rodriguez');
-elseif any(strcmpi(param.season_name,{'2013_Greenland_P3', ...
-    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2017_Antarctica_Basler','2018_Greenland_P3','2018_Alaska_SO','2018_Antarctica_DC8','2019_Greenland_P3'}))
+elseif any(strcmpi(param.season_name,{'2013_Greenland_P3','2013_Antarctica_P3',...
+    '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130',...
+    '2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2017_Antarctica_Basler',...
+    '2018_Greenland_P3','2018_Alaska_SO','2018_Antarctica_DC8',...
+    '2019_Greenland_P3','2019_Antarctica_GV'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, R. Hale, J. Li, J. Paden, F. Rodriguez');
 else
   error('Unsupported season\n');
@@ -223,7 +228,7 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2014_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 7-channel DDS with phase/amplitude control, 300W SSPA per channel\n'));
-  elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'}))
+  elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8','2018_Antarctica_DC8'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 6-channel DDS with phase/amplitude control, 1000W SSPA per channel\n'));
   elseif any(strcmpi(param.season_name,{'2015_Greenland_C130'}))
@@ -238,6 +243,9 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 8-channel DDS with phase/amplitude control, 225W SSPA per channel\n'));
+  elseif any(strcmpi(param.season_name,{'2019_Antarctica_GV'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('Transmitters: 4-channel DDS with phase/amplitude control, 500W SSPA per channel\n'));
   else
     error('Unsupported season\n');
   end
@@ -312,6 +320,9 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-8 are Tx/Rx (installed under fuselage)\n'));
+  elseif any(strcmpi(param.season_name,{'2019_Antarctica_GV'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('TX/RX mode: Channels 1-4 are Tx/Rx (installed under fuselage)\n'));
   else
     error('Unsupported season\n');
   end
@@ -443,12 +454,13 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Digitizer manufacturer: Analog Devices and Custom'));
   elseif any(strcmpi(param.season_name,{'2011_Greenland_P3','2011_Antarctica_DC8','2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2019_Greenland_P3'}))
+      '2014_Greenland_P3','2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3',...
+      '2018_Greenland_P3','2018_Antarctica_DC8','2019_Greenland_P3','2019_Antarctica_GV'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
       sprintf('Record rate: variable'));
-    if any(strcmpi(param.season_name,{'2013_Greenland_P3','2019_Greenland_P3'}))
+    if any(strcmpi(param.season_name,{'2013_Greenland_P3','2019_Greenland_P3','2019_Antarctica_GV'}))
       digparams_val = cat(2,digparams_val, ...
         sprintf('Channels: 7\n'));
     else
@@ -601,13 +613,12 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Antennas: Byers et al., IEEE Tran. Instruments and Methods, May 2012\n'));
   elseif any(strcmpi(param.season_name,{'2009_Antarctica_DC8', ...
       '2010_Greenland_DC8','2010_Antarctica_DC8', ...
-      '2011_Antarctica_DC8',...
-      '2012_Antarctica_DC8','2014_Antarctica_DC8','2016_Antarctica_DC8'}))
+      '2011_Antarctica_DC8','2012_Antarctica_DC8'}));
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Loaded dipole array with 5 elements\n'));
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Allen et al., IEEE Aerospace and Electronic Systems Magazine, March 2012\n'));
-  elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'}))
+  elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8','2018_Antarctica_DC8'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Loaded dipole array with 6 elements\n'));
     antparams_val = cat(2,antparams_val, ...
@@ -622,6 +633,11 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Antennas: Eight custom CReSIS dipole antennas\n'));
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Custom built 150-600 MHz antenna with matching network\n'));
+  elseif any(strcmpi(param.season_name,{'2019_Antarctica_GV'}))
+    antparams_val = cat(2,antparams_val, ...
+      sprintf('Antennas: Four custom CReSIS U-slot patch antennas\n'));
+    antparams_val = cat(2,antparams_val, ...
+      sprintf('Antennas: Custom built 236-254 MHz antenna with impedence matching network\n'));
   else
     error('Unsupported season\n');
   end
@@ -698,7 +714,7 @@ else
     sprintf('Coherent stacking: SAR Processing\n'));
   procparams_val = cat(2,procparams_val, ...
     sprintf('Incoherent averaging: [%d %d]\n', ...
-    length(data.param_array.array.rline_rng), ...
+    length(data.param_array.array.line_rng), ...
     length(data.param_array.array.bin_rng)));
 end
 procparams_val = cat(2,procparams_val, ...

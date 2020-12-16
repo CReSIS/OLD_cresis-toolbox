@@ -239,14 +239,24 @@ for passes_idx = 1: length(passes)
       metadata{end}.frms = passes(passes_idx).frms(frm_idx);
       metadata{end}.param_pass = param_pass;
       
-      %% Do waveform combination
+      %% Do image combining
+      % Combines low-gain and high-gain images into a single image
       param_mode = 'array';
       param_img_combine = param_pass;
+      % array.img_comb should have 3*(length(imgs)-1) fields, if it has more
+      % than required, then truncate to 3*(length(imgs)-1)
       param_img_combine.array.img_comb = param_pass.array.img_comb(1:...
         min([length(param_pass.array.img_comb), 3*(length(passes(passes_idx).imgs)-1)]));
       param_img_combine.array.imgs = passes(passes_idx).imgs;
-      if length(param_img_combine.array.img_comb)<3
-        param_img_combine.array.img_comb = [param_img_combine.array.img_comb(1) -inf param_img_combine.array.img_comb(2)];
+      if length(imgs) > 1 && length(param_img_combine.array.img_comb) == 2*(length(imgs)-1)
+        % This is a hack to work with old array.img_comb fields which only
+        % had 2 entries per image combining rather than 3 entries
+        old_img_comb = param_img_combine.array.img_comb;
+        param_img_combine.array.img_comb = [];
+        for img = 1:length(imgs)-1
+          param_img_combine.array.img_comb = cat(2, param_img_combine.array.img_comb, ...
+            [old_img_comb(1) -inf old_img_comb(2)]);
+        end
       end
       param_img_combine.load.frm = metadata{end}.frms;
       param_img_combine.day_seg = passes(passes_idx).day_seg;

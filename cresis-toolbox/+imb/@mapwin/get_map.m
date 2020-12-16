@@ -5,19 +5,24 @@ function get_map(obj,hObj,event)
 % window "OK" button is pressed and the prefwin "StateChange" event occurs.
 
 %% Determine map source
-if strcmp('google_map', obj.map_pref.settings.map_name)
+if strcmp('Google Map', obj.map_pref.settings.map_name)
   obj.map.source = 1;
   obj.map.scale = 1;
-elseif strcmp('blank_map', obj.map_pref.settings.map_name)
+elseif strcmp('Blank Stereographic Map', obj.map_pref.settings.map_name)
   % blank map selected
   obj.map.source = 2;
   obj.map.scale = 1e3;
+  obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
+elseif strcmp('Blank Geodetic Map', obj.map_pref.settings.map_name)
+  % blank map selected
+  obj.map.source = 3;
+  obj.map.scale = 1;
 else
   % OPS map selected
   obj.map.source = 0;
   obj.map.scale = 1e3;
+  obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
 end
-obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
 
 %% Determine flight line source
 if strcmp('OPS',obj.map_pref.settings.flightlines(1:3))
@@ -243,7 +248,7 @@ elseif obj.map.source == 1
   obj.map.yaxis_default = sort(256-obj.map.yaxis_default);
   
 elseif obj.map.source == 2
-  %% Setup "blank" map and flightlines
+  %% Setup "Blank Stereographic" map and flightlines
   
   % Update axes labels
   xlabel(obj.map_panel.h_axes,'X (km)');
@@ -283,6 +288,48 @@ elseif obj.map.source == 2
     obj.map.xaxis_default = [-3400000 3400000]/1e3;
     obj.map.yaxis_default = [-3400000 3400000]/1e3;
   end
+  
+elseif obj.map.source == 3
+  %% Setup "Blank Geodetic" map and flightlines
+  
+  % Update axes labels
+  xlabel(obj.map_panel.h_axes,'Lon (deg)');
+  ylabel(obj.map_panel.h_axes,'Lat (deg)');
+  
+  % Setup OPS flightlines if enabled
+  wms_flightline_layer = [];
+  if obj.map.fline_source == 0
+    % Rename to layer for readability
+    layer = obj.map_pref.ops.wms_capabilities.Layer;
+    % Setup OPS flightlines
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest(wms_flightline_layer);
+  else
+    obj.ops.request = [];
+  end
+  
+  % Set projection code and default map bounds
+  if strcmp(map_zone,'arctic')
+    obj.ops.request.CoordRefSysCode = 'EPSG:4326';
+    obj.map.xaxis_default = [-90 0];
+    obj.map.yaxis_default = [45 90];
+  else
+    obj.ops.request.CoordRefSysCode = 'EPSG:4326';
+    obj.map.xaxis_default = [-180 180];
+    obj.map.yaxis_default = [-90 -45];
+  end
 end
 
 %% Plot tracks files flightlines
@@ -311,8 +358,12 @@ if obj.map.fline_source == 1
     if obj.map.source == 1
       % Google map
       [x,y] = google_map.latlon_to_world(S.lat, S.lon); y = 256-y;
+    elseif obj.map.source == 3
+      % Blank Geodetic map
+      x = S.lon;
+      y = S.lat;
     else
-      % OPS or Blank map
+      % OPS or Blank Stereographic map
       [x,y] = projfwd(obj.map.proj, S.lat, S.lon);
     end
     x = x/obj.map.scale; y = y/obj.map.scale;

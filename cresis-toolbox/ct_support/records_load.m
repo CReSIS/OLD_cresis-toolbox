@@ -1,12 +1,20 @@
 function records = records_load(param,varargin)
 % records = records_load(param,varargin)
 %
-% records = records(param)
+% Loads records file. Handles old file formats. Three Modes:
+%
+% MODE 1
+% -------------------------------------------------------------------------
+% records = records_load(param)
 %   Loads records file.
 %
 % param: parameter spreadsheet structure
 %
-% records = records(param,recs)
+% records: struct with all the fields from the frames file are loaded
+%
+% MODE 2
+% -------------------------------------------------------------------------
+% records = records_load(param,recs)
 %   Loads only the specified records from the records file.
 %
 % param: parameter spreadsheet structure
@@ -15,12 +23,19 @@ function records = records_load(param,varargin)
 %   Set stop record to inf to read to end of file
 %   "inf" can be used for start or stop record to mean last record
 %
-% records = records(param,FIELD_STRING_ARGS ...)
+% records: struct with all the fields from the frames file are loaded
+%
+% MODE 3
+% -------------------------------------------------------------------------
+% records: records_load(param,FIELD_STRING_ARGS ...)
 %   Loads only the specified records from the records file. This
 %   functionality is slower, but reduces memory usage.
 %
 % param: parameter spreadsheet structure
 % FIELD_STRING_ARGS: Argument list of strings containing specific fields to load from the records file.
+%
+% records: struct with fields listed in FIELD_STRING_ARGS are loaded from
+% the records file
 %
 % Example
 %   param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20191231_04');

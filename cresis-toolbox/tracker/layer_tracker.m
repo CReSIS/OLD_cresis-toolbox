@@ -206,7 +206,7 @@ while frm_idx <= length(param.cmd.frms)
       dparam.mem = dparam.mem + 2e9;
     end
     mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
-    cputime_combine = cputime_combine + 1e-1*Nx*length(tracks_in_task);
+    cputime_combine = cputime_combine + 1e-2*Nx*length(tracks_in_task);
     
     % Notes
     % ---------------------------------------------------------------------

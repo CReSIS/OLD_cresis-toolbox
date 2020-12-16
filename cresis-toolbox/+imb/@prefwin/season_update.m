@@ -40,11 +40,15 @@ if strcmp(flightlines{1}(1:3),'OPS')
     set(obj.h_gui.systemsLB,'Value',system_value);
     system_name = unique_systems{system_value};
   end
+  set(obj.h_gui.systemsText,'String','Radar Systems');
+  set(obj.h_gui.systemsLB,'Enable','on');
 else
   % tracks files based flight tracks
   system_name = 'tracks';
+  set(obj.h_gui.systemsText,'String','-');
   set(obj.h_gui.systemsLB,'String',{'tracks'});
   set(obj.h_gui.systemsLB,'Value',1);
+  set(obj.h_gui.systemsLB,'Enable','off');
 end
 
 %% Update obj.h_gui.h_seasons
@@ -59,7 +63,7 @@ map = map_list(map_value);
 zone_mask = strcmp(map_zone,obj.locations);
 systems_mask = strcmp(system_name,obj.systems);
 
-obj.h_gui.h_seasons.set_list(obj.seasons(zone_mask & systems_mask));
+obj.h_gui.h_seasons.set_list(sort(obj.seasons(zone_mask & systems_mask)));
 
 %% Update obj.h_gui.h_layers
 layer_sources = get(obj.h_gui.layerSourcePM,'String');

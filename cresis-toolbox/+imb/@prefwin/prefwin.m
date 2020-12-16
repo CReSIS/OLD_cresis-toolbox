@@ -55,6 +55,8 @@ classdef (HandleCompatible = true) prefwin < handle
     % settings.map_name: string containing the map name
     % settings.flightlines: string containing flightline setting
     
+    % Mapping toolbox version entry
+    map_toolbox
 
   end
   
@@ -90,6 +92,8 @@ classdef (HandleCompatible = true) prefwin < handle
       obj.settings.map_zone = [];
       obj.settings.map_name = [];
       obj.settings.flightlines = [];
+      
+      obj.map_toolbox = license('checkout','map_toolbox');
       
       try
         create_ui(obj);

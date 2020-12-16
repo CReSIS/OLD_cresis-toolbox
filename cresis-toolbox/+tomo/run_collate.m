@@ -27,8 +27,8 @@ if strcmpi(example_setup,'vertical')
   % .in_path: ct_filename_out directory to use at input, fused image will be stored here.
   tomo_collate.in_path = 'test_music3D';
   
-  % .surf_out_path: ct_filename_out directory to use at output for surfData
-  tomo_collate.surf_out_path = 'surfData';
+  % .surf_out_path: ct_filename_out directory to use at output for surfdata
+  tomo_collate.surf_out_path = 'surf';
 
   % .imgs: list of images II to use from .in_path (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam for
@@ -118,8 +118,8 @@ elseif strcmpi(example_setup,'horizontal')
   % .in_path: ct_filename_out directory to use at input, fused image will be stored here.
   tomo_collate.in_path = 'test_music3D';
   
-  % .surf_out_path: ct_filename_out directory to use at output for surfData
-  tomo_collate.surf_out_path = 'surfData';
+  % .surf_out_path: ct_filename_out directory to use at output for surfdata
+  tomo_collate.surf_out_path = 'surf';
 
   % .imgs: list of images II to use from .in_path (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam for
@@ -245,11 +245,17 @@ elseif strcmpi(example_setup,'horizontal')
 elseif strcmpi(example_setup,'grid')
   %% Grid multiwaveform fuse example
 %   params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'),'','post');
-  params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_Polar6_paden.xls'));
+%   params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_Polar6_paden.xls'));
+  params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
   
-%   params = ct_set_params(params,'cmd.generic',0);
-%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20110317_03');
-%   params = ct_set_params(params,'cmd.frms',[1]);
+  cmd_method = 'array';
+  param_override.array.out_path = 'music3D';
+  rds_settings;
+  
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20180406_01');
+  params = ct_set_params(params,'cmd.frms',[1 2]);
+
 % 
 % %   params = ct_set_params(params,'array.imgs',{[ones(15,1) (2:16)'],[2*ones(15,1) (2:16)']});
 %   params = ct_set_params(params,'array.imgs',{[ones(7,1) (2:8)'],[2*ones(7,1) (2:8)']});
@@ -264,9 +270,11 @@ elseif strcmpi(example_setup,'grid')
 % one vertical image. For example, {[1 2],[1]} means there are 2 horizontal 
 % images: the first one contains 2 vertical images and the second contains
 % just 1 vertical image.
-  tomo_collate.imgs = {[1],[2]}; % Vertical fusing
+  tomo_collate.imgs = {[1]}; % No fusing (single image)
+%   tomo_collate.imgs = {[1],[2]}; % Vertical fusing
 %   tomo_collate.imgs = {[1 2]}; % Horizontal fusing
-  tomo_collate.img_comb = [3e-06 -Inf 1e-06 1e-05 -Inf 3e-06];
+  tomo_collate.img_comb = [];
+%   tomo_collate.img_comb = [3e-06 -Inf 1e-06 1e-05 -Inf 3e-06];
 
 %   for param_idx = 1:length(params)
 %     if params(param_idx).cmd.generic
@@ -298,12 +306,11 @@ elseif strcmpi(example_setup,'grid')
 %   tomo_collate.in_path = 'test_music3D';
 %   tomo_collate.in_path = 'test_music3D_Nsv128_Nc15';
 %   tomo_collate.in_path = 'test_music3D_Nsv64_Nc7';
-  tomo_collate.in_path = 'music_lr';
+  tomo_collate.in_path = 'music3D';
 
   
-  % .surf_out_path: ct_filename_out directory to use at output for surfData
-%   tomo_collate.surf_out_path = 'test_surfData_Nsv128_Nc15';
-  tomo_collate.surf_out_path = 'surfData';
+  % .surf_out_path: ct_filename_out directory to use at output for surfdata
+  tomo_collate.surf_out_path = 'surf';
 
   % .imgs: list of images II to use from .in_path (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam for
@@ -326,7 +333,8 @@ elseif strcmpi(example_setup,'grid')
   % the horizontal dimension, the entry should be 2x2. If blending 2
   % images, the entry should be 2x1. If there is only one image for a
   % particular vertical index, then fuse_columns should be empty.
-  tomo_collate.fuse_columns = {[], [], [32, 33]};
+  %tomo_collate.fuse_columns = {[], [], [32, 33]};
+  tomo_collate.fuse_columns = {[]};
   
   % .sv_cal_fn: filename containing steering vector calibration, leave empty to not use
   tomo_collate.sv_cal_fn = '';
@@ -365,14 +373,14 @@ elseif strcmpi(example_setup,'grid')
   
   % surfdata_cmds: surfdata commands to run
   tomo_collate.surfdata_cmds = [];
-%   tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
-%   tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
   
-  tomo_collate.surfdata_cmds(end+1).surf_names = {'bottom'};
-  tomo_collate.surfdata_cmds(end).cmd = 'doa'; % surf_names should be set to 'bottom' always
-  
+  % TRW-S (Tree Reweighted Sequential algorithm)
+  tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
+  tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
   tomo_collate.surfdata_cmds(end).visible = true;
-%   tomo_collate.surfdata_cmds(end).max_loops = 10;
+  tomo_collate.surfdata_cmds(end).smooth_weight = [22 22];
+  tomo_collate.surfdata_cmds(end).smooth_var = 32;
+  tomo_collate.surfdata_cmds(end).max_loops = 50;
   
   % .fuse_images_flag: runs fuse_images.m when true
   tomo_collate.fuse_images_flag = true;
