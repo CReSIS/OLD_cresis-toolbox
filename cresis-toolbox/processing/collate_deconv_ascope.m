@@ -200,7 +200,7 @@ if deconv_plot
   plot(h_axes(1), param.collate_deconv.SL_guard_bins*[1 1], [-debug_ylim 0], 'k--');
   xlabel(h_axes(1), 'Range bin');
   ylabel(h_axes(1), 'Relative power (dB)');
-  title(h_axes(1), sprintf('Impulse response falling edge (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
+  title(h_axes(1), sprintf('Impulse response falling edge (frm %d-rec %d-rline %d)',floor(deconv.frm(rline)),deconv.rec(rline),rline));
   legend(h_axes(1), 'sample','deconvolved','ideal','location','best');
   xlim(h_axes(1), [0 2*param.collate_deconv.rbins{img}(2)]);
   ylim(h_axes(1), [-debug_ylim 0]);
@@ -217,7 +217,7 @@ if deconv_plot
   plot(h_axes(2), (1+param.collate_deconv.SL_guard_bins)*[1 1], [-debug_ylim 0], 'k--');
   xlabel(h_axes(2), 'Range bin');
   ylabel(h_axes(2), 'Relative power (dB)');
-  title(h_axes(2), sprintf('Impulse response rising edge (frm %d-rec %d-rline %d)',round(deconv.frm(rline)),deconv.rec(rline),rline));
+  title(h_axes(2), sprintf('Impulse response rising edge (frm %d-rec %d-rline %d)',floor(deconv.frm(rline)),deconv.rec(rline),rline));
   legend(h_axes(2), 'sample','deconvolved','ideal','location','best');
   xlim(h_axes(2), [0 -2*param.collate_deconv.rbins{img}(1)]);
   ylim(h_axes(2), [-debug_ylim 0]);
@@ -234,7 +234,7 @@ if deconv_plot
   ylabel(h_axes(3), 'Relative power (dB)');
   % Title gives frame, record, and range line for this deconvolution
   % waveform. It also gives the radiometric error.
-  title(h_axes(3), sprintf('Transfer function (frm %d-rec %d-rline %d) %.1f/%.1f dB',round(deconv.frm(rline)),deconv.rec(rline),rline,deconv.radiometric_error_dB(rline),max(deconv.radiometric_error_dB)));
+  title(h_axes(3), sprintf('Transfer function (frm %d-rec %d-rline %d) %.1f/%.1f dB',floor(deconv.frm(rline)),deconv.rec(rline),rline,deconv.radiometric_error_dB(rline),max(deconv.radiometric_error_dB)));
   legend(h_axes(3), 'sample','window','inverse','location','best');
   grid(h_axes(3), 'on');
   

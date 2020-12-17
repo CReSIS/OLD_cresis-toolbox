@@ -564,7 +564,12 @@ classdef slice_browser < handle
                 = cmds_list{cmd_idx}{subcmd_idx}.redo.y;
               new_slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
             elseif strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'slice_dummy')
-              new_slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+              if ~any(obj.slice==cmds_list{cmd_idx}{subcmd_idx}.redo.slice)
+                new_slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice(1);
+                fprintf('Redo slices %d-%d\n', min(cmds_list{cmd_idx}{subcmd_idx}.redo.slice), max(cmds_list{cmd_idx}{subcmd_idx}.redo.slice));
+              else
+                new_slice = obj.slice;
+              end
             end
           end
         end
@@ -578,7 +583,12 @@ classdef slice_browser < handle
                 = cmds_list{cmd_idx}{subcmd_idx}.undo.y;
               new_slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
             elseif strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'slice_dummy')
-              new_slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+              if ~any(obj.slice==cmds_list{cmd_idx}{subcmd_idx}.redo.slice)
+                new_slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice(1);
+                fprintf('Undo slices %d-%d\n', min(cmds_list{cmd_idx}{subcmd_idx}.redo.slice), max(cmds_list{cmd_idx}{subcmd_idx}.redo.slice));
+              else
+                new_slice = obj.slice;
+              end
             end
           end
         end
