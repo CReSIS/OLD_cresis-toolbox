@@ -298,7 +298,7 @@ void TRWS::solve() {
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (nrhs != 7 || nlhs != 1) {
-    mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 bounds, uint32 max_loops)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1");
+    mexErrMsgTxt("Usage: uint32 labels = trws(single image, single at_slope, single at_weight, single ct_slope, single ct_weight, uint32 max_loops, uint32 bounds)\n\n  size(image) is [Nt,Nsv,Nx]\n  mean along-track slope numel(at_slope) is Nx (last element not used)\n  along-track slope weight numel(at_weight) is 1\n  cross-track slope coefficients numel(ct_slope) is Nsv  (last element not used)\n  cross-track slope weight numel(ct_weight) is Nsv  (last element not used)\n  numel(max_loops) is 1");
   }
   
   // image ================================================================
@@ -365,8 +365,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexErrMsgTxt("usage: bounds must be type unsigned int32");
   }
   const size_t *dim_bounds = mxGetDimensions(prhs[6]);
-  if (dim_bounds[0] != dim_image[1] || dim_bounds[1] != dim_image[2]) {
-    mexErrMsgTxt("usage: bounds must have size(bounds,1)=size(image,2) and size(bounds,2)=size(image,3)");
+  if (dim_bounds[0] != 2 || dim_bounds[1] != dim_image[2]) {
+    mexErrMsgTxt("usage: bounds must have size(bounds,1)=2 and size(bounds,2)=size(image,3)");
   }
   unsigned int *bounds = (unsigned int *)mxGetData(prhs[6]);
   

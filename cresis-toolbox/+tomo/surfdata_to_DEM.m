@@ -120,12 +120,11 @@ for frm_idx = 1:length(param.cmd.frms)
   mdata = load(data_fn);
   
   % Load the steering vector calibration file if specified
-  if(~isfield(mdata,'theta'))
+  if(~isfield(mdata.Tomo,'theta'))
     global gRadar
     theta = load(fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_CSA_music','20140401_03','Data_20140401_03_037'),'theta');
-    mdata.theta = theta.theta;
+    mdata.Tomo.theta = theta.theta;
   end
-  
   
   %% Setup for convert doa,twtt to radar FCS for each surface
   
