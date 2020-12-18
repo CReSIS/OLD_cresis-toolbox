@@ -24,26 +24,19 @@ if 0
   ice_mask_fn = '';
   doa_limits = [-60 60]; % DOA limits for slice browsing (outside this limits will not be displayed)
   nadir_doa_lim = [-2 2]; % DOA range overwhich an estimated DOA is considered as nadir. This is usually the initial DOA limits of S-MAP.
-elseif 0
+elseif 1
   param.radar_name = 'rds';
   param.season_name = '2018_Greenland_P3';
-  out_type = 'music_imgs4_Nsig2';
+  out_type = 'music3D';
   surfdata_source = 'surf';
-%   surfdata_source = 'surfData_englacial';
-  param.day_seg = '20180404_02';
-  frm = 1;
   param.day_seg = '20180406_01';
-  frm = 1;
-%   param.day_seg = '20180418_06';
-%   frm = 13;
-%   param.day_seg = '20180405_01';
-%   frm = 56;
+  frm = 2;
   geotiff_fn = ct_filename_gis(param,fullfile('greenland','Landsat-7','Greenland_natural_90m.tif'));
   ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));
   ice_mask_fn = '';
   bounds_relative = [3 2 0 0];
   
-elseif 1
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
   out_type = 'music3D_old';
