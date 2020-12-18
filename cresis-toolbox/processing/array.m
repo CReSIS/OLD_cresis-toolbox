@@ -242,8 +242,10 @@ cluster_compile({'array_task.m','array_combine_task.m'},ctrl.cluster.hidden_depe
 total_num_sam_input = zeros(size(param.array.imgs));
 total_num_sam_output = zeros(size(param.array.imgs));
 if param.array.tomo_en
-  Nsv = param.array.Nsv;
+  % Accounts for "Data" and "Tomo.img"
+  Nsv = 1 + param.array.Nsv;
 else
+  % Accounts for "Data"
   Nsv = 1;
 end
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
@@ -268,7 +270,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
     end
   end
   cpu_time_mult = 1e-9;
-  mem_mult = 32;
+  mem_mult = 40;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   estimated_num_sam = 32000;
@@ -282,7 +284,7 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
     end
   end
   cpu_time_mult = 4e-9;
-  mem_mult = 32;
+  mem_mult = 40;
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -325,7 +327,6 @@ cpu_time_mult = cpu_time_mult * cpu_time_method_mult;
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'array_task';
 sparam.num_args_out = 1;
-prev_frm_num_chunks = [];
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
@@ -379,6 +380,28 @@ for frm_idx = 1:length(param.cmd.frms);
     warning('Frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
     num_chunks = 1;
   end
+
+  % Determine number of chunks in the previous frame
+  if frm == 1
+    prev_frm_num_chunks = 0;
+  else
+    % Current frame goes from the start record specified in the frames file
+    % to the record just before the start record of the next frame.  For
+    % the last frame, the stop record is just the last record in the segment.
+    prev_frm_start_rec = ceil(frames.frame_idxs(frm-1)/param.sar.presums);
+    if frm-1 < length(frames.frame_idxs)
+      prev_frm_stop_rec = ceil((frames.frame_idxs(frm)-1)/param.sar.presums);
+    else
+      prev_frm_stop_rec = length(records.gps_time);
+    end
+    
+    prev_frm_frm_dist = along_track_approx(prev_frm_stop_rec) - along_track_approx(prev_frm_start_rec);
+    prev_frm_num_chunks = round(prev_frm_frm_dist / param.array.chunk_len);
+    if prev_frm_num_chunks == 0
+      warning('Previous frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
+      prev_frm_num_chunks = 1;
+    end
+  end
   
   %% Process each chunk (unless it is a skip frame)
   for chunk_idx = 1:num_chunks*~skip_frame
@@ -430,16 +453,16 @@ for frm_idx = 1:length(param.cmd.frms);
     for img = 1:length(param.array.imgs)
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*total_num_sam_output(img)*cpu_time_mult/Nsv*(1 + (Nsv-1)*Nsv_mult);
       % Take the max of the input data size and the output data size
-      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
+      dparam.mem = max(dparam.mem,500e6 + Nx*total_num_sam_input(img)*mem_mult ...
         + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );
       if img == max_img
         % Account for the fact that any command operating on the whole
         % image usually requires twice the image memory to complete the
         % operation.
-        dparam.mem = max(dparam.mem,250e6 + 2*Nx*total_num_sam_input(img)*mem_mult ...
+        dparam.mem = max(dparam.mem,500e6 + 2*Nx*total_num_sam_input(img)*mem_mult ...
           + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );
       else
-        dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
+        dparam.mem = max(dparam.mem,500e6 + Nx*total_num_sam_input(img)*mem_mult ...
           + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );
       end
     end
@@ -447,7 +470,6 @@ for frm_idx = 1:length(param.cmd.frms);
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
     
   end
-  prev_frm_num_chunks = num_chunks;
 end
 
 ctrl = cluster_save_dparam(ctrl);
@@ -459,8 +481,8 @@ ctrl_chain = {ctrl};
 ctrl = cluster_new_batch(param);
 
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
-  cpu_time_mult = 1e-6;
-  mem_mult = 16;
+  cpu_time_mult = 2e-6;
+  mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   cpu_time_mult = 1e-6;
@@ -494,12 +516,13 @@ end
 records_var = whos('records');
 for img = 1:length(param.array.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_output(img)/Nsv*cpu_time_mult) * (1 + (Nsv-1)*0.2);
+  
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*total_num_sam_output(img)*mem_mult);
+    sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_max*total_num_sam_output(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*sum(total_num_sam_output)*mem_mult);
+    sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_max*sum(total_num_sam_output)*mem_mult);
   end
 end
 sparam.notes = sprintf('%s %s:%s:%s %s combine frames', ...

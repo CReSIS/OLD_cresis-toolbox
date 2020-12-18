@@ -116,8 +116,8 @@ else
       if isnan(dt) && length(mdata.Time) >= 2
         dt = mdata.Time(2) - mdata.Time(1);
       end
-      Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
-        : dt : max(tmp_data.Time(end),mdata.Time(end));
+      Time = (mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
+        : dt : max(tmp_data.Time(end),mdata.Time(end))).';
       % Interpolate data to new time axes
       warning off;
       mdata.Data = interp1(mdata.Time,mdata.Data,Time);
@@ -156,8 +156,8 @@ else
       if isnan(dt) && length(mdata.Time) >= 2
         dt = mdata.Time(2) - mdata.Time(1);
       end
-      Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
-        : dt : max(tmp_data.Time(end),mdata.Time(end));
+      Time = (mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
+        : dt : max(tmp_data.Time(end),mdata.Time(end))).';
       % Interpolate data to new time axes
       warning off;
       mdata.Data = interp1(mdata.Time,mdata.Data,Time);
@@ -195,8 +195,8 @@ else
       if isnan(dt) && length(mdata.Time) >= 2
         dt = mdata.Time(2) - mdata.Time(1);
       end
-      Time = mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
-        : dt : max(tmp_data.Time(end),mdata.Time(end));
+      Time = (mdata.Time(1) - dt*round((mdata.Time(1) - min_time)/dt) ...
+        : dt : max(tmp_data.Time(end),mdata.Time(end))).';
       % Interpolate data to new time axes
       warning off;
       mdata.Data = interp1(mdata.Time,mdata.Data,Time);
@@ -209,7 +209,6 @@ else
 
 end
 Nx = size(mdata.Data,2);
-data = lp(mdata.Data);
 if isnan(dt)
   warning('This set of frame(s) does not have a fast-time axis because the data records were all bad.');
   mdata.Time = [0 1];
@@ -349,16 +348,32 @@ for track_idx = param.layer_tracker.tracks_in_task
         cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
         rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
           + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
-        track.crossovers = [cols; rows];
+        track.crossovers = [cols; rows; track.crossover.cutoff*ones(size(cols))];
+        track.crossovers = track.crossovers(:,isfinite(cols));
       end
     end
   else
-    track.crossovers = zeros(2,0);
+    track.crossovers = zeros(3,0);
+  end
+  
+  %% Track: Ground Truth
+  if track.ground_truth.en
+    ground_truth = opsLoadLayers(layer_param,track.ground_truth.layers);
+    % Convert ground_truths twtt to source twtt and then convert from twtt
+    % to rows/bins
+    cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), ground_truth.gps_time));
+    rows = round(interp1(mdata.Time,1:length(mdata.Time), ground_truth.twtt));
+    track.ground_truths = [cols; rows; track.ground_truth.cutoff*ones(size(cols))];
+    track.ground_truths = track.ground_truths(:,isfinite(cols));
+  else
+    track.ground_truths = zeros(3,0);
   end
   
   %% Track: Multiple Suppression
   if track.mult_suppress.en
-    data = 10*log10(echo_mult_suppress(mdata));
+    data = lp(echo_mult_suppress(mdata,[],track.mult_suppress),1);
+  else
+    data = lp(mdata.Data,1);
   end
  
   %% Track: Prefilter trim
@@ -395,9 +410,12 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Detrend
   if isfield(track,'detrend') && ~isempty(track.detrend)
-    data = echo_detrend(data,track.detrend);
+    echo_detrend_data.Data = data;
+    echo_detrend_data.Time = mdata.Time;
+    echo_detrend_data.Surface = mdata.Surface;
+    data = echo_detrend(echo_detrend_data,track.detrend);
   end
-  
+
   %% Track: Fasttime Cross Correlation (xcorr)
   if isfield(track,'xcorr') && ~isempty(track.xcorr)
     data = echo_xcorr(data,track.xcorr);
@@ -426,6 +444,9 @@ for track_idx = param.layer_tracker.tracks_in_task
       end
       for idx = 1:size(track.crossovers,2)
         track.crossovers(2,idx) = interp1(resample_field(:,track.crossovers(1,idx)),1:size(resample_field,1),track.crossovers(2,idx),'linear','extrap');
+      end
+      for idx = 1:size(track.ground_truths,2)
+        track.ground_truths(2,idx) = interp1(resample_field(:,track.ground_truths(1,idx)),1:size(resample_field,1),track.ground_truths(2,idx),'linear','extrap');
       end
     end
   end
@@ -478,6 +499,29 @@ for track_idx = param.layer_tracker.tracks_in_task
         data_max_rng(start_bin:stop_bin,rline) = NaN;
       end
     end
+  end
+
+  %% Track: Surface suppression
+  if ~isempty(track.surf_suppress)
+    time = mdata.Time;
+    for rline = 1:size(data,2)
+      surf = mdata.Surface(rline);
+      data(:,rline) = data(:,rline) + eval(track.surf_suppress.eval_cmd);
+    end
+  end
+
+  %% Track: Compress values
+  if ~isempty(track.compress)
+    data = atan((data-track.compress/2)/2)*track.compress/pi+track.compress/2;
+    data(data<0) = 0;
+  end
+
+  %% Track: Emphasize last
+  if ~isempty(track.emphasize_last)
+    last_metric = flipud(cumsum(flipud(data>track.emphasize_last.threshold)));
+    last_metric = 1 - last_metric ./ (max(last_metric)+1);
+    last_metric = circshift(last_metric,[track.emphasize_last.shift 0]);
+    data = data .* last_metric;
   end
   
   %% Track: min_bin/max_bin + time to bins conversions
@@ -748,7 +792,7 @@ for track_idx = param.layer_tracker.tracks_in_task
       colormap(h_axes(1), 1-gray(256));
       hold(h_axes(1),'on');
       plot(h_axes(1),find(new_quality==1),new_layer(new_quality==1),'g.');
-      plot(h_axes(1),find(new_quality==3),new_layer(new_quality==3),'r.');
+      plot(h_axes(1),find(new_quality==2|new_quality==3),new_layer(new_quality==2|new_quality==3),'r.');
       if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
         plot(h_axes(1),track_dem(:,overlap_rlines),'m--');
         plot(h_axes(1),track_dem(:,overlap_rlines)-orig_track.init.max_diff,'r--');

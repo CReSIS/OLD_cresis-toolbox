@@ -419,7 +419,7 @@ for img = 1:length(param.array.imgs)
   if param.array.ft_over_sample ~= 1
     % param.array.ft_over_sample should be a positive integer
     for ml_idx = 1:length(data)
-      data{ml_idx} = interpft(data{ml_idx},size(data{ml_idx},1) * param.array.ft_over_sample);
+      data{ml_idx} = interpft_memeff(data{ml_idx},size(data{ml_idx},1) * param.array.ft_over_sample);
     end
     for wf = 1:length(sar_data.wfs)
       sar_data.wfs(wf).fs = sar_data.wfs(wf).fs * param.array.ft_over_sample;
@@ -493,7 +493,7 @@ for img = 1:length(param.array.imgs)
     Hwin = sar_data.param_sar.csarp.ft_wind(length(sar_data.wfs(wf).time));
     % Convert to time-domain and over-sample by Mt
     %  - Take real to remove rounding errors that result in imag part
-    Hwin = interpft(real(ifft(ifftshift(Hwin).^2)), Mt*length(Hwin));
+    Hwin = interpft_memeff(real(ifft(ifftshift(Hwin).^2)), Mt*length(Hwin));
     % Store the impulse response and corresponding time axis for
     % passing to array_proc
     %  - Ensure we grab enough samples of the impulse response so that
