@@ -325,6 +325,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.threshold = 40;
       end
       
+      if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
+        cmd.peak_sgolay_filt = {3,round(0.4*cmd.rlines)};
+      end
+      
     case {'statistics'}
       % Set defaults for statistical analysis method
       
