@@ -311,7 +311,7 @@ for img = 1:length(store_param.load.imgs)
             final_good_rline = final_good_rlines(good_rline_idx);
             
             % Determine the center range line that this STFT group corresponds to
-            center_rline = (final_good_rline+0.5)*cmd.rlines/2;
+            center_rline = round((final_good_rline+0.5)*cmd.rlines/2);
             
             fprintf('    SPECULAR %d %s (%s)!\n', center_rline, ...
               datestr(epoch_to_datenum(tmp_hdr.gps_time(center_rline)),'YYYYmmDD HH:MM:SS.FFF'), ...
@@ -321,7 +321,7 @@ for img = 1:length(store_param.load.imgs)
             % in this group. Since we over-interpolate by Mt and the memory
             % requirements may be prohibitive, we do this in a loop
             % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
-            STFT_rlines = -cmd.rlines/4 : cmd.rlines/4-1;
+            STFT_rlines = -round(cmd.rlines/4) : round(cmd.rlines/4)-1;
             %           if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
             %             if any(diff(img_Mt(center_rline + STFT_rlines)))
             %               fprintf('    Including different DDC filters, skipped.\n');
