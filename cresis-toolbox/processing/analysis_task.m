@@ -340,8 +340,8 @@ for img = 1:length(store_param.load.imgs)
             end
             
             % Filter the max and phase vectors
-            max_idx = sgolayfilt(max_idx_unfilt/100,3,51);
-            phase_corr = sgolayfilt(double(unwrap(angle(max_value))),3,51);
+            max_idx = sgolayfilt(max_idx_unfilt/100,cmd.peak_sgolay_filt{1},cmd.peak_sgolay_filt{2});
+            phase_corr = sgolayfilt(double(unwrap(angle(max_value))),cmd.peak_sgolay_filt{1},cmd.peak_sgolay_filt{2});
             
             % Compensate range lines for amplitude, phase, and delay variance
             % in the peak value
