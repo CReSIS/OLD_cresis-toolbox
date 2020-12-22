@@ -300,29 +300,54 @@ for cmd_idx = 1:length(param.analysis.cmd)
     case {'specular'}
       % Set defaults for specular analysis method
       
+      % cmd.gps_times: vector of GPS times in ANSI C format (seconds since
+      % Jan 1, 1970) for which the STFT block will automatically have its
+      % waveform extracted even if the cmd.threshold is not exceeded.
       if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
         cmd.gps_times = [];
       end
       
+      % cmd.max_rlines: maximum number of STFT waveforms to extract (so
+      % even if there are more than cmd.max_rlines blocks which detect a
+      % coherent/specular scatterer only the first cmd.max_rlines will be
+      % extracted for deconvolution)
       if ~isfield(cmd,'max_rlines') || isempty(cmd.max_rlines)
         cmd.max_rlines = 10;
       end
       
+      % cmd.rlines: STFT block size, the data are broken into 50%
+      % overlapping blocks of this length to detect coherent/specular
+      % scatterers using a short time Fourier transform
       if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
         cmd.rlines = 128;
       end
       
+      % cmd.noise_doppler_bins: bins of STFT to use for clutter power
+      % detection
       guard = round(cmd.rlines/32);
       if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
         cmd.noise_doppler_bins = [1+3*guard:cmd.rlines-3*guard];
       end
       
+      % cmd.signal_doppler_bins: bins of STFT to use for signal power
+      % estimation
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
         cmd.signal_doppler_bins = [1:guard cmd.rlines+(-guard+1:0)];
       end
       
+      % cmd.threshold: peakiness threshold to decide whether or not to
+      % extract the waveform from a particular STFT block. This is in dB
+      % and is the ratio (peak signal to mean noise/clutter power):
+      % peakiness = lp(max(abs(H(cmd.signal_doppler_bins,:)).^2) ./ mean(abs(H(cmd.noise_doppler_bins,:)).^2));
       if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
         cmd.threshold = 40;
+      end
+      
+      % cmd.peak_sgolay_filt: cell array with 2 elements containing the
+      % 2nd and 3rd input arguments to sgolayfilt that is used to filter
+      % the peak values in the along-track dimension
+      if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
+        cmd.peak_sgolay_filt = {3,round(0.4*cmd.rlines)};
       end
       
     case {'statistics'}

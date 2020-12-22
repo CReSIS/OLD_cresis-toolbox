@@ -152,6 +152,7 @@ classdef google_map
         wc_x(idx) = 256*(0.5 + lon(idx)/360);
         wc_y(idx) = 256*(0.5 - log((1 + siny)/(1 - siny))/(4*pi));
       end
+      wc_x = mod(wc_x,256);
     end
     
     %% world_to_latlon

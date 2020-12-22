@@ -315,8 +315,8 @@ if update_mode && ctrl.error_mask(task_id)
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
     fprintf('  Task max memory exceeded.\n');
-    if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'debug'))
-      ctrl.cluster.max_mem_mode
+    if ~isempty(regexpi(ctrl.cluster.mem_mult_mode,'debug'))
+      ctrl.cluster.mem_mult_mode
       fprintf('  task memory (%.1f GB) exceeded the maximum memory requested (%.1f*%.1f = %.1f GB):\n', max_mem/1e9, ctrl.mem(task_id)/1e9, ctrl.cluster.mem_mult, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
       fprintf('%s\n',ones(1,80)*'=');
       fprintf('Options:\n');
@@ -324,11 +324,11 @@ if update_mode && ctrl.error_mask(task_id)
       fprintf('  2. Run job locally by running cluster_exec_task(ctrl,task_id);\n');
       fprintf('     Be sure to run ctrl.error_mask(task_id) = 0 after successfully\n');
       fprintf('     running task.\n');
-      fprintf('  3. Set ctrl.cluster.max_mem_mode = ''auto'';\n');
+      fprintf('  3. Set ctrl.cluster.mem_mult_mode = ''auto'';\n');
       fprintf('After making changes, run dbcont to continue.\n');
       keyboard
     end
-    if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'auto'))
+    if ~isempty(regexpi(ctrl.cluster.mem_mult_mode,'auto'))
       fprintf('    Automatically doubling memory request for this task.\n');
       ctrl.mem(task_id) = max_mem*1.5/ctrl.cluster.mem_mult;
     end
