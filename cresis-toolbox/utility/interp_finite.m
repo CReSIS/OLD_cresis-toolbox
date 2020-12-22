@@ -85,10 +85,10 @@ if extrap_mode == 0
       if ~exist('default_val','var') || isempty(default_val)
         error('No valid samples and no default_val was given.');
       end
-      vals(:) = default_val;
+      vals(:,col) = default_val;
       
     elseif length(first_good) == 1
-      vals(:) = vals(first_good);
+      vals(:,col) = vals(first_good,col);
       
     elseif ~extrap_mode
       % Extrapolation uses nearest neighbor
@@ -107,7 +107,9 @@ if extrap_mode == 0
   
 else
   %% Interpolation and Extrapolation use interpolation function
-  vals(~good_mask) = interp_fh(find(good_mask),vals(good_mask),find(~good_mask));
+  for col = 1:ncols
+    vals(~good_mask(:,col),col) = interp_fh(find(good_mask(:,col)),vals(good_mask(:,col),col),find(~good_mask(:,col)));
+  end
   
 end
 
