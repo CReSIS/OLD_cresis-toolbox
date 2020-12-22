@@ -151,7 +151,7 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surf_twtt,obj.eg.image_gps_time,'linear');
   physical_constants;
-  elev_max = max(elevation - time(1)*vel_air);
+  elev_max = max(elevation - surface*vel_air - (time(1)-surface)*vel_ice);
   elev_min = min(elevation - surface*vel_air - (time(end)-surface)*vel_ice);
   dt = time(2) - time(1);
   drange = dt * vel_ice;
