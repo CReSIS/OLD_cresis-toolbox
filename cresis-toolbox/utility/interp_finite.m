@@ -1,5 +1,5 @@
-function vals = interp_finite(vals,default_val,interp_fh,interp_mask_fh,extrap_mode)
-% vals = interp_finite(vals,default_val,interp_fh,interp_mask_fh,extrap_mode)
+function vals = interp_finite(vals,default_val,interp_fh,interp_mask_fh,extrap_mode,dim)
+% vals = interp_finite(vals,default_val,interp_fh,interp_mask_fh,extrap_mode,dim)
 %
 % Inputs
 % =========================================================================
@@ -31,6 +31,9 @@ function vals = interp_finite(vals,default_val,interp_fh,interp_mask_fh,extrap_m
 %
 % extrap_mode: string containing 'nearest' (default) or 'interp'
 %
+% dim: dimension to operate on (if not specified, interp_finite works on
+% the first non-singleton dimension)
+%
 % Outputs
 % =========================================================================
 % vals: vector of the same size as vals. All elements which had a true mask
@@ -41,6 +44,17 @@ function vals = interp_finite(vals,default_val,interp_fh,interp_mask_fh,extrap_m
 %   3. if no isfinite values exist, the whole vector is set to default_val
 %
 % Author: John Paden
+
+
+if ~exist('dim','var') || isempty(dim)
+    [vals,nshifts] = shiftdim(vals);
+else
+    perm = [dim:max(length(size(vals)),dim) 1:dim-1];
+    vals = permute(vals,perm);
+end
+
+siz = size(vals);
+[~,ncols] = size(vals);
 
 if ~exist('interp_fh','var') || isempty(interp_fh)
   interp_fh = @interp1;
@@ -64,17 +78,17 @@ good_mask = interp_mask_fh(vals);
 
 if extrap_mode == 0
   %% For bad values at the beginning and end, use nearest neighbor interpolation
-  for col = 1:numel(vals)/size(vals,1)
+  for col = 1:ncols
     first_good = find(good_mask(:,col),2);
     if isempty(first_good)
       % The whole vector is ~isfinite, so set to default_val and return
       if ~exist('default_val','var') || isempty(default_val)
         error('No valid samples and no default_val was given.');
       end
-      vals(:) = default_val;
+      vals(:,col) = default_val;
       
     elseif length(first_good) == 1
-      vals(:) = vals(first_good);
+      vals(:,col) = vals(first_good,col);
       
     elseif ~extrap_mode
       % Extrapolation uses nearest neighbor
@@ -93,6 +107,15 @@ if extrap_mode == 0
   
 else
   %% Interpolation and Extrapolation use interpolation function
-  vals(~good_mask) = interp_fh(find(good_mask),vals(good_mask),find(~good_mask));
+  for col = 1:ncols
+    vals(~good_mask(:,col),col) = interp_fh(find(good_mask(:,col)),vals(good_mask(:,col),col),find(~good_mask(:,col)));
+  end
   
+end
+
+if ~exist('dim','var') || isempty(dim)
+    vals = reshape(vals,[ones(1,nshifts) size(vals,1) siz(2:end)]);
+else
+    vals = reshape(vals,[size(vals,1) siz(2:end)]);
+    vals = ipermute(vals,perm);
 end
