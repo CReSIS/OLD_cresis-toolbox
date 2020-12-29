@@ -78,6 +78,10 @@ end
 if ~isfield(param.tomo_collate,'surf_out_path') || isempty(param.tomo_collate.surf_out_path)
   param.tomo_collate.surf_out_path = 'surfData';
 end
+
+if ~isfield(param.tomo_collate,'top_name') || isempty(param.tomo_collate.top_name)
+  param.tomo_collate.top_name = 'top';
+end
   
 %% Setup Processing
 % =====================================================================

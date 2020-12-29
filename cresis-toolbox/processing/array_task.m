@@ -641,9 +641,9 @@ for img = 1:length(param.array.imgs)
       gps_frm       = repmat(surf_layer.gps_time,length(param.array_proc.surface_theta),1);
       theta_chunk   = repmat(param.array_proc.surface_theta,1,numel(fcs{1}{1}.gps_time));
       gps_chunk     = repmat(fcs{1}{1}.gps_time,length(param.array_proc.surface_theta),1);
-      param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+      param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk),nan);
       param.array_proc.ice_mask = ...
-        interp_finite(interp2(gps_frm,theta_frm,surf_layer.surf(icemask_index).y,gps_chunk,theta_chunk,'nearest'));
+        interp_finite(interp2(gps_frm,theta_frm,surf_layer.surf(icemask_index).y,gps_chunk,theta_chunk,'nearest'),nan);
     else
       % Path for layer
       param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
@@ -663,7 +663,10 @@ for img = 1:length(param.array.imgs)
       % Does not support subband luts
       if regexp(param.array.sv_lut_path,'analysis')
         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
-      else
+      elseif isfield(param.array, 'lut_day_seg') && ~isempty(param.array.lut_day_seg)
+        lut_dir = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),param.array.lut_day_seg);
+        lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.array.lut_day_seg));
+      else      
         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
       end

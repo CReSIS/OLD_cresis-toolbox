@@ -342,7 +342,7 @@ catch ME
 end
 
 sd.set({'bottom','ice mask','bottom gt','bottom quality'}, ...
-  'top','top','active','bottom','mask','ice mask','gt','bottom gt','quality','bottom quality');
+  'top', param.tomo_collate.top_name, 'active','bottom','mask','ice mask','gt','bottom gt','quality','bottom quality');
 
 sd.set({'top','top gt','top quality'}, ...
   'active','top','gt','top gt','quality','top quality');
