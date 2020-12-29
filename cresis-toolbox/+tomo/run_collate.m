@@ -388,6 +388,9 @@ elseif strcmpi(example_setup,'grid')
   tomo_collate.surfdata_cmds(end).smooth_var = 32;
   tomo_collate.surfdata_cmds(end).max_loops = 50;
   
+  %param.tomo_collate.top_name = 'top';
+  param.tomo_collate.top_name = '';
+  
   % .fuse_images_flag: runs fuse_images.m when true
   tomo_collate.fuse_images_flag = true;
   
