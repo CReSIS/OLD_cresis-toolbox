@@ -2,8 +2,23 @@ function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 % [Data, Time] = img_combine(param, param_mode, layers, data_in)
 %
 % Blends and combines together individual echogram image files
-% "Data_img_II_*" into a combined datafile "Data_*" according to the
-% param structure.
+% "Data_img_II_*" into a combined datafile "Data_*" according to the param
+% structure. Combining of different images is done in the vertical or
+% fast-time dimension (e.g. for low gain images with high gain images).
+%
+%  ------------------
+%  |                |
+%  |      IMG 1     |
+%  |                |
+%  ------------------
+%  |                |
+%  |       ...      |
+%  |                |
+%  ------------------
+%  |                |
+%  |      IMG N     |
+%  |                |
+%  ------------------
 %
 % param: parameter structure usually loaded from parameter spreadsheet with
 %   read_param_xls.m. The parameter structure will either look at the

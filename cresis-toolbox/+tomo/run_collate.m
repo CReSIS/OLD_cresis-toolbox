@@ -266,13 +266,16 @@ elseif strcmpi(example_setup,'grid')
 %   params = ct_set_params(params,'array.tomo_en',1);
 %   params = ct_set_params(params,'array.method','mle');
 
-% Each cell array represent one horizontal image, which may contain more than 
-% one vertical image. For example, {[1 2],[1]} means there are 2 horizontal 
-% images: the first one contains 2 vertical images and the second contains
-% just 1 vertical image.
+% Each cell array represent one horizontal (potentially combined) image,
+% which may contain more than one vertical image. For example, {[1 2],[1]}
+% means there are 2 horizontal images: the first one contains 2 vertical
+% images and the second contains just 1 vertical image.
   tomo_collate.imgs = {[1]}; % No fusing (single image)
 %   tomo_collate.imgs = {[1],[2]}; % Vertical fusing
 %   tomo_collate.imgs = {[1 2]}; % Horizontal fusing
+
+% .img_comb: vertical (fast-time) combining times (see img_combine.m
+% "img_comb" description).
   tomo_collate.img_comb = [];
 %   tomo_collate.img_comb = [3e-06 -Inf 1e-06 1e-05 -Inf 3e-06];
 
@@ -316,8 +319,8 @@ elseif strcmpi(example_setup,'grid')
   %   should be listed from left most beam to right most beam for
   %   horizontal fusing and top to bottom for vertical fusing.
   
-  % .img_comb: Same as get_heights and combine worksheets. This is
-  %   used for vertical using only. For N images,
+  % .img_comb: Same as qlook and array worksheets. This is
+  %   used for vertical/fast-time using only. For N images,
   %   there will be (N-1) combines performed. Each combine is described by
   %   three numbers so that there should be (N-1)*3 elements in this
   %   vector. Each set of three numbers indicates the following:
@@ -325,7 +328,7 @@ elseif strcmpi(example_setup,'grid')
   %     2nd element: Minimum time after ice surface to begin combine
   %     3rd element: Time at end of the preceeding waveform to not use
   
-  % .fuse_columns: aligns with .imgs, each entry should contain 2xN-1
+  % .fuse_columns: aligns with .imgs, each entry should contain 2x(N-1)
   % entries where N is the length of the corresponding cell in .imgs. Each
   % column of 2 numbers represents the start/stop columns to blend with.
   % There should be one column per interface between two images that needs
@@ -341,6 +344,8 @@ elseif strcmpi(example_setup,'grid')
   
   % .ice_mask_fn: filename of ice mask, leave empty to not use
   tomo_collate.ice_mask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
+  %tomo_collate.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+  
 
   % .dem_guard: additional region in meters around flight line to search for DEM points
   %   Setting too high slows the process down, setting too low will miss
@@ -361,7 +366,8 @@ elseif strcmpi(example_setup,'grid')
   tomo_collate.bounds_relative = [3 2 0 0];
   
   % .layer_params: parameter structure for opsLoadLayer (first layer should
-  %   be ice top and second layer should be ice bottom)
+  %   be ice top and second layer should be ice bottom), these are used for
+  %   the initial ground truth for tracking.
   tomo_collate.layer_params = struct('name','surface','source','layerdata');
   tomo_collate.layer_params(2).name = 'bottom';
   tomo_collate.layer_params(2).source = 'layerdata';
