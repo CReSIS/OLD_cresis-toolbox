@@ -73,7 +73,10 @@ end
 %  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
 %  If the image is a cell array it describes multilooking across apertures
 if ~iscell(param.array.imgs{1})
-  % No special multilooking, reformat old syntax to new multilooking syntax
+  % param.array.imgs is not using multilooking syntax; reformat
+  % param.array.imgs non-multilooking syntax to multilooking syntax to
+  % ensure param.array.imgs is always in the multilooking syntax. This
+  % makes coding easier since the format is always the same.
   for img = 1:length(param.array.imgs)
     param.array.imgs{img} = {param.array.imgs{img}};
   end
