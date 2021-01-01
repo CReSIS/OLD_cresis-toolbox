@@ -1,5 +1,8 @@
 function collate_snapshots(param,param_override)
 % collate_snapshots(param,param_override)
+% 
+% THIS FUNCTION CULLS SNAPSHOTS CONTAINING SINGLE TARGETS - FIRST STEP OF
+% LUT GENERATION
 %
 % Function that takes snapshots, pulls out calibration pixels and stores
 % with corresponding surface ARRIVAL ANGLES (not surface intersection
