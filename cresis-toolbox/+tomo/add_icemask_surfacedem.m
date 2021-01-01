@@ -253,7 +253,7 @@ for rline = 1:Nx
       twtt(:,rline) = NaN;
   end
 
-  if exist('ice_mask_all','var')
+  if exist('ice_mask_all','var') && ~isempty(ice_mask_all)
     if exist('intersection','var')
       % Convert from FCS/SAR to ECEF
       intersection_ecef = Tfcs_ecef * intersection;
