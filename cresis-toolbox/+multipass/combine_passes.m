@@ -248,15 +248,8 @@ for passes_idx = 1: length(passes)
       param_img_combine.array.img_comb = param_pass.array.img_comb(1:...
         min([length(param_pass.array.img_comb), 3*(length(passes(passes_idx).imgs)-1)]));
       param_img_combine.array.imgs = passes(passes_idx).imgs;
-      if length(imgs) > 1 && length(param_img_combine.array.img_comb) == 2*(length(imgs)-1)
-        % This is a hack to work with old array.img_comb fields which only
-        % had 2 entries per image combining rather than 3 entries
-        old_img_comb = param_img_combine.array.img_comb;
-        param_img_combine.array.img_comb = [];
-        for img = 1:length(imgs)-1
-          param_img_combine.array.img_comb = cat(2, param_img_combine.array.img_comb, ...
-            [old_img_comb(1) -inf old_img_comb(2)]);
-        end
+      if length(param_img_combine.array.imgs) > 1 && length(param_img_combine.array.img_comb) == 2*(length(param_img_combine.array.imgs)-1)
+        error('Spreadsheet has the wrong number of entries for param.array.img_comb. It has the right number for the old combine method. Usually this is fixed by inserting "-inf" for the second coefficient which controls how the receiver blanking is used. For example [3e-6 1e-6; 10e-6 3e-6] becomes [3e-6 -inf 1e-6; 10e-6 -inf 3e-6].');
       end
       param_img_combine.load.frm = metadata{end}.frms;
       param_img_combine.day_seg = passes(passes_idx).day_seg;
