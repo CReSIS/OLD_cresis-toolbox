@@ -63,6 +63,7 @@ if any(~desire_exists)
           fn_dir = ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx});
           fprintf('  %s\n', fn_dir);
         end
+        errordlg(sprintf('Searched echogram sources specified in preferences and no matching echogram files exist for frame %03d.', most_desire_frame_idx), 'No matching echograms found.')
         error('No source files exist for frame %03d.', most_desire_frame_idx);
       else
         warning('Source %s does not exist for frame %03d.', obj.eg.sources{source_idx}, most_desire_frame_idx);
