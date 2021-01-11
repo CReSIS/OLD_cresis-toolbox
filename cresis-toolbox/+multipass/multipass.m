@@ -359,7 +359,7 @@ if surf_flatten_en
 end
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
-  fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+  fprintf('Coregister: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
   
   %% Pass: 1. Position in ref coordinate system
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
@@ -552,17 +552,16 @@ if param.multipass.comp_mode ~= 1 && strcmp('sar',param.multipass.input_type)
 end
 
 if 0
-  %% Coregister: Data Dependent method to estimate System Time Delay
+  %% Estimate Coregistration: Data Dependent method to estimate System Time Delay
   % Apply fixed coregistration time shift
   coherence_sum = [];
   coregistration_time_shifts = -2:0.05:2;
   for pass_out_idx = 1:length(pass_en_idxs)
     pass_idx = pass_en_idxs(pass_out_idx);
-    fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+    fprintf('Estimate Coregistration: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
     
     freq = ref.freq;
     freq = freq - freq(1); % Remove center frequency offset
-    coherence_sum = [];
     for coregistration_time_shift_idx = 1:length(coregistration_time_shifts)
       coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
       dt = coregistration_time_shift * (ref.time(2)-ref.time(1));
@@ -576,12 +575,12 @@ if 0
       %     imagesc(coherence); colormap(1-gray(256));
       %     pause
     end
-    [~,coregistration_time_shift_idx] = max(coherence_sum);
+    [~,coregistration_time_shift_idx] = max(coherence_sum,[],1);
     coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
   end
   figure(2000); clf;
   plot(coregistration_time_shifts,coherence_sum)
-  [~,coregistration_time_shift_idx] = max(coherence_sum);
+  [~,coregistration_time_shift_idx] = max(coherence_sum,[],1);
   coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
   fprintf('%g ', coregistration_time_shift); fprintf('\n');
   return
@@ -594,6 +593,7 @@ rbins = 1:size(data,1);
 master_out_idx = find(pass_en_idxs == master_idx);
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
+  fprintf('Plot: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
   
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
