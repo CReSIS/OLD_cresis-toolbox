@@ -16,10 +16,10 @@
 %   Runs array processing if input_type=='sar' and is used for cross-track
 %   slope estimation and basal swath imaging
 % 3: to differential INSAR
-%   Co-register images using GPS and nadir squint angle assumption
-%   (Motion compensation with phase correction AND slope correction)
-%   Saves output for (differential) interferometry and vertical velocity
-%   estimation.
+%   Co-register images using GPS and nadir squint angle assumption (Motion
+%   compensation with phase correction AND slope correction) Saves output
+%   for (differential) interferometry (coherence and interferometric phase
+%   images created) and vertical velocity estimation.
 % 4: to plot results
 %   Co-register images using GPS and nadir squint angle assumption
 %   Quits after plotting results
@@ -448,6 +448,9 @@ for pass_out_idx = 1:length(pass_en_idxs)
   pass(pass_idx).freq_baseband = df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
   fc = pass(pass_idx).wfs(pass(pass_idx).wf).fc;
   pass(pass_idx).freq = fc + pass(pass_idx).freq_baseband;
+  if pass_idx == baseline_master_idx
+    ref.freq = pass(pass_idx).freq;
+  end
   
   time_shift = coregistration_time_shift(pass_idx) * dt;
   
@@ -557,12 +560,12 @@ if 0
     pass_idx = pass_en_idxs(pass_out_idx);
     fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
     
-    freq = pass(pass_idx).freq;
+    freq = ref.freq;
     freq = freq - freq(1); % Remove center frequency offset
     coherence_sum = [];
     for coregistration_time_shift_idx = 1:length(coregistration_time_shifts)
       coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
-      dt = coregistration_time_shift * (pass(pass_idx).time(2)-pass(pass_idx).time(1));
+      dt = coregistration_time_shift * (ref.time(2)-ref.time(1));
       adjusted = ifft(bsxfun(@times,fft(data(:,:,pass_idx)),exp(-1i*2*pi*freq*dt)));
       coherence = fir_dec(adjusted(rbins,:) .* conj(data(rbins,:,master_idx)) ./ abs(adjusted(rbins,:) .* data(rbins,:,master_idx)),ones(1,7)/7,1);
       coherence = fir_dec(coherence.',ones(1,3)/3,1).';
