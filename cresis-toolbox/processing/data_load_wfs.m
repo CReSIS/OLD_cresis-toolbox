@@ -67,6 +67,7 @@ for state_idx = 1:length(boards)
     states(state_idx).subchannel = [];
     states(state_idx).wf_adc = [];
     states(state_idx).img = [];
+    states(state_idx).ml_idx = [];
     states(state_idx).weight = [];
     states(state_idx).next = [];
     states(state_idx).reset_sum = [];
