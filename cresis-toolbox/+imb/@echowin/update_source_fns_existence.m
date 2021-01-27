@@ -48,6 +48,7 @@ for source_idx = 1:length(obj.eg.sources)
   end
 end
 if ~found_at_least_one_good_file
+  errordlg(sprintf('No good data files found for this frame. E.g. %s. Check to make sure echogram sources in preferences matches the echogram files you have available.', fn_dir),'No matching echograms found.')
   error('No good data files found for this frame. E.g. %s', fn_dir);
 end
 
