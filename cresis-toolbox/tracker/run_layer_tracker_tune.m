@@ -17,7 +17,7 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140516_01');
-params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.frms',[40 41]); % Specify specific frames (or leave empty/undefined to do all frames)
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
@@ -35,11 +35,11 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_s012';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_lsm_s001';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
-tracker_method = 'viterbi'; % Choose the tracking method
+tracker_method = 'lsm'; % Choose the tracking method
 % block_size_frms: Number of frames to be loaded at a time
 param_override.layer_tracker.block_size_frms = 1;
 
@@ -49,8 +49,8 @@ param_override.layer_tracker.track_per_task = 1;
 %% param.layer_tracker.track options
 if strcmpi(tracker_method,'lsm')
   track_idx = 0;
-  y_values = [1 140:20:280]; % Enter 1 as the first element if surface mean is calculated
-  dy_values = [5 10 20 40 60 80 100];
+  y_values = [140 160];%[1 140:20:280]; % Enter 1 as the first element if surface mean is calculated
+  dy_values = [5 10];%[5 10 20 40 60 80 100];
   
   for y_idx = 1:length(y_values)
     y = y_values(y_idx);
@@ -69,7 +69,7 @@ if strcmpi(tracker_method,'lsm')
       track.flag             = 1; %to specify whether we want to consider mean of y
       track.lsm.y            = y; % = '' for y = mean(SURF)
       track.lsm.dy           = dy;
-      track.lsm.storeIter    = [75:25:500];
+      track.lsm.storeIter    = [25 50];%[75:25:500];
       track.idx_dim_name     = {'storeIter' 'dy' 'y'};
       track.idx_reshape      = [length(track.lsm.storeIter) length(dy_values) length(y_values)];
       track.idx              = length(dy_values)*length(track.lsm.storeIter)*(y_idx-1) ...
@@ -101,9 +101,11 @@ elseif strcmpi(tracker_method,'viterbi')
     track.idx_dim_name              = {'transition_weight'};
     track.idx_reshape               = [length(track.viterbi.transition_weight)];
     track.idx                       = tw_idx;
-    track.min_bin = struct('name','tomo_top');
+    %track.min_bin = struct('name','tomo_top');
+    track.min_bin.name = 'surface';
+    track.min_bin.eval.cmd = 's=s+0.5e-6;';
     track.max_bin = struct('name','tomo_bottom');
-    track.crossover.en = true;
+    track.crossover.en = false;
     track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
     % track.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
     track.crossover.gps_time_good_eval = @(x) x < datenum_to_epoch(datenum('2014/03/01')); % Cross overs before this date are good
@@ -146,9 +148,9 @@ end
 % param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
 % dbstop if error;
- param_override.cluster.type = 'torque';
+% param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-% param_override.cluster.type = 'debug';
+ param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;

@@ -97,6 +97,8 @@ frm_str = [];
 frm_nam = [];
 lat = [];
 long = [];
+
+
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   % Load the previous frame
@@ -120,6 +122,7 @@ for frm_idx = 1:length(param.cmd.frms)
     frm_str{end+1} = sprintf('%s_%03d',param.day_seg,frm);
   end
 end
+
 
 for frm_idx = 1:length(frm_filenames)
   %   frm = param.cmd.frms(frm_idx);
@@ -152,7 +155,7 @@ for frm_idx = 1:length(frm_filenames)
       temp = cat(2,ice_mask.mask,temp);
       track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
     else
-      temp = cat(2,ice_mask.mask,ones(1,Nx));
+      temp = cat(2,temp,ones(1,Nx));
       track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
     end
     %% Crossovers
@@ -240,8 +243,8 @@ end
 
 %% Loading reference trajectory
 records = records_load(param);
-ref = records_reference_trajectory_load(param,records);
-
+records_reference_trajectory_load(param,records);%
+%
 %%
 sparam.argsin{1}.ice_mask.mask = temp;
 sparam.argsin{1}.ice_mask.gps_time = track.gps_time;
@@ -250,7 +253,7 @@ sparam.argsin{1}.frm_nam = frm_nam;
 sparam.argsin{1}.dem.land_dem = land_dem;
 sparam.argsin{1}.dem.ocean_mask = ocean_mask;
 sparam.argsin{1}.dem.msl = msl;
-
+% end
 cpu_time_mult = zeros(size(param.layer_tracker.track));
 mem_mult = zeros(size(param.layer_tracker.track));
 for track_idx = 1:length(param.layer_tracker.track)
