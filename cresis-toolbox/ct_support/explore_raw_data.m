@@ -15,9 +15,10 @@ if 0
   
   % Estimate fraction/counter increment record to record
   fs = 125000000;
-  prf = 4000;
+  prf = 3900;
   presums = 16;
   fs/prf * presums
+  fs/512800 * presums
   
   % Fraction field checks:
   12261135-11761135
@@ -38,7 +39,34 @@ end
 clc;
 
 % Read in file
-fn = '/cresis/snfs1/projects/cessna_test/Multi_channel_wGPS/data_v11_00_20210126_183440_0004.bin';
+% Files 0,1,2 Noise only. All channels disconnected
+% fn = '/cresis/snfs1/projects/cessna_test/Multi_channel_wGPS/data_v11_00_20210126_183415_0001.bin';
+% Files 3,4,5 Ch0 connected
+% fn = '/cresis/snfs1/projects/cessna_test/Multi_channel_wGPS/data_v11_00_20210126_183440_0004.bin';
+% Files 6,7,8 Ch0, Ch1 connected
+% fn = '/cresis/snfs1/projects/cessna_test/Multi_channel_wGPS/data_v11_00_20210126_183505_0007.bin';
+% Files 9, 10,11 Ch0, Ch1, Ch2  connected
+% fn = '/cresis/snfs1/projects/cessna_test/Multi_channel_wGPS/data_v11_00_20210126_183530_0010.bin';
+% Files 12,13,14 Ch0, Ch1, Ch2, Ch3 connected
+% fn = '/cresis/snfs1/projects/cessna_test/Multi_channel_wGPS/data_v11_00_20210126_183555_0013.bin';
+
+% File 0-4 8 presums
+% fn = '/cresis/snfs1/projects/cessna_test/01282021/data_v11_00_20210128_004010_0002.bin';
+% File 5-8, 15 presums
+% fn = '/cresis/snfs1/projects/cessna_test/01282021/data_v11_00_20210128_004209_0006.bin';
+
+% PRF is 3900 Hz. I recorded data with 16 presums.
+% fn = '/cresis/snfs1/projects/cessna_test/01282021b/data_v11_00_20210128_210219_0002.bin';
+
+% PRF is 3125 Hz. I recorded data with 16 presums.
+% fn = '/cresis/snfs1/projects/cessna_test/64bitcheck/data_v11_00_20210129_190854_0002.bin';
+
+% PRF is 3125 Hz. 8 presums. 600 to 31900 samples.
+% fn = '/cresis/snfs1/projects/Field_Experiments/2021_Winter_Cessna172/Lab_tests/recording_tests/loopback_wGPS/seg1/data_v11_00_20210130_031200_0002.bin';
+
+% PRF is 3125 Hz. 16 presums. 600 to 31900 samples.
+fn = '/cresis/snfs1/projects/Field_Experiments/2021_Winter_Cessna172/Lab_tests/recording_tests/loopback_wGPS/seg2/data_v11_00_20210130_031607_0002.bin';
+
 
 [fid,msg] = fopen(fn,'rb','ieee-be');
 
@@ -49,7 +77,11 @@ fclose(fid);
 % Print record boundaries in file
 
 % Use zero fields to find record boundaries
-burst_idxs = find(A == 0);
+if 0
+  burst_idxs = find(A == 0);
+else
+  burst_idxs = find(A == hex2dec('1acffc1d'));
+end
 
 % Restrict to 100 records max
 burst_idxs = burst_idxs(1:min(100,end));
@@ -64,8 +96,13 @@ old_burst_idx = -inf;
 for burst_idxs_idx = 1:length(burst_idxs)
   burst_idx = burst_idxs(burst_idxs_idx);
   
-  start_offset = 3;
-  stop_offset = 2;
+  if 0
+    start_offset = 3;
+    stop_offset = 2;
+  else
+    start_offset = 0;
+    stop_offset = 11;
+  end
   if burst_idx >= start_offset+1 && burst_idx > old_burst_idx + 50;
     idxs = burst_idx + (-start_offset:stop_offset);
     
@@ -74,9 +111,12 @@ for burst_idxs_idx = 1:length(burst_idxs)
       idx = idxs(idxs_idx);
       fprintf('%10d: %16d 0x%08x b%32s %10d %10d\n', idx, A(idx), A(idx), dec2bin(A(idx),32), typecast(A(idx),'int16'));
     end
-
+    
     if 1 && isfinite(old_burst_idx)
-      plot(A(old_burst_idx-start_offset:burst_idx-start_offset-1));
+      % Plot as uint32
+      %plot(A(old_burst_idx-start_offset:burst_idx-start_offset-1));
+      % Plot as int16
+      plot(typecast(A(old_burst_idx+stop_offset:burst_idx-start_offset-1),'int16'));
       hold on
     end
     old_burst_idx = burst_idx;
