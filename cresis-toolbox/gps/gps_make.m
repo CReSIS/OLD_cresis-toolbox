@@ -487,7 +487,7 @@ for file_idx = 1:length(in_fns)
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
-  gps.file_version = '1';
+  gps.file_version = '2';
   gps.file_type = 'gps';
   if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
