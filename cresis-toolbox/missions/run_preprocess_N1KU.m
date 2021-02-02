@@ -15,11 +15,12 @@ param.config.default = [];
 % return;
 
 %% SNOW MULTIPLE DAYS
-date_strs = {'20210130'};
+date_strs = {'20210201'};
 config_format_str = '';
 board_format_str = '';
 defaults_fh = @default_radar_params_2020_SouthDakota_N1KU_snow;
 base_dir = '/cresis/snfs1/projects/Field_Experiments/2021_Winter_Cessna172/Lab_tests/recording_tests/loopback_wGPS/seg2/';
+base_dir = '/cresis/snfs1/projects/Field_Experiments/2021_Winter_Cessna172/Lab_tests/recording_tests/loopback_wGPS/seg5/';
 
 for idx = 1:length(date_strs)
   cur_idx = length(param.config.default)+1;

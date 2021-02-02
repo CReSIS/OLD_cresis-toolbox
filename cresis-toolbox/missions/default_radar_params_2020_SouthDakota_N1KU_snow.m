@@ -31,6 +31,7 @@ param.config.tx_enable = [1];
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
 param.config.cresis.expected_rec_sizes = [250448];
+param.config.cresis.gps_file_mask = 'GPS*';
 
 %% Command worksheet
 default.cmd.records = 1;

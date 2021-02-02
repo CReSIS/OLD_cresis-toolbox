@@ -112,7 +112,7 @@ function old_time = gps_check_support_func(gps_fn,param,old_time)
 %% input checks
 % =========================================================================
 
-command_window_out_fn = ct_filename_ct_tmp(rmfield(param,{'day_seg','radar_name'}),'','gps_check', sprintf('output_%s.txt',param.gps_check.date_str));
+command_window_out_fn = ct_filename_ct_tmp(ct_rmfield(param,{'day_seg','radar_name'}),'','gps_check', sprintf('output_%s.txt',param.gps_check.date_str));
 command_window_out_fn_dir = fileparts(command_window_out_fn);
 if ~exist(command_window_out_fn_dir,'dir')
   mkdir(command_window_out_fn_dir);
