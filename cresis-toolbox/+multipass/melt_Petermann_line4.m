@@ -1,6 +1,6 @@
   
 %% Flightline Data Interpolation - Petermann Line 4
-% Years: 2010, 2011, 2013, 2014,
+% Years: 2010, 2011, 2013, 2014, 2017
 % Author: Cody Barnett
 %
 % Load elevation and along track data from run_combine_passes.m that has

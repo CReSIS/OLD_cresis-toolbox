@@ -11,7 +11,7 @@ else
   vel_fn_dir = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/';
 end
 
-example_str = 'Petermann_line1_2011_2014_2018';
+example_str = 'Petermann_line4_2010_2011_2013_2014';
 
 if strcmpi(example_str, 'Petermann_line1_2011_2014_2018')
   %% Petermann Line 1 - 2011, 2014, 2018 - TEST // WORKING SCRIPT
@@ -22,6 +22,34 @@ if strcmpi(example_str, 'Petermann_line1_2011_2014_2018')
   end
   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
   vel_mult{1} = [3];
+  vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
+  vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+  vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+  vel_fn{2}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+  vel_mult{2} = [1 1 1 1];
+end
+
+if strcmpi(example_str, 'Petermann_line1_2011_2014_2018_leigh_tifs')
+  %% Petermann Line 1 - 2011, 2014, 2018 - TEST // WORKING SCRIPT
+  if ispc
+    fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018_multipass.mat'));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018_leigh_tifs_multipass'));
+  end
+  % 2011
+  vel_fn{1}{1} = fullfile(vel_fn_dir,'vv2011_MEaSURES_tile_com1.tif');
+%   vel_fn{1}{2} = fullfile(vel_fn_dir,'OPT_W80.75N_2011-07_ex_v2.tif.mag_v2.tif');
+%   vel_fn{1}{3} = fullfile(vel_fn_dir,'OPT_W80.75N_2011-08_ex_v2.tif.mag_v2.tif');
+  %vel_fn{1}{4} = fullfile(vel_fn_dir,'OPT_W80.75N_2012-06_ex_v2.tif.mag_v2.tif');
+  %vel_fn{1}{5} = fullfile(vel_fn_dir,'OPT_W80.75N_2012-07_ex_v2.tif.mag_v2.tif');
+  %vel_fn{1}{6} = fullfile(vel_fn_dir,'OPT_W80.75N_2012-08_ex_v2.tif.mag_v2.tif');
+  vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+%   vel_fn{1}{5} = fullfile(vel_fn_dir,'OPT_W80.75N_2013-04_ex_v2.tif.mag_v2.tif');
+%   vel_fn{1}{6} = fullfile(vel_fn_dir,'OPT_W80.75N_2013-05_ex_v2.tif.mag_v2.tif');
+  vel_fn{1}{3} = fullfile(vel_fn_dir,'vv2013_MEaSURES_tile_com1.tif');
+%   vel_fn{1}{8} = fullfile(vel_fn_dir,'OPT_W80.75N_2013-07_ex_v2.tif.mag_v2.tif');
+%   vel_fn{1}{9} = fullfile(vel_fn_dir,'OPT_W80.75N_2013-08_ex_v2.tif.mag_v2.tif');
+  vel_mult{1} = [1 1 1];
   vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
   vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
@@ -103,12 +131,13 @@ if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014')
   else
     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014_multipass'));
   end
-  vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+  vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2009_2010_vv_v02.1.tif');
   vel_mult{1} = [1];
-  vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+  vel_fn{2}{1} = fullfile(vel_fn_dir,'test_2009_2013_combo_float.tif');
   vel_mult{2} = [2];
-  vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2013_2014_vv_v02.1.tif');
+  vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
   vel_mult{3} = [1];
+  % USES 2012-2013 Velocity for the 2013-2014 Season
 end
 
 if strcmpi(example_str, 'Petermann_line4_2010_2011_2013_2014_2017')
@@ -141,8 +170,7 @@ if strcmpi(example_str, '79N_line1_2010_2014_2016_2018_TEST')
   end
   
   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2013_2014_vv_v02.1.tif');
-  vel_mult{1} = [3 1];
+  vel_mult{1} = [4];
   vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
   vel_mult{2} = [1 1];

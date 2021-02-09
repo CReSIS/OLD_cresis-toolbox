@@ -13,8 +13,10 @@
 param_override = [];
 param = [];
 
-example_str = 'Petermann_line1_2011_2014_2018';
+example_str = 'Petermann_line4_2010_2011_2013_2014';
 
+% switch the inputs on this line for the different layers, current layers
+% are standard: 'surface' and standard: 'bottom_qc'.
 param_override.multipass.layer = struct('name',{'surface' 'bottom_qc'},'source','ops');
 
 if strcmpi(example_str,'Thwaites_201902_201912_202001')
@@ -62,9 +64,9 @@ if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019')
   param.multipass.comp_mode = 2;
 end
 
-if strcmpi(example_str,'Petermann_line2_2013_2014_TEST')
+if strcmpi(example_str,'Petermann_line2_2013_2014')
   %% Petermann Line 2 2013, 2014, 2017
-  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Petermann_line2_2013_2014_TEST');
+  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Petermann_line2_2013_2014');
   
   param.multipass.rbins = [];
   
@@ -92,6 +94,23 @@ if strcmpi(example_str,'Petermann_line2_2013_2014_2017')
   param.multipass.comp_mode = 2;
 end
 
+if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014')
+  %% Petermann Line 4 2010, 2011, 2013, 2014 Add correction
+  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Petermann_line4_2010_2011_2013_2014');
+  
+  param.multipass.rbins = [];
+  
+  param.multipass.baseline_master_idx = 2;
+  param.multipass.master_idx = 2;
+  
+  param.multipass.pass_en_mask = [];
+  param.multipass.output_fn_midfix = [];
+  param.multipass.coregistration_time_shift = [0 -0.5 0 0];
+  param.multipass.comp_mode = 2;
+  
+end
+
+
 if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014_2017')
   %% Petermann Line 4 2010, 2011, 2013, 2014, 2017 Add correction
   param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Petermann_line4_2010_2011_2013_2014_2017');
@@ -110,7 +129,7 @@ end
 
 if strcmpi(example_str,'79N_line1_2010_2014_2016_2018_TEST')
   %% 79N Line 1 2010, 2014, 2016, 2018
-  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','79N_line1_2010_2014_2016_2018_TEST');
+  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','79N_line1_2010_2014_2016_2018');
   
   param.multipass.rbins = [];
   
@@ -135,7 +154,7 @@ if strcmpi(example_str,'79N_line1_2010_2014_2016_2018_2019')
   
   param.multipass.pass_en_mask = [];
   param.multipass.output_fn_midfix = [];
-  param.multipass.coregistration_time_shift = [1 0 0 -2 0];
+  param.multipass.coregistration_time_shift = [-1 0 0 -2 0];
   param.multipass.comp_mode = 2;
   param.multipass.time_gate = [2e-6 13e-6];
 end
