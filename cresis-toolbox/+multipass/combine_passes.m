@@ -239,14 +239,17 @@ for passes_idx = 1: length(passes)
       metadata{end}.frms = passes(passes_idx).frms(frm_idx);
       metadata{end}.param_pass = param_pass;
       
-      %% Do waveform combination
+      %% Do image combining
+      % Combines low-gain and high-gain images into a single image
       param_mode = 'array';
       param_img_combine = param_pass;
+      % array.img_comb should have 3*(length(imgs)-1) fields, if it has more
+      % than required, then truncate to 3*(length(imgs)-1)
       param_img_combine.array.img_comb = param_pass.array.img_comb(1:...
         min([length(param_pass.array.img_comb), 3*(length(passes(passes_idx).imgs)-1)]));
       param_img_combine.array.imgs = passes(passes_idx).imgs;
-      if length(param_img_combine.array.img_comb)<3
-        param_img_combine.array.img_comb = [param_img_combine.array.img_comb(1) -inf param_img_combine.array.img_comb(2)];
+      if length(param_img_combine.array.imgs) > 1 && length(param_img_combine.array.img_comb) == 2*(length(param_img_combine.array.imgs)-1)
+        error('Spreadsheet has the wrong number of entries for param.array.img_comb. It has the right number for the old combine method. Usually this is fixed by inserting "-inf" for the second coefficient which controls how the receiver blanking is used. For example [3e-6 1e-6; 10e-6 3e-6] becomes [3e-6 -inf 1e-6; 10e-6 -inf 3e-6].');
       end
       param_img_combine.load.frm = metadata{end}.frms;
       param_img_combine.day_seg = passes(passes_idx).day_seg;

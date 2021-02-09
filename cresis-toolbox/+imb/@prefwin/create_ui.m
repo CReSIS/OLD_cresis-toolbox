@@ -11,11 +11,20 @@ obj.ops.profile = [];
 obj.ops.layers = [];
 obj.ops.layers.lyr_name = {};
 
-layer_sources = {'layerdata','Connect to OPS'};
+if obj.map_toolbox
+  layer_sources = {'layerdata','Connect to OPS'};
+  flightlines = {'tracks files Flightlines','Connect to OPS'};
+else
+  layer_sources = {'layerdata'};
+  flightlines = {'tracks files Flightlines'};
+end
 
-flightlines = {'tracks files Flightlines','Connect to OPS'};
-
-wms_maps = {'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map';'Connect to OPS'};
+if obj.map_toolbox
+  wms_maps = {'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic  Map';'arctic:Blank Stereographic Map';'antarctic:Blank Stereographic Map';'arctic:Google Map';'antarctic:Google Map';'Connect to OPS'};
+else
+  %error('Mapping toolbox is not available. Mapping toolbox must be available for projections and/or WMS service. Blank Geodetic Maps not supported yet.')
+  wms_maps = {'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic  Map'};
+end
 
 %% Load tracks files
 % =========================================================================
@@ -80,17 +89,18 @@ set(obj.h_gui.layerSourcePM,'Value',1);
 set(obj.h_gui.layerSourcePM,'Style','popupmenu');
 set(obj.h_gui.layerSourcePM,'HorizontalAlignment','Center');
 set(obj.h_gui.layerSourcePM,'FontName','fixed');
-set(obj.h_gui.layerSourcePM,'TooltipString','Available layer sources (select one)');
+set(obj.h_gui.layerSourcePM,'TooltipString','Layer two way travel time data source (select one)');
 set(obj.h_gui.layerSourcePM,'Callback',@obj.layerSourcePM_callback);
 
 % layerdata sources pop up menu (populate later from preference window)%%
 obj.h_gui.layerDataSourcePM = popupmenu_edit(obj.h_fig,{'layer','CSARP_post/layer'});
-set(obj.h_gui.layerDataSourcePM.h_valuePM,'TooltipString','Available layerdata filepath sources (select one). Right click to add, edit, or delete entries.');
+set(obj.h_gui.layerDataSourcePM.h_valuePM,'TooltipString',sprintf('Available layerdata filepath sources (select one). Right click to add, edit, or delete entries.\nThe entry "layer" will look in the CSARP_layer directory.\nThe entry "CSARP_post / layer" will look in the CSARP_post / CSARP_layer directory.'));
 
 % Layer selection class (populate later from preference file)
 obj.h_gui.h_layers = selectionbox(obj.h_fig,'Layers',[],1);
-set(obj.h_gui.h_layers.h_list_available,'TooltipString','Available layers (double or right click to select).');
-set(obj.h_gui.h_layers.h_list_selected,'TooltipString','Selected layers (double or right click to remove).');
+set(obj.h_gui.h_layers.h_text,'TooltipString','Select the layer two way travel time data source. If layerdata, then select the layerdata source. If OPS, then select layers to load.');
+set(obj.h_gui.h_layers.h_list_available,'TooltipString','Available OPS layers (double or right click to select).');
+set(obj.h_gui.h_layers.h_list_selected,'TooltipString','Selected OPS layers (double or right click to remove).');
 obj.h_gui.h_layers.set_enable(false);
 
 uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'New', 'Callback', @obj.layers_callback);
@@ -100,13 +110,13 @@ uimenu(obj.h_gui.h_layers.h_list_availableCM, 'Label', 'Refresh', 'Callback', @o
 
 % Season selection class (populate later from preference file)
 obj.h_gui.h_seasons = selectionbox(obj.h_fig,'Seasons',[],1);
-set(obj.h_gui.h_seasons.h_list_available,'TooltipString','Available seasons (double click or right click to select).');
-set(obj.h_gui.h_seasons.h_list_selected,'TooltipString','Selected seasons(double click or right click to remove).');
+set(obj.h_gui.h_seasons.h_list_available,'TooltipString','Available seasons for the chosen map (double click or right click to select).');
+set(obj.h_gui.h_seasons.h_list_selected,'TooltipString','Selected seasons for the chosen map (double click or right click to remove).');
 
 % System list box label
 obj.h_gui.systemsText = uicontrol('Parent',obj.h_fig);
 set(obj.h_gui.systemsText,'Style','Text');
-set(obj.h_gui.systemsText,'String','Systems');
+set(obj.h_gui.systemsText,'String','Radar Systems');
 
 % Source list box label
 obj.h_gui.sourceText = uicontrol('Parent',obj.h_fig);
@@ -121,7 +131,7 @@ set(obj.h_gui.systemsLB,'HorizontalAlignment','Center');
 set(obj.h_gui.systemsLB,'FontName','fixed');
 set(obj.h_gui.systemsLB,'Callback',@obj.systemsLB_callback);
 set(obj.h_gui.systemsLB,'Min',1); % One must always be selected
-set(obj.h_gui.systemsLB,'TooltipString','Systems (choose one)');
+set(obj.h_gui.systemsLB,'TooltipString','Radar systems (choose one)');
 
 % Source list box (populate later from preference file)
 obj.h_gui.sourceLB = uicontrol('Parent',obj.h_fig);
@@ -313,17 +323,19 @@ table_draw(obj.h_gui.table);
 
 % Check to see if default parameters require OPS
 load_ops = false;
-if ~strcmp(obj.default_params.system,'tracks')
-  load_ops = true;
-end
-if strcmp(obj.default_params.layer_source,'OPS')
-  load_ops = true;
-end
-if strcmp(obj.default_params.flightlines(1:3),'OPS')
-  load_ops = true;
-end
-if all(~strcmp(obj.default_params.map_name,{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map'}))
-  load_ops = true;
+if obj.map_toolbox
+  if ~strcmp(obj.default_params.system,'tracks')
+    load_ops = true;
+  end
+  if strcmp(obj.default_params.layer_source,'OPS')
+    load_ops = true;
+  end
+  if strcmp(obj.default_params.flightlines(1:3),'OPS')
+    load_ops = true;
+  end
+  if all(~strcmp(obj.default_params.map_name,{'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic  Map';'arctic:Blank Stereographic Map';'antarctic:Blank Stereographic Map';'arctic:Google Map';'antarctic:Google Map'}))
+    load_ops = true;
+  end
 end
 if load_ops
   obj.ops_connect();

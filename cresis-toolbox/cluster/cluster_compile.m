@@ -196,6 +196,13 @@ if force_compile
     cmd = [cmd ' ' hidden_depend_funs{dep_idx}{1}];
   end
   
+  for input_idx = 1:length(fun)
+    % Add in functions in case they are not in the hidden dependency list
+    if isempty(regexpi(cmd, fun{input_idx}))
+      cmd = [cmd ' ' fun{input_idx}];
+    end
+  end
+  
   % Check to make sure the working directory is not a package or class
   % directory. This messes up the compiler if it uses functions from those
   % packages or classes.

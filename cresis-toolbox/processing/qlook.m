@@ -343,13 +343,18 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.cpu_time = 0;
     dparam.mem = 250e6;
     for img = 1:length(param.qlook.imgs)
+      wf = abs(param.qlook.imgs{img}(1,1));
+      adc = abs(param.qlook.imgs{img}(1,2));
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      data_pulse_compress_mult = 1;
       if isfield(param.radar.wfs(wf),'deconv') ...
           && isfield(param.radar.wfs(wf).deconv,'en') && any(param.radar.wfs(wf).deconv.en)
-        dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult*1.7;
-      else
-        dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult;
+        data_pulse_compress_mult = data_pulse_compress_mult + 0.7;
       end
+      if strcmpi(param.radar.wfs(wf).coh_noise_method,'analysis')
+        data_pulse_compress_mult = data_pulse_compress_mult + 0.7;
+      end
+      dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult*data_pulse_compress_mult;
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);

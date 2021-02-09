@@ -31,6 +31,7 @@ normalize = true;
 smooth_scale = 1;
 
 loop_dir = 2;
+row_loop_dir = 2;
 figure(1); clf;
 imagesc(I(:,:,1))
 figure(2); clf;
@@ -43,8 +44,23 @@ for loop = 0:num_loops-1
     else
       node_idx = prod(num_nodes)+1-idx;
     end
-    row_idx = 1 + mod((node_idx-1),num_nodes(1));
+    if mod(floor(bitshift(loop,-log2(row_loop_dir/2))),2) == 0
+      if mod(floor(bitshift(loop,-log2(loop_dir/2))),2) == 0
+        row_idx = 1 + mod((node_idx-1),num_nodes(1));
+      else
+        row_idx = num_nodes(1) - mod((node_idx-1),num_nodes(1));
+      end
+    else
+      if mod(floor(bitshift(loop,-log2(loop_dir/2))),2) == 0
+        row_idx = num_nodes(1) - mod((node_idx-1),num_nodes(1));
+      else
+        row_idx = 1 + mod((node_idx-1),num_nodes(1));
+      end
+    end
     col_idx = 1 + floor((node_idx-1)/num_nodes(1));
+    if 0
+      fprintf('Loop %d\t%d\t%d\n', loop, row_idx, col_idx)
+    end
     if row_idx < num_nodes(1)
       if 0
         msg_up(:,row_idx+1,col_idx) = old_msg_up(:,row_idx,col_idx) + I(:,row_idx,col_idx);

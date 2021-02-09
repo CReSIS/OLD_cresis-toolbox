@@ -61,6 +61,32 @@ radiometric_corr_dB = param.array.radiometric_corr_dB;
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
+  outputs_done = true;
+  for img = 1:length(param.array.imgs)
+    if length(param.array.imgs) == 1
+      out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+    else
+      out_fn = fullfile(array_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+    end
+    if ~ct_file_lock_check(out_fn,4)
+      outputs_done = false;
+    end
+  end
+  if ~param.array.tomo_en && (~isempty(param.array.img_comb) || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp')))
+    out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+
+    if ~ct_file_lock_check(out_fn,4)
+      outputs_done = false;
+    end
+  end
+  if outputs_done
+    fprintf('Done, skipping %s\n', out_fn);
+    continue;
+  end
+  
   if ct_proc_frame(frames.proc_mode(frm),param.array.frm_types)
     fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
@@ -262,7 +288,12 @@ for frm_idx = 1:length(param.cmd.frms);
                 Tomo.(fields{field_idx}) = cat(2,Tomo.(fields{field_idx}), nan(Nt,Nnans,Nx_old));
               end
             end
-            Tomo.(fields{field_idx}) = cat(max_dim,Tomo.(fields{field_idx}),tmp.Tomo.(fields{field_idx}));
+            % Memory expensive and slow concatenation:
+            % Tomo.(fields{field_idx}) = cat(max_dim,Tomo.(fields{field_idx}),tmp.Tomo.(fields{field_idx}));
+            % Memory efficient concatenation:
+            cat_idx = numel(Tomo.(fields{field_idx}));
+            Tomo.(fields{field_idx})(1,1,end+size(tmp.Tomo.(fields{field_idx}),max_dim)) = 0;
+            Tomo.(fields{field_idx})(cat_idx+(1:numel(tmp.Tomo.(fields{field_idx})))) = tmp.Tomo.(fields{field_idx});
           end
         end
         
@@ -322,7 +353,6 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   %% Combine images
-  [output_dir,radar_type] = ct_output_dir(param.radar_name);
   if ~param.array.tomo_en && (~isempty(param.array.img_comb) || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp')))
     % Combine images into a single image and/or trim invalid times with
     % img_comb_trim

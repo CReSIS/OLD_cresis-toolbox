@@ -40,7 +40,8 @@ function [ctrl_chain,param] = layer_tracker(param,param_override)
 % Authors: Anjali Pare, John Paden
 %
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
-% layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
+% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
+% run_layer_tracker_tune.m
 
 %% General Setup
 % =====================================================================
@@ -205,7 +206,7 @@ while frm_idx <= length(param.cmd.frms)
       dparam.mem = dparam.mem + 2e9;
     end
     mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
-    cputime_combine = cputime_combine + 1e-1*Nx*length(tracks_in_task);
+    cputime_combine = cputime_combine + 1e-2*Nx*length(tracks_in_task);
     
     % Notes
     % ---------------------------------------------------------------------

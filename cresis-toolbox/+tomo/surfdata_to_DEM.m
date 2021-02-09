@@ -46,6 +46,23 @@ if ~isstruct(param)
 end
 param = merge_structs(param, param_override);
 
+dbstack_info = dbstack;
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('=====================================================================\n');
+
+%% Input Checks: cmd
+% =====================================================================
+
+% Remove frames that do not exist from param.cmd.frms list
+frames = frames_load(param);
+param.cmd.frms = frames_param_cmd_frms(param,frames);
+
+%% Input Checks: dem
+% =====================================================================
+
+physical_constants;
+
 if ~isfield(param.dem,'doa_method_flag') || isempty(param.dem.doa_method_flag)
   doa_method_flag = false;
 else
@@ -58,13 +75,24 @@ else
   doa_limits = param.dem.doa_limits*pi/180;
 end
 
+% dem.er_ice: the relative dielectric of ice (defaults to 3.15 from
+% physical_constants.m which is generally the setting for creating digital
+% elevation models of the ice bottom). Set this to 1 for air (e.g. when
+% producing a dem for an ice surface that is not the param.dem.ice_top).
+% Note that this setting does not have any effect for the surface indicated by
+% param.dem.ice_top (i.e. the value does not matter).
+if ~isfield(param.dem,'er_ice') || isempty(param.dem.er_ice)
+  param.dem.er_ice = er_ice;
+end
 
-dbstack_info = dbstack;
-fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
-fprintf('=====================================================================\n');
-
-physical_constants;
+% dem.enforce_below_top: forces the surface to be below the top surface
+% (i.e. the ice surface). Defaults to true which is the setting for
+% creating DEMs of the ice bottom. Set to false to generate DEMs of the ice
+% surface. Note that this setting does not have any effect for the surface
+% indicated by param.dem.ice_top (i.e. can be true or false).
+if ~isfield(param.dem,'enforce_below_top') || isempty(param.dem.enforce_below_top)
+  param.dem.enforce_below_top = true;
+end
 
 surface_names = param.dem.surface_names;
 figure_dots_per_km = param.dem.figure_dots_per_km;
@@ -74,23 +102,8 @@ if ~isdir(out_dir)
   mkdir(out_dir);
 end
 
-% Load frames file
-frames = frames_load(param);
-
-if isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-% Remove frames that do not exist from param.cmd.frms list
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
-end
-
 %% Loop through each frame and create data products
+% =====================================================================
 for frm_idx = 1:length(param.cmd.frms)
   
   frm = param.cmd.frms(frm_idx);
@@ -120,12 +133,11 @@ for frm_idx = 1:length(param.cmd.frms)
   mdata = load(data_fn);
   
   % Load the steering vector calibration file if specified
-  if(~isfield(mdata,'theta'))
+  if(~isfield(mdata.Tomo,'theta'))
     global gRadar
     theta = load(fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_CSA_music','20140401_03','Data_20140401_03_037'),'theta');
-    mdata.theta = theta.theta;
+    mdata.Tomo.theta = theta.theta;
   end
-  
   
   %% Setup for convert doa,twtt to radar FCS for each surface
   
@@ -165,8 +177,11 @@ for frm_idx = 1:length(param.cmd.frms)
     % Determine which surface index in surfData file we are working with
     surface_idx = sd.get_index(surface_names{surface_names_idx});
     
-    % Ensure non-negative ice thickness
-    sd.surf(surface_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y) = sd.surf(ice_top_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y);
+    if param.dem.enforce_below_top
+      % Ensure non-negative ice thickness (threshold all values above the
+      % ice surface ("top") to be equal to the ice surface)
+      sd.surf(surface_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y) = sd.surf(ice_top_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y);
+    end
     
     % Convert surface from range bins to twtt
     surface_twtt = sd.surf(surface_idx).y;
@@ -215,10 +230,10 @@ for frm_idx = 1:length(param.cmd.frms)
     if ~doa_method_flag
       [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
         theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
-        er_surf,3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
+        er_surf,param.dem.er_ice,surface_twtt(DOA_trim+1:end-DOA_trim,:));
     else
       [y_active,z_active] = tomo.twtt_doa_to_yz(theta, ...
-        [],ice_top,er_surf,3.15,surface_twtt,doa_method_flag,doa_limits);
+        [],ice_top,er_surf,param.dem.er_ice,surface_twtt,doa_method_flag,doa_limits);
     end
     
     % Convert from radar FCS to ECEF

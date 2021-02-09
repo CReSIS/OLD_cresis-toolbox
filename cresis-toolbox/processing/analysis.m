@@ -165,23 +165,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
   switch cmd.method
     case {'burst_noise'}
       % Set defaults for burst noise analysis method
-
-      % bad_samples_function: Used with 'custom' noise_filt_type. This
-      % function should return a logical value for every pixel in the
-      % image. A true value should mean that burst noise was detected.
-      if ~isfield(cmd,'bad_samples_function') || isempty(cmd.bad_samples_function)
-        for img = 1:length(param.analysis.imgs)
-          cmd.bad_samples_function{img} = @(data_signal,wfs)repmat(lp(mean(data_signal,1)) > lp(median(data_signal(:)))+20,[wfs.Nt_raw 1]);
-        end
-      end
-
-      % debug_function: Used with 'custom' noise_filt_type. Function should
-      % return a value for each range line/record.
-      if ~isfield(cmd,'debug_function') || isempty(cmd.debug_function)
-        for img = 1:length(param.analysis.imgs)
-          cmd.debug_function{img} = @(data_signal,wfs)-lp(mean(data_signal,1));
-        end
-      end
       
       % max_bad_waveforms: wf-adc recorded waveforms/range-lines with burst
       % noise detected are saved, but only up to this many. Set to inf to
@@ -190,53 +173,66 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.max_bad_waveforms = 100;
       end
       
-      % param.analysis.cmd.noise_filt_type: String containing 'fir',
-      % 'median', or 'custom'. Default is 'fir'.
+      % noise_fh: This function is used to create the temporary variable
+      % data_noise in analysis burst. This output is available to test_fh
+      % and threshold_fh.
       %
-      % custom: uses bad_samples_function and signal_function
-      % (debug_function is optional and only useful if the debug code is
-      % enabled in analysis_task.m)
-      %
-      % fir: uses noise_filt, signal_filt, and threshold to apply a
-      % constant false alarm rate (CFAR) detector. The filtering uses a
-      % standard FIR filter.
-      %
-      % median: uses noise_filt, signal_filt, and threshold to apply a
-      % constant false alarm rate (CFAR) detector. The filtering uses the
-      % median operator rather than a regular filter.
-      if ~isfield(cmd,'noise_filt_type') || isempty(cmd.noise_filt_type)
-        cmd.noise_filt_type = 'fir';
-      end
-      
-      % noise_filt: Used with 'fir' and 'median' noise_filt_type's. Filter
-      % for estimating background noise for CFAR detector. These are filter
-      % lengths in [fast-time slow-time]. They must be odd.
-      if ~isfield(cmd,'noise_filt') || isempty(cmd.noise_filt)
-        cmd.noise_filt = [11 101];
-      end
-      
-      % signal_filt: Used with 'fir' and 'median' noise_filt_type's. Filter
-      % for estimating signal for CFAR detector. These are filter lengths
-      % in [fast-time slow-time]. They must be odd.
-      if ~isfield(cmd,'signal_filt') || isempty(cmd.signal_filt)
-        cmd.signal_filt = [11 1];
-      end
-      
-      % signal_function: Used with 'custom' noise_filt_type. This
-      % function is a convenience function whose output will be stored in
-      % data_signal which is passed to noise_function and
-      % bad_samples_function.
-      if ~isfield(cmd,'signal_function') || isempty(cmd.signal_function)
+      % Examples:
+      %  cmd.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+      %  cmd.noise_fh{img} = @(raw_data,wfs) lp(medfilt2(abs(raw_data).^2,[11 101]));
+      %  cmd.noise_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'noise_fh') || isempty(cmd.noise_fh)
         for img = 1:length(param.analysis.imgs)
-          cmd.signal_function{img} = @(raw_data,wf_adc,wfs)abs(raw_data{1}(:,:,wf_adc)).^2;
+          cmd.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+        end
+      end
+      
+      % signal_fh: This function is used to create the temporary variable
+      % data_signal in analysis burst. This output is available to test_fh
+      % and threshold_fh.
+      %
+      % Examples:
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(abs(raw_data).^2,1));
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(abs(fft(raw_data(300:end,:))).^2);
+      %  cmd.signal_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'signal_fh') || isempty(cmd.signal_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
         end
       end
 
-      % threshold: Used with 'fir' and 'median' noise_filt_type's. Filtered
-      % signal values that exceed this threshold will be marked as burst
-      % noise detections.
-      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
-        cmd.threshold = 17;
+      % test_fh: This function is used to create the output variable
+      % test_metric in analysis burst. This output is available to
+      % threshold_fh and is also stored in the output file.
+      %
+      % Examples:
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs) data_signal-data_noise;
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs)% max(data_signal(10:end-9,:))-median(data_signal(10:end-9,:));
+      %  cmd.test_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'test_fh') || isempty(cmd.test_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+        end
+      end
+
+      % test_fh: This function is used to create the temporary variable
+      % bad_samples in analysis burst. If the output is a row vector, then
+      % it is assumed to be a mask of the bad records (interpretation is
+      % that the entire record is bad). If the output is a matrix, then it
+      % is assumed to be a mask of the bad samples (interpretation is that
+      % just those samples are bad and not the whole record).
+      %
+      % Examples:
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) data_noise > 80;
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) test_metric > 20;
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) repmat(data_signal-data_noise > 20,[wfs.Nt_raw 1]);
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) max(data_signal(10:end-9,:))-median(data_signal(10:end-9,:));
+      if ~isfield(cmd,'threshold_fh') || isempty(cmd.threshold_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) test_metric > 20;
+        end
       end
       
       % valid_bins: Restricts the range of bins where burst detections are
@@ -304,29 +300,54 @@ for cmd_idx = 1:length(param.analysis.cmd)
     case {'specular'}
       % Set defaults for specular analysis method
       
+      % cmd.gps_times: vector of GPS times in ANSI C format (seconds since
+      % Jan 1, 1970) for which the STFT block will automatically have its
+      % waveform extracted even if the cmd.threshold is not exceeded.
       if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
         cmd.gps_times = [];
       end
       
+      % cmd.max_rlines: maximum number of STFT waveforms to extract (so
+      % even if there are more than cmd.max_rlines blocks which detect a
+      % coherent/specular scatterer only the first cmd.max_rlines will be
+      % extracted for deconvolution)
       if ~isfield(cmd,'max_rlines') || isempty(cmd.max_rlines)
         cmd.max_rlines = 10;
       end
       
+      % cmd.rlines: STFT block size, the data are broken into 50%
+      % overlapping blocks of this length to detect coherent/specular
+      % scatterers using a short time Fourier transform
       if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
         cmd.rlines = 128;
       end
       
+      % cmd.noise_doppler_bins: bins of STFT to use for clutter power
+      % detection
       guard = round(cmd.rlines/32);
       if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
         cmd.noise_doppler_bins = [1+3*guard:cmd.rlines-3*guard];
       end
       
+      % cmd.signal_doppler_bins: bins of STFT to use for signal power
+      % estimation
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
         cmd.signal_doppler_bins = [1:guard cmd.rlines+(-guard+1:0)];
       end
       
+      % cmd.threshold: peakiness threshold to decide whether or not to
+      % extract the waveform from a particular STFT block. This is in dB
+      % and is the ratio (peak signal to mean noise/clutter power):
+      % peakiness = lp(max(abs(H(cmd.signal_doppler_bins,:)).^2) ./ mean(abs(H(cmd.noise_doppler_bins,:)).^2));
       if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
         cmd.threshold = 40;
+      end
+      
+      % cmd.peak_sgolay_filt: cell array with 2 elements containing the
+      % 2nd and 3rd input arguments to sgolayfilt that is used to filter
+      % the peak values in the along-track dimension
+      if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
+        cmd.peak_sgolay_filt = {3,round(0.4*cmd.rlines)};
       end
       
     case {'statistics'}

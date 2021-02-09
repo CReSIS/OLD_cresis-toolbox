@@ -447,8 +447,9 @@ if param.collate_deconv.stage_one_en
         
         %% Stage 1: Impulse response
         
-        if interp1(spec.gps_time,spec.peakiness,spec.deconv_gps_time(rline)) < param.collate_deconv.threshold
-          % Waveform peakiness is too low
+        if interp1(spec.gps_time,spec.peakiness,spec.deconv_gps_time(rline)) < param.collate_deconv.threshold ...
+          || isnan(spec.deconv_fc(rline)) || isnan(spec.deconv_t0(rline)) || isnan(spec.dt)
+          % Waveform peakiness is too low OR NaN in deconv_fc or dt
           deconv.metric(:,rline) = nan(6,1);
           [~,match_idx] = min(abs(spec.gps_time - spec.deconv_gps_time(rline)));
           deconv.gps_time(rline) = spec.gps_time(match_idx);
@@ -1059,6 +1060,8 @@ if param.collate_deconv.stage_two_en
       
       %% Stage 2: 8. Plot final results
       if any(strcmp('final',param.collate_deconv.debug_plots))
+        [~,map_frm] = get_frame_id(param,final.map_gps_time);
+        
         % TWTT Figure
         % ===================================================================
         clf(h_fig(1));
@@ -1068,15 +1071,15 @@ if param.collate_deconv.stage_two_en
         legend_str = {};
         h_plot = [];
         for idx = 1:length(final.gps_time)
-          h_plot(idx+1) = plot(h_axes(1), find(final.map_idxs==idx), final.twtt(final.map_idxs(final.map_idxs==idx)),'.');
+          h_plot(idx+1) = plot(h_axes(1), map_frm(final.map_idxs==idx), final.twtt(final.map_idxs(final.map_idxs==idx)),'.');
           hold(h_axes(1),'on');
           legend_str{idx+1} = sprintf('%d',idx);
         end
         
-        h_plot(1) = plot(h_axes(1), final.map_twtt, 'k', 'LineWidth',2);
+        h_plot(1) = plot(h_axes(1), map_frm, final.map_twtt, 'k', 'LineWidth',2);
         legend_str{1} = 'TWTT';
         
-        xlabel(h_axes(1), 'Block');
+        xlabel(h_axes(1), 'Frame');
         ylabel(h_axes(1), 'Two way travel time (\mus)');
         title(h_axes(1), ['TWTT ' regexprep(param.day_seg,'_','\\_')]);
         legend(h_axes(1), h_plot, legend_str,'location','best');
@@ -1102,16 +1105,16 @@ if param.collate_deconv.stage_two_en
         legend_str = {};
         h_plot = [];
         for idx = 1:length(final.gps_time)
-          h_plot(idx) = plot(h_axes(2), find(final.map_idxs==idx), final.max_score(find(final.map_idxs==idx)),'.');
+          h_plot(idx) = plot(h_axes(2), map_frm(final.map_idxs==idx), final.max_score(find(final.map_idxs==idx)),'.');
           hold(h_axes(2),'on');
           legend_str{idx} = sprintf('%d',idx);
         end
         for idx = 1:length(final.gps_time)
-          h_new_plot = plot(h_axes(2), find(final.map_idxs==idx), final.unadjusted_score(find(final.map_idxs==idx)),'.');
+          h_new_plot = plot(h_axes(2), map_frm(final.map_idxs==idx), final.unadjusted_score(find(final.map_idxs==idx)),'.');
           set(h_new_plot, 'Color', get(h_plot(idx),'Color'))
         end
         
-        xlabel(h_axes(2), 'Block');
+        xlabel(h_axes(2), 'Frame');
         ylabel(h_axes(2), 'Score');
         title(h_axes(2), ['Score ' regexprep(param.day_seg,'_','\\_')]);
         legend(h_axes(2), h_plot, legend_str,'location','best');

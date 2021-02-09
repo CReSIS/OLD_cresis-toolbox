@@ -42,7 +42,16 @@ classdef layerdata < handle
     sample_spacing_method % 'records' or 'along_track' (default)
     along_track_spacing % either 5 m (non-rds) or 15 m (rds) by default
     record_spacing % 200 by default
-
+    
+    % GUI
+    h_fig
+    h_fig_twtt
+    h_fig_metadata
+    h_axes_twtt
+    h_gui
+    h_gui_metadata
+    gui_layers
+    
   end
   
   %% Private Methods  ==========
@@ -119,6 +128,7 @@ classdef layerdata < handle
     function load(obj,frm)
       layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
       if ~exist(layer_fn,'file')
+        warning('Layer file does not exist. Creating %s\n', layer_fn);
         obj.create(frm);
       else
         obj.layer{frm} = load(layer_fn);
@@ -215,9 +225,36 @@ classdef layerdata < handle
       obj.sample_spacing_method = '';
       obj.along_track_spacing = [];
       obj.record_spacing = 200;
+      
+      % GUI
+      obj.h_fig = [];
+      obj.h_fig_twtt = [];
+      obj.h_fig_metadata = [];
+      obj.h_axes_twtt = [];
+      obj.h_gui = [];
+      obj.h_gui_metadata = [];
+      obj.gui_layers = [];
     end
     
-    %% check: check that layer is loaded
+    %% destructor
+    function delete(obj)
+      try
+        delete(obj.h_fig);
+      end
+      try
+        delete(obj.h_fig_twtt);
+      end
+      try
+        delete(obj.h_fig_metadata);
+      end
+      for idx = 1:length(obj.gui_layers)
+        try
+          delete(obj.gui_layers{idx});
+        end
+      end
+    end
+    
+    %% check: check that layers are loaded for a particular frame
     function check(obj,frm)
       if length(obj.layer) < frm || isempty(obj.layer{frm})
         % Load layer file
@@ -225,10 +262,18 @@ classdef layerdata < handle
       end
     end
     
-    %% check_all: check to make sure layer organizer and all layers loaded
+    %% check_all: check that records, frames, layer organizer and layers loaded
     function check_all(obj)
       obj.check_records();
       obj.check_layer_organizer();
+      for frm = 1:length(obj.frames.frame_idxs)
+        obj.check(frm);
+      end
+    end
+    
+    %% check: check that layers are loaded for all frames
+    function check_all_frames(obj)
+      obj.check_frames();
       for frm = 1:length(obj.frames.frame_idxs)
         obj.check(frm);
       end
@@ -1270,8 +1315,19 @@ classdef layerdata < handle
         obj.layer_modified(frm) = true;
       end
     end
-    
-  end
+
+    %% GUI function declarations
+    create_ui(obj);
+    update_ui(obj);
+    callback_layersSB(obj,status,event);
+    callback_plotCB(obj,status,event);
+    callback_importPB(obj,status,event);
+    callback_presetPB(obj,status,event);
+    callback_savePB(obj,status,event);
+    callback_closePB(obj,status,event);
+    callback_save_metadataPB(obj,status,event); % metadata window okay button
+
+  end % Methods
   
   %% Static Methods ==========
   methods(Static)
@@ -1309,23 +1365,45 @@ classdef layerdata < handle
       else
         master.Elevation = mdata.Elevation;
       end
-      for lay_idx = length(layers)
-        ops_layer = [];
-        ops_layer{1}.gps_time = layers(lay_idx).gps_time;
-        ops_layer{1}.type = layers(lay_idx).type;
-        ops_layer{1}.quality = layers(lay_idx).quality;
-        ops_layer{1}.twtt = layers(lay_idx).twtt;
-        ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
-        ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
-        lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
-        layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+      if 1
+        % New Method: since layer data files are continuously sampled and
+        % include NaN to represent gaps, simple interpolation works fine.
+          layers(lay_idx).twtt_ref = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'spline');
+          layers(lay_idx).quality = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+          layers(lay_idx).type = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+      else
+        % Old Method: this is necessary for layer data loaded from OPS
+        % where gaps are represented by no data points in those spots.
+        % A special interpolation is then required to preserve gaps
+        % properly.
+        for lay_idx = length(layers)
+          ops_layer = [];
+          ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+          ops_layer{1}.type = layers(lay_idx).type;
+          ops_layer{1}.quality = layers(lay_idx).quality;
+          ops_layer{1}.twtt = layers(lay_idx).twtt;
+          ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+          ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+          lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+          layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+        end
       end
     end
     
     %% load_layers: load list of layers
+    % varargout = load_layers(mdata,layerdata_source,varargin)
+    %
+    % mdata: echogram structure (only GPS_time used)
+    %
+    % layerdata_source: optional string containing the directory of the
+    % layerdata files (default is "layer" for directory CSARP_layer).
+    %
+    % varargin: strings containing layer names
+    %
     % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
     % mdata = load(fn);
     % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
+    % [layer_list{1:N}] = layerdata.load_layers(mdata,'',layer_names{1:N});
     function varargout = load_layers(mdata,layerdata_source,varargin)
       layers = layerdata(echo_param(mdata),layerdata_source);
       
@@ -1338,6 +1416,11 @@ classdef layerdata < handle
       end
       delete(layers);
     end
-  end
-  
-end
+    
+    % Functions for editing layerdata properties or merging two separate
+    % layerdata directories
+    run_merge();
+    merge(param,param_override);
+    
+  end % Static methods
+end % layerdata class
