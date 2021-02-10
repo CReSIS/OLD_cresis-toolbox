@@ -347,7 +347,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
       % 2nd and 3rd input arguments to sgolayfilt that is used to filter
       % the peak values in the along-track dimension
       if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
-        cmd.peak_sgolay_filt = {3,round(0.4*cmd.rlines)};
+        cmd.peak_sgolay_filt = {3,round(0.2*cmd.rlines)*2+1};
       end
       
     case {'statistics'}
