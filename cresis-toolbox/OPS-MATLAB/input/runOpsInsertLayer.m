@@ -263,11 +263,23 @@ elseif strcmpi(example_str,'mass_conservation')
   insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = double(ncread(grid_fn,'x'));
   insert_param.y = double(ncread(grid_fn,'y'));
-  %insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
-  insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) - ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice)));
+  
+  % CHOOSE ONE TO ENABLE
+  if 1
+    % Mass conservation estimate
+    insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice)); % bottom_mc
+    insert_param.layer_dest.name = 'bottom_mc';
+  elseif 0
+    % Mass conservation estimate, upper (maximum elevation) bound
+    insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) + ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice))); % bottom_mc_bottom
+    insert_param.layer_dest.name = 'bottom_mc_bottom';
+  elseif 0
+    % Mass conservation estimate, lower (minimum elevation) bound
+    insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) - ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice))); % bottom_mc_top
+    insert_param.layer_dest.name = 'bottom_mc_top';
+  end
   
   insert_param.type = 'raster'; % Raster data
-  insert_param.layer_dest.name = 'bottom_mc_top';
   insert_param.layer_dest.source = 'layerdata';
   insert_param.layer_dest.layerdata_source = 'layer';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
