@@ -26,13 +26,16 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-%% Input Checks
+%% Input Checks: cmd
 % =====================================================================
 
 if ~isempty(param.cmd.frms)
   warning('All frames are always processed with analysis, setting param.cmd.frms to do all frames.');
   param.cmd.frms = []; % All frames
 end
+
+%% Input Checks: analysis
+% =====================================================================
 
 if ~isfield(param,'analysis') || isempty(param.analysis)
   error('The analysis field (worksheet) is missing.');
@@ -73,7 +76,7 @@ end
 % Never check for the existence of files
 param.analysis.surf_layer.existence_check = false;
 
-%% Input Checks: cmd
+%% Input Checks: analysis.cmd
 % =====================================================================
 % For each command in the list, set its default settings
 enabled_cmds = {};
@@ -347,7 +350,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
       % 2nd and 3rd input arguments to sgolayfilt that is used to filter
       % the peak values in the along-track dimension
       if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
-        cmd.peak_sgolay_filt = {3,round(0.4*cmd.rlines)};
+        cmd.peak_sgolay_filt = {3,round(0.2*cmd.rlines)*2+1};
       end
       
     case {'statistics'}

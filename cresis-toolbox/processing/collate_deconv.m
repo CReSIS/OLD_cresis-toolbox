@@ -350,6 +350,10 @@ if param.collate_deconv.stage_one_en
         fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(1),fig_fn);
+        
+        if any(strcmp('visible',param.collate_deconv.debug_plots))
+          keyboard
+        end
       end
       
       if isempty(spec.deconv_gps_time)
