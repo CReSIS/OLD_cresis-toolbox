@@ -39,6 +39,7 @@ default.cmd.qlook = 1;
 default.cmd.generic = 1;
 
 %% Records worksheet
+default.records.data_map = {[1 1 1 1; 1 2 1 2; 1 3 1 3; 1 4 1 4]};
 default.records.file.boards = [1];
 default.records.frames.geotiff_fn = fullfile('southdakota','','south_dakota.tif');
 default.records.frames.mode = 2;
@@ -99,7 +100,6 @@ chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
 for wf = 1
-  default.radar.data_map = {[1 1 1 1; 1 2 1 2; 1 3 1 3; 1 4 1 4]};
   default.radar.wfs(wf).tx_weights = 1;
   default.radar.wfs(wf).adc_gains_dB = [95.8 95.8 95.8 95.8]; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1 2 3 4]; % ADC to rx path mapping
