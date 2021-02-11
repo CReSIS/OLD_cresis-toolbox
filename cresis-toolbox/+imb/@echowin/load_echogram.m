@@ -134,6 +134,9 @@ obj.eg.roll = obj.eg.roll(valid_mask);
 obj.eg.surf_twtt = obj.eg.surf_twtt(valid_mask);
 
 %% Determine new time axis
+min_time = inf;
+max_time = -inf;
+dt = 0;
 for frame_idx = 1:length(desire_frame_idxs)
   cur_frame = desire_frame_idxs(frame_idx);
   
@@ -151,15 +154,30 @@ for frame_idx = 1:length(desire_frame_idxs)
     tmp = load(fn);
   end
   tmp = uncompress_echogram(tmp);
-  if frame_idx == 1
-    min_time = tmp.Time(1);
-    max_time = tmp.Time(end);
+  if isempty(tmp.Time)
+    % Handle special case of file with all bad data
+    warning('File does not have any good data so skipping for obj.eg.time axis creation: %s', fn);
   else
-    min_time = min(min_time,tmp.Time(1));
-    max_time = max(max_time,tmp.Time(end));
+    if tmp.Time(1) < min_time
+      min_time = tmp.Time(1);
+    end
+    if tmp.Time(end) > max_time
+      max_time = tmp.Time(end);
+    end
+    if length(tmp.Time) >= 2
+      if dt == 0 || dt < tmp.Time(2) - tmp.Time(1)
+        dt = tmp.Time(2) - tmp.Time(1);
+      end
+    end
   end
 end
-dt = tmp.Time(2) - tmp.Time(1);
+if dt == 0
+  dt = 1;
+end
+if ~isfinite(min_time)
+  min_time = 0;
+  max_time = dt;
+end
 new_time = (dt*round(min_time/dt) : dt : max_time).';
 if ~isempty(obj.eg.data)
   obj.eg.data = interp1(obj.eg.time, obj.eg.data, new_time);
@@ -187,6 +205,10 @@ for frame_idx = 1:length(loading_frame_idxs)
   end
   tmp.Time = reshape(tmp.Time,[length(tmp.Time) 1]); % Fixes a bug in some echograms
   tmp = uncompress_echogram(tmp);
+  if length(tmp.Time) < 2
+    tmp.Time = min_time+[0 dt];
+    tmp.Data(1:2,:) = nan;
+  end
   
   % Remove any data in echogram that is not part of the frame being loaded
   %   (e.g. some echograms were created with some data from neighboring
