@@ -241,8 +241,9 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
     if length(layers(lay_idx).gps_time) < 2
       mdata.Surface = nan(size(mdata.GPS_time));
+    else
+      mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time), NaN);
     end
-    mdata.Surface = interp_finite(interp1(layers(lay_idx).gps_time,layers(lay_idx).twtt,mdata.GPS_time), NaN);
   end
   
   %% Track: Load ocean mask, land DEM, sea surface DEM
