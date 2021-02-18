@@ -425,7 +425,12 @@ for data_idx = 1:length(data)
             wf = metadata{data_idx}.param_array.combine.imgs{1}(1);
           end
         else
-          wf = metadata{data_idx}.param_array.array.imgs{1}{1}(1);
+          if iscell(metadata{data_idx}.param_array.array.imgs{1})
+            wf = metadata{data_idx}.param_array.array.imgs{1}{1}(1);
+          else
+            % Old format
+            wf = metadata{data_idx}.param_array.array.imgs{1}(1);
+          end
         end
         if ~isfield(metadata{data_idx}.param_array.radar.wfs,'fc')
           % Old format
