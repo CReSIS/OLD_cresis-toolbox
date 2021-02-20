@@ -13,7 +13,7 @@
 param_override = [];
 param = [];
 
-example_str = 'Petermann_line4_2010_2011_2013_2014';
+example_str = 'Petermann_oblique_2014_2017_2018';
 
 % switch the inputs on this line for the different layers, current layers
 % are standard: 'surface' and standard: 'bottom_qc'.
@@ -60,7 +60,7 @@ if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019')
   
   param.multipass.pass_en_mask = [];
   param.multipass.output_fn_midfix = [];
-  param.multipass.coregistration_time_shift = [0 0 0 0 -2 0];
+  param.multipass.coregistration_time_shift = [0 0 0 0 -2];
   param.multipass.comp_mode = 2;
 end
 
@@ -125,6 +125,21 @@ if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014_2017')
   param.multipass.coregistration_time_shift = [0 -0.5 0 0 0];
   param.multipass.comp_mode = 2;
   
+end
+
+if strcmpi(example_str,'Petermann_oblique_2014_2017_2018')
+  %% Petermann Oblique 2014, 2017, 2018
+  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Petermann_oblique_2014_2017_2018');
+  
+  param.multipass.rbins = [];
+  
+  param.multipass.baseline_master_idx = 1;
+  param.multipass.master_idx = 1;
+  
+  param.multipass.pass_en_mask = [];
+  param.multipass.output_fn_midfix = [];
+  param.multipass.coregistration_time_shift = [0 5 -2];
+  param.multipass.comp_mode = 2;
 end
 
 if strcmpi(example_str,'79N_line1_2010_2014_2016_2018_TEST')
