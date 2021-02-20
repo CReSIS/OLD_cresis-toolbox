@@ -42,31 +42,7 @@ if strcmpi(example_str,'Thwaites_201902_201912_202001')
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
-if strcmpi(example_str,'Petermann_line1_2011_2014_2018')
-  %% Petermann Line 1 2011, 2014, 2018
-  pass_name = sprintf('Petermann_line1_2011_2014_2018');
-  dist_min = 500;
-  master_pass_idx = 2;
-  start = struct('lat',80.499370,'lon',-60.013440);
-  stop = struct('lat',80.964739,'lon',-61.618307);
-  input_type = 'echo';
-  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
-  
-  param_fn = 'rds_param_2011_Greenland_P3.xls';
-  day_seg = '20110507_02';
-  frms = 9:11;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-  
-  param_fn = 'rds_param_2014_Greenland_P3.xls';
-  day_seg = '20140505_01';
-  frms = 17:18;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-  
-  param_fn = 'rds_param_2018_Greenland_P3.xls';
-  day_seg = '20180405_01';
-  frms = 15:16;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-end
+
 
 if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019')
   %% Petermann Line 1 2011, 2014, 2015, 2017, 2018, 2019
@@ -109,27 +85,6 @@ if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019')
 %   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
-if strcmpi(example_str,'Petermann_line2_2013_2014')
-  %% Petermann Line 2 2013, 2014
-  pass_name = sprintf('Petermann_line2_2013_2014');
-  dist_min = 500;
-  master_pass_idx = 2;
-  start = struct('lat',80.517191,'lon',-59.844969);
-  stop = struct('lat',80.903411,'lon',-61.332159);
-  input_type = 'echo';
-  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
-  
-  param_fn = 'rds_param_2013_Greenland_P3.xls';
-  day_seg = '20130420_02';
-  frms = 4:5;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-  
-  param_fn = 'rds_param_2014_Greenland_P3.xls';
-  day_seg = '20140512_01';
-  frms = 16:17;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-end
-
 if strcmpi(example_str,'Petermann_line2_2013_2014_2017')
   %% Petermann Line 2 2013, 2014, 2017
   pass_name = sprintf('Petermann_line2_2013_2014_2017');
@@ -156,36 +111,7 @@ if strcmpi(example_str,'Petermann_line2_2013_2014_2017')
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post\standard'); % Folder is not in standard
 end
 
-if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014')
-  %% Petermann Line 4 2010, 2011, 2013, 2014
-  pass_name = sprintf('Petermann_line4_2010_2011_2013_2014');
-  dist_min = 500;
-  master_pass_idx = 1;
-  start = struct('lat',80.5295278,'lon',-59.567146);
-  stop = struct('lat',80.995874,'lon',-61.357055);
-  input_type = 'echo';
-  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
-  
-  param_fn = 'rds_param_2010_Greenland_DC8.xls';
-  day_seg = '20100324_01';
-  frms = 25:27;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-  
-  param_fn = 'rds_param_2011_Greenland_P3.xls';
-  day_seg = '20110507_02';
-  frms = 13:15;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-  
-  param_fn = 'rds_param_2013_Greenland_P3.xls';
-  day_seg = '20130420_02';
-  frms = 7:8;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-  
-  param_fn = 'rds_param_2014_Greenland_P3.xls';
-  day_seg = '20140512_01';
-  frms = 13:14;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-end
+
 
 if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014_2017')
   %% Petermann Line 4 2010, 2011, 2013, 2014, 2017
@@ -282,7 +208,6 @@ end
 
 if strcmpi(example_str,'Ryder_line1_2011_2013_2015_2019')
   %% Ryder line1 2011,2013,2015,2019
-  % NOT working yet, error with day_seg section
   pass_name = sprintf('Ryder_line1_2011_2013_2015_2019');
   dist_min = 16000;
   master_pass_idx = 2;
@@ -301,7 +226,7 @@ if strcmpi(example_str,'Ryder_line1_2011_2013_2015_2019')
   frms = 17:18;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-  param_fn = 'rds_param_2015_Greenland_P3.xls';
+  param_fn = 'rds_param_2015_Greenland_C130.xls';
   day_seg = '20150506_02';
   frms = 20;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
@@ -332,7 +257,7 @@ if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')
   frms = 15:16;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-  param_fn = 'rds_param_2015_Greenland_P3.xls';
+  param_fn = 'rds_param_2015_Greenland_C130.xls';
   day_seg = '20150506_02';
   frms = 16:17;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
@@ -504,6 +429,64 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
   for adc = 2:16
     passes(end+1) = struct('day_seg','20120330_03','frms',8,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
   end
+end
+
+if strcmpi(example_str,'egig_2018_allwf')
+  %% EGIG line: 2011-2018
+  pass_name = sprintf('egig_2018_allwf');
+  % 20120411_02_011: 71.225731 N, -35.540548 E, X:102.727 km, Y:201.334 km, 2012-04-11 12:49:20.43
+  % 20120411_02_011: 71.268854 N, -35.018644 E, X:103.098 km, Y:201.429 km, 2012-04-11 12:51:39.07
+  start = struct('lat', 71.225731,'lon', -35.540548);
+  stop = struct('lat', 71.268854, 'lon', -35.018644);
+  dist_min = 300;
+  
+  master_pass_idx = 8;
+  input_type = 'sar';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
+
+  % Initial line:
+  % 2011: 20110426_11_005: No, raw data on tape
+  % 2012: 20120411_02_009 and 010: No, raw data on tape
+  % 2014: 20140410_01_057: No, raw data on tape
+  % 2017: 20170506_01_057: No, raw data on Indiana University tape
+  % 2018: 20180501_01_051 and 052: Yes, copying to KU right now (data are online at Indiana University HPC facility)
+  %
+  % Additional data to capture physical signals of interest
+  % 2011: 20110426_11_006 and 007
+  % 2012: 20120411_02_007 and 008
+  % 2014: 20140410_01_058 and 059
+  % 2017: 20170506_01_058 and 059
+  % 2018: 20180501_01_053 and 054 and 055
+  
+  param_fn = 'rds_param_2018_Greenland_P3.xls';
+  for adc = [1:4,6:16]
+    passes(end+1) = struct('day_seg','20180501_01','frms',[51],'param_fn',param_fn, ...
+      'in_path','','imgs',{{[1 adc], [3 adc], [5 adc]}});
+  end
+  for adc = [1:4,6:16]
+    passes(end+1) = struct('day_seg','20180501_01','frms',[51],'param_fn',param_fn, ...
+      'in_path','','imgs',{{[2 adc], [4 adc], [6 adc]}});
+  end
+  
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   for adc = 2:16
+%     passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+%   end
+%   
+%   param_fn = 'rds_param_2012_Greenland_P3.xls';
+%   for adc = 2:16
+%     passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+%   end
+%   
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   for adc = 2:16
+%     passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
+%   end
+%   
+%   param_fn = 'rds_param_2017_Greenland_P3.xls';
+%   for adc = 2:16
+%     passes(end+1) = struct('day_seg','20170506_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
+%   end
 end
 
 %% Automated section
