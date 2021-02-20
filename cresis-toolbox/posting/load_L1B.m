@@ -181,8 +181,26 @@ if isfield(mdata,'param_combine_wf_chan')
   mdata.param_array.array = mdata.param_combine_wf_chan;
   mdata = rmfield(mdata,'param_combine_wf_chan');
   
+  if isfield(mdata.param_array.array,'array')
+    warning('Very old file format. Fixing array field.');
+    tmp_array = mdata.param_array.array.array;
+    mdata.param_array.array = rmfield(mdata.param_array.array,'array');
+    mdata.param_array.array = merge_structs(mdata.param_array.array,tmp_array);
+  end
   % Ensure param_records has standard 3 fields (some old files do not
   % have)
+  if ~isfield(mdata.param_sar,'day_seg')
+    warning('Very old file format. No day_seg field present for this L1B data.');
+    mdata.param_sar.day_seg = '';
+  end
+  if ~isfield(mdata.param_sar,'season_name')
+    warning('Very old file format. No season_name field present for this L1B data.');
+    mdata.param_sar.season_name = '';
+  end
+  if ~isfield(mdata.param_sar,'radar_name')
+    warning('Very old file format. No radar_name field present for this L1B data.');
+    mdata.param_sar.radar_name = '';
+  end
   mdata.param_records.day_seg = mdata.param_sar.day_seg;
   mdata.param_records.season_name = mdata.param_sar.season_name;
   mdata.param_records.radar_name = mdata.param_sar.radar_name;
