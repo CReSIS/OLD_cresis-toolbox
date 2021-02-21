@@ -117,6 +117,10 @@ params = ct_set_params(params,'cmd.frms',[1:5],'day_seg','20140401_03');
 % =========================================================================
 
 % -------------------------------------------------------------------------
+% 2013 Antarctica Basler
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140109_03');
+
+% -------------------------------------------------------------------------
 % 2014 Greenland P3
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140506_01');

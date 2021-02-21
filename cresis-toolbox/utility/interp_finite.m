@@ -76,6 +76,8 @@ end
 
 good_mask = interp_mask_fh(vals);
 
+input_complex_flag = ~isreal(vals); % See "Fix Matlab auto-complex/real check"
+
 if extrap_mode == 0
   %% For bad values at the beginning and end, use nearest neighbor interpolation
   for col = 1:ncols
@@ -101,7 +103,17 @@ if extrap_mode == 0
       good_mask(last_good:end,col) = 1;
       
       %% Use linear interpolation for everything in between
-      vals(~good_mask(:,col),col) = interp_fh(find(good_mask(:,col)),vals(good_mask(:,col)),find(~good_mask(:,col)));
+      vals(~good_mask(:,col),col) = interp_fh(find(good_mask(:,col)),vals(good_mask(:,col),col),find(~good_mask(:,col)));
+    end
+
+    %% Fix Matlab auto-complex/real check
+    % Because matlab tries to check if vals is real or complex after each
+    % assignment to vals and it does this by searching through the entire
+    % array, we force the first entry to be complex if we know vals is
+    % complex. We will fix the first entry at the end of this function.
+    if col == 1 && input_complex_flag
+      first_val = vals(1);
+      vals(1) = 1i;
     end
   end
   
@@ -109,8 +121,19 @@ else
   %% Interpolation and Extrapolation use interpolation function
   for col = 1:ncols
     vals(~good_mask(:,col),col) = interp_fh(find(good_mask(:,col)),vals(good_mask(:,col),col),find(~good_mask(:,col)));
+    
+    % See "Fix Matlab auto-complex/real check"
+    if col == 1 && input_complex_flag
+      first_val = vals(1);
+      vals(1) = 1i;
+    end
   end
   
+end
+
+% See "Fix Matlab auto-complex/real check"
+if input_complex_flag && ncols >= 1
+  vals(1) = first_val;
 end
 
 if ~exist('dim','var') || isempty(dim)

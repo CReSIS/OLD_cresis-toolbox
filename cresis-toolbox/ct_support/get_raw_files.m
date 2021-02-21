@@ -7,11 +7,11 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,r
 %  .season_name: string containing season name (e.g. '2012_Greenland_P3')
 %  .day_seg: string containing the day segment (e.g. '20170412_01'). This
 %    is not required if frm_id is a string with the day_seg in it.
-% imgs: a cell array of wf-adc pair lists
 % frm_id: One of these options:
 %   1. string containing frame id (e.g. '20120514_01_317')
 %   2. an integer containing the frame number (param.day_seg must be passed
 %   in)
+% imgs: a cell array of wf-adc pair lists
 % rec_range: Specifies a range of records to load in. The units specified by
 %   rec_range_type. Only the first and last element of rec_range are used.
 % rec_range_type: String containing 'gps_time' or 'records'. Default is

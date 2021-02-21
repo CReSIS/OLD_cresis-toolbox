@@ -144,14 +144,8 @@ if param_array.array.tomo_en
 else
   error('param_array.array.tomo_en is false for the input file, tomography should be enabled during array process in order to run tomo.collate.');
 end
-
-load_param = [];
-for idx = 1:length(param_array.array.imgs)
-  load_param.imgs{idx} = param_array.array.imgs{idx}{1};
-end
-[wfs,~] = data_load_wfs(setfield(param,'load',load_param),records);
-
-% [wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',param_array.array.imgs)),records);
+param.load.imgs = param_array.array.imgs;
+[wfs,~] = data_load_wfs(param,records);
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
   for v_img = 1:length(param.tomo_collate.imgs)
     for h_img = 1:length(param.tomo_collate.imgs{v_img})
