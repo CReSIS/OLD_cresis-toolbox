@@ -39,7 +39,7 @@ if param.tomo_collate.add_icemask_surfacedem_flag
     mdata = load(combined_fn);
   end
   
-  mdata = tomo.add_icemask_surfacedem(param, mdata);
+  mdata = tomo.add_dem_icemask(param, mdata);
   
   fprintf('  Done (%s)\n', datestr(now));
 end
