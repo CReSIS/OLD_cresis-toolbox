@@ -1,5 +1,5 @@
-function create_surfdata(param,mdata)
-% tomo.create_surfdata(param,mdata)
+function track_surface(param,mdata)
+% tomo.track_surface(param,mdata)
 %
 % Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
@@ -7,7 +7,7 @@ function create_surfdata(param,mdata)
 %
 % Inputs:
 % param: struct from parameter spreadsheet
-%  .tomo_collate: struct which control create_surfdata
+%  .tomo_collate: struct which control track_surface
 %   .out_dir: ct_filename_out directory to which output
 %     surfData will be exported. Default is surfData.
 %   .layer_params: opsLoadLayers parameter struct array. The first element
@@ -60,7 +60,7 @@ function create_surfdata(param,mdata)
 %   NONE
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.track_surface,
 %
 % Author: John Paden, Jordan Sprick, Mingze Xu, and Victor Berger
 
