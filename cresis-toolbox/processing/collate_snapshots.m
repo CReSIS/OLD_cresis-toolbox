@@ -179,13 +179,18 @@ for frm_idx = 1:length(param.cmd.frms)
       if ~isempty(layer)
         surface = interp_finite(interp1(layer.gps_time,layer.twtt,GPS_time));
         multiple = 2*surface;
-        for rline_idx = 1:Nx
+        rlines = 1:Nx;
+        bad_rlines = rlines(multiple > Time(end));
+        good_rlines = rlines(multiple < Time(end));
+%         Tomo.surf_multiple_mask(:,multiple < Time(end)) = false;
+        for rline_idx = 1:length(good_rlines)
+          rline = good_rlines(rline_idx);
 %           surf_bin = round(interp_finite(interp1(Time,1:Nt,surface(rline_idx))));
 %           surf_bins = surf_bin + [-param.collate_snapshots.multiple_guard_bins:param.collate_snapshots.multiple_guard_bins];
-          multiple_bin = round(interp_finite(interp1(Time,1:Nt,multiple(rline_idx))));
+          multiple_bin = round(interp_finite(interp1(Time,1:Nt,multiple(rline))));
           multiple_bins = multiple_bin + [-param.collate_snapshots.multiple_guard_bins:param.collate_snapshots.multiple_guard_bins];
           if min(multiple_bins) > 1 & max(multiple_bins) < Nt
-            Tomo.surf_multiple_mask(multiple_bins,rline_idx) = false;
+            Tomo.surf_multiple_mask(multiple_bins,rline) = false;
           end
 % 
 %           if min(surf_bins) > 1 & max(surf_bins) < Nt

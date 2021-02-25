@@ -678,6 +678,14 @@ for img = 1:length(param.array.imgs)
 %       end
       load(lut_fn,'sv','doa','param_estimate_sv_lut');
       
+      if isfield(param.array,'sv_lut_method') & ~isempty(param.array.sv_lut_method)
+        if length(sv) > 1
+          sv_idx = find(strcmpi({sv.method},param.array.sv_lut_method)==true);
+          sv = sv(sv_idx).manifold;
+          sv = transpose(sv);
+        end
+      end
+      
       lut_sv = nan(length(doa),size(param.array.imgs{img}{1}(:,1),1));
       
       wf = param.array.imgs{img}{1}(1,1);
