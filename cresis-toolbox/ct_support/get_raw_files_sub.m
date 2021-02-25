@@ -71,7 +71,7 @@ for idx = 1:length(boards)
   else
     for fn_idx = 1:length(load_info.filenames{idx})
       % Get the file's name
-      fn_name = records.relative_filename{board_idx(idx)}{fn_idx};
+      fn_name = load_info.filenames{idx}{fn_idx};
       [fn_dir] = get_segment_file_list(param,board_idx(idx));
       fn = fullfile(fn_dir,fn_name);
       %fprintf('%s\n', fn);
