@@ -47,7 +47,7 @@ classdef surfdata < handle
     % param.load.frm: integer scalar containing the frame number
     % param.radar.lever_arm_fh: lever arm function handle used to create trajectories
     % param.radar_name: string containing the radar name
-    % param.records.gps.time_offset: Time offset used when syncing radar records to GPS 
+    % param.records.gps.time_offset: Time offset used when syncing radar records to GPS
     % param.season_name: string containing the season name
     % param.sw_version: software version structure from current_software_version.m
     param
@@ -79,8 +79,8 @@ classdef surfdata < handle
     %      value indicates no data at this point
     surf
     
-    theta % Support legacy "bins" unit format 
-    time % Support legacy "bins" unit format 
+    theta % Support legacy "bins" unit format
+    time % Support legacy "bins" unit format
     
     unit_type
   end
@@ -168,7 +168,7 @@ classdef surfdata < handle
       
       obj.unit_type = 'standard';
     end
-
+    
     function adjust_surf(obj, dbin, surface_name_string)
       %% adjust_surf
       % obj.adjust_surf(dbin)
@@ -200,7 +200,7 @@ classdef surfdata < handle
       end
       
     end
-
+    
     function surf_idx = get_index(obj, surf_name, error_on_fail)
       %% get_index
       % obj.get_index(surf_name, error_on_fail)
@@ -247,7 +247,7 @@ classdef surfdata < handle
         end
       end
     end
-     
+    
     function surf_names = get_names(obj)
       %% get_names
       % surf_names = get_names(obj)
@@ -264,7 +264,7 @@ classdef surfdata < handle
         surf_names = {};
       end
     end
-            
+    
     function surf = get_surf(obj, surf_name)
       %% get_surf
       % surf = obj.get_surf(surf_name)
@@ -390,7 +390,7 @@ classdef surfdata < handle
       
       obj.surf = [obj.surf(1:match_idx-1) obj.surf(match_idx+1:end)];
     end
-      
+    
     function set(obj, surf_name, varargin)
       %% set
       % obj.set(surf_name, NAME_VALUE_PAIRS)
@@ -486,7 +486,7 @@ classdef surfdata < handle
       match_idx = obj.get_index(surf_struct.name,true);
       obj.surf(match_idx) = surf_struct;
     end
- 
+    
     function [] = save_surfdata(obj, fn)
       %% save_surfdata
       % obj.save_surfdata(fn)
@@ -540,7 +540,7 @@ classdef surfdata < handle
       ct_save(fn, 'fcs', 'file_type', 'file_version', 'gps_source', 'gps_time', ...
         'param', 'surf', '-v7.3');
     end
-
+    
     function units(obj, unit_type)
       %% units(unit_type)
       %
@@ -656,7 +656,7 @@ classdef surfdata < handle
       end
       
     end
-
+    
     function [] = valid_surf(obj, surf_struct)
       %% valid_surf
       % obj.valid_surf(surf_struct)
@@ -803,15 +803,135 @@ classdef surfdata < handle
         %       if any(isnan(ref.y(:))) || any(isnan(other.y(:)))
         %         keyboard
         %       end
-      end
-      
-      surf_diff = abs(other.y(1+DOA_trim(1):end-DOA_trim(end)+1,:) ...
+      end        
+
+      surf_diff = (other.y(1+DOA_trim(1):end-DOA_trim(end)+1,:) ...
         - ref.y(1+DOA_trim(1):end-DOA_trim(end)+1,:));
       rmse        = sqrt(nanmean(abs(surf_diff(:)).^2));
       mean_diff   = nanmean(surf_diff(:));
       median_diff = nanmedian(surf_diff(:));
       min_diff    = nanmin(surf_diff(:));
       max_diff    = nanmax(surf_diff(:));
+    end
+    
+    function [rmse,mean_diff,median_diff,min_diff,max_diff,surf_diff] ...
+        = compare_doa(obj, ref, sd_other, other, DOA_trim,fs)
+      % [rmse,mean_diff,median_diff,min_diff,max_diff,surf_diff] ...
+      %   = tomo.compare(ref, sd_other, other)
+      %
+      % Compares one of the surfaces in this object to a surface in another
+      % surfdata object.
+      %
+      % ref: reference layer (get_surf's surf_name argument)
+      % sd_other: another surfdata object to compare to (can also be this
+      %   surfdata object)
+      % other: layer to compare (get_surf's surf_name argument)
+      % DOA_trim:
+      %
+      % rmse: root mean squared error of difference
+      % mean_diff: mean of the absolute value of the difference
+      % median_diff: median of the absolute value of the difference
+      % min_diff: minimum of the absolute value of the difference
+      % max_diff: maximum of the absolute value of the difference
+      % surf_diff: ansolute vlaue difference matrix
+      %
+      % See also: tomo.run_compare_surfdata, tomo.compare_surfdata,
+      %   tomo.surfdata
+           last_fprintf_time = -inf;
+
+      ref = obj.get_surf(ref);
+      other = sd_other.get_surf(other);
+      
+      if 1
+        quality_mtx_ref = obj.surf(other.quality).y;
+        quality_mtx_other = sd_other.surf(other.quality).y;
+        
+        bad_doa_mask_ref = abs(ref.x) > 80*pi/180;
+        bad_doa_mask_other = abs(other.x) > 80*pi/180;
+        
+        bad_idx_ref = find(quality_mtx_ref==0);
+        bad_idx_other = find(quality_mtx_other==0);
+        
+        ref.y(bad_idx_ref) = NaN;
+        other.y(bad_idx_ref) = NaN;
+        ref.y(bad_doa_mask_ref) = NaN;
+        other.y(bad_doa_mask_other) = NaN;
+        
+        ref.y(bad_idx_other) = NaN;
+        other.y(bad_idx_other) = NaN;
+        %       if any(isnan(ref.y(:))) || any(isnan(other.y(:)))
+        %         keyboard
+        %       end
+      end
+      
+      Td_max = max([max(ref.y(:)), max(other.y(:))]);
+      Nt = ceil(Td_max*fs);
+      [Nsv,Nx] = size(ref.y);
+      
+      twtt = (0:Nt-1)./fs;
+      
+      doa_error = [];
+      doa_val = [];
+      for rline = 1:Nx
+        
+        if now > last_fprintf_time+60/86400
+          fprintf('    Along track: %2.1f (%.0f of %.0f) (%s)\n', rline, rline, Nx, datestr(now));
+          last_fprintf_time = now;
+          last_fprintf_time_bin = now;
+        end
+        
+        ref_theta = nan(Nt,0);
+        other_theta = nan(Nt,0);
+        
+        x1_ref = ref.x(:,rline);
+        y1_ref = ref.y(:,rline);
+        
+        x1_other = other.x(:,rline);
+        y1_other = other.y(:,rline);
+        
+        x1_ref = x1_ref(:);
+        y1_ref = y1_ref(:).';
+        
+        
+        x1_other = x1_other(:);
+        y1_other = y1_other(:).';
+        
+        for rbin_idx = 1:length(twtt)
+          x2_ref = x1_ref;
+          y2_ref = twtt(rbin_idx)*ones(size(y1_ref));
+          x2_other = x1_other;
+          y2_other = twtt(rbin_idx)*ones(size(y1_other));
+          [bin_theta_ref,y0_ref,~,~] = intersections(x1_ref,y1_ref,x2_ref,y2_ref);
+          [bin_theta_other,y0_other,~,~] = intersections(x1_other,y1_other,x2_other,y2_other);
+          
+          nsrc_ref = length(bin_theta_ref(~isnan(bin_theta_ref)));
+          nsrc_other = length(bin_theta_other(~isnan(bin_theta_other)));
+          
+          if nsrc_ref == nsrc_other & all([nsrc_ref, nsrc_other])  
+            
+            good_ref = sort(bin_theta_ref(~isnan(bin_theta_ref)));
+            good_other = sort(bin_theta_other(~isnan(bin_theta_ref)));
+            
+            er_doa = good_ref - good_other;
+            doa_truth = good_ref;
+            
+            doa_error = [doa_error, er_doa(:).'];
+            doa_val  = [doa_val, doa_truth(:).'];
+          end
+ 
+        end
+
+   
+      
+%         surf_diff = abs(other.y(1+DOA_trim(1):end-DOA_trim(end)+1,:) ...
+%           - ref.y(1+DOA_trim(1):end-DOA_trim(end)+1,:));
+%         rmse        = sqrt(nanmean(abs(surf_diff(:)).^2));
+%         mean_diff   = nanmean(surf_diff(:));
+%         median_diff = nanmedian(surf_diff(:));
+%         min_diff    = nanmin(surf_diff(:));
+%         max_diff    = nanmax(surf_diff(:));
+      end
+      keyboard
     end
     
   end
@@ -904,7 +1024,7 @@ classdef surfdata < handle
       %% run_update_file
       
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'');
-%       params = ct_set_params(params,'cmd.generic',0);
+      %       params = ct_set_params(params,'cmd.generic',0);
       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
       param_override.cmd.frms = [2 3 4];
       
@@ -915,16 +1035,16 @@ classdef surfdata < handle
       param_override.update.input = 'surfData_sar';
       param_override.update.output = 'surf_sar';
       param_override.update.echogram = 'standard_air';
-%       param_override.update.echogram = 'CSARP_post/standard';
+      %       param_override.update.echogram = 'CSARP_post/standard';
       
-%       params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
-%       params = ct_set_params(params,'cmd.generic',0);
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
-%       param_override.cmd.frms = [];
-%       param_override.update.input = 'surfData_paden';
-%       param_override.update.output = 'surfData_paden2';
-%       param_override.update.echogram = 'music3D_paden';
-%       
+      %       params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
+      %       params = ct_set_params(params,'cmd.generic',0);
+      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20200107_01');
+      %       param_override.cmd.frms = [];
+      %       param_override.update.input = 'surfData_paden';
+      %       param_override.update.output = 'surfData_paden2';
+      %       param_override.update.echogram = 'music3D_paden';
+      %
       global gRadar;
       
       % Input checking
@@ -951,7 +1071,7 @@ classdef surfdata < handle
           fn = fullfile(ct_filename_out(param,param.update.input,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
           fn_cur_ver = fullfile(ct_filename_out(param,param.update.output,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
           echogram_fn = fullfile(ct_filename_out(param,param.update.echogram,''),sprintf('Data_img_01_%s_%03d.mat',param.day_seg,frm));
-%           echogram_fn = fullfile(ct_filename_out(param,param.update.echogram,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+          %           echogram_fn = fullfile(ct_filename_out(param,param.update.echogram,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
           fprintf('Update\n  %s\n  %s\n', fn, echogram_fn);
           tomo.surfdata.update_file(fn,fn_cur_ver,echogram_fn);
         end
@@ -997,7 +1117,7 @@ classdef surfdata < handle
         surf_new.fcs.z = tmp.param.array_param.fcs.z;
         
         surf_new.gps_source = tmp.param_records.gps_source;
-                
+        
         surf_new.gps_time = tmp.GPS_time;
         
         surf_new.param.day_seg = surf_old.day_seg;
@@ -1060,7 +1180,7 @@ classdef surfdata < handle
         surf_new.fcs = surf_old.FCS;
         
         surf_new.gps_source = tmp.param_records.gps_source;
-                
+        
         surf_new.gps_time = surf_old.gps_time;
         
         surf_new.param.day_seg = surf_old.day_seg;
@@ -1174,8 +1294,8 @@ classdef surfdata < handle
       % param:  struct with processing parameters or function handle to
       % script with processing parameters
       %   .add_surf_from_dem.delta_at = along track decimation factor
-      %   .add_surf_from_dem.theta_vec 
-      %   .add_surf_from_dem.dem_res 
+      %   .add_surf_from_dem.theta_vec
+      %   .add_surf_from_dem.dem_res
       %
       % param_override: parameters in this struct override parameters in
       % param.  This struct must also contain the gRdar fields.
@@ -1241,7 +1361,7 @@ classdef surfdata < handle
       
       if ~isfield(param.add_surf_from_dem,'delta_at') || isempty(param.add_surf_from_dem.delta_at)
         param.add_surf_from_dem.delta_at = 10;
-      end      
+      end
       
       if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isempty(param.add_surf_from_dem.ice_mask_fn)
         param.add_surf_from_dem.ice_mask_fn = [];
@@ -1271,7 +1391,7 @@ classdef surfdata < handle
       % =====================================================================
       
       % Load in sar coordinates file
-
+      
       sar_coord_fn = fullfile(ct_filename_out(param,param.add_surf_from_dem.in_path,''),'sar_coord.mat')
       sar_coord = load(sar_coord_fn);
       
@@ -1296,7 +1416,7 @@ classdef surfdata < handle
         
         
         % The following is for Debug only
-%         res(2) = recs(1) + 2000;
+        %         res(2) = recs(1) + 2000;
         
         % Find gps at frame boundaries and use this to mask out FCS of a
         % frame
@@ -1421,8 +1541,8 @@ classdef surfdata < handle
           title('ArcticDEM 20140325 07 002','FontSize',18,'Interpreter','latex')
           xlim([-880 -810]);
           ylim([-830 -750]);
-%           out_fn1 = 'arctic_dem_20140325_07_002.fig';
-%           savefig(10,out_fn1);
+          %           out_fn1 = 'arctic_dem_20140325_07_002.fig';
+          %           savefig(10,out_fn1);
           
           figure(2);clf;
           % Convert DEM ecef points to geodetic
@@ -1436,8 +1556,8 @@ classdef surfdata < handle
           title('Ice Mask 20140325 07 002','FontSize',18,'Interpreter','latex')
           xlim([-880 -810]);
           ylim([-830 -750]);
-%            out_fn2 = 'ice_mask_20140325_07_002.fig';
-%           savefig(2,out_fn2);      
+          %            out_fn2 = 'ice_mask_20140325_07_002.fig';
+          %           savefig(2,out_fn2);
         end
         
         DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
@@ -1461,7 +1581,7 @@ classdef surfdata < handle
         DEM_coverage_warning = false;
         
         for rline = 1:Nx
-%         for rline = 1:1
+          %         for rline = 1:1
           if ~mod(rline-1,10^floor(log10(Nx)-1))
             fprintf('  %s %d of %d (%s)\n', mfilename, rline, Nx, datestr(now));
           end
@@ -1542,7 +1662,7 @@ classdef surfdata < handle
                 twtt(theta_idx,rline) = NaN;
                 intersection(:,theta_idx) = NaN;
               else
-%                 twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+                %                 twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
                 twtt(theta_idx,rline) = t(intersect_idx(1))/(c/2);
                 intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
               end
@@ -1658,8 +1778,8 @@ classdef surfdata < handle
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%       params = ct_set_params(params,'cmd.frms',[29:34]);
+      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      %       params = ct_set_params(params,'cmd.frms',[29:34]);
       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
       params = ct_set_params(params,'cmd.frms',[2]);
       %       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
@@ -1671,12 +1791,12 @@ classdef surfdata < handle
       params = ct_set_params(params, 'add_surf_from_dem.dem_guard', 30e3);
       params = ct_set_params(params, 'add_surf_from_dem.delta_at',10);
       %       params = ct_set_params(params, 'add_surf_from_dem.dem_per_slice_guard', 500e3);
-%       params = ct_set_params(params, 'add_surf_from_dem.surf_out_path', 'surfData_test');
-
-
+      %       params = ct_set_params(params, 'add_surf_from_dem.surf_out_path', 'surfData_test');
+      
+      
       param_override.add_surf_from_dem.in_path = 'sar_air';
-%       param_override.update.output = 'surf_sar';
-%       param_override.update.echogram = 'standard_air';
+      %       param_override.update.output = 'surf_sar';
+      %       param_override.update.echogram = 'standard_air';
       
       % Automated Section
       % =========================================================================

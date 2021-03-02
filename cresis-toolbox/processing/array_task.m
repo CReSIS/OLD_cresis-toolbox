@@ -666,25 +666,31 @@ for img = 1:length(param.array.imgs)
       elseif isfield(param.array, 'lut_day_seg') && ~isempty(param.array.lut_day_seg)
         lut_dir = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),param.array.lut_day_seg);
         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.array.lut_day_seg));
-      else      
+      else
         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
       end
-%       if strcmpi(param.array.sv_lut_path,'estimate_sv_lut')
-%         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
-%         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
-%       else
-%         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
-%       end
-      load(lut_fn,'sv','doa','param_estimate_sv_lut');
+      %       if strcmpi(param.array.sv_lut_path,'estimate_sv_lut')
+      %         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
+      %         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
+      %       else
+      %         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
+      %       end
+      load(lut_fn,'sv','doa','param_cal_array_manifold');
       
       if isfield(param.array,'sv_lut_method') & ~isempty(param.array.sv_lut_method)
         if length(sv) > 1
           sv_idx = find(strcmpi({sv.method},param.array.sv_lut_method)==true);
           sv = sv(sv_idx).manifold;
-          sv = transpose(sv);
         end
       end
+      
+      % Check dimensionality
+      Nsv = length(doa);
+      N1 = size(sv,1);
+      if N1 < Nsv
+        sv = transpose(sv);
+      end      
       
       lut_sv = nan(length(doa),size(param.array.imgs{img}{1}(:,1),1));
       
@@ -693,7 +699,7 @@ for img = 1:length(param.array.imgs)
         wf = param.array.imgs{img}{1}(wf_adc,1);
         adc = param.array.imgs{img}{1}(wf_adc,2);
         rx = param.radar.wfs(wf).rx_paths(adc);
-        rx_lut_index = find(param_estimate_sv_lut.rx_list == rx);
+        rx_lut_index = find(param_cal_array_manifold.rx_list == rx);
         if ~isempty(rx_lut_index)
           lut_sv(:,wf_adc) = sv(:,rx_lut_index);
         end

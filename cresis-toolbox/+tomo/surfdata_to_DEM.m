@@ -319,7 +319,9 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Create a constrained delaunay triangulization that forces edges
     % along the boundary (concave_hull) of our swath
+    sd.surf(quality_idx).y(:) = 1;
     good_mask = isfinite(points.x) & isfinite(points.y) & isfinite(points.elev) & sd.surf(quality_idx).y(DOA_trim+1:end-DOA_trim,:);
+    
     if 0
       % This method only handles a single object/region
       row = find(good_mask,1);
