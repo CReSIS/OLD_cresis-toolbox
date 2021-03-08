@@ -81,10 +81,14 @@ param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
 
 gaps_dist = [100 30];
 
+% surface_source: location of surface information (used in elevation
+% compensation). For example:
+%  struct('name','surface','source','layerdata', 'layerdata_source','layer')
+%  struct('name','surface','source','ops')
 surface_source = struct('name','surface','source','layerdata', 'layerdata_source','layer'); % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
-%   '': combined product, 'img_01_', , 'img_02_'
+%   '': combined product, 'img_01_': image 1, , 'img_02_': image 2, etc.
 param.img_name = '';
 
 if echo_param.elev_comp == 3
@@ -508,9 +512,9 @@ for param_idx = 1:length(params)
   master.Elevation = ds.Elevation;
 
   if ds.Latitude<0
-    ds.param_records.post.location = 'antarctic';
+    ds.param_records.post.ops.location = 'antarctic';
   else
-    ds.param_records.post.location = 'arctic';
+    ds.param_records.post.ops.location = 'arctic';
   end
   
   global gRadar;

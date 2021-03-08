@@ -64,10 +64,11 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   else
     copy_param.layer_source.source = 'lidar';
     copy_param.layer_source.lidar_source = 'awi';
+    copy_param.layer_source.lever_arm_en = true;
   end
 
   if 1
-    copy_param.copy_method = 'overwrite';
+    copy_param.copy_method = 'overwrite'; % default
   elseif 0
     copy_param.copy_method = 'fillgaps';
   else
@@ -163,15 +164,36 @@ end
 %% Automated Section
 % =====================================================================
 
-%% Load each of the day segments
 global gRadar;
+
+% Input checking
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
+
+%% Copy layers for each of the enabled segments
+failed_segments = [];
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
-  param = merge_structs(param,gRadar);
-  fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
-  opsCopyLayers(param,copy_param);
+  param = merge_structs(param,param_override);
+  fprintf('opsCopyLayers %s from %s:%s to %s:%s (%s)\n', param.day_seg, copy_param.layer_source.source, copy_param.layer_source.name, copy_param.layer_dest.source, copy_param.layer_dest.name, datestr(now));
+  try
+    opsCopyLayers(param,copy_param);
+  catch ME
+    failed_segments(end+1).param_idx = param_idx;
+    failed_segments(end).report = ME.getReport;
+    failed_segments(end).message = ME.message;
+    %keyboard
+  end
   fprintf('  Complete (%s)\n', datestr(now));
+end
+
+for failed_idx = 1:length(failed_segments)
+  fprintf('%s: %s\n', params(failed_segments(failed_idx).param_idx).day_seg, ...
+    failed_segments(failed_idx).message);
 end

@@ -132,9 +132,9 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_convert([],obj);
+obj.tool.list{end+1} = imb.picktool_copy([],obj);
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click and drag: Converts selected layers to the specified layer
+% Left click and drag: Copy source layers to the selected layers
 %   Deletes all previous points in range
 % Right click: Set cursor point
 % Right click and drag: Nothing
@@ -482,7 +482,7 @@ else
 end
 set(obj.right_panel.status_panel.statusText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.statusText,'String','');
-set(obj.right_panel.status_panel.statusText,'TooltipString','Right click to copy status bar text');
+set(obj.right_panel.status_panel.statusText,'TooltipString','Right click or ctrl-C to copy status bar text. Status bar text shows time and location at cursor; shows layer depth if a layer is selected.');
 
 % mouse coordinate info display
 obj.right_panel.status_panel.mouseCoordText = uicontrol('parent',obj.right_panel.status_panel.handle);
@@ -495,7 +495,7 @@ else
 end
 set(obj.right_panel.status_panel.mouseCoordText,'HorizontalAlignment','left');
 set(obj.right_panel.status_panel.mouseCoordText,'String','');
-set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Latitude deg, Longitude deg (X, Y, ColorData)');
+set(obj.right_panel.status_panel.mouseCoordText,'TooltipString','Frame Latitude (deg, N) Longitude (deg, W) |X-coordinate|Y-coordinate|Z-coordinate/intensity.');
 
 %----echogram context menu
 obj.right_panel.echoCM= uicontextmenu('parent',obj.h_fig);
@@ -515,7 +515,7 @@ obj.right_panel.status_panel.table.width_margin(row,col)  = 0;
 obj.right_panel.status_panel.table.height_margin(row,col) = 0;
 row = 1; col = 2;
 obj.right_panel.status_panel.table.handles{row,col}       = obj.right_panel.status_panel.mouseCoordText;
-obj.right_panel.status_panel.table.width(row,col)         = 200;
+obj.right_panel.status_panel.table.width(row,col)         = 250;
 obj.right_panel.status_panel.table.height(row,col)        = inf;
 obj.right_panel.status_panel.table.width_margin(row,col)  = 0;
 obj.right_panel.status_panel.table.height_margin(row,col) = 0;

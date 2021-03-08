@@ -1,6 +1,13 @@
 % script layer_tracker_input_check
 %
-% Support function for layer_tracker.m
+% Support function for layer_tracker.m and layer_tracker_task.m that checks
+% the inputs.
+%
+% Authors: Anjali Pare, John Paden
+%
+% See also: layer_tracker.m, layer_tracker_combine_task.m,
+% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
+% run_layer_tracker_tune.m
 
 %% Input Checks: layer_tracker
 % =====================================================================
@@ -65,6 +72,9 @@ end
 if ~isfield(param.layer_tracker.layer_params,'source') || isempty(param.layer_tracker.layer_params.source)
   param.layer_tracker.layer_params.source = 'layerdata';
 end
+if ~any(strcmpi(param.layer_tracker.layer_params.source,{'ops','layerdata','lidar','records','echogram'}))
+  error('Unsupported output param.layer_tracker.layer_params.source = ''%s'', but must be one of ''ops'',''layerdata'',''lidar'',''records'',''echogram''.', param.layer_tracker.layer_params.source);
+end
 if ~isfield(param.layer_tracker.layer_params,'layerdata_source') || isempty(param.layer_tracker.layer_params.layerdata_source)
   param.layer_tracker.layer_params.layerdata_source = 'layer';
 end
@@ -84,11 +94,21 @@ if ~isfield(param.layer_tracker,'surf_layer') || isempty(param.layer_tracker.sur
   param.layer_tracker.surf_layer = [];
 end
 
+%  .track_per_task: Positive integer specifying the number of tracks to
+%  process per cluster task. Default is inf which means each task will
+%  process all of the specified param.layer_tracker.track{:} commands.
+if ~isfield(param.layer_tracker,'track_per_task') || isempty(param.layer_tracker.track_per_task)
+  param.layer_tracker.track_per_task = inf;
+end
+
 %% Input Checks: layer_tracker.track field
 % ======================================================================
 
 if ~isfield(param.layer_tracker,'track') || isempty(param.layer_tracker.track)
   param.layer_tracker.track = {};
+end
+if isstruct(param.layer_tracker.track)
+  param.layer_tracker.track = {param.layer_tracker.track};
 end
 
 for track_idx = 1:length(param.layer_tracker.track)
@@ -112,13 +132,29 @@ for track_idx = 1:length(param.layer_tracker.track)
     continue;
   end
   
+  %  .compress: double scalar (default is empty), empty matrix disables,
+  %  compress values to a limited range from [0 to .compress]
+  if ~isfield(track,'compress') || isempty(track.compress)
+    track.compress = [];
+  end
+  
   %  .crossover: struct controlling crossover loading
   if ~isfield(track,'crossover') || isempty(track.crossover)
     track.crossover = [];
   end
+  %  .crossover.cutoff: scalar integer, default is 50, layer may go plus or
+  %  minus this many bins from the crossover ground truth
+  if ~isfield(track.crossover,'cutoff') || isempty(track.crossover.cutoff)
+    track.crossover.cutoff = 50;
+  end
   %  .crossover.en: enable loading of crossovers
   if ~isfield(track.crossover,'en') || isempty(track.crossover.en)
     track.crossover.en = false;
+  end
+  %  .crossover.gps_time_good_eval: function which returns good/bad based
+  %  on crossover gps time.
+  if ~isfield(track.crossover,'gps_time_good_eval') || isempty(track.crossover.gps_time_good_eval)
+    track.crossover.gps_time_good_eval = @(x) true;
   end
   %  .crossover.name: layer name to load crossovers for
   if ~isfield(track.crossover,'name') || isempty(track.crossover.name)
@@ -128,11 +164,6 @@ for track_idx = 1:length(param.layer_tracker.track)
   %  not include in crossovers
   if ~isfield(track.crossover,'season_names_bad') || isempty(track.crossover.season_names_bad)
     track.crossover.season_names_bad = {};
-  end
-  %  .crossover.gps_time_good_eval: function which returns good/bad based
-  %  on crossover gps time.
-  if ~isfield(track.crossover,'gps_time_good_eval') || isempty(track.crossover.gps_time_good_eval)
-    track.crossover.gps_time_good_eval = @(x) true;
   end
   
   if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
@@ -155,6 +186,17 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.detrend = [];
   end
   
+  %  .emphasize_last: structure controlling emphasize last bins, default is
+  %  empty which disables
+  %
+  %  .emphasize_last.threshold: scalar threshold value
+  %
+  %  .emphasize_last.shift: scalar integer representing the number of bins
+  %  to shift the emphasis scaling (usually a negative)
+  if ~isfield(track,'emphasize_last') || isempty(track.emphasize_last)
+    track.emphasize_last = [];
+  end
+    
   if ~isfield(track,'feedthru') || isempty(track.feedthru)
     track.feedthru = [];
   end
@@ -178,6 +220,33 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.fixed_value = 0;
   end
   
+  %  .ground_truth: struct controlling ground truth loading
+  if ~isfield(track,'ground_truth') || isempty(track.ground_truth)
+    track.ground_truth = [];
+  end
+  %  .ground_truth.en: enable loading of ground truth
+  if ~isfield(track.ground_truth,'en') || isempty(track.ground_truth.en)
+    track.ground_truth.en = false;
+  end
+  %  .ground_truth.layers: layer struct array to load ground truth from
+  if ~isfield(track.ground_truth,'layers') || isempty(track.ground_truth.layers)
+    track.ground_truth.layers = [];
+  end
+  %  .ground_truth.cutoff: integer vector the same length as
+  %  .ground_truth.layers, default is 100, layer may go plus or minus this
+  %  many bins from the ground truth
+  if ~isfield(track.ground_truth,'cutoff') || isempty(track.ground_truth.cutoff)
+    track.ground_truth.cutoff = 50;
+  end
+  if length(track.ground_truth.cutoff) == 1
+    % If only 1 element specified, then assume the same cutoff should be
+    % used for all ground truth layers.
+    track.ground_truth.cutoff = track.ground_truth.cutoff*ones(size(track.ground_truth.layers));
+  end
+  if numel(track.ground_truth.layers) ~= numel(track.ground_truth.cutoff)
+    error('The number of ground truth layers must match the number of elements in the cutoff vector. numel(track.ground_truth.layers)=%d ~= numel(track.ground_truth.cutoff)=%d.',numel(track.ground_truth.layers),numel(track.ground_truth.cutoff));
+  end
+  
   %  .ice_mask: struct controlling ice mask loading
   if ~isfield(track,'ice_mask') || isempty(track.ice_mask)
     track.ice_mask = [];
@@ -198,6 +267,10 @@ for track_idx = 1:length(param.layer_tracker.track)
   end
   if ~isfield(track.init,'dem_layer') || isempty(track.init.dem_layer)
     track.init.dem_layer = '';
+  end
+  if isfield(track.init.dem_layer,'source') ...
+      && ~any(strcmpi(track.init.dem_layer.source,{'ops','layerdata','lidar','records','echogram'}))
+    error('Unsupported output track.init.dem_layer.source = ''%s'', but must be one of ''ops'',''layerdata'',''lidar'',''records'',''echogram''.', track.init.dem_layer.source);
   end
   if ~any(strcmpi(track.init.method,{'max','nan','snake','medfilt','dem'}))
     error('Unsupported surface init method %s. Options are max, nan, snake, medfilt, or dem. max is default.', track.init.method);
@@ -282,10 +355,6 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.name = sprintf('t%03d', track_idx);
   end
   
-  if ~isfield(track,'track_per_task') || isempty(track.track_per_task)
-    track.track_per_task = inf;
-  end
-  
   if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
     track.prefilter_trim = [0 0];
   end
@@ -303,12 +372,31 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.snake_rng = [-2e-7 2e-7];
   end
   
+  %  .surf_suppress: structure controlling surface suppression. Default is
+  %  []. Empty matrix disables surface suppression.
+  %
+  % .eval_cmd: evaluation
+  if ~isfield(track,'surf_suppress') || isempty(track.surf_suppress)
+    track.surf_suppress = [];
+  end
+  
   if ~isfield(track,'threshold') || isempty(track.threshold)
     track.threshold = 15;
   end
   
   if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
     track.threshold_noise_rng = [0 -inf -1];
+  end
+  
+  % viterbi: structure controlling operation of the viterbi method tracker
+  if ~isfield(track,'viterbi') || isempty(track.viterbi)
+    track.viterbi = [];
+  end
+  
+  % viterbi.transition_weight: controls the smoothness weighting, larger
+  % numbers cause the layer to be smoother
+  if ~isfield(track.viterbi,'transition_weight') || isempty(track.viterbi.transition_weight)
+    track.viterbi.transition_weight = 1;
   end
   
   param.layer_tracker.track{track_idx} = track;

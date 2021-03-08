@@ -1,5 +1,5 @@
-function [param,defaults] = default_radar_params_2019_Antarctica_Ground_mcords6
-% [param,defaults] = default_radar_params_2019_Antarctica_Ground_mcords6
+function [param,defaults] = default_radar_params_2019_Antarctica_Ground_rds
+% [param,defaults] = default_radar_params_2019_Antarctica_Ground_rds
 %
 % MCoRDS6: 2019_Antarctica_Ground
 %

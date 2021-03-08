@@ -26,13 +26,16 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-%% Input Checks
+%% Input Checks: cmd
 % =====================================================================
 
 if ~isempty(param.cmd.frms)
   warning('All frames are always processed with analysis, setting param.cmd.frms to do all frames.');
   param.cmd.frms = []; % All frames
 end
+
+%% Input Checks: analysis
+% =====================================================================
 
 if ~isfield(param,'analysis') || isempty(param.analysis)
   error('The analysis field (worksheet) is missing.');
@@ -73,6 +76,8 @@ end
 % Never check for the existence of files
 param.analysis.surf_layer.existence_check = false;
 
+%% Input Checks: analysis.cmd
+% =====================================================================
 % For each command in the list, set its default settings
 enabled_cmds = {};
 for cmd_idx = 1:length(param.analysis.cmd)
@@ -164,26 +169,84 @@ for cmd_idx = 1:length(param.analysis.cmd)
     case {'burst_noise'}
       % Set defaults for burst noise analysis method
       
+      % max_bad_waveforms: wf-adc recorded waveforms/range-lines with burst
+      % noise detected are saved, but only up to this many. Set to inf to
+      % save all waveforms with burst noise detected.
       if ~isfield(cmd,'max_bad_waveforms') || isempty(cmd.max_bad_waveforms)
         cmd.max_bad_waveforms = 100;
       end
       
-      if ~isfield(cmd,'noise_filt') || isempty(cmd.noise_filt)
-        cmd.noise_filt = [11 101];
+      % noise_fh: This function is used to create the temporary variable
+      % data_noise in analysis burst. This output is available to test_fh
+      % and threshold_fh.
+      %
+      % Examples:
+      %  cmd.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+      %  cmd.noise_fh{img} = @(raw_data,wfs) lp(medfilt2(abs(raw_data).^2,[11 101]));
+      %  cmd.noise_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'noise_fh') || isempty(cmd.noise_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.noise_fh{img} = @(raw_data,wfs) lp(fir_dec(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).',ones(1,101)/101,1));
+        end
       end
       
-      if ~isfield(cmd,'signal_filt') || isempty(cmd.signal_filt)
-        cmd.signal_filt = [11 1];
+      % signal_fh: This function is used to create the temporary variable
+      % data_signal in analysis burst. This output is available to test_fh
+      % and threshold_fh.
+      %
+      % Examples:
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(abs(raw_data).^2,1));
+      %  cmd.signal_fh{img} = @(raw_data,wfs) lp(abs(fft(raw_data(300:end,:))).^2);
+      %  cmd.signal_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'signal_fh') || isempty(cmd.signal_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.signal_fh{img} = @(raw_data,wfs) lp(fir_dec(abs(raw_data.').^2,ones(1,11)/11,1).');
+        end
+      end
+
+      % test_fh: This function is used to create the output variable
+      % test_metric in analysis burst. This output is available to
+      % threshold_fh and is also stored in the output file.
+      %
+      % Examples:
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs) data_signal-data_noise;
+      %  cmd.test_fh{img} = @(data_signal,data_noise,wfs)% max(data_signal(10:end-9,:))-median(data_signal(10:end-9,:));
+      %  cmd.test_fh{img} = @(raw_data,wfs) [];
+      if ~isfield(cmd,'test_fh') || isempty(cmd.test_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.test_fh{img} = @(data_signal,data_noise,wfs) max(data_signal-data_noise,[],1);
+        end
+      end
+
+      % test_fh: This function is used to create the temporary variable
+      % bad_samples in analysis burst. If the output is a row vector, then
+      % it is assumed to be a mask of the bad records (interpretation is
+      % that the entire record is bad). If the output is a matrix, then it
+      % is assumed to be a mask of the bad samples (interpretation is that
+      % just those samples are bad and not the whole record).
+      %
+      % Examples:
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) data_noise > 80;
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) test_metric > 20;
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) repmat(data_signal-data_noise > 20,[wfs.Nt_raw 1]);
+      %  cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) max(data_signal(10:end-9,:))-median(data_signal(10:end-9,:));
+      if ~isfield(cmd,'threshold_fh') || isempty(cmd.threshold_fh)
+        for img = 1:length(param.analysis.imgs)
+          cmd.threshold_fh{img} = @(data_signal,data_noise,test_metric,wfs) test_metric > 20;
+        end
       end
       
-      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
-        cmd.threshold = 17;
-      end
-      
+      % valid_bins: Restricts the range of bins where burst detections are
+      % allowed to occur. The default is [1 inf] which allows burst
+      % detections anywhere in the range line. Typical usage would be to
+      % exclude the feedthrough or nadir surface signal that may be large
+      % and variable and lead to false alarms if it is nonstationary.
       if ~isfield(cmd,'valid_bins') || isempty(cmd.valid_bins)
         cmd.valid_bins = {};
         for img = 1:length(param.analysis.imgs)
-          cmd.valid_bins{img} = [501 inf];
+          cmd.valid_bins{img} = [1 inf];
         end
       end
 
@@ -221,6 +284,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         end
       end
       
+      if ~isfield(cmd,'threshold_coh_ave')
+        cmd.threshold_coh_ave = 1;
+      elseif mod(cmd.threshold_coh_ave-1,2)
+        error('param.analysis.cmd{%d}.threshold_coh_ave must be odd; currently %g.', cmd_idx, cmd.threshold_coh_ave);
+      end
+      
       if ~isfield(cmd,'threshold_removeDC') || isempty(cmd.threshold_removeDC)
         % Default is to not remove slow-time DC before determining good
         % samples to use in coh_ave and coh_ave_mag
@@ -234,28 +303,62 @@ for cmd_idx = 1:length(param.analysis.cmd)
     case {'specular'}
       % Set defaults for specular analysis method
       
+      % cmd.gps_times: vector of GPS times in ANSI C format (seconds since
+      % Jan 1, 1970) for which the STFT block will automatically have its
+      % waveform extracted even if the cmd.threshold is not exceeded.
       if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
         cmd.gps_times = [];
       end
       
+      % cmd.max_rlines: maximum number of STFT waveforms to extract (so
+      % even if there are more than cmd.max_rlines blocks which detect a
+      % coherent/specular scatterer only the first cmd.max_rlines will be
+      % extracted for deconvolution)
       if ~isfield(cmd,'max_rlines') || isempty(cmd.max_rlines)
         cmd.max_rlines = 10;
       end
       
+      % cmd.rlines: STFT block size, the data are broken into 50%
+      % overlapping blocks of this length to detect coherent/specular
+      % scatterers using a short time Fourier transform
       if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
         cmd.rlines = 128;
       end
       
+      % cmd.noise_doppler_bins: bins of STFT to use for clutter power
+      % detection
+      guard = round(cmd.rlines/32);
       if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
-        cmd.noise_doppler_bins = [12:cmd.rlines-11];
+        cmd.noise_doppler_bins = [1+3*guard:cmd.rlines-3*guard];
       end
       
+      % cmd.signal_doppler_bins: bins of STFT to use for signal power
+      % estimation
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
-        cmd.signal_doppler_bins = [1:4 cmd.rlines+(-3:0)];
+        cmd.signal_doppler_bins = [1:guard cmd.rlines+(-guard+1:0)];
       end
       
+      % cmd.threshold: peakiness threshold to decide whether or not to
+      % extract the waveform from a particular STFT block. This is in dB
+      % and is the ratio (peak signal to mean noise/clutter power):
+      % peakiness = lp(max(abs(H(cmd.signal_doppler_bins,:)).^2) ./ mean(abs(H(cmd.noise_doppler_bins,:)).^2));
       if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
         cmd.threshold = 40;
+      end
+      
+      % cmd.peak_sgolay_filt: cell array with 2 elements containing the
+      % 2nd and 3rd input arguments to sgolayfilt that is used to filter
+      % the peak values in the along-track dimension. This ensures that the
+      % frame size to sgolayfilt.m is odd and is approximately 40% of the
+      % length of the cmd.rlines.
+      if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
+        cmd.peak_sgolay_filt = {3,round(0.2*cmd.rlines)*2+1};
+      end
+      if length(cmd.peak_sgolay_filt) < 2
+        cmd.peak_sgolay_filt{2} = round(0.2*cmd.rlines)*2+1;
+      end
+      if ~mod(cmd.peak_sgolay_filt{2},2)
+        cmd.peak_sgolay_filt{2} = cmd.peak_sgolay_filt{2}+1;
       end
       
     case {'statistics'}
@@ -523,7 +626,7 @@ for break_idx = 1:length(breaks)
   dparam.file_success = {};
   success_error = 64;
   % Loading in the data: cpu_time and mem
-  dparam.mem = 250e6;
+  dparam.mem = 500e6;
   for img = 1:length(param.analysis.imgs)
     dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
     dparam.mem = dparam.mem + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult;
@@ -723,14 +826,14 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           num_sam_hint = 1;
           sparam.cpu_time = sparam.cpu_time + Nx*num_sam_hint*log2(Nx)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx*num_sam_hint*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx*num_sam_hint*mem_mult);
         end
         
       case {'coh_noise'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'qlook'}
@@ -743,14 +846,14 @@ for img = 1:length(param.analysis.imgs)
         Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult*1.5);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult*1.5);
         end
         
       case {'statistics'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'waveform'}
@@ -762,7 +865,7 @@ for img = 1:length(param.analysis.imgs)
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*Nt*mem_mult);
+          sparam.mem = max(sparam.mem,500e6 + records_var.bytes + Nx_cmd*Nt*mem_mult);
         end
         
     end

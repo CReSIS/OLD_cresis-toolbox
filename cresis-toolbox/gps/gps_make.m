@@ -44,6 +44,8 @@
 %    product
 %  atm-final_20110826: processed to ATM DGPS antenna, final version of GPS/INS
 %    product as of 20110826
+% date_str: 8 letter sequence containing the date 'YYYYMMDD'
+% season_name: string containing season name YYYY_LOCATION_PLATFORM
 %
 %
 % Author: John Paden
@@ -138,6 +140,9 @@ for file_idx = 1:length(in_fns)
     sync_gps.roll = sync_gps.roll(good_mask);
     sync_gps.pitch = sync_gps.pitch(good_mask);
     sync_gps.heading = sync_gps.heading(good_mask);
+    if isfield(sync_gps,'profileCntr')
+      sync_gps.profileCntr = sync_gps.profileCntr(good_mask);
+    end
     
     %% Check for day wraps
     % Find jumps in the GPS time that are probably due to day interval
@@ -226,10 +231,9 @@ for file_idx = 1:length(in_fns)
     error('No GPS data loaded, isempty(gps.gps_time) == true for files:\n%s', file_list_str);
   end
   
-  %% Remove records with NaN
+  %% Remove records with NaN in gps_time or trajectory
   good_mask = ~(isnan(gps.gps_time) | isnan(gps.lat) ...
-    | isnan(gps.lon) | isnan(gps.elev) ...
-    | isnan(gps.roll) | isnan(gps.pitch) | isnan(gps.heading));
+    | isnan(gps.lon) | isnan(gps.elev));
   gps.gps_time = gps.gps_time(good_mask);
   gps.lat = gps.lat(good_mask);
   gps.lon = gps.lon(good_mask);
@@ -238,6 +242,11 @@ for file_idx = 1:length(in_fns)
   gps.pitch = gps.pitch(good_mask);
   gps.heading = gps.heading(good_mask);
   gps.gps_source = gps_source{file_idx};
+  
+  %% Interpolate through NaN attitude data
+  gps.roll = interp_finite(gps.roll,0);
+  gps.pitch = interp_finite(gps.pitch,0);
+  gps.heading = interp_finite(gps.heading,0,@gps_interp1);
   
   %% Check for day wraps
   % Find jumps in the GPS time that are probably due to day interval
@@ -254,34 +263,7 @@ for file_idx = 1:length(in_fns)
   gps = gps_make_monotonic(gps);
   
   %% Fabricating a heading now
-  along_track = geodetic_to_along_track(gps.lat,gps.lon);
-  rlines = get_equal_alongtrack_spacing_idxs(along_track,40);
-  physical_constants;
-  est_heading = zeros(size(gps.heading));
-  clear origin heading east north;
-  for rline_idx = 1:length(rlines)-1
-    rline = rlines(rline_idx);
-    if rline_idx < length(rlines)
-      rline_end = rlines(rline_idx+1);
-    else
-      rline_end = length(along_track);
-    end
-    [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
-    [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.lat(rline_end)/180*pi,gps.lon(rline_end)/180*pi,gps.elev(rline_end),WGS84.ellipsoid);
-    heading = heading - origin;
-    % Determine east vector
-    [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
-    east = east - origin;
-    % Determine north vector
-    [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
-    north = north - origin;
-    % Determine heading
-    est_heading(rline:rline_end) = atan2(dot(north,heading),dot(east,heading));
-  end
-  speed = diff(along_track)./diff(gps.gps_time);
-  speed(end+1) = speed(end);
-  est_heading(speed < 0.5) = NaN;
-  est_heading = interp_finite(est_heading,0);
+  [est_heading,along_track,speed] = trajectory_coord_system(gps);
   
   %% Load INS data for special case where it is separate from GPS
   if separate_ins_data_flag ...
@@ -385,15 +367,15 @@ for file_idx = 1:length(in_fns)
       if idx == 0
         new_gps_times = gps.gps_time(1):ins.gps_time(idx+1)-10;
         edge_gps_times = [gps.gps_time(1) ins.gps_time(idx+1)];
-        est_heading_error = [0 ins.heading(idx+1) - interp1(gps.gps_time,est_heading,ins.gps_time(idx+1))];
+        est_heading_error = [0 ins.heading(idx+1) - gps_interp1(gps.gps_time,est_heading,ins.gps_time(idx+1))];
       elseif idx == length(ins.gps_time)
         new_gps_times = ins.gps_time(idx)+10:gps.gps_time(end);
         edge_gps_times = [ins.gps_time(idx) gps.gps_time(end)];
-        est_heading_error = [ins.heading(idx) - interp1(gps.gps_time,est_heading,ins.gps_time(idx)) 0];
+        est_heading_error = [ins.heading(idx) - gps_interp1(gps.gps_time,est_heading,ins.gps_time(idx)) 0];
       else
         new_gps_times = ins.gps_time(idx)+10:ins.gps_time(idx+1)-10;
         edge_gps_times = ins.gps_time(idx:idx+1);
-        est_heading_error = ins.heading(idx:idx+1) - interp1(gps.gps_time,est_heading,ins.gps_time(idx:idx+1));
+        est_heading_error = ins.heading(idx:idx+1) - gps_interp1(gps.gps_time,est_heading,ins.gps_time(idx:idx+1));
       end
       bad_idxs(bad_idxs_idx+1:end) = bad_idxs(bad_idxs_idx+1:end) + length(new_gps_times);
       fprintf('  Inserting %d level flight records due to missing INS data\n', length(new_gps_times));
@@ -404,8 +386,8 @@ for file_idx = 1:length(in_fns)
       ins.lon = [ins.lon(1:idx) NaN*zeros(size(new_gps_times)) ins.lon(idx+1:end)];
       ins.elev = [ins.elev(1:idx) NaN*zeros(size(new_gps_times)) ins.elev(idx+1:end)];
       
-      inserted_heading = interp1(gps.gps_time,est_heading,new_gps_times) ...
-        + interp1(edge_gps_times,est_heading_error,new_gps_times);
+      inserted_heading = gps_interp1(gps.gps_time,est_heading,new_gps_times) ...
+        + gps_interp1(edge_gps_times,est_heading_error,new_gps_times);
       ins.heading = [ins.heading(1:idx) inserted_heading ins.heading(idx+1:end)];
       
       ins.gps_time = [ins.gps_time(1:idx) new_gps_times ins.gps_time(idx+1:end)];
@@ -427,24 +409,20 @@ for file_idx = 1:length(in_fns)
     new_gps_time = union(gps.gps_time,ins.gps_time);
     ins.roll = interp1(ins.gps_time,ins.roll,new_gps_time);
     ins.pitch = interp1(ins.gps_time,ins.pitch,new_gps_time);
-    ins.heading = interp1(ins.gps_time,ins.heading,new_gps_time);
+    ins.heading = gps_interp1(ins.gps_time,ins.heading,new_gps_time);
     interp_idxs = find(ins.gps_time >= gps.gps_time(1) & ins.gps_time <= gps.gps_time(end));
     ins.lat(interp_idxs) = interp1(gps.gps_time,gps.lat,ins.gps_time(interp_idxs));
-    ins.lon(interp_idxs) = interp1(gps.gps_time,gps.lon,ins.gps_time(interp_idxs));
+    ins.lon(interp_idxs) = gps_interp1(gps.gps_time,gps.lon/180*pi,ins.gps_time(interp_idxs))*180/pi;
     ins.elev(interp_idxs) = interp1(gps.gps_time,gps.elev,ins.gps_time(interp_idxs));
     ins.lat = interp1(ins.gps_time,ins.lat,new_gps_time);
-    ins.lon = interp1(ins.gps_time,ins.lon,new_gps_time);
+    ins.lon = gps_interp1(ins.gps_time,ins.lon/180*pi,new_gps_time)*180/pi;
     ins.elev = interp1(ins.gps_time,ins.elev,new_gps_time);
     ins.gps_time = new_gps_time;
-    if any(ins.lon >180)                 % 2018_Antarctica_DC8 ATM trajectory files
-      gps.lon(ins.lon>180) = ins.lon(ins.lon>180) -360;
-    end
     gps = ins;
     
-    %% Remove records with NaN
+    %% Remove records with NaN in gps_time or trajectory
     good_mask = ~(isnan(gps.gps_time) | isnan(gps.lat) ...
-      | isnan(gps.lon) | isnan(gps.elev) ...
-      | isnan(gps.roll) | isnan(gps.pitch) | isnan(gps.heading));
+      | isnan(gps.lon) | isnan(gps.elev));
     gps.gps_time = gps.gps_time(good_mask);
     gps.lat = gps.lat(good_mask);
     gps.lon = gps.lon(good_mask);
@@ -453,23 +431,36 @@ for file_idx = 1:length(in_fns)
     gps.pitch = gps.pitch(good_mask);
     gps.heading = gps.heading(good_mask);
     gps.gps_source = gps_source{file_idx};
+    
+    %% Interpolate through NaN attitude data
+    gps.roll = interp_finite(gps.roll,0);
+    gps.pitch = interp_finite(gps.pitch,0);
+    gps.heading = interp_finite(gps.heading,0,@gps_interp1);
   end
 
   %% Now that INS data may have been added, check/make the GPS data monotonic in time in case it is not
   gps = gps_make_monotonic(gps);
   
-  %% Fabricate a heading from the trajectory if it is all zeros
+  %% Using estimated heading based on the trajectory if heading is all zeros
   if all(gps.heading == 0)
     warning('These input files have heading(:) == 0. Using the estimated heading.');
     gps.heading = est_heading;
   end
   
+  %% Heading and longitude modulo-2*pi
+  gps.heading = angle(exp(1i*gps.heading));
+  gps.lon = angle(exp(1i*gps.lon/180*pi))*180/pi;
+  
   %% Add software revision information
   gps.sw_version = current_software_version;
+  
+  %% Add date_str and season_name
+  gps.date_str = date_str{file_idx};
+  gps.season_name = season_name;
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
-  gps.file_version = '1';
+  gps.file_version = '2';
   gps.file_type = 'gps';
   if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
@@ -486,18 +477,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version','file_type');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version','file_type','season_name','date_str');
     else
-      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version','file_type');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version','file_type','season_name','date_str');
     end
   else
-    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type');
+    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type','season_name','date_str');
   end
   
-  if debug_level >= 2
-    gps_plot(out_fn);
-  end
 end
-
-return;
-

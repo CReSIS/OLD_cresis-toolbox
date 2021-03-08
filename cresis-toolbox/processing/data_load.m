@@ -110,8 +110,9 @@ for state_idx = 1:length(states)
   
   % Find the file index for each record. If records.offset has extra
   % entries, get file_idxs for these too.
-  file_idxs = relative_rec_num_to_file_idx_vector( ...
-    param.load.recs+[0 size(records.offset,2)-(1+diff(param.load.recs))],records.relative_rec_num{board_idx});
+  tmp_recs = param.load.recs+[0 size(records.offset,2)-(1+diff(param.load.recs))];
+  file_idxs = relative_rec_num_to_file_idx_vector(tmp_recs(1):tmp_recs(end), ...
+    records.relative_rec_num{board_idx});
   
   if param.records.file.version == 413
     fn_name = records.relative_filename{1}{1};
@@ -323,7 +324,7 @@ for state_idx = 1:length(states)
         else
           % Next record is in the next file, rec_size is set to the rest of
           % the data in this file
-          rec_size = (length(file_data)-file_data_offset) - records.offset(board_idx,rec);
+          rec_size = (length(file_data)+file_data_offset) - records.offset(board_idx,rec);
         end
         
         % Process all wf-adc pairs in this record
@@ -481,28 +482,30 @@ for state_idx = 1:length(states)
               nyquist_zone_hw{img}(num_accum(ai)+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum(ai)+1) = file_data(wf_hdr_offset+45);
+            elseif any(param.records.file.version == [4])
+              nyquist_zone_hw{img}(num_accum(ai)+1) = 0;
             else
               % nyquist_zone_hw defaults to 1 for all other file versions
               % (ideally this is overridden by
-              % records.settings.nyquist_zone)
+              % records.nyquist_zone_sig)
               nyquist_zone_hw{img}(num_accum(ai)+1) = 1;
             end
             % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
             nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
           end
-          if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
-%             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.settings.nyquist_zone_hw(rec)
-%               fprintf('Overwriting nz fro rec:%d from records.settings\n',rec);
+          if isfield(records,'nyquist_zone_hw') && ~isnan(records.nyquist_zone_hw(rec))
+%             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.nyquist_zone_hw(rec)
+%               fprintf('Overwriting nz fro rec:%d from records\n',rec);
 %             end              
-            nyquist_zone_hw{img}(num_accum(ai)+1) = records.settings.nyquist_zone_hw(rec);
+            nyquist_zone_hw{img}(num_accum(ai)+1) = records.nyquist_zone_hw(rec);
           end
           % For the records generated using old data_load
           % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
           nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
           
           nyquist_zone_signal{img}(num_accum(ai)+1) = nyquist_zone_hw{img}(1);
-          if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
-            nyquist_zone_signal{img}(num_accum(ai)+1) = records.settings.nyquist_zone(rec);
+          if isfield(records,'nyquist_zone_sig') && ~isnan(records.nyquist_zone_sig(rec))
+            nyquist_zone_signal{img}(num_accum(ai)+1) = records.nyquist_zone_sig(rec);
           end
           
           % Extract waveform for this wf-adc pair
@@ -740,6 +743,8 @@ for img = 1:length(param.load.imgs)
   end
 end
 
+%% Corrections
+% =========================================================================
 if ~param.load.raw_data
   for img = 1:length(param.load.imgs)
     for wf_adc = 1:size(data{img},3)
@@ -809,6 +814,64 @@ if ~param.load.raw_data
         data{img}(1:hdr.Nt{img}(1),:,wf_adc) = data{img}(1:hdr.Nt{img}(1),:,wf_adc) ...
           .*interp1(reshape(chan_equal.gps_time,[numel(chan_equal.gps_time) 1]),chan_equal.chan_equal,records.gps_time,'linear','extrap').';
       end
+      
+      % Remove burst noise
+      if wfs(wf).burst.en
+        % Load the burst noise file
+        noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).burst.fn, ''));
+        noise_fn = fullfile(noise_fn_dir,sprintf('burst_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        fprintf('  Loading burst noise: %s (%s)\n', noise_fn, datestr(now));
+        if ~exist(noise_fn,'file')
+          warning('data_load:burst:missing_file', ...
+            'Burst noise file not found\t%s\t%s\n', noise_fn, datestr(now,'yyyymmdd_HHMMSS'));
+        else
+          burst = load(noise_fn);
+          % burst.burst_noise_table is created and described in
+          % collate_burst_noise.m
+          % ---------------------------------------------------------------
+          % burst_noise_table is a 3xNb table where Nb is the number of
+          % burst noise detections. Each column corresponds to one burst.
+          %
+          % burst_noise_table(1,:): The record that the burst occurs in.
+          %
+          % burst_noise_table(2,:): The start time of the burst
+          %
+          % burst_noise_table(3,:): The stop of the burst
+          
+          % start_idx to stop_idx: burst noise present in the current data
+          % block
+          start_idx = find(burst.burst_noise_table(1,:) >= param.load.recs(1),1);
+          if ~isempty(start_idx)
+            stop_idx = find(burst.burst_noise_table(1,:) <= param.load.recs(end),1,'last');
+            if ~isempty(stop_idx)
+              % Loop through each burst noise incident in this block of
+              % data
+              for idx = start_idx:stop_idx
+                % Convert absolute record into relative index into loaded
+                % data arrays.
+                rec_rel = burst.burst_noise_table(1,idx) - param.load.recs(1) + 1;
+                
+                % start_bin to stop_bin: burst noise present in the current
+                % record
+                dt = wfs(wf).time_raw(2)-wfs(wf).time_raw(1);
+                start_bin = max(1, ...
+                  (burst.burst_noise_table(2,idx)-wfs(wf).time_raw(1))/dt);
+                stop_bin = min(hdr.Nt{img}(rec_rel), ...
+                  (burst.burst_noise_table(3,idx)-wfs(wf).time_raw(1))/dt);
+                
+                if start_bin == 1 && stop_bin == hdr.Nt{img}(rec_rel)
+                  data{img}(:,rec_rel,wf_adc) = wfs(wf).bad_value;
+                  hdr.bad_rec{img}(1,rec_rel,wf_adc) = 1;
+                elseif start_bin <= hdr.Nt{img}(rec_rel) && stop_bin >= 1
+                  data{img}(start_bin:stop_bin,rec_rel,wf_adc) = wfs(wf).bad_value;
+                end
+              end
+            end
+          end
+          
+        end
+      end % End burst noise removal
+      
     end
   end
 end
@@ -820,6 +883,7 @@ hdr.gps_time = fir_dec(records.gps_time,param.load.presums);
 hdr.surface = fir_dec(records.surface,param.load.presums);
 
 %% Create trajectories
+% =========================================================================
 
 % Create reference trajectory (rx_path == 0, tx_weights = [])
 trajectory_param = struct('gps_source',records.gps_source, ...

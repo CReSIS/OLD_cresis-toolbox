@@ -79,9 +79,8 @@ classdef surfdata < handle
     %      value indicates no data at this point
     surf
     
-    theta
-    
-    time
+    theta % Support legacy "bins" unit format 
+    time % Support legacy "bins" unit format 
     
     unit_type
   end
@@ -91,6 +90,15 @@ classdef surfdata < handle
     
     function obj = surfdata(source,surfdata_source)
       %% surfdata constructor
+      %
+      % source: several options to specify a source for the echogram
+      % information. 1. It can be a string containing the full filepath to
+      % an array output (echogram). 2. The structure loaded from such an
+      % echogram file. 3. An existing surfdata class/structure.
+      %
+      % surfdata_source: ct_filename_out "fn" string argument (this is
+      % where the output will be stored if a save command is run). Default
+      % is "surf" for CSARP_surf.
       
       if nargin < 2 || isempty(surfdata_source)
         surfdata_source = 'surf'; % CSARP_surf directory
@@ -161,6 +169,9 @@ classdef surfdata < handle
         obj.param.season_name = source.param.season_name;
         obj.param.sw_version = current_software_version;
         
+        if isempty(source.surf)
+          source.surf = struct();
+        end
         obj.surf = orderfields(source.surf);
       end
       
@@ -441,16 +452,26 @@ classdef surfdata < handle
       %
       % Function for validating all the metadata fields
       %
-      % md: struct containing gps_time, theta, fcs, radar_name,
-      %   param.
+      % md: struct containing gps_time, fcs, radar_name, param. May contain
+      %   theta and time fields.
       
       obj.valid_metadata(md);
       
       obj.param = md.param;
       obj.gps_time = md.gps_time;
-      obj.theta = md.theta;
-      obj.time = md.time;
       obj.fcs = md.fcs;
+      
+      if isfield(md,'theta')
+        obj.theta = md.theta;
+      else
+        obj.theta = [];
+      end
+      if isfield(md,'time')
+        obj.time = md.time;
+      else
+        obj.time = [];
+      end
+      
     end
     
     function obj = set_surf(obj, surf_struct)
@@ -1065,6 +1086,11 @@ classdef surfdata < handle
           surf_new.surf(surf_idx).x = interp1(1:length(surf_old.theta),surf_old.theta,surf_new.surf(surf_idx).x);
           if all(surf_new.surf(surf_idx).y(:) == 0 | surf_new.surf(surf_idx).y(:) == 1)
             surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
+          elseif all(~isfinite(surf_new.surf(surf_idx).y(:)) | surf_new.surf(surf_idx).y(:) < 1 )
+            warning('This code is only for a few special nonstandard files. E.g. snapshots which stored twtt instead of time bins.');
+            keyboard
+            % Assume y-values are twtt (this should never happen)
+            surf_new.surf(surf_idx).y = surf_new.surf(surf_idx).y;
           else
             surf_new.surf(surf_idx).y = interp1(1:length(surf_old.time),surf_old.time,surf_new.surf(surf_idx).y);
           end
@@ -1225,10 +1251,6 @@ classdef surfdata < handle
         param.add_surf_from_dem.ice_mask_fn = [];
       end
       
-      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isempty(param.add_surf_from_dem.sv_cal_fn)
-        param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
-      end
-      
       % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
       %   Setting too high slows the process down, setting too low will miss
       %   DEM points needed to properly represent the surface.
@@ -1330,13 +1352,6 @@ classdef surfdata < handle
         else
           ice_mask_all = [];
         end
-        
-        % sv_cal_fn: steering vector calibration filename
-        sv_cal_fn = param.add_surf_from_dem.sv_cal_fn;
-        if ~exist(sv_cal_fn,'file')
-          sv_cal_fn = [];
-        end
-        
         
         %% add_surf_from_dem: DEM
         % Convert decimated origin coordinates from ECEF to geodetic and

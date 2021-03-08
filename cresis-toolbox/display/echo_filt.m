@@ -53,6 +53,10 @@ if numel(filt_len) == 1
   filt_len = [1 filt_len];
 end
 
+% Ensure positive odd integer filter lengths
+filt_len = 1+2*round((filt_len-1)/2);
+filt_len = max(1,filt_len);
+
 % Filter along first dimension (fast-time)
 if filt_len(1) ~= 1 
   data = nan_fir_dec(data.',ones(1,filt_len(1))/filt_len(1),1,[],[],[],[],2.0).';

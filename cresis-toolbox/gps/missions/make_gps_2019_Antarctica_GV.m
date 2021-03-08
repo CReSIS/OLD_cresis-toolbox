@@ -86,14 +86,14 @@ if strcmpi(gps_source_to_use,'NMEA')
   in_fns_ins{file_idx} = get_filename(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'IWG1','17Oct2019','');
   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','headerlines',0,'format_str',...
       '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
-  params_ins{file_idx}.types = {'IWG1','date_time_sec','lat_deg','lon_deg','msl_alt_m','elev_m','press_alt_ft','radar_alt_ft',...
-      'grnd_spd_mps','true_airspeed_mps','indicated_airspeed_knots','mach_number','ver_velocity_mps','heading_deg',...
+  params_ins{file_idx}.types = {'IWG1','date_time','lat_deg','lon_deg','elev_m','elev_m_not_used','press_alt_ft','radar_alt_ft',...
+      'grnd_spd_mps','true_airspeed_mps','indicated_airspeed_knots','mach_number','vert_velocity_mps','heading_deg',...
       'track_deg','drift_deg','pitch_deg','roll_deg','side_slip_deg','angle_of_attach_deg','ambient_temp_degc',...
       'dew_tmp_degc','total_tmp_degc','static_press_mbar','dynamic_press_mbar','cabin_press_mbar','wind_speed_mps',...
-      'wind_dir_deg','ver_wind_speed_mps','solar_zenith_deg','sun_ele_ac_deg','sun_az_grd_deg','sun_az_ac_deg'};
+      'wind_dir_deg','vert_wind_speed_mps','solar_zenith_deg','sun_ele_ac_deg','sun_az_grd_deg','sun_az_ac_deg'};
   params_ins{file_idx}.textscan ={'delimiter',','};
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  gps_source{file_idx} = 'atm-final_20190205';
+  gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
 
 %   year = 2019; month = 10; day = 24;
@@ -244,8 +244,12 @@ elseif strcmpi(gps_source_to_use,'ATM')
     [year,month,day] = datevec(fn_dates(idx));
     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
     file_idx = file_idx + 1;
-    in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'.out');
-    
+    if month == 10 & day == 17
+      in_fns{file_idx} = {get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'.out'),...
+        get_filename(in_base_path,'IWG1','17Oct2019','')};
+    else
+      in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'.out');
+    end
     % The local dates in spreadsheets are one day behind
     if month == 10 & day == 31 
       month = 11;
@@ -263,10 +267,24 @@ elseif strcmpi(gps_source_to_use,'ATM')
       day = day -1;
     end
     
-    file_type{file_idx} = 'applanix';
-    params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
-    gps_source{file_idx} = 'atm-final_20200110';
-    sync_flag{file_idx} = 0;
+    if month == 10 & day == 17
+      file_type{file_idx} = {'applanix','General_ASCII'};
+      params{file_idx}{1} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+      params{file_idx}{2} = struct('year',year,'month',month,'day',day,'time_reference','utc','headerlines',0,'format_str',...
+        '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
+      params{file_idx}{2}.types = {'IWG1','date_time','lat_deg','lon_deg','elev_m','elev_m_not_used','press_alt_ft','radar_alt_ft',...
+        'grnd_spd_mps','true_airspeed_mps','indicated_airspeed_knots','mach_number','vert_velocity_mps','heading_deg',...
+        'track_deg','drift_deg','pitch_deg','roll_deg'};
+      params{file_idx}{2}.textscan ={'delimiter',','};
+      params{file_idx}{2}.date_time_format = 'yyyy-mm-ddTHH:MM:SS.FFF';
+      gps_source{file_idx} = 'atm-final_20200110+IWG1';
+      sync_flag{file_idx} = 0;
+    else
+      file_type{file_idx} = 'applanix';
+      params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+      gps_source{file_idx} = 'atm-final_20200110';
+      sync_flag{file_idx} = 0;
+    end
   end
   
 end

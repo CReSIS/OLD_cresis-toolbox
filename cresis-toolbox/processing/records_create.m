@@ -11,17 +11,11 @@ function records_create(param,param_override)
 % in the support directories for the specific radar in .mat form for
 % quicker access.
 %
-% Output file contains:
-% hdr: structure with the following fields
-%    .utc_time_sod: vector of corrected utc times
-%    .seconds: vector
-%    .fraction: vector
-%
 % Inputs:
-% param = struct with processing parameters
+% param: struct with processing parameters
 %         -- OR --
 %         function handle to script with processing parameters
-% param_override = parameters in this struct will override parameters
+% param_override: parameters in this struct will override parameters
 %         in param.  This struct must also contain the gRadar fields.
 %         Typically global gRadar; param_override = gRadar;
 %
