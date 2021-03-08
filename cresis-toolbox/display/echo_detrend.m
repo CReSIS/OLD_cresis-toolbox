@@ -61,9 +61,9 @@ function data = echo_detrend(mdata, param)
 %
 % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
 % imagesc(echo_detrend(mdata, struct('method','polynomial','layer_top',surface,'layer_bottom',bottom)));
-% 
+%
 % imagesc(echo_detrend(mdata, struct('method','tonemap')));
-% 
+%
 % imagesc(echo_detrend(mdata, struct('method','local','filt_len',[51 101])));
 %
 % Author: John Paden
@@ -88,7 +88,7 @@ end
 
 if ~isfield(param,'roll') || isempty(param.roll)
   error('Please provide the roll for each rangeline...')
-
+  
 elseif all(isnan(param.roll))
   warning('The roll provided is not finite')
   
@@ -152,7 +152,7 @@ switch param.method
     
   case 'polynomial'
     Nt = size(data,1);
-    Nx = size(data,2);    
+    Nx = size(data,2);
     
     
     if ~isfield(param,'order') || isempty(param.order)
@@ -178,12 +178,12 @@ switch param.method
         error('mdata should be an echogram struct with a "Time" field since layer_top is specific in two way travel time and needs to be converted to range bins.');
       end
     end
-   
+    
     %% Roll compensation data: This should be modified
     
     roll_comp_data = load('/cresis/snfs1/scratch/ibikunle/ct_user_tmp/roll_compensation.mat');
-    roll_comp = interp1(roll_comp_data.all_roll,roll_comp_data.all_pwr,param.roll); 
-
+    roll_comp = interp1(roll_comp_data.all_roll,roll_comp_data.all_pwr,param.roll);
+    
     mask = false(size(data));
     x_axis = nan(size(data));
     for rline = 1:Nx
@@ -249,39 +249,43 @@ switch param.method
         trend(bins) = polyval(detrend_poly,x_axis(bins,rline));
         
         % Section 2: Constant above surface
-        trend(1:bins(1)-1) = trend(bins(1));       
-
+        trend(1:bins(1)-1) = trend(bins(1));
+        
         % Section 3: Constant below bottom
         [min_val,min_loc] = min(trend(bins));
         min_loc = min_loc + top_bin;
         
         trend(min_loc:end) = min(trend(bins));
         
-        % Check if offset is to be applied
-        if param.roll_comp_en
+        % Check if offset should be applied
+        if isfield(param,'roll_comp_en') && param.roll_comp_en
           trend(top_bin:min_loc) = trend(top_bin:min_loc) - roll_comp(rline);
         end
         
         trend = trend -param.offset;
-        trend( trend < min_val) = min_val;   
-      end      
-        
+        trend( trend < min_val) = min_val;
+      end
       
-      if 0 
+      
+      if 0
         %% Debug plots
         figure(1); clf;
         plot(data(:,rline));
-        title( sprintf('%s: Rangeline %d block %d, Roll= %.3f',param.fn_name,rline,param.block,param.roll(rline) ),'Interpreter','none');    
+        title( sprintf('%s: Rangeline %d block %d, Roll= %.3f',param.fn_name,rline,param.block,param.roll(rline) ),'Interpreter','none');
         hold on;
-        plot(trend);    
-        hold on;  plot(data(:,rline) - trend);      
+        plot(trend);
+        hold on;  plot(data(:,rline) - trend);
         grid on; grid minor
-        pause(0.5)        
-      end    
         
+        %         out_dir = fullfile(param.out_dir,sprintf('detrend_image_%03d.jpg',rline));
+        %         saveas(1,out_dir);
+        %         close(1);
+        %         pause(0.5)
+      end
+      
       data(:,rline) = data(:,rline) - trend;
-      end    
-
+    end
+    
   case 'tonemap'
     tmp = [];
     min_data = min(data(isfinite(data)));
@@ -295,7 +299,7 @@ switch param.method
     % for generating synthetic HDR images
     data = tonemap(tmp, 'AdjustLightness', [0.1 1], 'AdjustSaturation', 1.5);
     data = single(data(:,:,2));
-   
+    
   otherwise
     error('Invalid param.method %s.', param.method);
 end

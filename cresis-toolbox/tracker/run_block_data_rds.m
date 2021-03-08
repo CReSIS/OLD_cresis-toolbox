@@ -15,6 +15,11 @@ params = read_param_xls(ct_filename_param('rds_param_2012_Greenland_P3.xls'));
 %params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091228_01');
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03'); % 20120330_03
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120507_05');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120507_07');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120508_04');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20120508_06');
+
 params = ct_set_params(params,'cmd.frms',[]);
 
 % Set override parameters using ct_set_params, by setting param_override, or by setting FUNCTION_params variable which eventually is copied to param_override.FUNCTION).
@@ -49,7 +54,7 @@ param_override.block_data.late_trunc = 1; % Usually 1 for rds: truncates data af
 
 param_override.block_data.echo_path = 'CSARP_post/standard'; % snow = 'qlook',rds='CSARP_post/standard'; % Echogram source e.g rds uses 'CSARP\standard' => ct_filename_out(param,'CSARP\standard')
 
-param_override.block_data.out_fn ='detrend_correction_trying'; % Specify desired output path i.e fn passed into ct_filename_tmp 
+param_override.block_data.out_fn ='new'; % Specify desired output path i.e fn passed into ct_filename_tmp 
 %param_override.sched.type = 'no scheduler'; % Example to override default cluster settings
 
 %Paramaters of "layer_params" argument of
@@ -65,9 +70,9 @@ param_override.block_data.norm_detrend_params.order = 6;
 param_override.block_data.norm_detrend_params.method ='polynomial';
 
 param_override.block_data.norm_detrend_params.filter_len = 11;
-param_override.block_data.norm_detrend_params.scale_min = 0.1;
-param_override.block_data.norm_detrend_params.scale_max = 0.9;
-param_override.block_data.norm_detrend_params.offset = 20; % Offset to be applied to the detrend curve
+param_override.block_data.norm_detrend_params.scale_min = 0.15;
+param_override.block_data.norm_detrend_params.scale_max = 0.85;
+param_override.block_data.norm_detrend_params.offset = 10; % Offset to be applied to the detrend curve
 
 param_override.block_data.norm_detrend_params.roll_comp_en = 1; % 1  to apply roll compensation
 param_override.block_data.norm_detrend_params.norm_window = [];
@@ -77,7 +82,7 @@ param_override.block_data.norm_detrend_params.norm_window = [];
 % param_override.block_data.layers_prefix = 'layers';
 
 param_override.block_data.debug_plot = 0 ; % Debug plots (True or False)
-param_override.block_data.detrend_debug = 1;
+param_override.block_data.detrend_debug = 0;
 
 
 %% Automated Section
