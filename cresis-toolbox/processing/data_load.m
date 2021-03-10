@@ -110,8 +110,9 @@ for state_idx = 1:length(states)
   
   % Find the file index for each record. If records.offset has extra
   % entries, get file_idxs for these too.
-  file_idxs = relative_rec_num_to_file_idx_vector( ...
-    param.load.recs+[0 size(records.offset,2)-(1+diff(param.load.recs))],records.relative_rec_num{board_idx});
+  tmp_recs = param.load.recs+[0 size(records.offset,2)-(1+diff(param.load.recs))];
+  file_idxs = relative_rec_num_to_file_idx_vector(tmp_recs(1):tmp_recs(end), ...
+    records.relative_rec_num{board_idx});
   
   if param.records.file.version == 413
     fn_name = records.relative_filename{1}{1};

@@ -112,13 +112,18 @@ if ~isfield(param.(param_mode), 'img_comb_trim') || isempty(param.(param_mode).i
       wf_adc_list = param.(param_mode).imgs{1};
     end
     wf_first = wf_adc_list(1,1);
-    if iscell(param.(param_mode).imgs{end})
-      % Multilook format (param_mode is 'array')
-      wf_adc_list = param.(param_mode).imgs{end}{1};
+    if isempty(param.(param_mode).img_comb)
+      % Only the first image is used when there is no combining
+      wf_last = wf_first;
     else
-      wf_adc_list = param.(param_mode).imgs{end};
+      if iscell(param.(param_mode).imgs{end})
+        % Multilook format (param_mode is 'array')
+        wf_adc_list = param.(param_mode).imgs{end}{1};
+      else
+        wf_adc_list = param.(param_mode).imgs{end};
+      end
+      wf_last = wf_adc_list(1,1);
     end
-    wf_last = wf_adc_list(1,1);
     param.(param_mode).img_comb_trim = [param.radar.wfs(wf_first).Tpd/2 -param.radar.wfs(wf_last).Tpd/2 0 inf];
   end
 end
