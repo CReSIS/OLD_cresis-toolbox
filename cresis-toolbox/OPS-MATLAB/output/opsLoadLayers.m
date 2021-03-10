@@ -6,7 +6,7 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 % * The source of the layer data can be records, echogram files, layerData files,
 %   ATM or AWI Lidar, OPS.
 % * Controlled from param spreadsheet
-% * Use opsInsertLayerFromGrid and opsInsertLayerFromPointCloud to compare
+% * Use opsInsertLayer to compare
 %   layers to grids and point clouds
 % * Use runOpsCopyLayers to copy layers from one radar to another
 %

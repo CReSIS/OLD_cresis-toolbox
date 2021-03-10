@@ -204,19 +204,41 @@ for passes_idx = 1: length(passes)
       metadata{passes_idx}.surface = [metadata{passes_idx}.surface ,tmp_data.Surface];
       metadata{passes_idx}.bottom = [metadata{passes_idx}.bottom ,tmp_data.Bottom];
       % Handle old format, but print error message
-      if iscell(tmp_data.param_array.array_proc.fcs)
+      if isfield(tmp_data.param_array,'array_param')
         warning('OLD SAR DATA FORMAT. IF MULTIPLE WF-ADC PAIRS WERE USED IN THE DATA PRODUCT, THE FLIGHT COORDINATE SYSTEM WILL BE INCORRECT AND THE DATA SHOULD BE REPROCESSED.');
-        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs{1}{1}.origin];
-        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs{1}{1}.x];
-        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs{1}{1}.y];
-        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs{1}{1}.z];
-        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs{1}{1}.pos];
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin, tmp_data.param_array.array_param.fcs{1}{1}.origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x, tmp_data.param_array.array_param.fcs{1}{1}.x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y, tmp_data.param_array.array_param.fcs{1}{1}.y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z, tmp_data.param_array.array_param.fcs{1}{1}.z];
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos, tmp_data.param_array.array_param.fcs{1}{1}.pos];
+      elseif ~isfield(tmp_data.param_array,'array_proc')
+        % Construct FCS fields from trajectory data
+        records = records_load(param_pass);
+        records = records_reference_trajectory_load(param_pass,records);
+        records.lat = interp1(records.gps_time,records.lat,tmp_data.GPS_time);
+        records.lon = gps_interp1(records.gps_time,records.lon*(pi/180),tmp_data.GPS_time)*(180/pi);
+        records.elev = interp1(records.gps_time,records.elev,tmp_data.GPS_time);
+        records.gps_time = tmp_data.GPS_time;
+        [~,~,~,origin,x,y,z,pos] = trajectory_coord_system(records);
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin, origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x, x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y, y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z, z];
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos, pos];
+        
+      elseif iscell(tmp_data.param_array.array_proc.fcs)
+        warning('OLD SAR DATA FORMAT. IF MULTIPLE WF-ADC PAIRS WERE USED IN THE DATA PRODUCT, THE FLIGHT COORDINATE SYSTEM WILL BE INCORRECT AND THE DATA SHOULD BE REPROCESSED.');
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin, tmp_data.param_array.array_proc.fcs{1}{1}.origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x, tmp_data.param_array.array_proc.fcs{1}{1}.x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y, tmp_data.param_array.array_proc.fcs{1}{1}.y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z, tmp_data.param_array.array_proc.fcs{1}{1}.z];
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos, tmp_data.param_array.array_proc.fcs{1}{1}.pos];
       else
-        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs.origin];
-        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs.x];
-        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs.y];
-        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs.z];
-        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs.pos];
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin, tmp_data.param_array.array_proc.fcs.origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x, tmp_data.param_array.array_proc.fcs.x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y, tmp_data.param_array.array_proc.fcs.y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z, tmp_data.param_array.array_proc.fcs.z];
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos, tmp_data.param_array.array_proc.fcs.pos];
       end
       data{passes_idx} = [data{passes_idx} ,tmp_data.Data];
     end
@@ -258,7 +280,8 @@ for passes_idx = 1: length(passes)
       data_in.Data =data{end};
       data_in.Time = {};
       for img = 1:length(passes(passes_idx).imgs)
-        data_in.Time{img}= metadata{end}.wfs(img).time;
+        wf = passes(passes_idx).imgs{img}(1);
+        data_in.Time{img}= metadata{end}.wfs(wf).time;
       end
       data_in.GPS_time = metadata{end}.fcs{1}{1}.gps_time;
       if length(data{end})>1 %Combine if using multiple waveforms
@@ -409,7 +432,30 @@ for data_idx = 1:length(data)
       if strcmpi(param.combine_passes.input_type,'echo')
         pass(end).data = data{data_idx}(:,rlines);
         pass(end).wfs.time = metadata{data_idx}.time;
-        pass(end).wfs.fc = metadata{data_idx}.param_array.radar.wfs.fc;
+        if isfield(metadata{data_idx}.param_array,'combine')
+          % Old format
+          if iscell(metadata{data_idx}.param_array.combine.imgs{1})
+            wf = metadata{data_idx}.param_array.combine.imgs{1}{1}(1);
+          else
+            wf = metadata{data_idx}.param_array.combine.imgs{1}(1);
+          end
+        else
+          if iscell(metadata{data_idx}.param_array.array.imgs{1})
+            wf = metadata{data_idx}.param_array.array.imgs{1}{1}(1);
+          else
+            % Old format
+            wf = metadata{data_idx}.param_array.array.imgs{1}(1);
+          end
+        end
+        if ~isfield(metadata{data_idx}.param_array.radar,'wfs')
+          % Old format
+          pass(end).wfs.fc = 0.5*(metadata{data_idx}.param_pass.radar.wfs(wf).f0+metadata{data_idx}.param_pass.radar.wfs(wf).f1);
+        elseif ~isfield(metadata{data_idx}.param_array.radar.wfs,'fc')
+          % Old format
+          pass(end).wfs.fc = 0.5*(metadata{data_idx}.param_array.radar.wfs(wf).f0+metadata{data_idx}.param_array.radar.wfs(wf).f1);
+        else
+          pass(end).wfs.fc = metadata{data_idx}.param_array.radar.wfs(wf).fc;
+        end
         pass(end).time = metadata{data_idx}.time;
         
         pass(end).gps_time = metadata{data_idx}.gps_time(rlines);
@@ -421,7 +467,12 @@ for data_idx = 1:length(data)
         pass(end).y = metadata{data_idx}.fcs.y(:,rlines);
         pass(end).z = metadata{data_idx}.fcs.z(:,rlines);
         pass(end).origin = metadata{data_idx}.fcs.origin(:,rlines);
-        pass(end).pos = metadata{data_idx}.fcs.pos(:,rlines);
+        if size(metadata{data_idx}.fcs.pos,2) ~= size(metadata{data_idx}.fcs.origin,2)
+          warning('Old file format with pos field error. No valid data in pos field. Setting to all zeros (i.e. the reference position of the array and not the actual position of the wf-adc pair).');
+          pass(end).pos = zeros(3,length(rlines));
+        else
+          pass(end).pos = metadata{data_idx}.fcs.pos(:,rlines);
+        end
         pass(end).surface = metadata{data_idx}.surface(:,rlines);
       else
         pass(end).data = data{data_idx}(:,rlines);

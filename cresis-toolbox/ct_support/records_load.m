@@ -54,6 +54,9 @@ if ischar(param)
   global gRadar;
   param = merge_structs(param,gRadar);
 else
+  if ~isfield(param,'day_seg') || isempty(param.day_seg)
+    error('records_load requires that param.day_seg exist and be nonempty');
+  end
   records_fn = ct_filename_support(param,'','records');
   if ~exist(records_fn,'file')
     error('Records file does not exist: %s (%s).', records_fn, datestr(now));

@@ -955,7 +955,7 @@ classdef layerdata < handle
       if ischar(id)
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
-        if isempty(id)
+        if isempty(match_idx)
           error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
         id = obj.layer_organizer.lyr_id(match_idx);

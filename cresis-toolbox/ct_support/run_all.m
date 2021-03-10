@@ -122,3 +122,4 @@ param_fns = {};
 % param_fns{end+1} = 'snow_param_2019_Arctic_GV.xls'; % Season not completed
 % param_fns{end+1} = 'snow_param_2019_Antarctica_GV.xls'; % Season not completed
 % param_fns{end+1} = 'snow_param_2019_SouthDakota_N1KU.xls';
+% param_fns{end+1} = 'snow_param_2020_SouthDakota_N1KU.xls';

@@ -103,22 +103,7 @@ equalization = param.multipass.equalization;
 % layer: layer struct to opsLoadLayers which indicates which layers will be
 % loaded and coregistered along with each image
 if ~isfield(param.multipass,'layer') || isempty(param.multipass.layer)
-  param.multipass.layer = struct();
-end
-if length(param.multipass.layer) < 2
-  param.multipass.layer(2) = struct();
-end
-if ~isfield(param.multipass.layer(1),'name') || isempty(param.multipass.layer(1).name)
-  param.multipass.layer(1).name = 'surface';
-end
-if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(1).source)
-  param.multipass.layer(1).source = 'layerData';
-end
-if ~isfield(param.multipass.layer(2),'name') || isempty(param.multipass.layer(2).name)
-  param.multipass.layer(2).name = 'bottom';
-end
-if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(2).source)
-  param.multipass.layer(2).source = 'layerData';
+  param.multipass.layer = struct('name',{'surface','bottom'},'source','layerdata');
 end
 
 % master_idx: Index to pass that will be used as the master pass for the
@@ -457,7 +442,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
   if strcmp('echo',param.multipass.input_type)
     % Apply time shift with interpolation
     pass(pass_idx).ref_data = interp1(pass(pass_idx).time, pass(pass_idx).ref_data, pass(pass_idx).time+time_shift, 'linear');
-    pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data);
+    pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data,NaN);
     
   else
     % Apply frequency domain time shift (envelope only shift so baseband frequency)
@@ -504,7 +489,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
     for rline = 1:size(pass(pass_idx).ref_data,2)
       time_shift = pass(pass_idx).ref_z(rline)/(c/2);
       pass(pass_idx).ref_data(:,rline) = interp1(pass(pass_idx).time, pass(pass_idx).ref_data(:,rline), pass(pass_idx).time+time_shift, 'linear');
-      pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline));
+      pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline),NaN);
     end
   end
   

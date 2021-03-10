@@ -36,6 +36,9 @@ end
 if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
   param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
 end
+if ~isnumeric(param.collate_coh_noise.imgs)
+  error('param.collate_coh_noise.imgs must be a numeric integer array with indices into param.analysis.imgs. Default is 1:length(param.analysis.imgs).');
+end
 
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
