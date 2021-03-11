@@ -164,7 +164,13 @@ elseif isstruct(ctrl_chain)
   if strcmpi(ctrl.cluster.type,'none')
     return;
   end
-
+  
+  % Ensure that submission_queue and job_status=='T' match
+  if ~isempty(setxor(ctrl.submission_queue,find(ctrl.job_status=='T')))
+    warning('submission_queue and job_status are not in sync. Resyncing.')
+    ctrl.submission_queue = find(ctrl.job_status=='T');
+  end
+  
   % Sort submission queue tasks based on memory usage: this is done to
   % increase the chance that tasks with similar memory usage will be
   % grouped together in jobs to make the cluster memory request more

@@ -78,7 +78,14 @@ end
 if ~isfield(param.tomo_collate,'surf_out_path') || isempty(param.tomo_collate.surf_out_path)
   param.tomo_collate.surf_out_path = 'surfData';
 end
-  
+
+% Name of the top surface (usually set to 'top' when tracking surfaces below
+% the ice-surface and set to an empty string, '', when tracking the
+% ice-surface.
+if ~isfield(param.tomo_collate,'top_name') || isempty(param.tomo_collate.top_name)
+  param.tomo_collate.top_name = 'top';
+end
+
 %% Setup Processing
 % =====================================================================
 
@@ -137,7 +144,8 @@ if param_array.array.tomo_en
 else
   error('param_array.array.tomo_en is false for the input file, tomography should be enabled during array process in order to run tomo.collate.');
 end
-[wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',param_array.array.imgs)),records);
+param.load.imgs = param_array.array.imgs;
+[wfs,~] = data_load_wfs(param,records);
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
   for v_img = 1:length(param.tomo_collate.imgs)
     for h_img = 1:length(param.tomo_collate.imgs{v_img})

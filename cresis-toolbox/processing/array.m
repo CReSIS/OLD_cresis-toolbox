@@ -73,7 +73,10 @@ end
 %  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
 %  If the image is a cell array it describes multilooking across apertures
 if ~iscell(param.array.imgs{1})
-  % No special multilooking, reformat old syntax to new multilooking syntax
+  % param.array.imgs is not using multilooking syntax; reformat
+  % param.array.imgs non-multilooking syntax to multilooking syntax to
+  % ensure param.array.imgs is always in the multilooking syntax. This
+  % makes coding easier since the format is always the same.
   for img = 1:length(param.array.imgs)
     param.array.imgs{img} = {param.array.imgs{img}};
   end
@@ -319,7 +322,6 @@ cpu_time_mult = cpu_time_mult * cpu_time_method_mult;
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'array_task';
 sparam.num_args_out = 1;
-prev_frm_num_chunks = [];
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
@@ -372,6 +374,28 @@ for frm_idx = 1:length(param.cmd.frms);
   if num_chunks == 0
     warning('Frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
     num_chunks = 1;
+  end
+
+  % Determine number of chunks in the previous frame
+  if frm == 1
+    prev_frm_num_chunks = 0;
+  else
+    % Current frame goes from the start record specified in the frames file
+    % to the record just before the start record of the next frame.  For
+    % the last frame, the stop record is just the last record in the segment.
+    prev_frm_start_rec = ceil(frames.frame_idxs(frm-1)/param.sar.presums);
+    if frm-1 < length(frames.frame_idxs)
+      prev_frm_stop_rec = ceil((frames.frame_idxs(frm)-1)/param.sar.presums);
+    else
+      prev_frm_stop_rec = length(records.gps_time);
+    end
+    
+    prev_frm_frm_dist = along_track_approx(prev_frm_stop_rec) - along_track_approx(prev_frm_start_rec);
+    prev_frm_num_chunks = round(prev_frm_frm_dist / param.array.chunk_len);
+    if prev_frm_num_chunks == 0
+      warning('Previous frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
+      prev_frm_num_chunks = 1;
+    end
   end
   
   %% Process each chunk (unless it is a skip frame)
@@ -441,7 +465,6 @@ for frm_idx = 1:length(param.cmd.frms);
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
     
   end
-  prev_frm_num_chunks = num_chunks;
 end
 
 ctrl = cluster_save_dparam(ctrl);

@@ -4,7 +4,7 @@ function get_map(obj,hObj,event)
 % This is the callback function which is called when the preference
 % window "OK" button is pressed and the prefwin "StateChange" event occurs.
 
-%% Determine map source
+%% Determine map source and projection
 if strcmp('Google Map', obj.map_pref.settings.map_name)
   obj.map.source = 1;
   obj.map.scale = 1;
@@ -12,7 +12,6 @@ elseif strcmp('Blank Stereographic Map', obj.map_pref.settings.map_name)
   % blank map selected
   obj.map.source = 2;
   obj.map.scale = 1e3;
-  obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
 elseif strcmp('Blank Geodetic Map', obj.map_pref.settings.map_name)
   % blank map selected
   obj.map.source = 3;
@@ -21,8 +20,8 @@ else
   % OPS map selected
   obj.map.source = 0;
   obj.map.scale = 1e3;
-  obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
 end
+obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
 
 %% Determine flight line source
 if strcmp('OPS',obj.map_pref.settings.flightlines(1:3))

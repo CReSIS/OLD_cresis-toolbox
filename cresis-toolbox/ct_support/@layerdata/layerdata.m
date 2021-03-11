@@ -128,6 +128,7 @@ classdef layerdata < handle
     function load(obj,frm)
       layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
       if ~exist(layer_fn,'file')
+        warning('Layer file does not exist. Creating %s\n', layer_fn);
         obj.create(frm);
       else
         obj.layer{frm} = load(layer_fn);
@@ -954,7 +955,7 @@ classdef layerdata < handle
       if ischar(id)
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
-        if isempty(id)
+        if isempty(match_idx)
           error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
         id = obj.layer_organizer.lyr_id(match_idx);
@@ -1364,16 +1365,28 @@ classdef layerdata < handle
       else
         master.Elevation = mdata.Elevation;
       end
-      for lay_idx = length(layers)
-        ops_layer = [];
-        ops_layer{1}.gps_time = layers(lay_idx).gps_time;
-        ops_layer{1}.type = layers(lay_idx).type;
-        ops_layer{1}.quality = layers(lay_idx).quality;
-        ops_layer{1}.twtt = layers(lay_idx).twtt;
-        ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
-        ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
-        lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
-        layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+      if 1
+        % New Method: since layer data files are continuously sampled and
+        % include NaN to represent gaps, simple interpolation works fine.
+          layers(lay_idx).twtt_ref = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'spline');
+          layers(lay_idx).quality = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+          layers(lay_idx).type = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+      else
+        % Old Method: this is necessary for layer data loaded from OPS
+        % where gaps are represented by no data points in those spots.
+        % A special interpolation is then required to preserve gaps
+        % properly.
+        for lay_idx = length(layers)
+          ops_layer = [];
+          ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+          ops_layer{1}.type = layers(lay_idx).type;
+          ops_layer{1}.quality = layers(lay_idx).quality;
+          ops_layer{1}.twtt = layers(lay_idx).twtt;
+          ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+          ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+          lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+          layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+        end
       end
     end
     

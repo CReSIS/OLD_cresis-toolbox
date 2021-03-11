@@ -7,11 +7,11 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,r
 %  .season_name: string containing season name (e.g. '2012_Greenland_P3')
 %  .day_seg: string containing the day segment (e.g. '20170412_01'). This
 %    is not required if frm_id is a string with the day_seg in it.
-% imgs: a cell array of wf-adc pair lists
 % frm_id: One of these options:
 %   1. string containing frame id (e.g. '20120514_01_317')
 %   2. an integer containing the frame number (param.day_seg must be passed
 %   in)
+% imgs: a cell array of wf-adc pair lists
 % rec_range: Specifies a range of records to load in. The units specified by
 %   rec_range_type. Only the first and last element of rec_range are used.
 % rec_range_type: String containing 'gps_time' or 'records'. Default is
@@ -51,20 +51,30 @@ param_fn = '';
 if ischar(param)
   param_fn = ct_filename_param(param);
   clear param;
-  if ~ischar(frm_id)
-    error('param as a filename requires frm_id to be a frame ID string so the segment can be determined.');
+  if ~ischar(frm_id) && ~iscell(frm_id)
+    error('param as a filename requires frm_id to be a frame ID string or cell array of frame ID strings so the segment can be determined.');
   end
 end
 if ischar(frm_id)
   param.day_seg = frm_id(1:11);
+elseif iscell(frm_id) && length(frm_id) >= 1 && ischar(frm_id{1})
+  param.day_seg = frm_id{1}(1:11);
 elseif ~isfield(param,'day_seg')
-  error('param.day_seg or frm_id as a frame id string must be provided');
+  error('param.day_seg or frm_id as a frame id string or cell array of frame ID strings must be provided');
 end
 if ischar(frm_id)
   frm = str2double(frm_id(end-2:end));
-else
+elseif iscell(frm_id)
+  frm = zeros(size(frm_id));
+  for idx=1:length(frm_id)
+    frm(idx) = str2double(frm_id{idx}(end-2:end));
+  end
+  frm_id = frm_id{1};
+elseif isnumeric(frm_id) && length(frm_id) >= 1
   frm = frm_id;
-  frm_id = sprintf('%s_%03d', param.day_seg, frm);
+  frm_id = sprintf('%s_%03d', param.day_seg, frm(1));
+else
+  error('Invalid combination of input arguments for param and frm.');
 end
 
 if ~isempty(param_fn)
@@ -126,25 +136,22 @@ if exist('rec_range','var') && ~isempty(rec_range)
       stop_rec = good_recs(end);
     end
   end
+  recs = start_rec:stop_rec;
 
 else
   % Use the provided frame ID to determine the records to get
   
-  if frm > length(frames.frame_idxs)
-    error('Frame %d > %d does not exist\n', frm, length(frames.frame_idxs));
-  elseif frm == length(frames.frame_idxs)
-    % Special case that handles last frame in segment
-    start_rec = frames.frame_idxs(frm);
-    stop_rec = length(records.lat);
-  else
-    start_rec = frames.frame_idxs(frm);
-    stop_rec = frames.frame_idxs(frm+1)-1;
+  param.cmd.frms = frm;
+  frms = frames_param_cmd_frms(param,frames);
+  recs = false(size(records.gps_time));
+  for idx = 1:length(frms)
+    recs(frames.frame_idxs(frms(idx)):frames.frame_idxs(frms(idx)+1)-1) = true;
   end
+  recs = find(recs);
 end
-recs = start_rec:stop_rec;
 
 %% Get GPS Times
-gps_time = records.gps_time(start_rec:stop_rec);
+gps_time = records.gps_time(recs);
 
 %% Get filenames
 load_info = get_raw_files_sub(param,wf_adc_list,records,recs);

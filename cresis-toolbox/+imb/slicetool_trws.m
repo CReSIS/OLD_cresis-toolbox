@@ -177,12 +177,16 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       H = interp_finite(sb.sd.time(Surface))*c/2;
       T = interp_finite(sb.sd.time(Bottom))*c/2/sqrt(er_ice);
       theta_threshold = theta(:);
-      theta_threshold(theta_threshold > pi/2*0.75) = pi/2*0.75;
-      theta_threshold(theta_threshold < -pi/2*0.75) = -pi/2*0.75;
-      R = 1./cos(theta_threshold) * H + 1./cos(theta_ice) * T;
-      ct_slope = single([zeros(1,Nx); diff(R)/dr]+[diff(R)/dr; zeros(1,Nx)]);
-      ct_slope(2:end-1,:) = ct_slope(2:end-1,:)/2;
-      ct_slope = interp_finite(ct_slope);
+      %theta_threshold(theta_threshold > pi/2*0.75) = pi/2*0.75;
+      %theta_threshold(theta_threshold < -pi/2*0.75) = -pi/2*0.75;
+      theta_threshold(theta_threshold > pi/2*0.75) = NaN;
+      theta_threshold(theta_threshold < -pi/2*0.75) = NaN;
+      R = 1./cos(theta_threshold) * H(:).' + 1./cos(theta_ice) * T(:).';
+      %ct_slope = single([zeros(1,Nx); diff(R)/dr]+[diff(R)/dr; zeros(1,Nx)]);
+      %ct_slope(2:end-1,:) = ct_slope(2:end-1,:)/2;
+      ct_slope = [diff(R)/dr; nan(1,Nx)];
+      %ct_slope = interp_finite(ct_slope,0,@(x,y,z) interp1(x,y,z,'linear','extrap'),[],'interp');
+      ct_slope = single(interp_finite(ct_slope,0));
       
       ct_weight = 1./(3+mean(abs(ct_slope),2));
       ct_weight = ct_weight_max*ct_weight./max(ct_weight);
@@ -236,21 +240,29 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
             || col ~= 1 && col == cols(1) && top_edge_en && isfinite(active_bins(col,idx)) ...
             || col ~= Nsv && col == cols(end) && bottom_edge_en && isfinite(active_bins(col,idx))
             % No change for edge
-            trws_data([1:active_bins(col,idx)-1 active_bins(col,idx)+1:end], col, idx) = -inf;
+            trws_data([1:active_bins(col,idx)-1 active_bins(col,idx)+1:end], col, idx) = -10e9;
           elseif ice_mask(col,idx)
             if isfinite(gt_bins(col,idx))
               % Ground truth
-              trws_data([1:gt_bins(col,idx)-gt_range, gt_bins(col,idx)+gt_range:end], col, idx) = -inf;
+              trws_data([1:gt_bins(col,idx)-gt_range, gt_bins(col,idx)+gt_range:end], col, idx) = -10e9;
             end
-            if isfinite(isfinite(surf_bins(col,idx)))
-              % Bottom below top
-              trws_data(1:surf_bins(col,idx), col, idx) = -inf;
-              % Surface suppression
-              trws_data(surf_bins(col,idx) + (1:surf_range), col, idx) = -surf_weight/surf_range * (surf_range:-1:1);
+            if isfinite(surf_bins(col,idx))
+              if surf_bins(col,idx) < Nt
+                % Bottom below top
+                trws_data(1:surf_bins(col,idx), col, idx) = -10e9;
+                % Surface suppression
+                cur_surf_range = max(0,min(surf_range,Nt-surf_bins(col,idx)));
+                trws_data(surf_bins(col,idx) + (1:cur_surf_range), col, idx) ...
+                  = trws_data(surf_bins(col,idx) + (1:cur_surf_range), col, idx) ...
+                  -surf_weight/surf_range * (cur_surf_range:-1:1).';
+              elseif surf_bins(col,idx) >= Nt
+                % Handle special case when surface is more than the last row
+                trws_data(1:Nt-1, col, idx) = -10e9;
+              end
             end
           elseif isfinite(surf_bins(col,idx))
             % Bottom equals top because there is no ice here
-            trws_data([1:surf_bins(col,idx)-1 surf_bins(col,idx)+1:end], col, idx) = -inf;
+            trws_data([1:surf_bins(col,idx)-1 surf_bins(col,idx)+1:end], col, idx) = -10e9;
           end
         end
       end
@@ -276,8 +288,19 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
         cmd{end}.redo.y = correct_surface(cols,idx);
         cmd{end}.type = 'standard';
       end
-      cmd{end+1}.redo.slice = sb.slice;
-      cmd{end}.undo.slice = sb.slice;
+      if any(sb.slice == slices(start_slice_idx:end_slice_idx))
+        % Current slice in slice browser is one of the affected slices, my
+        % placing it first in the list this is the one the viewer will jump
+        % to when the undo or redo operation are run
+        cmd{end+1}.redo.slice = [sb.slice slices(start_slice_idx:end_slice_idx)];
+        cmd{end}.undo.slice = [sb.slice slices(start_slice_idx:end_slice_idx)];
+      else
+        % Current slice in slice browser is NOT one of the affected slices.
+        % During the undo or redo operation, the browser will now jump to
+        % the first affected slice.
+        cmd{end+1}.redo.slice = slices(start_slice_idx:end_slice_idx);
+        cmd{end}.undo.slice = slices(start_slice_idx:end_slice_idx);
+      end
       cmd{end}.type = 'slice_dummy';
       
     end

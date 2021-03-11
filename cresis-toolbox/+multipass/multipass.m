@@ -16,10 +16,10 @@
 %   Runs array processing if input_type=='sar' and is used for cross-track
 %   slope estimation and basal swath imaging
 % 3: to differential INSAR
-%   Co-register images using GPS and nadir squint angle assumption
-%   (Motion compensation with phase correction AND slope correction)
-%   Saves output for (differential) interferometry and vertical velocity
-%   estimation.
+%   Co-register images using GPS and nadir squint angle assumption (Motion
+%   compensation with phase correction AND slope correction) Saves output
+%   for (differential) interferometry (coherence and interferometric phase
+%   images created) and vertical velocity estimation.
 % 4: to plot results
 %   Co-register images using GPS and nadir squint angle assumption
 %   Quits after plotting results
@@ -103,22 +103,7 @@ equalization = param.multipass.equalization;
 % layer: layer struct to opsLoadLayers which indicates which layers will be
 % loaded and coregistered along with each image
 if ~isfield(param.multipass,'layer') || isempty(param.multipass.layer)
-  param.multipass.layer = struct();
-end
-if length(param.multipass.layer) < 2
-  param.multipass.layer(2) = struct();
-end
-if ~isfield(param.multipass.layer(1),'name') || isempty(param.multipass.layer(1).name)
-  param.multipass.layer(1).name = 'surface';
-end
-if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(1).source)
-  param.multipass.layer(1).source = 'layerData';
-end
-if ~isfield(param.multipass.layer(2),'name') || isempty(param.multipass.layer(2).name)
-  param.multipass.layer(2).name = 'bottom';
-end
-if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(2).source)
-  param.multipass.layer(2).source = 'layerData';
+  param.multipass.layer = struct('name',{'surface','bottom'},'source','layerdata');
 end
 
 % master_idx: Index to pass that will be used as the master pass for the
@@ -359,7 +344,7 @@ if surf_flatten_en
 end
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
-  fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+  fprintf('Coregister: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
   
   %% Pass: 1. Position in ref coordinate system
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
@@ -448,13 +433,16 @@ for pass_out_idx = 1:length(pass_en_idxs)
   pass(pass_idx).freq_baseband = df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
   fc = pass(pass_idx).wfs(pass(pass_idx).wf).fc;
   pass(pass_idx).freq = fc + pass(pass_idx).freq_baseband;
+  if pass_idx == baseline_master_idx
+    ref.freq = pass(pass_idx).freq;
+  end
   
   time_shift = coregistration_time_shift(pass_idx) * dt;
   
   if strcmp('echo',param.multipass.input_type)
     % Apply time shift with interpolation
     pass(pass_idx).ref_data = interp1(pass(pass_idx).time, pass(pass_idx).ref_data, pass(pass_idx).time+time_shift, 'linear');
-    pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data);
+    pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data,NaN);
     
   else
     % Apply frequency domain time shift (envelope only shift so baseband frequency)
@@ -501,7 +489,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
     for rline = 1:size(pass(pass_idx).ref_data,2)
       time_shift = pass(pass_idx).ref_z(rline)/(c/2);
       pass(pass_idx).ref_data(:,rline) = interp1(pass(pass_idx).time, pass(pass_idx).ref_data(:,rline), pass(pass_idx).time+time_shift, 'linear');
-      pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline));
+      pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline),NaN);
     end
   end
   
@@ -549,20 +537,19 @@ if param.multipass.comp_mode ~= 1 && strcmp('sar',param.multipass.input_type)
 end
 
 if 0
-  %% Coregister: Data Dependent method to estimate System Time Delay
+  %% Estimate Coregistration: Data Dependent method to estimate System Time Delay
   % Apply fixed coregistration time shift
   coherence_sum = [];
   coregistration_time_shifts = -2:0.05:2;
   for pass_out_idx = 1:length(pass_en_idxs)
     pass_idx = pass_en_idxs(pass_out_idx);
-    fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+    fprintf('Estimate Coregistration: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
     
-    freq = pass(pass_idx).freq;
+    freq = ref.freq;
     freq = freq - freq(1); % Remove center frequency offset
-    coherence_sum = [];
     for coregistration_time_shift_idx = 1:length(coregistration_time_shifts)
       coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
-      dt = coregistration_time_shift * (pass(pass_idx).time(2)-pass(pass_idx).time(1));
+      dt = coregistration_time_shift * (ref.time(2)-ref.time(1));
       adjusted = ifft(bsxfun(@times,fft(data(:,:,pass_idx)),exp(-1i*2*pi*freq*dt)));
       coherence = fir_dec(adjusted(rbins,:) .* conj(data(rbins,:,master_idx)) ./ abs(adjusted(rbins,:) .* data(rbins,:,master_idx)),ones(1,7)/7,1);
       coherence = fir_dec(coherence.',ones(1,3)/3,1).';
@@ -573,12 +560,12 @@ if 0
       %     imagesc(coherence); colormap(1-gray(256));
       %     pause
     end
-    [~,coregistration_time_shift_idx] = max(coherence_sum);
+    [~,coregistration_time_shift_idx] = max(coherence_sum,[],1);
     coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
   end
   figure(2000); clf;
   plot(coregistration_time_shifts,coherence_sum)
-  [~,coregistration_time_shift_idx] = max(coherence_sum);
+  [~,coregistration_time_shift_idx] = max(coherence_sum,[],1);
   coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
   fprintf('%g ', coregistration_time_shift); fprintf('\n');
   return
@@ -591,6 +578,7 @@ rbins = 1:size(data,1);
 master_out_idx = find(pass_en_idxs == master_idx);
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
+  fprintf('Plot: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
   
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
