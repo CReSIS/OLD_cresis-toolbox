@@ -49,7 +49,7 @@ function data = echo_detrend(mdata, param)
 %
 %   'tonemap': uses Matlab's tonemap command
 %
-%  .roll_comp_en: logical scalar, enables 
+%  .roll_comp_en: logical scalar, enables
 %
 %  .roll_comp_data: structure loaded from roll compensation file generated
 %  by FILLTHISIN.m. Should have two fields:
@@ -297,8 +297,8 @@ switch param.method
         
       end
       
-        trend = trend - param.detrend_offset;
-        trend(trend < min_val) = min_val;
+      trend = trend - param.detrend_offset;
+      trend(trend < min_val) = min_val;
       
       if 0
         %% Debug plots

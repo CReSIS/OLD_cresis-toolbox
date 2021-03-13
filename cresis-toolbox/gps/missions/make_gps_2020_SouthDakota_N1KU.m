@@ -260,11 +260,11 @@ for idx = 1:length(file_type)
     [gps,error_flag] = gps_make_monotonic(gps);
     
     warning('Smoothing elevation and heading data: %s', out_fn);
-    gps.elev = sgolayfilt(gps.elev,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.elev = ct_sgolayfilt(gps.elev,2,101); % Adjust filter length as needed to remove high frequency noise
     heading_x = cos(gps.heading);
     heading_y = sin(gps.heading);
-    heading_x  = sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
-    heading_y  = sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_x  = ct_sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = ct_sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
     gps.heading = atan2(heading_y,heading_x);
     
     save(out_fn,'-append','-struct','gps','elev','heading');

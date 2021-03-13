@@ -56,19 +56,16 @@ if ischar(param)
   end
 end
 if ischar(frm_id)
-  param.day_seg = frm_id(1:11);
+  [param.day_seg] = frames_id_parse(frm_id);
 elseif iscell(frm_id) && length(frm_id) >= 1 && ischar(frm_id{1})
   param.day_seg = frm_id{1}(1:11);
 elseif ~isfield(param,'day_seg')
   error('param.day_seg or frm_id as a frame id string or cell array of frame ID strings must be provided');
 end
 if ischar(frm_id)
-  frm = str2double(frm_id(end-2:end));
+  [~,frm] = frames_id_parse(frm_id); % Extract frame number from frame ID
 elseif iscell(frm_id)
-  frm = zeros(size(frm_id));
-  for idx=1:length(frm_id)
-    frm(idx) = str2double(frm_id{idx}(end-2:end));
-  end
+  [~,frm] = frames_id_parse(frm_id); % Extract frame numbers from frame IDs
   frm_id = frm_id{1};
 elseif isnumeric(frm_id) && length(frm_id) >= 1
   frm = frm_id;
