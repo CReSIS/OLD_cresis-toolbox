@@ -167,6 +167,17 @@ if strcmpi(gps_source_to_use,'NMEA')
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+
+  year = 2021; month = 03; day = 02;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'NMEA';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+  gps_source{file_idx} = 'nmea-field';
+  sync_flag{file_idx} = 0;
+  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+  
 elseif strcmpi(gps_source_to_use,'novatel')
   %% NOVATEL
   % ======================================================================
@@ -260,11 +271,11 @@ for idx = 1:length(file_type)
     [gps,error_flag] = gps_make_monotonic(gps);
     
     warning('Smoothing elevation and heading data: %s', out_fn);
-    gps.elev = sgolayfilt(gps.elev,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.elev = ct_sgolayfilt(gps.elev,2,101); % Adjust filter length as needed to remove high frequency noise
     heading_x = cos(gps.heading);
     heading_y = sin(gps.heading);
-    heading_x  = sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
-    heading_y  = sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_x  = ct_sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = ct_sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
     gps.heading = atan2(heading_y,heading_x);
     
     save(out_fn,'-append','-struct','gps','elev','heading');
