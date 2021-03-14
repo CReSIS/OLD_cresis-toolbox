@@ -8,7 +8,7 @@ along_track = geodetic_to_along_track(gps.lat,gps.lon,gps.elev);
 rlines = get_equal_alongtrack_spacing_idxs(along_track,40);
 
 %% Loop to calculate trajectory every 40 meters
-est_heading = zeros(3,length(gps.lat));
+est_heading = zeros(1,length(gps.lat));
 x = zeros(3,length(gps.lat));
 y = zeros(3,length(gps.lat));
 z = zeros(3,length(gps.lat));
