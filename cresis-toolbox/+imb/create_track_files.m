@@ -66,7 +66,7 @@ if isempty(layer(1).gps_time)
 end
 
 if any(isnan(layer(1).twtt))
-  fprintf('%s\tsurface_NaN!!!\n', param.day_seg);
+  fprintf('%s\tsurface_NaN!!!\t%d\t%d\n', param.day_seg, sum(isnan(layer(1).twtt)), length(layer(1).twtt));
 end
 
 % Checking for inconsistent field lengths
