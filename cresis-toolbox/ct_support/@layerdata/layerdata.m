@@ -1072,16 +1072,21 @@ classdef layerdata < handle
       if nargin < 2
         % If no regular expression string is given, then return all layers
         layer_names = obj.layer_organizer.lyr_name;
+        lyr_order = obj.layer_organizer.lyr_order;
       else
         layer_names = {};
+        lyr_order = [];
         idx = 0;
         for  lyr_idx = 1:length(obj.layer_organizer.lyr_name)
           if regexp(obj.layer_organizer.lyr_name{lyr_idx},regexp_str)
             idx = idx + 1;
             layer_names{idx} = obj.layer_organizer.lyr_name{lyr_idx};
+            lyr_order(idx) = obj.layer_organizer.lyr_order(lyr_idx);
           end
         end
       end
+      [~,sort_idxs] = sort(lyr_order);
+      layer_names = layer_names(sort_idxs);
     end
     
     %% gps_time: get gps_time
