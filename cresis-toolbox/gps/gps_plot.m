@@ -134,20 +134,24 @@ if length(gps.heading) ~= length(gps.gps_time)
   fprintf(2,'Length of heading does not match gps_time.\n', length(gps.heading), length(gps.gps_time));
 end
 
-if isfield(gps,'comp_time') && length(gps.comp_time) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of comp_time does not match sync_gps_time.\n', length(gps.comp_time), length(gps.sync_gps_time));
-end
-if isfield(gps,'radar_time') && length(gps.radar_time) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of radar_time does not match sync_gps_time.\n', length(gps.radar_time), length(gps.sync_gps_time));
-end
-if isfield(gps,'sync_lat') && length(gps.sync_lat) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of sync_lat does not match sync_gps_time.\n', length(gps.sync_lat), length(gps.sync_gps_time));
-end
-if isfield(gps,'sync_lon') && length(gps.sync_lon) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of sync_lon does not match sync_gps_time.\n', length(gps.sync_lon), length(gps.sync_gps_time));
-end
-if isfield(gps,'sync_elev') && length(gps.sync_elev) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of sync_elev does not match sync_gps_time.\n', length(gps.sync_elev), length(gps.sync_gps_time));
+if ~isfield(gps,'sync_gps_time');
+  warning('GPS file does not have sync_gps_time field.');
+else
+  if isfield(gps,'comp_time') && length(gps.comp_time) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of comp_time does not match sync_gps_time.\n', length(gps.comp_time), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'radar_time') && length(gps.radar_time) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of radar_time does not match sync_gps_time.\n', length(gps.radar_time), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'sync_lat') && length(gps.sync_lat) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of sync_lat does not match sync_gps_time.\n', length(gps.sync_lat), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'sync_lon') && length(gps.sync_lon) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of sync_lon does not match sync_gps_time.\n', length(gps.sync_lon), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'sync_elev') && length(gps.sync_elev) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of sync_elev does not match sync_gps_time.\n', length(gps.sync_elev), length(gps.sync_gps_time));
+  end
 end
 
 %% Elevation Plot

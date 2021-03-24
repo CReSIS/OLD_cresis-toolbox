@@ -51,20 +51,27 @@ param_fn = '';
 if ischar(param)
   param_fn = ct_filename_param(param);
   clear param;
-  if ~ischar(frm_id)
-    error('param as a filename requires frm_id to be a frame ID string so the segment can be determined.');
+  if ~ischar(frm_id) && ~iscell(frm_id)
+    error('param as a filename requires frm_id to be a frame ID string or cell array of frame ID strings so the segment can be determined.');
   end
 end
 if ischar(frm_id)
-  param.day_seg = frm_id(1:11);
+  [param.day_seg] = frames_id_parse(frm_id);
+elseif iscell(frm_id) && length(frm_id) >= 1 && ischar(frm_id{1})
+  param.day_seg = frm_id{1}(1:11);
 elseif ~isfield(param,'day_seg')
-  error('param.day_seg or frm_id as a frame id string must be provided');
+  error('param.day_seg or frm_id as a frame id string or cell array of frame ID strings must be provided');
 end
 if ischar(frm_id)
-  frm = str2double(frm_id(end-2:end));
-else
+  [~,frm] = frames_id_parse(frm_id); % Extract frame number from frame ID
+elseif iscell(frm_id)
+  [~,frm] = frames_id_parse(frm_id); % Extract frame numbers from frame IDs
+  frm_id = frm_id{1};
+elseif isnumeric(frm_id) && length(frm_id) >= 1
   frm = frm_id;
-  frm_id = sprintf('%s_%03d', param.day_seg, frm);
+  frm_id = sprintf('%s_%03d', param.day_seg, frm(1));
+else
+  error('Invalid combination of input arguments for param and frm.');
 end
 
 if ~isempty(param_fn)
@@ -126,25 +133,22 @@ if exist('rec_range','var') && ~isempty(rec_range)
       stop_rec = good_recs(end);
     end
   end
+  recs = start_rec:stop_rec;
 
 else
   % Use the provided frame ID to determine the records to get
   
-  if frm > length(frames.frame_idxs)
-    error('Frame %d > %d does not exist\n', frm, length(frames.frame_idxs));
-  elseif frm == length(frames.frame_idxs)
-    % Special case that handles last frame in segment
-    start_rec = frames.frame_idxs(frm);
-    stop_rec = length(records.lat);
-  else
-    start_rec = frames.frame_idxs(frm);
-    stop_rec = frames.frame_idxs(frm+1)-1;
+  param.cmd.frms = frm;
+  frms = frames_param_cmd_frms(param,frames);
+  recs = false(size(records.gps_time));
+  for idx = 1:length(frms)
+    recs(frames.frame_idxs(frms(idx)):frames.frame_idxs(frms(idx)+1)-1) = true;
   end
+  recs = find(recs);
 end
-recs = start_rec:stop_rec;
 
 %% Get GPS Times
-gps_time = records.gps_time(start_rec:stop_rec);
+gps_time = records.gps_time(recs);
 
 %% Get filenames
 load_info = get_raw_files_sub(param,wf_adc_list,records,recs);
