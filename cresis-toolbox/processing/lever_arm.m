@@ -2095,9 +2095,13 @@ end
 if any(strcmpi(param.season_name,{'2020_SouthDakota_N1KU'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
-  LArx = [0.3827 -1.2155 -0.9425; 0.3827 -1.2155 -0.9425; 0.3827 -1.2155 -0.9425; 0.3827 -1.2155 -0.9425].';
+  %
+  LAtx = [0.5486 0.2423 -1.6352].';
 
-  LAtx = [0.3771 1.7367 -0.9409].';
+  LArx = [0.2952 -2.1810 0.7222].';
+  LArx(:,2) = [0.3836 -1.6054 1.0586].';
+  LArx(:,3) = [0.4637  -1.0808 1.3995].';
+  LArx(:,4) = [0.4647  0.5980 1.3891].';
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;

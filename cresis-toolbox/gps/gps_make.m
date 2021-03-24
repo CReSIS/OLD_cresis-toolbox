@@ -80,7 +80,7 @@ for file_idx = 1:length(in_fns)
   end
   
   fprintf('=====================================================================\n');
-  fprintf('%s: %s (%s)\n', mfilename, out_fn, datestr(now));
+  fprintf('%s:\t%s\t%s\n', mfilename, out_fn, datestr(now,'yyyymmdd_HHMMSS'));
   fprintf('=====================================================================\n');
   
   %% Load Radar Sync GPS files (mcrds, accum2, arena)
@@ -89,7 +89,7 @@ for file_idx = 1:length(in_fns)
       sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
     end
     clear sync_gps;
-    fprintf('Sync files (%.1f sec)\n', toc);
+    fprintf('Sync_files\t%s\n', datestr(now,'yyyymmdd_HHMMSS'));
     for sync_fn_idx = 1:length(sync_fn)
       if ~exist('sync_file_type','var') || length(sync_file_type) < file_idx || isempty(sync_file_type{file_idx})
         % Assume nmea because of legacy support which did not require this field to be set
@@ -168,7 +168,7 @@ for file_idx = 1:length(in_fns)
   end
   clear gps;
   separate_ins_data_flag = false;
-  fprintf('Input files (%.1f sec)\n', toc);
+  fprintf('Input_files\t%s\n', datestr(now,'yyyymmdd_HHMMSS'));
   for in_fn_idx = 1:length(in_fn)
     if iscell(file_type{file_idx})
       cur_file_type = file_type{file_idx}{in_fn_idx};
@@ -195,9 +195,9 @@ for file_idx = 1:length(in_fns)
     gps_tmp = gps_fh(fn,params{file_idx}{in_fn_idx});
     if ~isempty(gps_tmp.gps_time)
       % Print out filename, start/stop GPS time, and duration in seconds
-      fprintf('-- %s\t%s\t%s\t%s\t%g\n', fn_dir,fn_name, ...
+      fprintf('-- %s\t%s\t%s\t%s\t%g\t%s\n', fn_dir,fn_name, ...
         datestr(epoch_to_datenum(gps_tmp.gps_time(1))), ...
-        datestr(epoch_to_datenum(gps_tmp.gps_time(end))), diff(gps_tmp.gps_time([1 end])));
+        datestr(epoch_to_datenum(gps_tmp.gps_time(end))), diff(gps_tmp.gps_time([1 end])), datestr(now,'yyyymmdd_HHMMSS'));
     else
       % Print out filename only because there are no entries
       fprintf('-- %s\t%s\t\t\t\n', fn_dir,fn_name);
@@ -459,7 +459,7 @@ for file_idx = 1:length(in_fns)
   gps.season_name = season_name;
 
   %% Save output file
-  fprintf('Output file %s\n', out_fn);
+  fprintf('Output_file\t%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
   gps.file_version = '2';
   gps.file_type = 'gps';
   if sync_flag{file_idx}
