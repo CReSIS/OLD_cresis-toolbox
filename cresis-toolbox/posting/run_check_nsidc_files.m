@@ -49,6 +49,6 @@ for param_idx = 1:length(params)
   all_img_file_num = all_img_file_num + img_num;
   all_csv_file_num = all_csv_file_num + csv_num;
 end
-sprintf('number of files to deliver = %d\nnumber of nc files = %d\nnumber of supplement files = %d\nnumber of Spatial and Premet files = %d\nnumber of frames or map files = %d\nnumber of echogram images = %d\n',...
-  all_file_num, all_nc_file_num,all_supplement_file_num,all_SP_file_num,all_map_file_num, all_img_file_num)
+sprintf('number of files to deliver = %d\nnumber of nc files = %d\nnumber of supplement files = %d\nnumber of Spatial and Premet files = %d\nnumber of frames or map files = %d\nnumber of echogram images = %d\nnumber of csv files = %d\n',...
+  all_file_num, all_nc_file_num,all_supplement_file_num,all_SP_file_num,all_map_file_num, all_img_file_num,all_csv_file_num)
 
