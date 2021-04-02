@@ -7,7 +7,8 @@ function param = echo_param(mdata,mode)
 % environment.
 %
 % mdata: structure loaded from echogram file (e.g. CSARP_qlook or
-% CSARP_standard)
+% CSARP_standard) or a filename string that can be loaded to obtain the
+% structure.
 %
 % modes: scalar numeric, default is zero. mode 0 returns parameter
 % structure, mode 1 returns the string
@@ -31,7 +32,12 @@ function param = echo_param(mdata,mode)
 if ~exist('mode','var') || isempty(mode)
   mode = 0;
 end
-  
+
+if ischar(mdata)
+  % Assume mdata contains a filename string and load it
+  mdata = load(mdata);
+end
+
 if mode == 0
   if isfield(mdata,'param')
     param = mdata.param;
