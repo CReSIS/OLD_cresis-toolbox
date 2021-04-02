@@ -237,7 +237,7 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2016_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 2-channel DDS with phase/amplitude control, 250W SSPA per channel\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 7-channel DDS with phase/amplitude control, 500W SSPA per channel\n'));
   elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
