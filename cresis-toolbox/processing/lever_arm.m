@@ -882,7 +882,7 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'accum'
   LArx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
   LArx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
 
-  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0]) - gps.x; % m
+  LAtx(1,:)   = (-433.3*0.0254 + [0 0 0 0]) - gps.x; % m
   LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
   LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
   
