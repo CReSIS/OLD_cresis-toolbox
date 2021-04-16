@@ -172,12 +172,8 @@ classdef layerdata < handle
       % Ensure frames are loaded
       obj.check_frames();
       
-      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
-      % the records field with this information.
-      trajectory_param = struct('gps_source',obj.records.gps_source, ...
-        'season_name',obj.param.season_name,'radar_name',obj.param.radar_name,'rx_path', 0, ...
-        'tx_weights', [], 'lever_arm_fh', obj.param.radar.lever_arm_fh);
-      obj.records = trajectory_with_leverarm(obj.records,trajectory_param);
+      % Load/create-if-needed reference trajectory
+      obj.records = records_reference_trajectory_load(obj.param,obj.records);
       
       obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
       
