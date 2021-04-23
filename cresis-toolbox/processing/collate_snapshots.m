@@ -259,14 +259,14 @@ for frm_idx = 1:length(param.cmd.frms)
       snapshots.Nsrc = Tomo.Nsrc(Tomo.mask).';
       
       % Pick out gps time and twtt of the culled pixels
-      twtt_matrix     = single(repmat(Time,1,Nx));
-      gps_time_matrix = single(repmat(GPS_time,Nt,1));
-      elev_matrix     = single(repmat(Elevation,Nt,1));
-      pitch_matrix    = single(repmat(Pitch,Nt,1));
-      heading_matrix  = single(repmat(Heading,Nt,1));
-      roll_matrix     = single(repmat(Roll,Nt,1));
-      lat_matrix      = single(repmat(Latitude,Nt,1));
-      lon_matrix      = single(repmat(Longitude,Nt,1));
+      twtt_matrix     = repmat(Time,1,Nx);
+      gps_time_matrix = repmat(GPS_time,Nt,1);
+      elev_matrix     = repmat(Elevation,Nt,1);
+      pitch_matrix    = repmat(Pitch,Nt,1);
+      heading_matrix  = repmat(Heading,Nt,1);
+      roll_matrix     = repmat(Roll,Nt,1);
+      lat_matrix      = repmat(Latitude,Nt,1);
+      lon_matrix      = repmat(Longitude,Nt,1);
       
       snapshots.twtt = twtt_matrix(Tomo.mask);
       snapshots.gps_time = gps_time_matrix(Tomo.mask);

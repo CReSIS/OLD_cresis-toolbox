@@ -660,27 +660,25 @@ for img = 1:length(param.array.imgs)
       % has been updated, delete first conditional and only use the statement
       % after the else below.
       
-      % Does not support subband luts
-      if regexp(param.array.sv_lut_path,'analysis')
-        lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
-      elseif isfield(param.array, 'lut_day_seg') && ~isempty(param.array.lut_day_seg)
-        lut_dir = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),param.array.lut_day_seg);
-        lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.array.lut_day_seg));
-      else
-        lut_dir = ct_filename_out(param,param.array.sv_lut_path);
-        lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
-      end
-      %       if strcmpi(param.array.sv_lut_path,'estimate_sv_lut')
-      %         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
-      %         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
-      %       else
-      %         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
-      %       end
-      load(lut_fn,'sv','doa','param_cal_array_manifold');
+      % lut_fn is either passed in as a fullfile by the user or built from
+      % the default paths in the input checking of array proc.  
+      % If the user doesn't specify the fullfile, they must specify 
+      % at a minimum the following:
+      % param.array.lut_type: choices are either 'training' or 'process'
+      % param.array.lut_dayseg:  if user specifies the process lut type,
+      %                           lut_dayseg can be blank.
+      % param.array.lut_path: defaults to the CSARP_array_manifold folder
+      % param.array.sv_model: 'lookup_table'
+      % param.array.lut_method: choices are 'evd' for principal
+      % eigenvector, 'mmse' for a weiner filter type, and 'ave' for
+      % coherent averaged steering vector.
+      lut_fn = param.array.lut_fn;
       
-      if isfield(param.array,'sv_lut_method') & ~isempty(param.array.sv_lut_method)
+      load(lut_fn,'sv','doa','param_array_manifold');
+      
+      if isfield(param.array,'lut_method') & ~isempty(param.array.lut_method)
         if length(sv) > 1
-          sv_idx = find(strcmpi({sv.method},param.array.sv_lut_method)==true);
+          sv_idx = find(strcmpi({sv.method},param.array.lut_method)==true);
           sv = sv(sv_idx).manifold;
         end
       end
@@ -690,7 +688,7 @@ for img = 1:length(param.array.imgs)
       N1 = size(sv,1);
       if N1 < Nsv
         sv = transpose(sv);
-      end      
+      end
       
       lut_sv = nan(length(doa),size(param.array.imgs{img}{1}(:,1),1));
       
@@ -699,7 +697,7 @@ for img = 1:length(param.array.imgs)
         wf = param.array.imgs{img}{1}(wf_adc,1);
         adc = param.array.imgs{img}{1}(wf_adc,2);
         rx = param.radar.wfs(wf).rx_paths(adc);
-        rx_lut_index = find(param_cal_array_manifold.rx_list == rx);
+        rx_lut_index = find(param_array_manifold.rx_list == rx);
         if ~isempty(rx_lut_index)
           lut_sv(:,wf_adc) = sv(:,rx_lut_index);
         end
@@ -707,6 +705,27 @@ for img = 1:length(param.array.imgs)
       param.array_proc.lut.sv = lut_sv;
       param.array_proc.lut.doa = doa;
       clear sv doa
+      
+%       if strcmpi(param.array.lut_type,'process')
+%         lut_dir = ct_fileparts(ct_filename_out(param,param.array.lut_path));
+%       
+%       % Does not support subband luts
+%       if regexp(param.array.sv_lut_path,'analysis')
+%         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
+%       elseif isfield(param.array, 'lut_day_seg') && ~isempty(param.array.lut_day_seg)
+%         lut_dir = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),param.array.lut_day_seg);
+%         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.array.lut_day_seg));
+%       else
+%         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
+%         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
+%       end
+      %       if strcmpi(param.array.sv_lut_path,'estimate_sv_lut')
+      %         lut_dir = ct_filename_out(param,param.array.sv_lut_path);
+      %         lut_fn = fullfile(lut_dir, sprintf('lut_%s.mat',param.day_seg));
+      %       else
+      %         lut_fn = fullfile(ct_filename_out(param,param.array.sv_lut_path,[],1),'lut.mat');
+      %       end
+ 
     else
       param.array_proc.lut = [];
     end

@@ -488,16 +488,107 @@ if ~isfield(param.array,'sv_model') || isempty(param.array.sv_model)
   param.array.sv_model = 'ideal'; % 'ideal' or 'lookup_table'
 end
 
-if ~strcmpi(param.array.sv_model,'ideal') && isempty(param.array.sv_lut_path) 
-  param.array.sv_lut_path = [];
+if ~isfield(param.array,'process_training_override_flag') || isempty(param.array.process_training_override_flag)
+  param.array.process_training_override_flag = false;
+end
+  
+
+if strcmpi(param.array.sv_model,'lookup_table')
+  if ~isfield(param.array,'lut_dayseg')|| isempty(param.array.lut_dayseg);
+    param.array.lut_dayseg = param.day_seg;
+    param.array.lut_type = 'process';
+  end
 end
 
-if ~isfield(param.array,'sv_lut_path')
-  param.array.sv_lut_path = [];
+if strcmpi(param.array.sv_model,'lookup_table')
+  if ~isfield(param.array,'lut_type') || isempty(param.array.lut_type)
+    if ~isempty(param.array.lut_dayseg)
+      if strcmpi(param.array.lut_dayseg,param.day_seg)
+        param.array.lut_type = 'process';
+      elseif ~strcmpi(param.array.lut_dayseg,param.day_seg)
+        param.array.lut_type = 'training';
+      end
+    end
+  end
 end
 
-if strcmpi(param.array.sv_model,'lookup_table') && ~isfield(param.array,'sv_lut_path') || isempty(param.array.sv_lut_path)
-  param.array.sv_lut_path = 'analysis';  
+if strcmpi(param.array.sv_model,'lookup_table')
+  if strcmpi(param.array.lut_type,'training') && strcmpi(param.array.lut_dayseg, param.day_seg) ...
+      && ~param.array.process_training_override_flag
+    param.array.sv_model = 'ideal';
+    warning('Cannot use training data on processing from same day_seg. Converting manifold model to ideal');
+  end
+end
+
+if strcmpi(param.array.sv_model,'lookup_table')
+  if ~isfield(param.array,'lut_method') || isempty(param.array.lut_method)
+    param.array.lut_method = 'evd';
+  end
+  if~isfield(param.array,'lut_path') || isempty(param.array.lut_path)
+    param.array.lut_path = 'array_manifold';
+  end
+  if ~isfield(param.array,'lut_fn') || isempty(param.array.lut_fn)
+    param.array.lut_fn = [];
+  end
+  
+end
+
+% 
+% if ~strcmpi(param.array.sv_model,'ideal') && isempty(param.array.lut_path) || ~isfield(param.array,'lut_path')
+%   param.array.lut_path = 'array_manifold';
+% end
+
+% if ~strcmpi(param.array.sv_model,'ideal') && isempty(param.array.sv_lut_path) 
+%   param.array.sv_lut_path = [];
+% end
+
+% if ~isfield(param.array,'lut_path')
+%   param.array.sv_lut_path = [];
+% end
+% 
+% if strcmpi(param.array.sv_model,'lookup_table') 
+%   if~isfield(param.array,'lut_path') || isempty(param.array.lut_path)
+%   param.array.lut_path = 'array_manifold';  
+%   end
+% end
+
+
+% User can specify lookup table full filename directly
+if strcmpi(param.array.sv_model,'lookup_table') && ~isempty(param.array.lut_fn)
+  if ~exist(param.array.lut_fn)==2
+    warning('No valid lookup table found. Converting to ideal manifold');
+    param.array.sv_model = 'ideal';
+    param.array.lut_dayseg = [];
+    param.array.lut_type = [];
+    param.array.lut_path = [];
+  end
+end
+  
+% Check for the existence of the lut
+if strcmpi(param.array.sv_model,'lookup_table') && isempty(param.array.lut_fn)
+  if strcmpi(param.array.lut_type,'process')
+    lut_path = ct_fileparts(ct_filename_out(param, param.array.lut_path,''));
+    lut_fn = fullfile(lut_path,sprintf('lut_process_%s.mat',param.day_seg));
+  elseif strcmpi(param.array.lut_type,'training')
+    lut_path = fullfile(ct_fileparts(ct_filename_out(param, param.array.lut_path,'')),sprintf('%s',param.array.lut_dayseg));
+    lut_fn = fullfile(lut_path,sprintf('lut_training_%s.mat',param.array.lut_dayseg));
+  end
+  
+  if ~isdir(lut_path)
+    warning('Lookup table path does not exist. Converting to ideal manifold');
+    param.array.sv_model = 'ideal';
+    param.array.lut_dayseg = [];
+    param.array.lut_type = [];
+    param.array.lut_path = [];
+  elseif ~exist(lut_fn)==2
+    warning('No valid lookup table found. Converting to ideal manifold');
+    param.array.sv_model = 'ideal';
+    param.array.lut_dayseg = [];
+    param.array.lut_type = [];
+    param.array.lut_path = [];
+  else
+    param.array.lut_fn = lut_fn;
+  end
 end
 
 if nargin == 1
