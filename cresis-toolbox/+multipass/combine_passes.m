@@ -252,61 +252,59 @@ for passes_idx = 1: length(passes)
     % Debug level (1 = default)
     param_sar.load_sar_data.debug_level = 2;
     
-    for frm_idx = 1:length(passes(passes_idx).frms)
-      % Load SAR data for this frame
-      param_sar.load_sar_data.frm = passes(passes_idx).frms(frm_idx);
-      % load_sar_data loads all images at once
-      [data{end+1},metadata{end+1}] = load_sar_data(param_sar);
-      
-      metadata{end}.frms = passes(passes_idx).frms(frm_idx);
-      metadata{end}.param_pass = param_pass;
-      
-      %% Do image combining
-      % Combines low-gain and high-gain images into a single image
-      param_mode = 'array';
-      param_img_combine = param_pass;
-      % array.img_comb should have 3*(length(imgs)-1) fields, if it has more
-      % than required, then truncate to 3*(length(imgs)-1)
-      param_img_combine.array.img_comb = param_pass.array.img_comb(1:...
-        min([length(param_pass.array.img_comb), 3*(length(passes(passes_idx).imgs)-1)]));
-      param_img_combine.array.imgs = passes(passes_idx).imgs;
-      if length(param_img_combine.array.imgs) > 1 && length(param_img_combine.array.img_comb) == 2*(length(param_img_combine.array.imgs)-1)
-        error('Spreadsheet has the wrong number of entries for param.array.img_comb. It has the right number for the old combine method. Usually this is fixed by inserting "-inf" for the second coefficient which controls how the receiver blanking is used. For example [3e-6 1e-6; 10e-6 3e-6] becomes [3e-6 -inf 1e-6; 10e-6 -inf 3e-6].');
-      end
-      param_img_combine.load.frm = metadata{end}.frms;
-      param_img_combine.day_seg = passes(passes_idx).day_seg;
-      
-      data_in = [];
-      data_in.Data =data{end};
-      data_in.Time = {};
-      for img = 1:length(passes(passes_idx).imgs)
-        wf = passes(passes_idx).imgs{img}(1);
-        data_in.Time{img}= metadata{end}.wfs(wf).time;
-      end
-      data_in.GPS_time = metadata{end}.fcs{1}{1}.gps_time;
-      if length(data{end})>1 %Combine if using multiple waveforms
-        [data{end}, metadata{end}.time] = img_combine(param_img_combine,param_mode,surf_layer,data_in);
-      else
-        data{end} = data{end}{1};
-      end
-      if 0
-        %Check image combine output
-        figure(1); clf; h_axes = [];
-        for idx = 1:length(data_in.Data)
-          h_axes(idx) = subplot(length(data_in.Data),1,idx);
-          imagesc(data_in.GPS_time,data_in.Time{idx},lp(data_in.Data{idx}))
-          xlabel('GPS Time')
-          ylabel('TWTT')
-        end
-        
-        figure(2); clf;
-        h_axes(end+1) = axes('parent',2);
-        imagesc(data_in.GPS_time,metadata{end}.time,lp(data{end}))
+    % Load SAR data for this frame
+    param_sar.load_sar_data.frms = passes(passes_idx).frms;
+    % load_sar_data loads all images at once
+    [data{end+1},metadata{end+1}] = load_sar_data(param_sar);
+    
+    metadata{end}.frms = passes(passes_idx).frms;
+    metadata{end}.param_pass = param_pass;
+    
+    %% Do image combining
+    % Combines low-gain and high-gain images into a single image
+    param_mode = 'array';
+    param_img_combine = param_pass;
+    % array.img_comb should have 3*(length(imgs)-1) fields, if it has more
+    % than required, then truncate to 3*(length(imgs)-1)
+    param_img_combine.array.img_comb = param_pass.array.img_comb(1:...
+      min([length(param_pass.array.img_comb), 3*(length(passes(passes_idx).imgs)-1)]));
+    param_img_combine.array.imgs = passes(passes_idx).imgs;
+    if length(param_img_combine.array.imgs) > 1 && length(param_img_combine.array.img_comb) == 2*(length(param_img_combine.array.imgs)-1)
+      error('Spreadsheet has the wrong number of entries for param.array.img_comb. It has the right number for the old combine method. Usually this is fixed by inserting "-inf" for the second coefficient which controls how the receiver blanking is used. For example [3e-6 1e-6; 10e-6 3e-6] becomes [3e-6 -inf 1e-6; 10e-6 -inf 3e-6].');
+    end
+    param_img_combine.load.frm = metadata{end}.frms;
+    param_img_combine.day_seg = passes(passes_idx).day_seg;
+    
+    data_in = [];
+    data_in.Data =data{end};
+    data_in.Time = {};
+    for img = 1:length(passes(passes_idx).imgs)
+      wf = passes(passes_idx).imgs{img}(1);
+      data_in.Time{img}= metadata{end}.wfs(wf).time;
+    end
+    data_in.GPS_time = metadata{end}.fcs{1}{1}.gps_time;
+    if length(data{end})>1 %Combine if using multiple waveforms
+      [data{end}, metadata{end}.time] = img_combine(param_img_combine,param_mode,surf_layer,data_in);
+    else
+      data{end} = data{end}{1};
+    end
+    if 0
+      %Check image combine output
+      figure(1); clf; h_axes = [];
+      for idx = 1:length(data_in.Data)
+        h_axes(idx) = subplot(length(data_in.Data),1,idx);
+        imagesc(data_in.GPS_time,data_in.Time{idx},lp(data_in.Data{idx}))
         xlabel('GPS Time')
         ylabel('TWTT')
-        linkaxes(h_axes)
-        keyboard
       end
+      
+      figure(2); clf;
+      h_axes(end+1) = axes('parent',2);
+      imagesc(data_in.GPS_time,metadata{end}.time,lp(data{end}))
+      xlabel('GPS Time')
+      ylabel('TWTT')
+      linkaxes(h_axes)
+      keyboard
     end
   end
 end

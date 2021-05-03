@@ -845,7 +845,7 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       file_version = '1';
     end
-    save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
+    ct_save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
 
   end
   try; delete(h_fig_dem); end;
