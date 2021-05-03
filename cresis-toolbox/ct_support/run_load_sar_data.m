@@ -11,24 +11,28 @@ warning('This is an example file, copy to personal directory, rename, and remove
 % User Settings
 % =======================================================================
 
-param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
+% param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
+param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'20180501_01');
 
 % param.load_sar_data.in_path = ''; % Leave empty for default 'sar'
 
-% Start and stop chunk to load (inf for second element loads to the end)
-% param.load_sar_data.chunk = []; % Leave empty for all chunks
+% param.load_sar_data.chunk: One cell entry per frame; leave empty for all
+% chunks Each entry is two positive integers specifying the start and stop
+% chunk to load (inf for second element loads to the end)
+% param.load_sar_data.chunk = {};
 
 % param.load_sar_data.sar_type = ''; % Leave empty for default 'fk'
 
-param.load_sar_data.frm = 1; % Specify data frame to load
+param.load_sar_data.frms = [51 52]; % Specify data frames to load
 
 % param.load_sar_data.subap = []; % Leave empty for default (all subapertures)
 
 % {Images} with [wf,adc] pairs to load
+param.load_sar_data.imgs = {[1 1]};
 % param.load_sar_data.imgs = {[1 1; 1 2; 1 3; 1 4; 1 5; 1 6]};
 % param.load_sar_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14]};
 % param.load_sar_data.imgs = {[1*ones(8,1) (1:8)'],[2*ones(8,1) (1:8)'],[3*ones(8,1) (1:8)']};
-param.load_sar_data.imgs = {[1*ones(8,1) (1:8)'],[2*ones(8,1) (1:8)'],[[3*ones(8,1) (1:8)'];[4*ones(8,1) (1:8)']]};
+% param.load_sar_data.imgs = {[1*ones(8,1) (1:8)'],[2*ones(8,1) (1:8)'],[[3*ones(8,1) (1:8)'];[4*ones(8,1) (1:8)']]};
 
 % Debug level (1 = default)
 param.load_sar_data.debug_level = 2;

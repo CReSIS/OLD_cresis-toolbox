@@ -39,6 +39,8 @@ fprintf('%s [Mode %d]: %s  (%s)\n', mfilename, param.multipass.comp_mode, ...
   param.multipass.pass_name, datestr(now));
 fprintf('=====================================================================\n');
 
+param = merge_structs(param,param_override);
+
 physical_constants;
 proj_load_standard;
 
@@ -344,7 +346,7 @@ if surf_flatten_en
 end
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
-  fprintf('Coregister: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+  fprintf('Coregister: %d of %d (pass %d) (%s)\n', pass_out_idx, length(pass_en_idxs), pass_idx, datestr(now,'yyyymmdd_HHMMSS'));
   
   %% Pass: 1. Position in ref coordinate system
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
@@ -541,9 +543,10 @@ if 0
   % Apply fixed coregistration time shift
   coherence_sum = [];
   coregistration_time_shifts = -2:0.05:2;
+  rbins = param.multipass.rbins;
   for pass_out_idx = 1:length(pass_en_idxs)
     pass_idx = pass_en_idxs(pass_out_idx);
-    fprintf('Estimate Coregistration: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+    fprintf('Estimate Coregistration: %d of %d, pass %d (%s)\n', pass_out_idx, length(pass_en_idxs), pass_idx, datestr(now,'yyyymmdd_HHMMSS'));
     
     freq = ref.freq;
     freq = freq - freq(1); % Remove center frequency offset
@@ -578,7 +581,7 @@ rbins = 1:size(data,1);
 master_out_idx = find(pass_en_idxs == master_idx);
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
-  fprintf('Plot: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+  fprintf('Plot: %d of %d, pass %d (%s)\n', pass_out_idx, length(pass_en_idxs), pass_idx, datestr(now,'yyyymmdd_HHMMSS'));
   
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
@@ -694,7 +697,7 @@ linkaxes(h_data_axes,'xy');
 if ~strcmp('echo',param.multipass.input_type)
   fprintf('=============================================\n');
   fprintf('New equalization\n');
-  fprintf('%.1f ', lp(new_equalization)-mean(lp(new_equalization(pass_en_idxs))));
+  fprintf('%.1f ', db(new_equalization,'voltage')-mean(db(new_equalization(pass_en_idxs),'voltage')));
   fprintf('\n');
   fprintf('%.1f ', angle(new_equalization)*180/pi)
   fprintf('\n');
@@ -747,7 +750,7 @@ out_fn_dir = fileparts(out_fn);
 if ~exist(out_fn_dir,'dir')
   mkdir(out_fn_dir);
 end
-save(out_fn,'-v7.3','pass','data','ref','param_combine_passes','param_multipass');
+ct_save(out_fn,'-v7.3','pass','data','ref','param_combine_passes','param_multipass');
 
 if param.multipass.comp_mode ~= 2 || strcmp('echo',param.multipass.input_type)
   return
@@ -829,7 +832,7 @@ Time = pass(master_idx).time(param_array2.array_proc.bins);
 file_version = '1';
 fn_mat = fullfile(fn_dir,[fn_name output_fn_midfix '_standard.mat']);
 fprintf('Saving %s (%s)\n', fn_mat, datestr(now));
-save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+ct_save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
   'Surface','Bottom','Time','param_array','param_records', ...
   'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
 
@@ -851,6 +854,6 @@ Time = pass(master_idx).time(param_array2.array_proc.bins);
 file_version = '1';
 fn_mat = fullfile(fn_dir,[fn_name output_fn_midfix '_music.mat']);
 fprintf('Saving %s (%s)\n', fn_mat, datestr(now));
-save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+ct_save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
   'Surface','Bottom','Time','param_array','param_records', ...
   'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
