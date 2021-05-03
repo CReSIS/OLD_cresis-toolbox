@@ -279,7 +279,7 @@ if strcmp(param.layer_tracker.layer_params.source,'ops')
   tmp_out_fn_dir_dir = ct_filename_out(param,'ops','layer_tracker_tmp');
   param.layer_tracker.layer_params.layerdata_source = 'ops'; % Only used for stdout
 else
-  tmp_out_fn_dir_dir = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp');
+  tmp_out_fn_dir_dir = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp'); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_tune_vit_seg4_NC/20140313_09
 end
 mem_combine = 0;
 cputime_combine = 0;
@@ -348,8 +348,8 @@ while frm_idx <= length(param.cmd.frms)
     % File Success
     % ---------------------------------------------------------------------
     for track_idx = tracks_in_task
-      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method);
-      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
+      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method); %t001_viterbi.mat
+      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_tune_vit_seg4_NC/20140313_09/layer_tracker_001/t001_viterbi.mat
       dparam.file_success{end+1} = tmp_out_fn;
       if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
         delete(tmp_out_fn);
@@ -416,9 +416,9 @@ if strcmp(param.layer_tracker.layer_params.source,'ops')
   sparam.file_success = {};
 else
   sparam.file_success = {};
-  out_fn_dir = ct_filename_out(param,'',param.layer_tracker.layer_params.layerdata_source);
+  out_fn_dir = ct_filename_out(param,'',param.layer_tracker.layer_params.layerdata_source); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tune_vit_seg4_NC/20140313_09
   for frm = param.cmd.frms
-    out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm)); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tune_vit_seg4_NC/20140313_09/Data_20140313_09_001.mat
     sparam.file_success{end+1} = out_fn;
   end
 end

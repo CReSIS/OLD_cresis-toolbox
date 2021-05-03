@@ -511,9 +511,10 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Tracking
   if strcmpi(track.method, 'lsm')
-    surf = interp_finite(interp1(param.layer_tracker.gt_params.gps_time,param.layer_tracker.gt_params.twtt,mdata.GPS_time));
-    surf_bins = round(interp1(mdata.Time,1:length(mdata.Time),surf));
+    
     if track.flag == 1
+      surf = interp_finite(interp1(param.layer_tracker.gt_params.gps_time,param.layer_tracker.gt_params.twtt,mdata.GPS_time));
+      surf_bins = round(interp1(mdata.Time,1:length(mdata.Time),surf));
       if track.lsm.y == 1
         track.lsm.y = mean(surf_bins);
       end

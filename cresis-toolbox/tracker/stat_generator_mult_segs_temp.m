@@ -39,15 +39,16 @@ fprintf('=====================================================================\n
 %20140313_08_20210107_162824_t005_viterbi
 %temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20201122_193803_t005_viterbi.mat');
 
+
 % Example to run 1 season with 1 segment all frames
 params_all = [];
 idx_segment = 1;
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140421_01');%'20140313_09|20140415_05|20140421_01|20140514_01');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140313_08|20140516_01');
 params(idx_segment).cmd.generic = 1;
 params(idx_segment).cmd.frms = [];
-% idx_segment = idx_segment + 1;
-% params(idx_segment).cmd.generic = 1;
-% params(idx_segment).cmd.frms = [];
+idx_segment = idx_segment + 1;
+params(idx_segment).cmd.generic = 1;
+params(idx_segment).cmd.frms = [];
 % idx_segment = idx_segment + 1;
 % params(idx_segment).cmd.generic = 1;
 % params(idx_segment).cmd.frms = [];
@@ -102,12 +103,13 @@ filename = [];
 % filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20210211_201501_t006_lsm.mat');
 % filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210211_201509_t006_lsm.mat');
 
- %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20210304_221148_t005_viterbi.mat');
- %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210315_220253_t005_viterbi.mat');
+filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20210304_221148_t005_viterbi.mat');
+filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210315_220253_t005_viterbi.mat');
+
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_09_20210311_013103_t056_lsm.mat');
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140415_05_20210311_013232_t056_lsm.mat');
-filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140421_01_20210311_014435_t056_lsm.mat');
-%filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140514_01_20210311_015110_t056_lsm.mat');
+% filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140421_01_20210311_014435_t056_lsm.mat');
+% filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140514_01_20210311_015110_t056_lsm.mat');
  % two segments
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20210107_162824_t005_viterbi.mat');
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210107_163106_t005_viterbi.mat');
@@ -131,7 +133,7 @@ options.hist_generation.multiple_plots = true;
 
 %% Setup save
 % Enter filename of where you want to store the images
-img_dir = '/cresis/snfs1/scratch/anjali/cluster_tuning/lsm_test';
+img_dir = '/cresis/snfs1/scratch/anjali/cluster_tuning/vit_fig1';
 if ~exist(img_dir,'dir')
   mkdir(img_dir);
 end
@@ -151,17 +153,14 @@ seg_idx = 0;
 season_vect_frm = [];
 segment_vect_frm = [];
 frame_vect_frm  = [];
-range = 100; % set acceptable range for error
+range = 10; % set acceptable range for error
 idx = 1;
 
 % If only bottom
  %gt_layer_params(idx).name = 'bottom'; % specify layer names
 
 % If surface and bottom
-foo{idx} = [];
-gt_layer_params(idx).name = 'surface';
-idx = idx + 1;
-foo{idx} = [];
+Sfoo{idx} = [];
 gt_layer_params(idx).name = 'bottom'; % specify layer names
 
 num_layers = idx;
@@ -186,6 +185,9 @@ for season_idx = 1:length(params_all) %seasons
     param = params(param_idx);
     
     if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
+      gps_time = [];
+      season_vect = [];
+      segment_vect = [];
       seg_idx = seg_idx + 1;
       param_override = filename{seg_idx}.param;
       param = merge_structs(param,param_override);
@@ -197,21 +199,24 @@ for season_idx = 1:length(params_all) %seasons
         res_mat_temp{layer_names} = cell([param.layer_tracker.track{1}.idx_reshape]);
       end
       
-      if (param_idx == 1)
+      %if (param_idx == 1)
         for layer_idx = 1:length(gt_layer_params)
           if strcmpi(param.layer_tracker.track{1}.method,'lsm')
             percent_error{layer_idx} = zeros(1,(length(param.layer_tracker.track)*length(param.layer_tracker.track{1}.lsm.storeIter)));
             for iter_idx = 1:(length(param.layer_tracker.track)*length(param.layer_tracker.track{1}.lsm.storeIter))
               range_per{layer_idx}{iter_idx} = [];
+              res_matrix{layer_idx}{iter_idx} = [];
+
             end
           elseif strcmpi(param.layer_tracker.track{1}.method,'viterbi')
             percent_error{layer_idx} = zeros(1,(length(param.layer_tracker.track)));
             for iter_idx = 1:(length(param.layer_tracker.track))
               range_per{layer_idx}{iter_idx} = [];
+              res_matrix{layer_idx}{iter_idx} = [];
             end
           end
         end
-      end
+      %end
       %       for layer_idx = 1:length(gt_layer_params)
       %         percent_error{layer_idx} = zeros(1,(length(param.layer_tracker.track)*length(param.layer_tracker.track{1}.lsm.storeIter)));
       %       end
@@ -258,9 +263,7 @@ for season_idx = 1:length(params_all) %seasons
               layer_params(1).layerdata_source = param.layer_tracker.layer_params.layerdata_source;
             end
             ids = 1;
-            sprintf('\n=====Loading layers tracker: %d=====\n',track_idx);
             layers_new = opsLoadLayers(param,layer_params);
-            sprintf('\n=====Loaded layers tracker: %d=====\n',track_idx);
             
             surf = interp1(layers(layer_idx).gps_time,layers(layer_idx).twtt,data.GPS_time);
             surf_bins = round(interp1(data.Time,1:length(data.Time),surf));
@@ -580,12 +583,32 @@ for season_idx = 1:length(params_all) %seasons
       %         end
       %
       %       end
-      
-      save_name = sprintf('/cresis/snfs1/scratch/anjali/cluster_tuning/lsm_test/result_layer_tune_lsm_s%d',param_idx);
-      save(save_name,'res_matrix_all','frame_error','range_per','percent_error','season_vect','res_matrix','points','min_val','gps_time','param');
+      save_name = sprintf('/cresis/snfs1/scratch/anjali/cluster_tuning/vit_fig1/result_layer_tune_lsm_s%d',param_idx);
+      save(save_name,'res_matrix_all','frame_error','range_per','percent_error','season_vect','res_matrix','points','min_val','gps_time');
     end
   end
-  fprintf('\n=====All segements=====\n');
+%   fprintf('\n=====All segements=====\n');
+%   ff{1} = load('/cresis/snfs1/scratch/anjali/cluster_tuning/lsm_all_figs2/result_layer_tune_lsm_s1');
+%   ff{2} = load('/cresis/snfs1/scratch/anjali/cluster_tuning/lsm_all_figs2/result_layer_tune_lsm_s2');
+%   
+%   for hist_idx = 1:length(frame_error{layer_idx})
+%     range_per{1}{hist_idx} = [];
+%     res_matrix{1}{hist_idx} = [];
+%   end
+%   percent_error{layer_names} = zeros(1,(length(frame_error{layer_names})));
+%   
+%   for i = 1:length(ff)
+%     foo{layer_names} = [foo{layer_names};ff.res_matrix_all{layer_names}];
+%     percent_error{layer_names} = zeros(1,(length(param.layer_tracker.track)));
+% 
+%     percent_error{layer_names} = percent_error{layer_names} + ff.percent_error{layer_names};
+%     for hist_idx = 1:length(frame_error{layer_idx})
+%       range_per{1}{hist_idx} = cat(2,range_per{1}{hist_idx},ff.range_per{1}{hist_idx});
+%       res_matrix{1}{hist_idx} = cat(2,res_matrix{1}{hist_idx},ff.res_matrix{1}{hist_idx});
+%     end
+%   end
+  
+  
   points = [];
   min_val = [];
   res_matrix_all_frms = [];
@@ -754,14 +777,16 @@ for season_idx = 1:length(params_all) %seasons
         set(gca,'XTick',x);
         ylabel('Mean absolute error (bins)');
         xlabel('Trackers');
-        title(sprintf('%s frames: %03d',param.day_seg,length(param.cmd.frms)),'Interpreter', 'none');
+        title(sprintf('Absolute error frames: %03d Layer:%d %s',length(param.cmd.frms),layer_idx,param.season_name),'Interpreter', 'none');
       end
       img_format = 'png';
       if(options.absolute_error.fig_format)
         img_format = 'fig';
       end
       testname = param.layer_tracker.layer_params.layerdata_source;
-      img_fn = fullfile(img_dir,sprintf('%03d_%s_%s_absolute_error.%s',2,testname,param.day_seg,img_format));
+      %img_fn = fullfile(img_dir,sprintf('%s_%s_season_gps_%03d_%03d.%s',testname,param.season_name,track_idx,layer_idx,img_format));
+
+      img_fn = fullfile(img_dir,sprintf('%03d_%s_%s_absolute_error_%03d.%s',2,testname,param.season_name,layer_idx,img_format));
       ct_saveas(h_fig(1),img_fn);
       
     elseif(strcmpi(param.layer_tracker.track{1}.method,'lsm'))

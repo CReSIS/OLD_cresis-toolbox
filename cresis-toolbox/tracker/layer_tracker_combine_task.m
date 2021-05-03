@@ -25,7 +25,6 @@ layer_source.desc = [];
 % Combine and Copy each tracking result
 for track_idx = 1:length(param.layer_tracker.track)
   track = param.layer_tracker.track{track_idx};
-  
   %% Track: Load in all temporary files
   gps_time = [];
   twtt = [];
@@ -38,6 +37,9 @@ for track_idx = 1:length(param.layer_tracker.track)
     Nx = length(tmp.gps_time);
     gps_time(1,end+(1:Nx)) = tmp.gps_time;
     try
+%       if size(tmp.twtt,1) ~= length(param.layer_tracker.track{track_idx}.lsm.storeIter) * 2
+%         tmp.twtt(36,:) = tmp.twtt(35,:);
+%       end
       twtt(:,end+(1:Nx)) = tmp.twtt;
     catch ME
       tmp.twtt(36,:) = tmp.twtt(35,:);

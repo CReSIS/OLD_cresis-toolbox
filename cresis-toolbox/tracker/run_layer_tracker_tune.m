@@ -16,8 +16,8 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
 
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140516_01');
-params = ct_set_params(params,'cmd.frms',[40 41]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140516_01');%|20140415_05|20140421_01|20140516_01');%'20140415_05|20140421_01|20140514_01|20140313_09');
+params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
 
@@ -35,7 +35,7 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_lsm_s001';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_lsm_20140516';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
@@ -49,8 +49,8 @@ param_override.layer_tracker.track_per_task = 1;
 %% param.layer_tracker.track options
 if strcmpi(tracker_method,'lsm')
   track_idx = 0;
-  y_values = [140 160];%[1 140:20:280]; % Enter 1 as the first element if surface mean is calculated
-  dy_values = [5 10];%[5 10 20 40 60 80 100];
+  y_values = [140:20:280];%[140:20:280]; % Enter 1 as the first element if surface mean is calculated
+  dy_values = [5 10 20 40 60 80 100];
   
   for y_idx = 1:length(y_values)
     y = y_values(y_idx);
@@ -66,10 +66,10 @@ if strcmpi(tracker_method,'lsm')
       
       %% LSM User Settings
       track.method           = 'lsm';
-      track.flag             = 1; %to specify whether we want to consider mean of y
+      track.flag             = 0; %to specify whether we want to consider mean of y
       track.lsm.y            = y; % = '' for y = mean(SURF)
       track.lsm.dy           = dy;
-      track.lsm.storeIter    = [25 50];%[75:25:500];
+      track.lsm.storeIter    = [75:25:500];
       track.idx_dim_name     = {'storeIter' 'dy' 'y'};
       track.idx_reshape      = [length(track.lsm.storeIter) length(dy_values) length(y_values)];
       track.idx              = length(dy_values)*length(track.lsm.storeIter)*(y_idx-1) ...
@@ -148,9 +148,9 @@ end
 % param_override.layer_tracker.crossover_layer = struct('name','bottom','source','ops');
 
 % dbstop if error;
-% param_override.cluster.type = 'torque';
+ param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
- param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
