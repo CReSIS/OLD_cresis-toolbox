@@ -1366,12 +1366,17 @@ classdef layerdata < handle
       else
         master.Elevation = mdata.Elevation;
       end
-      if 1
-        % New Method: since layer data files are continuously sampled and
-        % include NaN to represent gaps, simple interpolation works fine.
-          layers(lay_idx).twtt_ref = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'spline');
-          layers(lay_idx).quality = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
-          layers(lay_idx).type = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+      if 0
+        % New Method: if opsLoadLayers is updated to always return
+        % uniformly sampled data where NaN are used to represent gaps in
+        % the layers (rather than just not including any points), simple
+        % interpolation works fine. Currently opsLoadLayers for source ops,
+        % does not do this... so "Old Method" must be used.
+        for lay_idx = length(layers)
+          layers(lay_idx).twtt_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, master.GPS_time, 'spline');
+          layers(lay_idx).quality_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).quality, master.GPS_time, 'nearest');
+          layers(lay_idx).type_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).type, master.GPS_time, 'nearest');
+        end
       else
         % Old Method: this is necessary for layer data loaded from OPS
         % where gaps are represented by no data points in those spots.

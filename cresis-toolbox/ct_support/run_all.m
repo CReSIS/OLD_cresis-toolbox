@@ -83,6 +83,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2017_Antarctica_P3.xls';
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Basler.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
+% param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls'; % Season not completed
