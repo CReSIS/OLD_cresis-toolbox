@@ -94,6 +94,25 @@ if ~isfield(param.dem,'enforce_below_top') || isempty(param.dem.enforce_below_to
   param.dem.enforce_below_top = true;
 end
 
+if ~isfield(param.dem,'ice_mask') || isempty(param.dem.ice_mask)
+  param.dem.ice_mask = [];
+end
+
+if ~isfield(param.dem,'ice_mask_flag') || isempty(param.dem.ice_mask_flag)
+  param.dem.ice_mask_flag = false;
+end
+
+if ~isfield(param.dem,'add_array_manifold_mask_flag') || isempty(param.dem.add_array_manifold_mask_flag)
+  param.dem.add_array_manifold_mask_flag = false;
+end
+
+if param.dem.array_manifold_mask_flag
+  param.dem.array_manifold_mask_flag = true;
+  if isempty(param.dem.ice_mask)
+    error('User must specify an ice mask surface to derive the array manifold mask')
+  end
+end    
+
 surface_names = param.dem.surface_names;
 figure_dots_per_km = param.dem.figure_dots_per_km;
 
@@ -114,7 +133,7 @@ for frm_idx = 1:length(param.cmd.frms)
   surfdata_fn = fullfile(ct_filename_out(param,param.dem.surfdata_source),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   data_fn = fullfile(ct_filename_out(param,param.dem.input_dir_name),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
-  %% Load surfData, echogram, steering vector calibration
+  %% Load surfdata, echogram, steering vector calibration and handle error conditions
   
   % Load surface data (usually top and bottom)
   fprintf('  %s\n', surfdata_fn);
@@ -127,6 +146,25 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Find the index to the ice top
   ice_top_idx = sd.get_index(param.dem.ice_top);
+  
+  if ~isempty(find(strcmp(param.dem.ice_mask,{sd.surf.name}))) && param.dem.ice_mask_flag
+    ice_mask_idx = sd.get_index(param.dem.ice_mask);
+    ice_mask = sd.surf(ice_mask_idx).y; 
+    array_manifold_mask = ice_mask;
+    array_manifold_mask = cumsum(array_manifold_mask,1,'reverse') >= 1 | cumsum(array_manifold_mask,1,'forward') >= 1;
+  else
+    ice_mask_idx =[];
+    ice_mask = [];
+    array_manifold_mask = [];
+  end
+  
+  if isempty(ice_mask) && param.dem.array_manifold_mask_en
+    error('No valid ice mask found in surfdata file')
+  end
+  
+  if isempty(ice_mask) && param.dem.ice_mask
+    error('No valid ice mask found in surfdata file')
+  end
   
   % Load the echogram
   fprintf('  %s\n', data_fn);
@@ -156,11 +194,11 @@ for frm_idx = 1:length(param.cmd.frms)
     end
   end
   
-  % Convert top from range bins to twtt (the top is needed with each
-  % surface to handle refraction)
+%   Convert top from range bins to twtt (the top is needed with each
+%   surface to handle refraction)
   ice_top = sd.surf(ice_top_idx).y;
-  % If no top defined, then assume top is a zero time (i.e.
-  %   ground based radar operation with antenna at surface)
+%   If no top defined, then assume top is a zero time (i.e.
+%     ground based radar operation with antenna at surface)
   if all(all(isnan(ice_top)))
     ice_top = zeros(size(ice_top));
   end
@@ -387,6 +425,7 @@ for frm_idx = 1:length(param.cmd.frms)
         pnts(1,:) = points.x(good_idxs);
         pnts(2,:) = points.y(good_idxs);
         pnts(3,:) = points.elev(good_idxs);
+        ice_mask_pnts = ice_mask(good_idxs);
         gps_time = repmat(mdata.GPS_time,size(good_mask,1),1);
         gps_time = gps_time(good_idxs);
         
@@ -548,6 +587,28 @@ for frm_idx = 1:length(param.cmd.frms)
       F = TriScatteredInterp(dt,pnts(3,:).');
       warning on;
       DEM = F(xmesh,ymesh);
+      
+      if param.dem.ice_mask_flag
+        ice_mask_pnts = ice_mask(good_idxs);
+        ice_mask_eval = double(ice_mask_pnts);        
+        Fi = TriScatteredInterp(dt,ice_mask_eval(:),'nearest');
+        ice_mask_dem = Fi(xmesh,ymesh);
+        ice_mask_dem = logical(round(ice_mask_dem));
+        
+%         ICE_MASK = Fi(xmesh,ymesh);
+%         ICE_MASK = logical(round(ICE_MASK));
+        
+        if param.dem.array_manifold_mask_flag
+          array_manifold_mask_pnts = array_manifold_mask(good_idxs);
+          array_manifold_mask_eval = double(array_manifold_mask_pnts);
+          Fa = TriScatteredInterp(dt,array_manifold_mask_eval(:),'nearest');
+          array_manifold_mask_dem =  Fa(xmesh,ymesh);
+          array_manifold_mask_dem = logical(round(array_manifold_mask_dem));
+%           ARRAY_MANIFOLD_MASK = Fa(xmesh,ymesh);
+%           ARRAY_MANIFOLD_MASK = logical(round(ARRAY_MANIFOLD_MASK));
+        end       
+      end
+      
       if 0
         % Debug
         figure;imagesc(DEM)
@@ -562,6 +623,8 @@ for frm_idx = 1:length(param.cmd.frms)
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
         img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
+        
+        ice_mask_trim = ice_mask(DOA_trim+1:end-DOA_trim,:);
       else
         % DOA method: 3D points are the estmated DOAs, which are usually
         % different for each range-line.
@@ -590,6 +653,18 @@ for frm_idx = 1:length(param.cmd.frms)
       bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
       DEM(idxs_to_check(bad_mask)) = NaN;
       IMG_3D(idxs_to_check(bad_mask)) = NaN;
+      if param.dem.ice_mask_flag
+        nan_mask = idxs_to_check(bad_mask);
+        ICE_MASK = ice_mask_dem;
+        ICE_MASK(nan_mask) = true;
+%         ICE_MASK(~nan_mask) = ice_mask_dem;
+%         ICE_MASK(idxs_to_check(bad_mask)) = NaN;
+        if param.dem.array_manifold_mask_flag
+          ARRAY_MANIFOLD_MASK = array_manifold_mask_dem;
+          ARRAY_MANIFOLD_MASK(nan_mask) = true;
+%           ARRAY_MANIFOLD_MASK(idxs_to_check(bad_mask)) = NaN;
+        end
+      end
     end
     
     %% Create DEM scatter plot over geotiff
@@ -847,7 +922,16 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       file_version = '1';
     end
-    save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
+    if param.dem.ice_mask_flag
+      if param.dem.array_manifold_mask_flag
+        save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','ICE_MASK','ARRAY_MANIFOLD_MASK','points','boundary','param_surfdata','file_version');
+      else
+        save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','ICE_MASK','points','boundary','param_surfdata','file_version');
+      end
+    else
+      save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
+    end
+
 
   end
   try; delete(h_fig_dem); end;

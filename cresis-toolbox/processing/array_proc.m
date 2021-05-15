@@ -3393,10 +3393,11 @@ for line_idx = 1:1:Nx_out
           g   = vertcat(1,zeros(size(keep_surf_doas)));
           % Convert to radians for array_proc_sv
           surf_doas_rad = keep_surf_doas*pi/180;
+          theta_desired_rad = theta_desired(des_idx).*pi/180;
 %           sv_fh_arg = {'theta'};
 %           sv_fh_arg{2} = [theta_desired(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
           sv_opt_arg = [];
-          sv_opt_arg = [theta_desired(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+          sv_opt_arg.theta = [theta_desired_rad, surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
           
           % Estimate power
           for ml_idx = 1:length(cfg.fcs)
@@ -3411,7 +3412,9 @@ for line_idx = 1:1:Nx_out
             [~,A] = cfg.sv_fh(sv_arg{:});
 %             [~,A] = cfg.sv_fh(sv_fh_arg,cfg.wfs.fc*sqrt(cfg.sv_dielectric),y_pos{ml_idx},z_pos{ml_idx});
             % Apply pseudoinverse to g
+            warning off
             w = A * inv(A'*A) *g;
+            warning on
             w = w ./ sqrt(w'*w);
             sv_gn{ml_idx} = w;
             
@@ -3437,7 +3440,7 @@ for line_idx = 1:1:Nx_out
             surf_power(des_idx) = surf_power(des_idx) ...
               + mean(abs(dataSample*conj(wgeo)).^2);
           end
-          surf_power(des_idx) =       surf_power(des_idx) / length(din);
+          surf_power(des_idx) = surf_power(des_idx) / length(din);
         end
       end
       % Store the power estimated from each source
