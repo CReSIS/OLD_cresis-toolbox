@@ -1931,23 +1931,23 @@ classdef surfdata < handle
       %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
       %       params = ct_set_params(params,'cmd.frms',[2]);
       
-%             params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%             params = ct_set_params(params,'cmd.frms',[4,5,34,35]);
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%       params = ct_set_params(params,'cmd.frms',[19, 41, 42, 45]);
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%       params = ct_set_params(params,'cmd.frms',[13 15 16 19]);
+      %             params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      %             params = ct_set_params(params,'cmd.frms',[4,5,34,35]);
+      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      %       params = ct_set_params(params,'cmd.frms',[19, 41, 42, 45]);
       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-      params = ct_set_params(params,'cmd.frms',[38 41 42 45]);
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%       params = ct_set_params(params,'cmd.frms',[45]);
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%       params = ct_set_params(params,'cmd.frms',[13, 15, 16, 38]);      
-%       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%       params = ct_set_params(params,'cmd.frms',[ 13, 15:16, 38, 41, 42, 45]);
+      params = ct_set_params(params,'cmd.frms',[13 15 16 19]);
+%             params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+%             params = ct_set_params(params,'cmd.frms',[38 41 42 45]);
+      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      %       params = ct_set_params(params,'cmd.frms',[45]);
+      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      %       params = ct_set_params(params,'cmd.frms',[13, 15, 16, 38]);
+      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+      %       params = ct_set_params(params,'cmd.frms',[ 13, 15:16, 38, 41, 42, 45]);
       
-%             params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
-%             params = ct_set_params(params,'cmd.frms',[41,42,44]);
+      %             params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
+      %             params = ct_set_params(params,'cmd.frms',[41,42,44]);
       
       %       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn','canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
@@ -1963,10 +1963,14 @@ classdef surfdata < handle
       %             param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140325_07_lut';
       %             param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140506_01_lut';
       %
-            param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140401_03_lut_test';
-%                   param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140325_07_lut_test';
-%       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140506_01_lut_test';
+      %             param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140401_03_lut_test';
+      %                   param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140325_07_lut_test';
+      %       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140506_01_lut_test';
       
+%       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140401_03_lut';
+%       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140325_07_lut';
+%       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140506_01_lut';
+      param_override.add_surf_from_dem.in_path = 'surf_nominal';
       
       %       params = ct_set_params(params, 'add_surf_from_dem.method','sar');
       %       param_override.add_surf_from_dem.in_path = 'sar_air';
