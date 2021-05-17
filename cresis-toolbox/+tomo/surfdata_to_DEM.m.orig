@@ -194,11 +194,11 @@ for frm_idx = 1:length(param.cmd.frms)
     end
   end
   
-  % Convert top from range bins to twtt (the top is needed with each
-  % surface to handle refraction)
+%   Convert top from range bins to twtt (the top is needed with each
+%   surface to handle refraction)
   ice_top = sd.surf(ice_top_idx).y;
-  % If no top defined, then assume top is a zero time (i.e.
-  %   ground based radar operation with antenna at surface)
+%   If no top defined, then assume top is a zero time (i.e.
+%     ground based radar operation with antenna at surface)
   if all(all(isnan(ice_top)))
     ice_top = zeros(size(ice_top));
   end
@@ -922,18 +922,20 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       file_version = '1';
     end
-
-    dem_savefields = {'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version'};
-    
+<<<<<<< HEAD
     if param.dem.ice_mask_flag
-      dem_savefields = [dem_savefields {'ICE_MASK'}];
-    end
-    
-    if param.dem.array_manifold_mask_flag
-      dem_savefields = [dem_savefields {'ARRAY_MANIFOLD_MASK'}];
+      if param.dem.array_manifold_mask_flag
+        save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','ICE_MASK','ARRAY_MANIFOLD_MASK','points','boundary','param_surfdata','file_version');
+      else
+        save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','ICE_MASK','points','boundary','param_surfdata','file_version');
+      end
+    else
+      save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
     end
 
-    ct_save(mat_fn, dem_savefields);
+=======
+    ct_save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
+>>>>>>> 637fd8748c4eecbb52966ac9ca87f2ab451520cd
 
   end
   try; delete(h_fig_dem); end;

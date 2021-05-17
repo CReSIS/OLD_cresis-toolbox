@@ -324,11 +324,9 @@ if ~isempty(lidar_layer_idx)
         [xi,dist] = dsearchn(lidar_pnts,T,[records_x.' records_y.']);
       elseif 1
         % Second slowest method (69 sec)
-        tic
         dt = delaunayTriangulation(lidar_pnts);
         [xi,dist] = nearestNeighbor(dt, [records_x.' records_y.']);
         clear dt;
-        toc
       elseif 0
         % Fastest method but requires toolbox (29 sec)
         [xi,dist] = knnsearch(lidar_pnts,[records_x.' records_y.']);

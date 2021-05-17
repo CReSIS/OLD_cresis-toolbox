@@ -5,6 +5,8 @@ function frames_update(param,param_override)
 % primary purpose is to update an old frames file to the new file format.
 %
 % param: parameter spreadsheet structure array
+% param_override: usually contains gRadar contents plus any additional
+% parameters to override.
 %
 % Examples: See run_all_frames_update.m
 %

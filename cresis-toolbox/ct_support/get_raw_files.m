@@ -1,34 +1,61 @@
 function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,rec_range_type,out_dir)
 % [load_info,gps_time,recs]= get_raw_files(param,frm_id,imgs,rec_range,rec_range_type)
 %
+% Get a list of raw data filenames for particular frames and images or
+% record ranges. Also can copy files.
+%
+% Inputs
+% =========================================================================
+%
 % param: Can be either a string with the parameter spreadsheet filename OR
-%  a struct containing radar, season, and optionally day_seg information.
+% a struct containing radar, season, and optionally day_seg information.
+%
 %  .radar_name: string containing radar name (e.g. 'kuband2')
+%
 %  .season_name: string containing season name (e.g. '2012_Greenland_P3')
+%
 %  .day_seg: string containing the day segment (e.g. '20170412_01'). This
-%    is not required if frm_id is a string with the day_seg in it.
+%  is not required if frm_id is a string with the day_seg in it.
+%
 % frm_id: One of these options:
+%
 %   1. string containing frame id (e.g. '20120514_01_317')
+%
 %   2. an integer containing the frame number (param.day_seg must be passed
 %   in)
-% imgs: a cell array of wf-adc pair lists
-% rec_range: Specifies a range of records to load in. The units specified by
-%   rec_range_type. Only the first and last element of rec_range are used.
+%
+% imgs: a cell array of wf-adc pair lists, leave undefined or empty to do
+% all images
+%
+% rec_range: Specifies a range of records to load in. The units specified
+% by rec_range_type. Only the first and last element of rec_range are used.
+%
 % rec_range_type: String containing 'gps_time' or 'records'. Default is
-%   'records'. If 'records' is used, either the param.day_seg field must be
-%   defined or the frm_id must be a string with the day_seg in it.
-% out_dir: Optional. May be left empty or not defined. Specifies an
-%   output directory to copy raw files to.
+% 'records'. If 'records' is used, either the param.day_seg field must be
+% defined or the frm_id must be a string with the day_seg in it.
+%
+% out_dir: Optional. May be left empty or not defined. Specifies an output
+% directory to copy raw files to.
+%
+% Outputs
+% =========================================================================
 %
 % load_info: struct with file information for the range of data specified
+%
 %  .filenames: cell array of cells which contain the raw data filenames
+%
 %  .file_idx: cell array of integers which specify an index into .filenames
-%    for each record
+%  for each record
+%
 %  .offset: raw file byte offset to the beginning of each record
+%
 % gps_time: prints out the start and stop GPS times and puts them here
+%
 % recs: raw data records into csarp_support records file
 %
-% Example:
+% Examples
+% =========================================================================
+%
 %   % Get filename information for a range of records
 %   [load_info,gps_time,recs] = get_raw_files(struct('radar_name','rds','season_name','2017_Antarctica_TObas'),'20170122_01',{},[25092 27499])
 %
@@ -40,7 +67,9 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,r
 %   [load_info,gps_time,recs] = get_raw_files('accum_param_2017_Greenland_P3.xls','20170412_01_023',[],1.4920018728e9,'gps_time');
 %
 %   % Example copying files
-%   load_info = get_raw_files(struct('radar_name','mcrds','season_name','2008_Greenland_TO'),'20080627_06_001','/tmp/)
+%   load_info = get_raw_files(struct('radar_name','mcrds','season_name','2008_Greenland_TO'),'20080627_06_001','/tmp/')
+%
+% =========================================================================
 %
 % Author: John Paden
 %
@@ -56,19 +85,16 @@ if ischar(param)
   end
 end
 if ischar(frm_id)
-  param.day_seg = frm_id(1:11);
+  [param.day_seg] = frames_id_parse(frm_id);
 elseif iscell(frm_id) && length(frm_id) >= 1 && ischar(frm_id{1})
   param.day_seg = frm_id{1}(1:11);
 elseif ~isfield(param,'day_seg')
   error('param.day_seg or frm_id as a frame id string or cell array of frame ID strings must be provided');
 end
 if ischar(frm_id)
-  frm = str2double(frm_id(end-2:end));
+  [~,frm] = frames_id_parse(frm_id); % Extract frame number from frame ID
 elseif iscell(frm_id)
-  frm = zeros(size(frm_id));
-  for idx=1:length(frm_id)
-    frm(idx) = str2double(frm_id{idx}(end-2:end));
-  end
+  [~,frm] = frames_id_parse(frm_id); % Extract frame numbers from frame IDs
   frm_id = frm_id{1};
 elseif isnumeric(frm_id) && length(frm_id) >= 1
   frm = frm_id;
@@ -93,7 +119,7 @@ global gRadar;
 param = merge_structs(gRadar,param);
 
 % Populate imgs cell array with all wf-adc pairs if not specified
-if isempty(imgs)
+if ~exist('imgs','var') || isempty(imgs)
   for wf = 1:length(param.radar.wfs)
     for adc = 1:length(param.radar.wfs(wf).rx_paths)
       imgs{wf}(adc,1:2) = [wf adc];
