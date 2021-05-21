@@ -135,6 +135,9 @@ for subap_idx = 1:length(param.load_sar_data.subap)
     [~,fn_name] = fileparts(fns{fns_idx});
     valid_chks(end+1) = str2double(fn_name(end-2:end));
   end
+  if isempty(valid_chks)
+    error('No valid sar chunks/blocks exist for the requested data.');
+  end
   param.load_sar_data.chunk(param.load_sar_data.chunk==inf) = max(valid_chks);
   chks_to_load = param.load_sar_data.chunk(1):param.load_sar_data.chunk(end);
   

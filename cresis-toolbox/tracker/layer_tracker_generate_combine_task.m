@@ -4,16 +4,10 @@ options = param.options;
 ff = {};
 num_layers = 1;
 for layer_idx = 1:num_layers
-  ff{1} = load(param.save_names{layer_idx,1});
-  param = merge_structs(param,ff{1}.params);
-  ff{2} = load(param.save_names{layer_idx,1});
-  param = merge_structs(param,ff{2}.params);
-  ff{3} = load('/cresis/snfs1/scratch/anjali/cluster_tuning/layer_tune_lsm_4seg_t001/20140516_01/result1.mat');
-  param = merge_structs(param,ff{3}.params);
-%   for param_idx = 1:4
-%     ff{param_idx} = load(param.save_names{layer_idx,param_idx});
-%     param = merge_structs(param,ff{param_idx}.params);
-%   end
+  for param_idx = 1
+    ff{param_idx} = load(param.save_names{layer_idx,param_idx});
+    param = merge_structs(param,ff{param_idx}.params);
+  end
 end
 
 num_layers = length(param.gt_layer_params);
@@ -47,7 +41,6 @@ fprintf('\n=====All segements=====\n');
   points = [];
   min_val = [];
   res_matrix_all_frms = [];
-  %for layer_names = 1:num_layers
     res_matrix_all_frms{layer_idx} = nanmean(foo{layer_idx},1);
     res_matrix_all_frms{layer_idx} = permute(res_matrix_all_frms{layer_idx},ff{1}.idx_matrix);
     [min_val{layer_idx},i]=min(res_matrix_all_frms{layer_idx}(:));
@@ -58,21 +51,13 @@ fprintf('\n=====All segements=====\n');
     if (length(size(res_matrix_all_frms{layer_idx})) < length(param.layer_tracker.track{1}.idx_reshape))
       points{layer_idx}(dim+1) = 1;
     end
-  %end
   
   if (options.percentage_correct.plot)
     fprintf('\n=====Percentage correct all plots=====\n');
-    %if (~options.percentage_correct.multiple_plots)
-    %for layer_idx = 1:length(gt_layer_params)
+   
       h_fig(1) = figure('visible','off','Name',param.tmp_name);
       for hist_idx = 1:length(ff{1}.frame_error{layer_idx})
-        %             hold on;
-        %             plot(range_per{layer_idx}{hist_idx},'DisplayName',sprintf('tracker%d',hist_idx));
-        %             legend('-DynamicLegend','Location','northeastoutside');
-        %             xlabel('Number of frames');
-        %             ylabel('Percentage error');
-        %             set(gca,'XTick',1:length(param.cmd.frms));
-        %             set(gca,'XTickLabel',[param.cmd.frms]);
+        
         hold on;
         plot(range_per{layer_idx}{hist_idx},'.-','DisplayName',sprintf('layer%d',hist_idx));
         xlabel('Frames');
@@ -88,9 +73,7 @@ fprintf('\n=====All segements=====\n');
       testname = param.layer_tracker.layer_params.layerdata_source;
       img_fn = fullfile(img_dir,sprintf('%s_%s_percentage_correct_overall_%03d.%s',testname,param.season_name,layer_idx,img_format));
       ct_saveas(h_fig(1),img_fn);
-    %end
     
-    %for layer_idx = 1:length(gt_layer_params)
      h_fig(1) = figure('visible','off','Name',param.tmp_name);
       plot(percent_error{layer_idx});
       hold on;
@@ -106,20 +89,17 @@ fprintf('\n=====All segements=====\n');
       testname = param.layer_tracker.layer_params.layerdata_source;
       img_fn = fullfile(img_dir,sprintf('%s_%s_total_percent_correct_%03d.%s',testname,param.season_name,layer_idx,img_format));
       ct_saveas(h_fig(1),img_fn);
-    %end
-    %end
+
   end
   
   if (options.hist_generation.plot)
     fprintf('\n=====Hist generation all plots=====\n');
-    %if (~options.hist_generation.multiple_plots)
-    %for layer_idx = 1:length(gt_layer_params)
+    
       h_fig(1) = figure('visible','off','Name',param.tmp_name);
       for hist_idx = 1:length(ff{1}.frame_error{layer_idx})
         hold on;
         [N,x] = hist(abs(res_matrix{layer_idx}{hist_idx}));
         plot(x,N,'DisplayName',sprintf('layer%d',hist_idx));
-        %legend('-DynamicLegend','Location','northeastoutside');
         ylabel('Data points');
         xlabel('Absolute error (bins)');
         title(sprintf('Data points vs Absolute error Layer:%d %s',layer_idx,param.season_name),'Interpreter', 'none');
@@ -132,22 +112,19 @@ fprintf('\n=====All segements=====\n');
       testname = param.layer_tracker.layer_params.layerdata_source;
       img_fn = fullfile(img_dir,sprintf('%s_%s_histogram_generation_overall_%03d.%s',testname,param.season_name,layer_idx,img_format));
       ct_saveas(h_fig(1),img_fn);
-    %end
-    %end
+  
   end
   
   
   if(options.season_vs_gps.plot)
     fprintf('\n=====season plots=====\n');
     if(options.season_vs_gps.multiple_figs)
-      %for layer_idx = 1:length(gt_layer_params)
         for track_idx = 1:length(ff{1}.frame_error{layer_idx})
           h_fig(1) = figure('visible','off','Name',param.tmp_name);
           plot(gps_time,abs(res_matrix{layer_idx}{track_idx}));
           ylabel('Absolute error (bins)');
           xlabel('GPS time');
           title(sprintf('%s Tracker: %d Layer: %d',param.season_name,track_idx,layer_idx),'Interpreter', 'none');
-          %xlim([gps_time(1) gps_time(end)]);
           
           img_format = 'png';
           if(options.season_vs_gps.fig_format)
@@ -157,9 +134,7 @@ fprintf('\n=====All segements=====\n');
           img_fn = fullfile(img_dir,sprintf('%s_%s_season_gps_%03d_%03d.%s',testname,param.season_name,track_idx,layer_idx,img_format));
           ct_saveas(h_fig(1),img_fn);
         end
-      %end
     else
-      %for layer_idx = 1:length(gt_layer_params)
         h_fig(1) = figure('visible','off','Name',param.tmp_name);
         subplot_idx = 0;
         for track_idx = 1:length(ff{1}.frame_error{layer_idx})
@@ -171,14 +146,12 @@ fprintf('\n=====All segements=====\n');
             ylabel('Absolute error (bins)');
             xlabel('GPS time');
             title(sprintf('%s Tracker: %d Layer: %d',param.season_name, track_idx, layer_idx),'Interpreter', 'none');
-            %xlim([gps_time(1) gps_time(end)]);
           else
             subplot(3,2,subplot_idx)
             plot(gps_time,abs(res_matrix{layer_idx}{track_idx}));
             ylabel('Absolute error (bins)');
             xlabel('GPS time');
             title(sprintf('%s Tracker: %d Layer: %d',param.season_name, track_idx, layer_idx),'Interpreter', 'none');
-            %xlim([gps_time(1) gps_time(end)]);
             img_format = 'png';
             if(options.season_vs_gps.fig_format)
               img_format = 'fig';
@@ -190,7 +163,6 @@ fprintf('\n=====All segements=====\n');
             subplot_idx = 0;
           end
         end
-      %end
     end
     
   end
@@ -199,7 +171,6 @@ fprintf('\n=====All segements=====\n');
   if(options.absolute_error.plot)
     fprintf('\n=====Absolute error all plots=====\n');
     if(strcmpi(param.layer_tracker.track{1}.method,'viterbi'))
-      %for layer_idx = 1:num_layers
         res_mat = res_matrix_all_frms{layer_idx};
         points_new = points{layer_idx};
         x = 1:length(res_mat); % x tick
@@ -214,7 +185,6 @@ fprintf('\n=====All segements=====\n');
         ylabel('Mean absolute error (bins)');
         xlabel('Trackers');
         title(sprintf('%s',param.season_name),'Interpreter', 'none');
-     % end
       img_format = 'png';
       if(options.absolute_error.fig_format)
         img_format = 'fig';
@@ -239,7 +209,6 @@ fprintf('\n=====All segements=====\n');
         end
         data{dim}=temp;
       end
-      %for layer_idx = 1:num_layers
         res_mat = res_matrix_all_frms{layer_idx};
         temp_points = points{layer_idx};
         
@@ -279,10 +248,7 @@ fprintf('\n=====All segements=====\n');
           ct_saveas(h_fig(1),img_fn);
           
         end
-      %end
     end
-    
-    
   end
 end
 success = true;

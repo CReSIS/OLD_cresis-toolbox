@@ -234,7 +234,7 @@ if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','accum2'
     board = adc_to_board(param.radar_name,adc);
     board_idx = find(board == boards);
     load_param.load.file_idx{idx} = relative_rec_num_to_file_idx_vector( ...
-      load_param.load.recs,records.relative_rec_num{board_idx});
+      load_param.load.recs(1):load_param.load.recs(end),records.relative_rec_num{board_idx});
     load_param.load.offset{idx} = records.offset(board_idx,:);
     file_idxs = unique(load_param.load.file_idx{idx});
     

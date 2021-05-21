@@ -223,13 +223,14 @@ mult_value_corr = mult_value + 2*surf_spherical_spreading_loss_dB ...
 
 %% Estimate surface multiple power from surface power
 system_dB = -51.89;
+system_dB = -70.36;
 surf_value_corr_filt = max_filt1(surf_value_corr,max_filt_len);
 est_value = system_dB + 2*(surf_value_corr_filt - system_dB) - 2*surf_spherical_spreading_loss_dB - multiple_loss_dB + roll_loss_dB;
 
 if 0
   % Search for the system_dB value
   figure(2); clf;
-  system_dB_list = -55:0.01:-45;
+  system_dB_list = -80:0.01:-45;
   est_error = zeros(size(system_dB_list));
   for idx = 1:length(system_dB_list)
     system_dB = system_dB_list(idx);
@@ -302,7 +303,7 @@ for rline = 1:Nx
     data(:,rline) = interp_finite(data(:,rline));
   end
   
-  if 0 && rline>=1006
+  if 0 && rline>=2324
     figure(1); clf;
     plot(10*log10(orig_val));
     hold on;
@@ -311,7 +312,7 @@ for rline = 1:Nx
     plot(surf_bins(rline), 10*log10(data(surf_bins(rline),rline)),'ko');
     plot(mbins(mask), est_value,'go');
     hold off;
-    xlim([350 470])
+%     xlim([350 470])
     keyboard
   end
 end

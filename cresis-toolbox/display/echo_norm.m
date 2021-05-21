@@ -54,9 +54,11 @@ end
 % Estimate the noise
 if isstruct(mdata)
   mdata.Data = 10.^(mdata.Data/10);
-  noise = 10*log10(nanmean(echo_noise(mdata, param)));
+  noise = echo_noise(mdata, param);
+  noise = 10*log10(mean(noise(isfinite(noise))));
 else
-  noise = 10*log10(nanmean(echo_noise(10.^(mdata/10), param)));
+  noise = echo_noise(10.^(mdata/10), param);
+  noise = 10*log10(mean(noise(isfinite(noise))));
 end
 
 % Determine max of data

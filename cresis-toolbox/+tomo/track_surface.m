@@ -1,5 +1,5 @@
-function create_surfdata(param,mdata)
-% tomo.create_surfdata(param,mdata)
+function track_surface(param,mdata)
+% tomo.track_surface(param,mdata)
 %
 % Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
@@ -7,7 +7,7 @@ function create_surfdata(param,mdata)
 %
 % Inputs:
 % param: struct from parameter spreadsheet
-%  .tomo_collate: struct which control create_surfdata
+%  .tomo_collate: struct which control track_surface
 %   .out_dir: ct_filename_out directory to which output
 %     surfData will be exported. Default is surfData.
 %   .layer_params: opsLoadLayers parameter struct array. The first element
@@ -48,11 +48,19 @@ function create_surfdata(param,mdata)
 % mdata: 3D data file struct (Data_YYYYMMDD_SS_FFF.mat with Tomo)
 %   field)
 %
+%  .twtt: an Nsv by Nx double matrix of two way travel times to each point
+%  on the surface, default value is a matrix with twtt's set to equal the
+%  2D surface twtt read in with opsLoadLayers.
+%
+%  .ice_mask: an Nsv by Nx logical matrix representing whether or not ice
+%  is present for a given point of the surface (1 == ice, 0 == no ice).
+%  Default is all true (ice).
+%
 % Outputs:
 %   NONE
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.track_surface,
 %
 % Author: John Paden, Jordan Sprick, Mingze Xu, and Victor Berger
 
@@ -74,6 +82,14 @@ if ~isfield(param.tomo_collate,'merge_bottom_above_top') ...
   param.tomo_collate.merge_bottom_above_top = true;
 end
 merge_bottom_above_top = param.tomo_collate.merge_bottom_above_top;
+
+%% Input data prep
+data = single(10*log10(mdata.Tomo.img));
+Nt = size(data,1);
+Nsv = size(data,2);
+Nx = size(data,3);
+theta = mdata.Tomo.theta(:,1);
+[~,nadir_idx] = min(abs(theta));
 
 %% Load surface and bottom information
 param_load_layers = param;
@@ -136,22 +152,17 @@ end
 Bottom(~isfinite(Bottom)) = NaN;
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
 Bottom_bin(isnan(Bottom_bin)) = -1;
+% ice_mask: an Nsv by Nx matrix, set to equal the 2D surface twtt if
+% missing
 if ~isfield(mdata,'twtt')
-  mdata.twtt = layers(1).twtt;
+  mdata.twtt = repmat(layers(1).twtt_ref, [Nsv 1]);
 end
+% ice_mask: an Nsv by Nx matrix, set to all ones if missing
 if isfield(mdata,'ice_mask')
   ice_mask = mdata.ice_mask;
 else
-  ice_mask = ones(size(mdata.twtt));
+  ice_mask = true(size(mdata.twtt));
 end
-
-%% Input data prep
-data = single(10*log10(mdata.Tomo.img));
-Nt = size(data,1);
-Nsv = size(data,2);
-Nx = size(data,3);
-theta = mdata.Tomo.theta(:,1);
-[~,nadir_idx] = min(abs(theta));
 
 %% Surface tracking prep
 % 1. Convert from twtt to bins
@@ -331,7 +342,7 @@ catch ME
 end
 
 sd.set({'bottom','ice mask','bottom gt','bottom quality'}, ...
-  'top','top','active','bottom','mask','ice mask','gt','bottom gt','quality','bottom quality');
+  'top',param.tomo_collate.top_name,'active','bottom','mask','ice mask','gt','bottom gt','quality','bottom quality');
 
 sd.set({'top','top gt','top quality'}, ...
   'active','top','gt','top gt','quality','top quality');

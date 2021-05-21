@@ -206,11 +206,14 @@ for frm_idx = 1:length(frm_filenames)
           cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
           rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
             + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
-          crossover_temp{end+1} = [cols; rows];
+          % crossover_temp{end+1} = [cols; rows];
+          crossovers = [cols; rows; track.crossover.cutoff*ones(size(cols))];
+          crossovers = crossovers(:,isfinite(cols));
+          crossover_temp{end+1} = crossovers;
         end
       end
     else
-      crossover_temp{end+1} = zeros(2,0);
+      crossover_temp{end+1} = zeros(3,0);
     end
     frm_nam{end+1} = frm_str{frm_idx};
     

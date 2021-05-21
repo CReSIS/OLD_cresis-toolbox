@@ -111,7 +111,7 @@ elseif strcmpi(obj.eg.layers.source,'layerdata')
     % when NaN.
     good_mask = ~isnan(obj.eg.layers.y{obj.eg.layers.lyr_id==obj.eg.layers.surf_id});
     if sum(good_mask) > 2
-      obj.eg.surf_twtt = interp1(obj.eg.layers.x(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==1}(good_mask),obj.eg.gps_time);
+      obj.eg.surf_twtt = interp1(obj.eg.layers.x(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==obj.eg.layers.surf_id}(good_mask),obj.eg.gps_time);
       obj.eg.surf_twtt = interp_finite(obj.eg.surf_twtt,0);
     end
   end

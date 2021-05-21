@@ -1,5 +1,5 @@
-function mdata = add_icemask_surfacedem(param, mdata)
-% mdata = tomo.add_icemask_surfacedem(param, mdata)
+function mdata = add_dem_icemask(param, mdata)
+% mdata = tomo.add_dem_icemask(param, mdata)
 %
 % Description: Usually this function is called from tomo.collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
@@ -19,7 +19,7 @@ function mdata = add_icemask_surfacedem(param, mdata)
 %   NONE
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
+%   tomo.fuse_images, tomo.add_dem_icemask, tomo.create_surfData,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
@@ -253,7 +253,7 @@ for rline = 1:Nx
       twtt(:,rline) = NaN;
   end
 
-  if exist('ice_mask_all','var')
+  if exist('ice_mask_all','var') && ~isempty(ice_mask_all)
     if exist('intersection','var')
       % Convert from FCS/SAR to ECEF
       intersection_ecef = Tfcs_ecef * intersection;

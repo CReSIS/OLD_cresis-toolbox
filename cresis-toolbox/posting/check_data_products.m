@@ -314,7 +314,7 @@ for param_idx = 1:length(params)
       
       %% Check for expected image files
       frames_fn = ct_filename_support(param,'','frames');
-      load(frames_fn);
+      frames = load(frames_fn);
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
           outputs_post_dir,'', true),'images',param.day_seg);
