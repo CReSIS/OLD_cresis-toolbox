@@ -295,13 +295,23 @@ while frm_idx <= length(param.cmd.frms)
   
   start_frm_idx = frm_idx;
   frms = [];
-  for subblock_idx = 1:param.layer_tracker.block_size_frms
+  subblock_idx = 1;
+  while subblock_idx <= param.layer_tracker.block_size_frms
     if frm_idx > param.cmd.frms
       break;
     end
     frm = param.cmd.frms(frm_idx);
-    if ~any(frm == param.cmd.frms)
-      break;
+    % Check proc_mode from frames file that contains this frames type and
+    % make sure the user has specified to process this frame type
+    if ~ct_proc_frame(frames.proc_mode(frm),param.layer_tracker.frm_types)
+      fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
+      if subblock_idx == 1
+        % No frames added to the block yet, so just keep going
+        frm_idx = frm_idx + 1;
+        continue;
+      else
+        break;
+      end
     end
     % Add frame to this block
     frm_idx = frm_idx + 1;
@@ -315,7 +325,7 @@ while frm_idx <= length(param.cmd.frms)
       data_fn = fullfile(in_fn_dir,sprintf('Data_img_%02d_%s_%03d.mat',param.layer_tracker.echogram_img,param.day_seg,frm));
     end
     try
-      mdata = load(data_fn, 'GPS_time','Time','Latitude','Longitude');
+      mdata = load(data_fn, 'GPS_time','Time');
       if (subblock_idx==1)
         max_time = mdata.Time(end);
         min_time = mdata.Time(1);
@@ -335,6 +345,7 @@ while frm_idx <= length(param.cmd.frms)
       max_time = 0;
       % keyboard % Uncomment for debugging why file loading failed
     end
+    subblock_idx = subblock_idx + 1;
   end
   dt = mdata.Time(2) - mdata.Time(1);
   Nt = 1 + (max_time-min_time)/dt;
@@ -351,17 +362,27 @@ while frm_idx <= length(param.cmd.frms)
     % File Success
     % ---------------------------------------------------------------------
     for track_idx = tracks_in_task
-      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method); %t001_viterbi.mat
-      tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tracker_tmp/CSARP_layer_tune_vit_seg4_NC/20140313_09/layer_tracker_001/t001_viterbi.mat
-      dparam.file_success{end+1} = tmp_out_fn;
-      if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
-        delete(tmp_out_fn);
+      tmp_out_fn_name = sprintf('%s_%s.mat', param.layer_tracker.track{track_idx}.name, param.layer_tracker.track{track_idx}.method);
+      for frm = frms
+        tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
+        dparam.file_success{end+1} = tmp_out_fn;
+        if ~ctrl.cluster.rerun_only && exist(tmp_out_fn,'file')
+          delete(tmp_out_fn);
+        end
       end
     end
     
+    % Notes
+    % ---------------------------------------------------------------------
+    dparam.notes = sprintf('%s %s:%s:%s %s %s:%d-%d %s %d-%d (%d of %d)', ...
+      sparam.task_function, param.radar_name, param.season_name, ...
+      param.layer_tracker.echogram_source, param.layer_tracker.layer_params.layerdata_source, ...
+      param.layer_tracker.track{tracks_in_task(1)}.method, tracks_in_task([1 end]), param.day_seg, ...
+      dparam.argsin{1}.layer_tracker.frms([1 end]), start_frm_idx, length(param.cmd.frms));
+    
     % Rerun only check
     % ---------------------------------------------------------------------
-    if ~ctrl.cluster.rerun_only
+    if ctrl.cluster.rerun_only
       if ~cluster_file_success(dparam.file_success)
         fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
           dparam.notes, datestr(now));
@@ -380,14 +401,6 @@ while frm_idx <= length(param.cmd.frms)
     end
     mem_combine = mem_combine + 256*Nx*length(tracks_in_task);
     cputime_combine = cputime_combine + 1e-2*Nx*length(tracks_in_task);
-    
-    % Notes
-    % ---------------------------------------------------------------------
-    dparam.notes = sprintf('%s %s:%s:%s %s %s:%d-%d %s %d-%d (%d of %d)', ...
-      sparam.task_function, param.radar_name, param.season_name, ...
-      param.layer_tracker.echogram_source, param.layer_tracker.layer_params.layerdata_source, ...
-      param.layer_tracker.track{tracks_in_task(1)}.method, tracks_in_task([1 end]), param.day_seg, ...
-      dparam.argsin{1}.layer_tracker.frms([1 end]), start_frm_idx, length(param.cmd.frms));
     
     % Create task
     % ---------------------------------------------------------------------
@@ -419,9 +432,14 @@ if strcmp(param.layer_tracker.layer_params.source,'ops')
   sparam.file_success = {};
 else
   sparam.file_success = {};
-  out_fn_dir = ct_filename_out(param,'',param.layer_tracker.layer_params.layerdata_source); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tune_vit_seg4_NC/20140313_09
+  out_fn_dir = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source);
   for frm = param.cmd.frms
-    out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm)); %/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_layer_tune_vit_seg4_NC/20140313_09/Data_20140313_09_001.mat
+    % Check proc_mode from frames file that contains this frames type and
+    % make sure the user has specified to process this frame type
+    if ~ct_proc_frame(frames.proc_mode(frm),param.layer_tracker.frm_types)
+      continue;
+    end
+    out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
     sparam.file_success{end+1} = out_fn;
   end
 end
