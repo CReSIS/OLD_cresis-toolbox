@@ -9,7 +9,11 @@ function success = layer_tracker_combine_task(param)
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
 % layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
-%% Create output directory path
+%% Setup Processing
+% =====================================================================
+frames = frames_load(param);
+
+% Create output directory path
 if strcmp(param.layer_tracker.layer_params.source,'ops')
   tmp_out_fn_dir_dir = ct_filename_out(param,'ops','layer_tracker_tmp');
 else
@@ -21,14 +25,25 @@ layer_source.twtt = [];
 layer_source.gps_time = [];
 
 %% Track loop
+% =====================================================================
 % Combine and Copy each tracking result
 for track_idx = 1:length(param.layer_tracker.track)
   track = param.layer_tracker.track{track_idx};
   
   %% Track: Load in all temporary files
+  % =====================================================================
   gps_time = [];
   twtt = [];
-  for frm = param.cmd.frms
+  for frm_idx = 1:length(param.cmd.frms)
+    frm = param.cmd.frms(frm_idx);
+    
+    if ct_proc_frame(frames.proc_mode(frm),param.layer_tracker.frm_types)
+      fprintf('layer_tracker_combine frame %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
+    else
+      fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
+      continue;
+    end
+    
     tmp_out_fn_name = sprintf('t%03d_%s.mat', track_idx, track.method);
     tmp_out_fn = fullfile(tmp_out_fn_dir_dir,sprintf('layer_tracker_%03d', frm),tmp_out_fn_name);
     fprintf('Loading %s (%s)\n', tmp_out_fn, datestr(now));
@@ -40,6 +55,7 @@ for track_idx = 1:length(param.layer_tracker.track)
   end
   
   %% Track: opsCopyLayer copy struct
+  % =====================================================================
   param.layer_tracker.copy_param.gaps_fill.method = 'preserve_gaps';
   copy_param = param.layer_tracker.copy_param;
   copy_param.layer_source.existence_check = false;
@@ -55,6 +71,7 @@ for track_idx = 1:length(param.layer_tracker.track)
   end
   
   %% Track: Copy each layer
+  % =====================================================================
   for layer_idx = 1:size(twtt,1)
     if automated_name_en
       switch track.method
