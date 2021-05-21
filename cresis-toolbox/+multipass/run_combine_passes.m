@@ -14,7 +14,7 @@ param_override = [];
 param = [];
 passes = [];
 
-example_str = 'egig_2018_allwf';
+example_str = 'egig_2011_2012_2014_2018_allwf';
 
 if strcmpi(example_str,'Thwaites_201902_201912_202001')
   %% Thwaites Line 1 20190201_01, 20191225_01, 20200127_01
@@ -401,13 +401,11 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
   end
 end
 
-if strcmpi(example_str,'egig_2018_allwf')
+if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
   %% EGIG line: 2011-2018
-  pass_name = sprintf('egig_2018_allwf');
-  % 20120411_02_011: 71.225731 N, -35.540548 E, X:102.727 km, Y:201.334 km, 2012-04-11 12:49:20.43
-  % 20120411_02_011: 71.268854 N, -35.018644 E, X:103.098 km, Y:201.429 km, 2012-04-11 12:51:39.07
-  start = struct('lat', 71.225731,'lon', -35.540548);
-  stop = struct('lat', 71.268854, 'lon', -35.018644);
+  pass_name = sprintf('egig_2011_2012_2014_2018_allwf');
+  start = struct('lat', 71.147248,'lon', -36.921416);
+  stop = struct('lat', 71.179219, 'lon', -36.442813);
   dist_min = 300;
   
   master_pass_idx = 8;
@@ -415,48 +413,49 @@ if strcmpi(example_str,'egig_2018_allwf')
   passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
 
   % Initial line:
-  % 2011: 20110426_11_005: No, raw data on tape
-  % 2012: 20120411_02_009 and 010: No, raw data on tape
-  % 2014: 20140410_01_057: No, raw data on tape
-  % 2017: 20170506_01_057: No, raw data on Indiana University tape
-  % 2018: 20180501_01_051 and 052: Yes, copying to KU right now (data are online at Indiana University HPC facility)
+  % 2011: 20110426_11_005: Raw data on tape
+  % 2012: 20120411_02_009 and 010: Raw data on tape
+  % 2014: 20140410_01_057: Raw data on tape
+  % 2017: 20170506_01_057: Raw data on Indiana University tape
+  % 2018: 20180501_01_052: Raw data at Indiana University DC
   %
   % Additional data to capture physical signals of interest
   % 2011: 20110426_11_006 and 007
   % 2012: 20120411_02_007 and 008
   % 2014: 20140410_01_058 and 059
   % 2017: 20170506_01_058 and 059
-  % 2018: 20180501_01_053 and 054 and 055
+  % 2018: 20180501_01_051 and 053, 054, and 055
+  
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  for adc = 2:16
+    passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
+  end
+  
+  param_fn = 'rds_param_2011_Greenland_P3.xls';
+  for adc = 2:16
+    passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+  end
+  
+  param_fn = 'rds_param_2012_Greenland_P3.xls';
+  for adc = 2:16
+    passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+  end
+  
+  % param_fn = 'rds_param_2017_Greenland_P3.xls';
+  % for adc = 2:16
+  %   passes(end+1) = struct('day_seg','20170506_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
+  % end
   
   param_fn = 'rds_param_2018_Greenland_P3.xls';
   for adc = [1:4,6:16]
-    passes(end+1) = struct('day_seg','20180501_01','frms',[51],'param_fn',param_fn, ...
+    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
       'in_path','','imgs',{{[1 adc], [3 adc], [5 adc]}});
   end
   for adc = [1:4,6:16]
-    passes(end+1) = struct('day_seg','20180501_01','frms',[51],'param_fn',param_fn, ...
+    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
       'in_path','','imgs',{{[2 adc], [4 adc], [6 adc]}});
   end
-  
-%   param_fn = 'rds_param_2011_Greenland_P3.xls';
-%   for adc = 2:16
-%     passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
-%   end
-%   
-%   param_fn = 'rds_param_2012_Greenland_P3.xls';
-%   for adc = 2:16
-%     passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
-%   end
-%   
-%   param_fn = 'rds_param_2014_Greenland_P3.xls';
-%   for adc = 2:16
-%     passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
-%   end
-%   
-%   param_fn = 'rds_param_2017_Greenland_P3.xls';
-%   for adc = 2:16
-%     passes(end+1) = struct('day_seg','20170506_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
-%   end
+
 end
 
 %% Automated section
