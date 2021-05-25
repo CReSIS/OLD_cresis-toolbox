@@ -174,7 +174,7 @@ if strcmp(sensor_type,'accum')
     '2014_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: 1 GSPS DDS, 5 W\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: 2.4 GSPS AWG, 400 W\n'));
   else
@@ -295,6 +295,9 @@ if strcmp(sensor_type,'accum')
   elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Multichannel: Forward 4 elements tx with power splitter, aft 4 elements used for rx with individual channels digitized\n'));
+  elseif any(strcmpi(param.season_name,{'2018_Greenland_P3'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('Single channel mode: all 8 elements tx combined with a power combiner, all 8 elements used for rx with individual channels combined to be digitized\n'));
   else
     error('Unsupported season\n');
   end
@@ -409,7 +412,7 @@ if strcmp(sensor_type,'accum')
       sprintf('Digitizer platform: NI PXIe Windows PC running LabView\n'));
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer manufacturer: National Instruments/Sundance'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
@@ -587,6 +590,9 @@ if strcmp(sensor_type,'accum')
   elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: 2 along-track x 4 cross-track elliptical dipole array (forward four for Tx, aft four for Rx)\n'));
+  elseif any(strcmpi(param.season_name,{'2018_Greenland_P3'}))
+    antparams_val = cat(2,antparams_val, ...
+      sprintf('Antennas: 2 along-track x 4 cross-track elliptical dipole array (all combined for Tx and Rx)\n'));
   else
     error('Unsupported season\n');
   end
