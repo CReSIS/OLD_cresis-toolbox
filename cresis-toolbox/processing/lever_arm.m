@@ -119,7 +119,7 @@ if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) %...
   gps.z = 0;
 end
 
-if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
+if any(strcmpi(param.season_name,{'2018_Alaska_SO','2021_Alaska_SO'})) ...
     && any(strcmpi(gps_source,{'nmea','lidar'}))
   % The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
   % Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
@@ -878,13 +878,13 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'accum'
   % along-track elements are combined using in cabin power combiners.
   % Each of the four combined channels are individually transmitted and
   % received on.
-  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
-  LArx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
+  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39 0]) - gps.y; % m
+  LArx(3,:)   = (-72.5*0.0254 + [0 0 0 0 0]) - gps.z; % m
 
-  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
-  LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
+  LAtx(1,:)   = (-433.3*0.0254 + [0 0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39 0]) - gps.y; % m
+  LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1:4;
@@ -2137,7 +2137,7 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) ...
   end
 end
 
-if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
+if any(strcmpi(param.season_name,{'2018_Alaska_SO','2021_Alaska_SO'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,1) = -0.288;

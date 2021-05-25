@@ -1540,7 +1540,7 @@ for img = 1:length(param.load.imgs)
     %     .surf_threshold, surface threshold in dB above the mean of local signals
     if isfield(wfs(wf),'DSN') && wfs(wf).DSN.en
       for rcluster = 1:size(wfs(wf).DSN.rbin_clusters,1)
-        for rbin = wfs(wf).DSN.rbin_clusters(rcluster,1):wfs(wf).DSN.rbin_clusters(rcluster,2)
+        for rbin = wfs(wf).DSN.rbin_clusters(rcluster,1):min(size(data{1},1),wfs(wf).DSN.rbin_clusters(rcluster,2))
           good_rline_idxs = ~isnan(data{1}(rbin,:));
           tmp = data{1}(rbin,good_rline_idxs);
           thresholding_idxs = find(lp(tmp)>mean(lp(tmp))+wfs(wf).DSN.surf_threshold);

@@ -119,7 +119,7 @@ if ~isfield(ctrl.cluster,'mcr_cache_root') || isempty(ctrl.cluster.mcr_cache_roo
 end
 
 if ~isfield(ctrl.cluster,'max_ppn') || isempty(ctrl.cluster.max_ppn)
-  if ~isempty(ctrl.cluster.mem_to_ppn)
+  if isfield(ctrl.cluster,'mem_to_ppn') && ~isempty(ctrl.cluster.mem_to_ppn)
     error('max_ppn must be specified if mem_to_ppn is specified.');
   end
   ctrl.cluster.max_ppn = [];
