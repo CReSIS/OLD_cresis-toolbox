@@ -171,7 +171,11 @@ else
   frms = frames_param_cmd_frms(param,frames);
   recs = false(size(records.gps_time));
   for idx = 1:length(frms)
-    recs(frames.frame_idxs(frms(idx)):frames.frame_idxs(frms(idx)+1)-1) = true;
+    if frms(idx) == length(frames.frame_idxs) % handling the special case for the last frame
+      recs(frames.frame_idxs(frms(idx)):frames.Nx) = true;
+    else
+      recs(frames.frame_idxs(frms(idx)):frames.frame_idxs(frms(idx)+1)-1) = true;
+    end
   end
   recs = find(recs);
 end
