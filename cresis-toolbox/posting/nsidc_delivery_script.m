@@ -211,18 +211,18 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  if ~isempty(regexpi(param.cmd.notes,'2-18')) % 2-18 GHz -- deconv, uwb, kuband
+  if param.radar.wfs(1).f1 == 18e9 % ~isempty(regexpi(param.cmd.notes,'2-18')) % 2-18 GHz -- deconv, uwb, kuband
     local_counter = local_counter +1;
     sub_counter1 = sub_counter1 +1;
     fprintf('2-18 GHz %s %d %d\n',param.day_seg, local_counter, sub_counter1);
-    data_dir_L1_extra = {fullfile('CSARP_post','deconv'), 'deconv';fullfile('CSARP_post','qlook_uwb'), 'uwb_deconv';fullfile('CSARP_post','qlook_kuband'), 'kuband'}; % Snow radar 2-18 GHz
+    data_dir_L1_extra = {fullfile('CSARP_post','deconv'), 'deconv';fullfile('CSARP_post','qlook_uwb'), 'uwb_deconv';fullfile('CSARP_post','qlook_kuband'), 'kuband_deconv'}; % Snow radar 2-18 GHz
     image_extra = {'deconv';'uwb';'kuband'};  % Snow radar 2-18 GHz
     if regexpi(param.cmd.mission_names,'^sea.*')
       L1B_supplement_name = 'supplement'; % THIS IS FOR DECONV
       L1B_supplement_name_extra = {'uwb';'kuband'}; % Snow: separate supplement files for different products
     end
 
-  elseif ~isempty(regexpi(param.cmd.notes,'2-8')) % 2-8 GHz -- deconv
+  elseif param.radar.wfs(1).f1 == 8e9 %~isempty(regexpi(param.cmd.notes,'2-8')) % 2-8 GHz -- deconv
     local_counter = local_counter +1;
     sub_counter2 = sub_counter2 +1;
     fprintf('2- 8 GHz %s %d %d\n',param.day_seg, local_counter, sub_counter2);

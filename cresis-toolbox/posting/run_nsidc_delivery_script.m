@@ -15,7 +15,7 @@ USER_SPECIFIED_DIRECTORY_BASE = '/cresis/snfs1/scratch/htalasila/nsidc/';
 % params_fn = ct_filename_param('snow_param_2010_Greenland_P3.xls');
 % params_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
 % params_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
-params_fn = ct_filename_param('snow_param_2017_Greenland_P3.xls');
+params_fn = ct_filename_param('snow_param_2019_Greenland_P3.xls');
 
 params = read_param_xls(params_fn);
 if 0
@@ -26,7 +26,7 @@ if 0
   % params = ct_set_params(params,'cmd.generic',1,'cmd.notes','2-18');
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
 else
-  hara_nsidc_params_enable;
+  hara_params_enable_script_2019;
 end
 
 % Post L1B data
