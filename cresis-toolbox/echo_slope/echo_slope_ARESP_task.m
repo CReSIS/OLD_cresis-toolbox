@@ -54,18 +54,36 @@ set(gcf, 'Name', 'Horizontal Smoothed Data');
 
 %% Vertical Smoothing
 
-Pxy1 = colfilt(Px, [y_pixels 1], 'sliding', @nanmean);
+Pxz1 = colfilt(Px, [y_pixels 1], 'sliding', @nanmean);
 
 figure(103);clf;
-imagesc(lp(Pxy1))
+imagesc(lp(Pxz1))
 colormap(1-gray(256))
 set(gcf, 'Name', 'Veritcal Smoothed Data');
 
-Pxy2 = colfilt(Px, [(y_pixels * 4) 1], 'sliding', @nanmean);
+Pxz2 = colfilt(Px, [(y_pixels * 4) 1], 'sliding', @nanmean);
 figure(104);clf;
-imagesc(lp(Pxy2))
+imagesc(lp(Pxz2))
 colormap(1-gray(256))
 set(gcf, 'Name', 'Veritcal Smoothed Data 2');
+
+
+%% Binary Layer 
+
+
+B1 = sign(Px - Pxz2);
+B2 = sign(Pxz1 - Pxz2);
+
+figure(105);clf;
+imagesc(B1)
+colormap(1-gray(256))
+set(gcf, 'Name', 'Binary 1');
+
+figure(105);clf;
+imagesc(B2)
+colormap(1-gray(256))
+set(gcf, 'Name', 'Binary 2');
+
 keyboard;
 
 end
