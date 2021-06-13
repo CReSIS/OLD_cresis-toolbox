@@ -40,14 +40,10 @@ if ~isfield(param.echo_slope_ARESP,'out_path') || isempty(param.echo_slope_ARESP
 end
 
 
-avg_horiz = param.echo_slope.avg_horiz;
 
 mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_post/CSARP_standard/20140508_01/Data_20140508_01_057.mat');
 
-figure(101);
-imagesc(lp(mdata.Data))
 
-colormap(1-gray(256))
 
 echo_slope_ARESP_task(mdata, param);
 

@@ -26,7 +26,8 @@ params = ct_set_params(params,'echo_slope.out_path','echo_slope');
 params = ct_set_params(params,'echo_slope.in_path','standard');
 
 %set horizontal averaging distance
-param_override.echo_slope.avg_horiz = 50;
+param_override.echo_slope.avg_x = 100;
+param_override.echo_slope.avg_y = 10;
 
 
 %param_override.sched.type = 'no scheduler'; % Example to override default cluster settings
