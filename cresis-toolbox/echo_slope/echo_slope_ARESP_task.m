@@ -21,7 +21,7 @@ y_pixels_midpoint = ceil(x_pixels / 2);
 
 row_start = 1 + ceil(x_pixels / 2);
 row_end = frame_cols - ceil(x_pixels / 2);
-smoothed_array = zeros(frame_rows, frame_cols);
+Px = zeros(frame_rows, frame_cols);
 
 %image of original data
 figure(101);
@@ -35,31 +35,37 @@ set(gcf, 'Name', 'Original Data');
 % number of pixels defined by the x_pixels parameter
 for i = 1 : frame_cols
   if i < row_start
-    smoothed_array(:, i) = nanmean(frame(:, 1 : (i + x_pixels_midpoint)), 2);
+    Px(:, i) = nanmean(frame(:, 1 : (i + x_pixels_midpoint)), 2);
   elseif i > row_end
-    smoothed_array(:, i) = nanmean(frame(:, (i - x_pixels_midpoint) : frame_cols), 2);
+    Px(:, i) = nanmean(frame(:, (i - x_pixels_midpoint) : frame_cols), 2);
   else
-    smoothed_array(:, i) = nanmean(frame(:, (i - x_pixels_midpoint) : (i + x_pixels_midpoint)), 2);
+    Px(:, i) = nanmean(frame(:, (i - x_pixels_midpoint) : (i + x_pixels_midpoint)), 2);
   end
 end
 
 % for i = row_start : row_end
-%     smoothed_array(:, i) = nanmean(frame(:, (i - x_pixels / 2) : (i + x_pixels / 2)), 2);
+%     Px(:, i) = nanmean(frame(:, (i - x_pixels / 2) : (i + x_pixels / 2)), 2);
 % end
 
 figure(102);clf;
-imagesc(lp(smoothed_array))
+imagesc(lp(Px))
 colormap(1-gray(256))
 set(gcf, 'Name', 'Horizontal Smoothed Data');
 
 %% Vertical Smoothing
 
-smoothed_array = colfilt(smoothed_array, [y_pixels 1], 'sliding', @nanmean);
+Pxy1 = colfilt(Px, [y_pixels 1], 'sliding', @nanmean);
 
 figure(103);clf;
-imagesc(lp(smoothed_array))
+imagesc(lp(Pxy1))
 colormap(1-gray(256))
 set(gcf, 'Name', 'Veritcal Smoothed Data');
+
+Pxy2 = colfilt(Px, [(y_pixels * 4) 1], 'sliding', @nanmean);
+figure(104);clf;
+imagesc(lp(Pxy2))
+colormap(1-gray(256))
+set(gcf, 'Name', 'Veritcal Smoothed Data 2');
 keyboard;
 
 end
