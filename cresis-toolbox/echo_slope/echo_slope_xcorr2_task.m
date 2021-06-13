@@ -36,7 +36,7 @@ colorbar
 set(gcf, 'Name', 'Detrended Guassian Slope');
 
 
-smothing_size = 5;
+smoothing_size = 5;
 
 for i = rows/2+1:r1 - rows/2
   
@@ -44,8 +44,8 @@ for i = rows/2+1:r1 - rows/2
   
   for j = cols/2+1:c1-cols/2
     
-    slope_tile = slope((i - smothing_size):(i + smothing_size), ((j - smothing_size):(j + smothing_size)));
-    intensity_tile = frame((i - smothing_size):(i + smothing_size), ((j - smothing_size):(j + smothing_size)));
+    slope_tile = slope((i - smoothing_size):(i + smoothing_size), ((j - smoothing_size):(j + smoothing_size)));
+    intensity_tile = frame((i - smoothing_size):(i + smoothing_size), ((j - smoothing_size):(j + smoothing_size)));
     filter_weight = intensity_tile / sum(intensity_tile(:));
     C = slope_tile.*filter_weight;
     weighted_smoothing_result(i,j,:) = sum(C(:));
