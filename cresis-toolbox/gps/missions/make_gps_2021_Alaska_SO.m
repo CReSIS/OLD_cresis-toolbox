@@ -42,8 +42,87 @@ gps_source_to_use = 'NMEA';
 
 if strcmpi(gps_source_to_use,'NMEA')
     
-year = 2021; month = 4; day = 20;
-%% 
+% year = 2021; month = 4; day = 20;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210420';
+
+% year = 2021; month = 5; day = 2;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210502';
+
+% year = 2021; month = 5; day = 3;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210503';
+
+% year = 2021; month = 5; day = 5;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210505';
+
+% year = 2021; month = 5; day = 6;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210506';
+
+% year = 2021; month = 5; day = 9;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210509';
+
+% year = 2021; month = 5; day = 10;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210510';
+
+% year = 2021; month = 5; day = 12;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% date_str{file_idx} = '20210512';
+
+year = 2021; month = 5; day = 13;
 file_idx = file_idx + 1;
 in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'nmea','','.gps');
 out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -51,7 +130,8 @@ file_type{file_idx} = 'NMEA';
 params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
 gps_source{file_idx} = 'nmea-field';
 sync_flag{file_idx} = 0;
-date_str{file_idx} = '20210420';
+date_str{file_idx} = '20210513';
+
 
 elseif strcmpi(gps_source_to_use,'Lidar-traj')
     
