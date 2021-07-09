@@ -15,6 +15,9 @@ function get_raw_files_tape(load_info,retrieve_mode,varargin)
 % % List files
 % get_raw_files_tape(load_info,'list');
 %
+% % Tape or disk
+% get_raw_files_tape(load_info,'tape_or_disk');
+%
 % % Forces files to be retrieved by reading the first byte from each file
 % get_raw_files_tape(load_info,'read');
 %
@@ -42,6 +45,32 @@ if ~isempty(regexpi(retrieve_mode,'list'))
     for fn_idx = 1:length(load_info.filenames{board_idx})
       fn = load_info.filenames{board_idx}{fn_idx};
       fprintf('%s\n', fn);
+    end
+  end
+end
+
+if ~isempty(regexpi(retrieve_mode,'tape_or_disk'))
+  fprintf('%s\n', repmat('=',[1 80]));
+  fprintf('Raw files to be retrieved from tape\n');
+  fprintf('%s\n', repmat('=',[1 80]));
+  for board_idx = 1:length(load_info.filenames)
+    for fn_idx = 1:length(load_info.filenames{board_idx})
+      fn = load_info.filenames{board_idx}{fn_idx};
+      cmd = sprintf('du -sk %s | awk ''{print $1}''',fn);
+      cmd2 = sprintf('du -sk --apparent-size %s | awk ''{print $1}''',fn);
+      [status,result] = system(cmd);
+      [status2,result2] = system(cmd2);
+      if status == 0 && status2 == 0
+        size_kb = str2double(result);
+        size_kb2 = str2double(result2);
+        if 10*size_kb < size_kb2
+          fprintf('%s\tTAPE\n', fn);
+        else
+          fprintf('%s\tDISK\n', fn);
+        end
+      else
+        fprintf('%s: COMMAND FAILED, NO ANSWER\n', fn);
+      end
     end
   end
 end
