@@ -114,18 +114,42 @@ output_recs_ps = output_recs_ps(output_recs_ps >= load_recs_ps(1));
 % Determine number of records before/after the start/stop output record
 % that are needed for the filtering
 start_buffer_ps = (length(param.qlook.inc_B_filter)-1)/2*param.qlook.dec + (length(param.qlook.B_filter)-1)/2;
-stop_buffer_ps = (length(param.qlook.inc_B_filter)-1)/2*param.qlook.dec + (length(param.qlook.B_filter)-1)/2;
+stop_buffer_ps = start_buffer_ps;
+
+% If do Doppler spikes nulling, set the default parameters for the equivalent adaptive notch filter
+% at the end of data_pulse_compress.m. These parameters include the extra buffers at the start and 
+% end of the data blocks in terms of a factor of the data block size to avoid bounary artifact 
+% from fft and ifft transforms, and range bins to filt through, thresholds for Doppler noise and surface signals.
+% (see more detailed descriptions in data_pulse_compress.m)
+if isfield(param.radar.wfs,'DSN') && param.radar.wfs.DSN.en
+  if ~isfield(param.radar.wfs.DSN,'rbin_clusters') || isempty(param.radar.wfs.DSN.rbin_clusters)
+    param.radar.wfs.DSN.rbin_clusters = [1,inf];
+  end
+  if ~isfield(param.radar.wfs.DSN,'theshold') || isempty(param.radar.wfs.DSN.threshold)
+    param.radar.wfs.DSN.threshold = 10;
+  end
+  if ~isfield(param.radar.wfs.DSN,'surf_theshold') || isempty(param.radar.wfs.DSN.threshold)
+    param.radar.wfs.DSN.surf_threshold = 20;
+  end
+  if ~isfield(param.radar.wfs.DSN,'block_overlap_factor') || isempty(param.radar.wfs.DSN.block_overlap_factor)
+    param.radar.wfs.DSN.block_overlap_factor = 0.1;
+  end
+  start_buffer_ps = start_buffer_ps + round(param.radar.wfs.DSN.block_overlap_factor*param.qlook.block_size);
+  stop_buffer_ps = start_buffer_ps;
+end
 
 % Adjust start_buffer_ps in case at the beginning of the segment
 start_buffer_ps = start_buffer_ps - max(0,(1- (output_recs_ps(1) - start_buffer_ps) ));
 
 % These are the input records (in presummed record counts)
 input_recs_ps(1) = output_recs_ps(1) - start_buffer_ps;
-input_recs_ps(2) = output_recs_ps(end) + stop_buffer_ps + 1;
+% input_recs_ps(2) = output_recs_ps(end) + stop_buffer_ps + 1;
+input_recs_ps(2) = output_recs_ps(end) + stop_buffer_ps;
 
 % These are the input records in raw record counts
 param.load.recs(1) = param.qlook.presums * (input_recs_ps(1) - 1) + 1;
-param.load.recs(2) = param.qlook.presums * input_recs_ps(2);
+% param.load.recs(2) = param.qlook.presums * input_recs_ps(2);
+param.load.recs(2) = param.qlook.presums * (input_recs_ps(2)-1) + 1;
 
 % Load the records
 records = records_load(param,param.load.recs);
@@ -176,7 +200,6 @@ param.load.bit_mask = param.qlook.bit_mask; % Skip bad records marked in records
 
 param.load.pulse_comp = true;
 [hdr,data,param] = data_pulse_compress(param,hdr,data);
-
 param.load.motion_comp = param.qlook.motion_comp;
 param.load.combine_rx = true;
 [hdr,data] = data_merge_combine(param,hdr,data);
@@ -235,7 +258,7 @@ for img = 1:length(param.load.imgs)
   
   if param.qlook.nan_dec
     data{img} = nan_fir_dec(data{img}, param.qlook.B_filter, ...
-      param.qlook.dec, rline0, Nidxs);
+      param.qlook.dec, rline0, Nidxs, [], [], param.qlook.nan_dec_normalize_threshold);
   else
     data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
       param.qlook.dec, rline0, Nidxs);
@@ -318,7 +341,7 @@ if param.qlook.inc_dec >= 1
     
     if param.qlook.nan_dec
       data{img} = nan_fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
-        param.qlook.inc_dec, rline0, Nidxs);
+        param.qlook.inc_dec, rline0, Nidxs, [], [], param.qlook.nan_dec_normalize_threshold);
     else
       data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
         param.qlook.inc_dec, rline0, Nidxs);

@@ -36,6 +36,9 @@ end
 if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
   param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
 end
+if ~isnumeric(param.collate_coh_noise.imgs)
+  error('param.collate_coh_noise.imgs must be a numeric integer array with indices into param.analysis.imgs. Default is 1:length(param.analysis.imgs).');
+end
 
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
@@ -346,10 +349,10 @@ for img = param.collate_coh_noise.imgs
             end
             B = tukeywin(round(1/(fcutoff*dgps_time)/2)*2+1,0.5).';
             B = B / sum(B);
-            firdec_noise(bin_idx,:) = nan_fir_dec(coh_bin,B,dx);
+            firdec_noise(bin_idx,:) = interp_finite(nan_fir_dec(coh_bin,B,dx),0);
           end
           %firdec_noise(bin_idx,isnan(firdec_noise(bin_idx,:))) = 0;
-          noise_est = interp_finite(interp1(firdec_gps_time,firdec_noise(bin_idx,:),noise.gps_time),0);
+          noise_est = interp1(firdec_gps_time,firdec_noise(bin_idx,:),noise.gps_time);
           coh_bin = coh_bin - noise_est;
         end
         if enable_cn_plot
@@ -561,10 +564,15 @@ for img = param.collate_coh_noise.imgs
     end
     
     if enable_visible_plot
+      % frm_id
+      fprintf('\nDebug breakpoint:\n  frm_id is a useful variable that maps the block to the frame that the block occurs in.\n\n');
+      [~,frm_id] = get_frame_id(param,noise.gps_time);
+
       % Bring plots to front
       for h_fig_idx = 1:length(h_fig)
         figure(h_fig(h_fig_idx));
       end
+      
       % Enter debug mode
       keyboard
     end
@@ -587,7 +595,8 @@ for img = param.collate_coh_noise.imgs
     noise_simp.param_records  = noise.param_records;
     noise_simp.param_analysis = noise.param_analysis;
     if enable_threshold
-      noise_simp.threshold    = threshold;
+      noise_simp.threshold      = threshold;
+      noise_simp.threshold_time = time;
     end
     
     if param.ct_file_lock

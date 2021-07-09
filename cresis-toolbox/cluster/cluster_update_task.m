@@ -279,7 +279,7 @@ end
 
 if update_mode && ctrl.error_mask(task_id)
   fprintf('%s\n','='*ones(1,80));
-  warning(' Job Error %d:%d/%d (lead task %d)\n', ctrl.batch_id, task_id, job_id, task_id_out);
+  warning(' Job Error %d:%d/%d (lead task %d) (%s)\n', ctrl.batch_id, task_id, job_id, task_id_out, datestr(now));
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
     fprintf('   hostname:%s attempt:%d max_attempts:%d\n', hostname, attempt, max_attempts);
   end
@@ -302,7 +302,7 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  errorstruct contains an error:\n');
     warning('%s',out.errorstruct.getReport);
     if ctrl.cluster.stop_on_error
-      fprintf('\nctrl.cluster.stop_on_error is enabled which causes the cluster running process to stop whenever there is a Matlab coding error. To disable this for this batch, you can run "ctrl.cluster.stop_on_error=false". Fix the coding bug printed above which might require running cluster_compile.m if you change cluster task code and then run "dbcont".\n');
+      fprintf('\nctrl.cluster.stop_on_error is enabled which causes the cluster running process to stop whenever there is a Matlab coding error. To disable this for this batch, you can run "ctrl.cluster.stop_on_error=false". Fix the coding bug printed above which might require running cluster_compile.m if you change cluster task code and then run "dbcont". You may also run "cluster_run_mode=-1" to stop cluster_run.m in a clean way (it will complete updating this branch and then exit).\n');
       keyboard
     end
   end
@@ -315,8 +315,8 @@ if update_mode && ctrl.error_mask(task_id)
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
     fprintf('  Task max memory exceeded.\n');
-    if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'debug'))
-      ctrl.cluster.max_mem_mode
+    if ~isempty(regexpi(ctrl.cluster.mem_mult_mode,'debug'))
+      ctrl.cluster.mem_mult_mode
       fprintf('  task memory (%.1f GB) exceeded the maximum memory requested (%.1f*%.1f = %.1f GB):\n', max_mem/1e9, ctrl.mem(task_id)/1e9, ctrl.cluster.mem_mult, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
       fprintf('%s\n',ones(1,80)*'=');
       fprintf('Options:\n');
@@ -324,11 +324,11 @@ if update_mode && ctrl.error_mask(task_id)
       fprintf('  2. Run job locally by running cluster_exec_task(ctrl,task_id);\n');
       fprintf('     Be sure to run ctrl.error_mask(task_id) = 0 after successfully\n');
       fprintf('     running task.\n');
-      fprintf('  3. Set ctrl.cluster.max_mem_mode = ''auto'';\n');
+      fprintf('  3. Set ctrl.cluster.mem_mult_mode = ''auto'';\n');
       fprintf('After making changes, run dbcont to continue.\n');
       keyboard
     end
-    if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'auto'))
+    if ~isempty(regexpi(ctrl.cluster.mem_mult_mode,'auto'))
       fprintf('    Automatically doubling memory request for this task.\n');
       ctrl.mem(task_id) = max_mem*1.5/ctrl.cluster.mem_mult;
     end
@@ -363,11 +363,11 @@ end
 
 if update_mode
   if ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9 < ctrl.cpu_time_actual(task_id)
-    warning(' %d:%d/%d: CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
-      ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id));
+    warning(' %d:%d/%d: CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates. (%s)', ...
+      ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id), datestr(now));
   elseif ctrl.cpu_time_actual(task_id)>0 && ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.2 > ctrl.cpu_time_actual(task_id)
-    warning(' %d:%d/%d: CPU time actual (%.0f sec) is less than 20%% of estimated time (%.0f sec). Consider revising estimates.', ...
-      ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id));
+    warning(' %d:%d/%d: CPU time actual (%.0f sec) is less than 20%% of estimated time (%.0f sec). Consider revising estimates. (%s)', ...
+      ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id), datestr(now));
   end
 end
 

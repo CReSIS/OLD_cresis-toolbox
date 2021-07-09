@@ -12,6 +12,9 @@ function [h_axes] = link_figures(h_fig,option)
 %
 % See also: linkaxes.m
 
+if ~exist('h_fig','var') || isempty(h_fig)
+  h_fig = get(0,'Children');
+end
 if ~exist('option','var') || isempty(option)
   option = 'xy';
 end

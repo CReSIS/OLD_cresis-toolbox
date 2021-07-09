@@ -13,20 +13,23 @@ function gps = gps_plot(fn, plot_color, plot_est_heading)
 %
 % Example:
 %
-%   % Compare two GPS sources:
-%   fn = '/cresis/scratch1/mdce/csarp_support/gps/2009_Antarctica_DC8_GPS/20091018_ALL_pos.mat';
-%   gps_plot(fn);
-%   fn = '/cresis/scratch1/mdce/csarp_support/gps/2009_Antarctica_DC8_DGPSwINS/20091018_ALL_pos.mat';
-%   gps_plot(fn,'r');
+% % Check csarp_support/gps file
+% gps_plot('/cresis/snfs1/dataproducts/csarp_support/gps/2019_Antarctica_Ground/gps_20200107.mat');
 %
-%   % Use GPS struct
-%   fn = '/cresis/data2/MCoRDS/2009_Chile/GPS/IWG1_110209.log';
-%   gps = read_gps_reveal(fn);
-%   gps_plot(gps);
+% % Compare two GPS sources:
+% fn = '/cresis/snfs1/dataproducts/csarp_support/gps/2009_Antarctica_DC8_GPS/20091018_ALL_pos.mat';
+% gps_plot(fn);
+% fn = '/cresis/snfs1/dataproducts/csarp_support/gps/2009_Antarctica_DC8_DGPSwINS/20091018_ALL_pos.mat';
+% gps_plot(fn,'r');
 %
-%   fn = '/cresis/scratch1/mdce/csarp_support/gps/2009_Antarctica_DC8_DGPSwINS/Javadsbet_02Nov09_PPP_Revised.out'
-%   gps = read_gps_applanix(fn,struct('year',2009,'month',11,'day',2));
-%   gps_plot(gps);
+% % Use GPS struct
+% fn = '/cresis/data2/MCoRDS/2009_Chile/GPS/IWG1_110209.log';
+% gps = read_gps_reveal(fn);
+% gps_plot(gps);
+%
+% fn = '/cresis/scratch1/mdce/csarp_support/gps/2009_Antarctica_DC8_DGPSwINS/Javadsbet_02Nov09_PPP_Revised.out'
+% gps = read_gps_applanix(fn,struct('year',2009,'month',11,'day',2));
+% gps_plot(gps);
 %
 % Author: John Paden
 %
@@ -131,20 +134,24 @@ if length(gps.heading) ~= length(gps.gps_time)
   fprintf(2,'Length of heading does not match gps_time.\n', length(gps.heading), length(gps.gps_time));
 end
 
-if isfield(gps,'comp_time') && length(gps.comp_time) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of comp_time does not match sync_gps_time.\n', length(gps.comp_time), length(gps.sync_gps_time));
-end
-if isfield(gps,'radar_time') && length(gps.radar_time) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of radar_time does not match sync_gps_time.\n', length(gps.radar_time), length(gps.sync_gps_time));
-end
-if isfield(gps,'sync_lat') && length(gps.sync_lat) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of sync_lat does not match sync_gps_time.\n', length(gps.sync_lat), length(gps.sync_gps_time));
-end
-if isfield(gps,'sync_lon') && length(gps.sync_lon) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of sync_lon does not match sync_gps_time.\n', length(gps.sync_lon), length(gps.sync_gps_time));
-end
-if isfield(gps,'sync_elev') && length(gps.sync_elev) ~= length(gps.sync_gps_time)
-  fprintf(2,'Length of sync_elev does not match sync_gps_time.\n', length(gps.sync_elev), length(gps.sync_gps_time));
+if ~isfield(gps,'sync_gps_time');
+  warning('GPS file does not have sync_gps_time field.');
+else
+  if isfield(gps,'comp_time') && length(gps.comp_time) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of comp_time does not match sync_gps_time.\n', length(gps.comp_time), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'radar_time') && length(gps.radar_time) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of radar_time does not match sync_gps_time.\n', length(gps.radar_time), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'sync_lat') && length(gps.sync_lat) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of sync_lat does not match sync_gps_time.\n', length(gps.sync_lat), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'sync_lon') && length(gps.sync_lon) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of sync_lon does not match sync_gps_time.\n', length(gps.sync_lon), length(gps.sync_gps_time));
+  end
+  if isfield(gps,'sync_elev') && length(gps.sync_elev) ~= length(gps.sync_gps_time)
+    fprintf(2,'Length of sync_elev does not match sync_gps_time.\n', length(gps.sync_elev), length(gps.sync_gps_time));
+  end
 end
 
 %% Elevation Plot
@@ -317,7 +324,7 @@ if isfield(gps,'sync_gps_time')
   fprintf('Approx. number of repeats (non-monotonically increasing points in sync gps time):\n  %d\n', length(repeat_idxs))
 end
 
-%% Sync GPS Time Plot
+%% Radar Time Plot
 if isfield(gps,'radar_time')
   fig = fig+1;
   figure(h_fig(fig));

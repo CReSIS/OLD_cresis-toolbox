@@ -118,20 +118,8 @@ if ~isfield(ctrl.cluster,'mcr_cache_root') || isempty(ctrl.cluster.mcr_cache_roo
   ctrl.cluster.mcr_cache_root = '/tmp/';
 end
 
-if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
-  ctrl.cluster.rerun_only = false;
-end
-
-if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
-  ctrl.cluster.mem_mult = 1;
-end
-
-if ~isfield(ctrl.cluster,'mem_to_ppn') || isempty(ctrl.cluster.mem_to_ppn)
-  ctrl.cluster.mem_to_ppn = [];
-end
-
 if ~isfield(ctrl.cluster,'max_ppn') || isempty(ctrl.cluster.max_ppn)
-  if ~isempty(ctrl.cluster.mem_to_ppn)
+  if isfield(ctrl.cluster,'mem_to_ppn') && ~isempty(ctrl.cluster.mem_to_ppn)
     error('max_ppn must be specified if mem_to_ppn is specified.');
   end
   ctrl.cluster.max_ppn = [];
@@ -145,6 +133,18 @@ if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete
   ctrl.cluster.mcc_delete_output = false;
 end
 
+if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
+  ctrl.cluster.mem_mult = 1;
+end
+
+if ~isfield(ctrl.cluster,'mem_mult_mode') || isempty(ctrl.cluster.mem_mult_mode)
+  ctrl.cluster.mem_mult_mode = 'debug';
+end
+
+if ~isfield(ctrl.cluster,'mem_to_ppn') || isempty(ctrl.cluster.mem_to_ppn)
+  ctrl.cluster.mem_to_ppn = [];
+end
+
 if ~isfield(ctrl.cluster,'ppn_fixed') || isempty(ctrl.cluster.ppn_fixed)
   ctrl.cluster.ppn_fixed = [];
 end
@@ -156,6 +156,10 @@ if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_s
   % machines which the current software does not support. Therefore nodes=1
   % always.
   ctrl.cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
+end
+
+if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
+  ctrl.cluster.rerun_only = false;
 end
 
 if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
