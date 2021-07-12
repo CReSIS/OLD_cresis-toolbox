@@ -145,7 +145,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 16e9 / 8;
   % profile(pidx).cluster.mem_to_ppn            = 0.9 * 256e9 / 24;
   profile(pidx).cluster.max_ppn               = 4;
-  profile(pidx).cluster.max_mem_per_job       = 15e9;
+  profile(pidx).cluster.max_mem_per_job       = 16e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
   %profile(pidx).cluster.qsub_submit_arguments = '-m n -q high -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
   %profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
