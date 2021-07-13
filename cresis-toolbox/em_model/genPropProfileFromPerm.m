@@ -44,6 +44,12 @@ function [TWtime,gain] = genPropProfileFromPerm(depth,er,freq)
 %
 % Author: John Paden
 
+if length(depth) == 1
+  TWtime = 0;
+  gain = 1;
+  return;
+end
+
 physical_constants;
 w = 2*pi*freq;
 

@@ -126,32 +126,8 @@ switch ct_output_dir(params(1).radar_name)
       end
     end
     
-<<<<<<< HEAD
-    %% RDS: Viterbi
-    if 1
-=======
-    %% RDS: Surface tracking (DEM)
-    % Use DEM and LIDAR with no automated tracking (use this when the
-    % echogram data are bad and no tracking is possible)
-    if 0
-      track.profile = 'RDS';
-      track.layer_names                 = {'surface_dem'};
-      
-      % Override default init method
-      track.init.method	= 'dem';
-      track.init.dem_offset = 0;
-      track.init.dem_layer = [];
-      track.init.max_diff = 0;
-      track.init.max_diff_method = 'merge_vectors';
-      
-      track.method = ''; % Just use DEM surface
-      track.max_rng = [0 0];
-      track.medfilt = [];
-    end
-    
     %% RDS: Viterbi bottom
     if 0
->>>>>>> 22379f92ab59cf9acb19f372394c0cc1774fd2d4
       track.method                      = 'viterbi';
       track.layer_names                 = {'bottomA'};
       

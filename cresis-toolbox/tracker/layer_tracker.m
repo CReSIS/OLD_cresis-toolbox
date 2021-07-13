@@ -152,11 +152,11 @@ for frm_idx = 1:length(frm_filenames)
       [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
       ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.mask), mask.x, mask.y));
       ice_mask.mask(isnan(ice_mask.mask)) = 1;
-      temp = cat(2,ice_mask.mask,temp);
-      track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
+      temp = cat(2,temp,ice_mask.mask);
+      track.gps_time = cat(2,track.gps_time,mdata.GPS_time);
     else
       temp = cat(2,temp,ones(1,Nx));
-      track.gps_time = cat(2,mdata.GPS_time,track.gps_time);
+      track.gps_time = cat(2,track.gps_time,mdata.GPS_time);
     end
     %% Crossovers
     if track.crossover.en
@@ -218,9 +218,8 @@ for frm_idx = 1:length(frm_filenames)
     frm_nam{end+1} = frm_str{frm_idx};
     
     %% Track: Load ocean mask, land DEM, sea surface DEM
-    track.init.method = 'dem';
-    long = cat(2,mdata.Longitude,long);
-    lat = cat(2,mdata.Latitude,lat);
+    long = cat(2,long,mdata.Longitude);
+    lat = cat(2,lat,mdata.Latitude);
   end
 end
 

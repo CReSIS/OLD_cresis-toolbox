@@ -48,7 +48,8 @@ function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,
 %  filepath) Should have a 'resample_field' field containing layer_bins to
 %  flatten. If an empty string, then set to "slope" for CSARP_slope.
 % 
-%  numeric array: double, assumed to be layer_bins.
+%  numeric array: double, assumed to be layer_bins (one indexed so valid
+%  range is from 1 to Nt)
 %
 % interp_method: string containing 'circ', 'linear' or 'sinc' (default is
 % 'linear'). interpft is not recommended unless the data are Nyquist
