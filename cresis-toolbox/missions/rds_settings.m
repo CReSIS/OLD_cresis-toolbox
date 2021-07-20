@@ -105,6 +105,17 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % Multipass Camp Century
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140429_01');
 % params = ct_set_params(params,'cmd.frms',[67]);
+% Multipass EGIG
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20110426_11');
+% params = ct_set_params(params,'cmd.frms',[5 6 7]);
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20120411_02');
+% params = ct_set_params(params,'cmd.frms',[7 8 9 10]);
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140410_01');
+% params = ct_set_params(params,'cmd.frms',[57 58 59]);
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20170506_01');
+% params = ct_set_params(params,'cmd.frms',[57 58 59]);
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20180501_01');
+% params = ct_set_params(params,'cmd.frms',[51 52 53 54 55]);
 % Multipass Summit
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20120330_03');
 % params = ct_set_params(params,'cmd.frms',[8 9]);

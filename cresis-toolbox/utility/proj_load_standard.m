@@ -6,7 +6,7 @@
 %
 % Author: John Paden
 %
-% See Also: physical_constants.m
+% See Also: physical_constants.m, proj_load_standard.m
 
 % Arctic North Polar Stereographic NSIDC
 arctic_proj.Filename='P:\GIS_data\greenland\Landsat-7\Greenland_natural_90m.tif';

@@ -64,6 +64,10 @@ if ~isfield(param.layer_tracker,'echogram_source') || isempty(param.layer_tracke
   param.layer_tracker.echogram_source = 'qlook';
 end
 
+if ~isfield(param.layer_tracker,'frm_types') || isempty(param.layer_tracker.frm_types)
+  param.layer_tracker.frm_types = {-1,-1,-1,-1,-1};
+end
+
 %  .layer_params: layerparams structure of where to store the output using
 %  opsCopyLayers.m
 if ~isfield(param.layer_tracker,'layer_params') || isempty(param.layer_tracker.layer_params)

@@ -80,7 +80,7 @@ function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 %
 % Authors: John Paden, Victor Berger
 %
-% See also: run_update_img_combine.m, update_img_combine.m
+% See also: run_img_combine_update.m, img_combine_update.m
 
 %% Input checks
 % =========================================================================

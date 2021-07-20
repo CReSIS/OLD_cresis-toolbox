@@ -172,12 +172,8 @@ classdef layerdata < handle
       % Ensure frames are loaded
       obj.check_frames();
       
-      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
-      % the records field with this information.
-      trajectory_param = struct('gps_source',obj.records.gps_source, ...
-        'season_name',obj.param.season_name,'radar_name',obj.param.radar_name,'rx_path', 0, ...
-        'tx_weights', [], 'lever_arm_fh', obj.param.radar.lever_arm_fh);
-      obj.records = trajectory_with_leverarm(obj.records,trajectory_param);
+      % Load/create-if-needed reference trajectory
+      obj.records = records_reference_trajectory_load(obj.param,obj.records);
       
       obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
       
@@ -955,7 +951,7 @@ classdef layerdata < handle
       if ischar(id)
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
-        if isempty(id)
+        if isempty(match_idx)
           error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
         id = obj.layer_organizer.lyr_id(match_idx);
@@ -1072,16 +1068,21 @@ classdef layerdata < handle
       if nargin < 2
         % If no regular expression string is given, then return all layers
         layer_names = obj.layer_organizer.lyr_name;
+        lyr_order = obj.layer_organizer.lyr_order;
       else
         layer_names = {};
+        lyr_order = [];
         idx = 0;
         for  lyr_idx = 1:length(obj.layer_organizer.lyr_name)
           if regexp(obj.layer_organizer.lyr_name{lyr_idx},regexp_str)
             idx = idx + 1;
             layer_names{idx} = obj.layer_organizer.lyr_name{lyr_idx};
+            lyr_order(idx) = obj.layer_organizer.lyr_order(lyr_idx);
           end
         end
       end
+      [~,sort_idxs] = sort(lyr_order);
+      layer_names = layer_names(sort_idxs);
     end
     
     %% gps_time: get gps_time
@@ -1365,12 +1366,17 @@ classdef layerdata < handle
       else
         master.Elevation = mdata.Elevation;
       end
-      if 1
-        % New Method: since layer data files are continuously sampled and
-        % include NaN to represent gaps, simple interpolation works fine.
-          layers(lay_idx).twtt_ref = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'spline');
-          layers(lay_idx).quality = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
-          layers(lay_idx).type = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+      if 0
+        % New Method: if opsLoadLayers is updated to always return
+        % uniformly sampled data where NaN are used to represent gaps in
+        % the layers (rather than just not including any points), simple
+        % interpolation works fine. Currently opsLoadLayers for source ops,
+        % does not do this... so "Old Method" must be used.
+        for lay_idx = length(layers)
+          layers(lay_idx).twtt_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, master.GPS_time, 'spline');
+          layers(lay_idx).quality_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).quality, master.GPS_time, 'nearest');
+          layers(lay_idx).type_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).type, master.GPS_time, 'nearest');
+        end
       else
         % Old Method: this is necessary for layer data loaded from OPS
         % where gaps are represented by no data points in those spots.

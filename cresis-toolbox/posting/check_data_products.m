@@ -251,7 +251,7 @@ for param_idx = 1:length(params)
                 delete(fn);
               end
             else
-              if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'layerData')
+              if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'layer')
                 if strcmp(outputs{output_idx},'CSARP_out')
                   fns2 = get_filenames(fn,'','','');
                   fn = fns2{1};
@@ -314,7 +314,7 @@ for param_idx = 1:length(params)
       
       %% Check for expected image files
       frames_fn = ct_filename_support(param,'','frames');
-      load(frames_fn);
+      frames = load(frames_fn);
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
           outputs_post_dir,'', true),'images',param.day_seg);
