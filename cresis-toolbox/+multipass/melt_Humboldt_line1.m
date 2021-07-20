@@ -324,6 +324,47 @@ AT_data.melt_rates.P14_P17 = AT_data.interp_data.P17 - ...
 % 2012-2017 melt (Vertical difference in Features)
 AT_data.melt_rates.P12_P17 = AT_data.interp_data.P17 - ...
   AT_data.interp_data.P12;
+
+%% Export data to csv
+% Concatenate and take transpose of Lon, Lat, Surf, Bed fields. Concatenate horizontally for each year
+AT_data.export.P12 = cat(2, AT_data.interp_data.P12_LON.', AT_data.interp_data.P12_LAT.', AT_data.interp_data.P12_SURF.', AT_data.interp_data.P12.' );
+AT_data.export.P13 = cat(2, AT_data.interp_data.P13_LON.', AT_data.interp_data.P13_LAT.', AT_data.interp_data.P13_SURF.', AT_data.interp_data.P13.' );
+AT_data.export.P14 = cat(2, AT_data.interp_data.P14_LON.', AT_data.interp_data.P14_LAT.', AT_data.interp_data.P14_SURF.', AT_data.interp_data.P14.' );
+AT_data.export.P17 = cat(2, AT_data.interp_data.P17_LON.', AT_data.interp_data.P17_LAT.', AT_data.interp_data.P17_SURF.', AT_data.interp_data.P17.' );
+
+%% Define Header Array of strings and vertically concatenate to data 
+cheader = {'Lons', 'Lats', 'Surface', 'Depth'}; % header
+commaHeader = [cheader;repmat({','},1,numel(cheader))];
+commaHeader = commaHeader(:)';
+textHeader = cell2mat(commaHeader);
+
+% change folder
+cd 'C:\Users\c262b531\Documents\scripts\cresis-toolbox\cresis-toolbox\+multipass\CSV_export_files\'
+
+%write header to file 2012
+fid = fopen('Humboldt1_lat_lon_surf_bed_12.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Humboldt1_lat_lon_surf_bed_12.csv', AT_data.export.P12, '-append');
+
+%write header to file 2013
+fid = fopen('Humboldt1_lat_lon_surf_bed_13.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Humboldt1_lat_lon_surf_bed_13.csv', AT_data.export.P13, '-append');
+
+%write header to file 2014
+fid = fopen('Humboldt1_lat_lon_surf_bed_14.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Humboldt1_lat_lon_surf_bed_14.csv', AT_data.export.P14, '-append');
+
+%write header to file 2017
+fid = fopen('Humboldt1_lat_lon_surf_bed_17.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Humboldt1_lat_lon_surf_bed_17.csv', AT_data.export.P17, '-append');
+
 %% Test Figures Section 
 figure(1)
 h1 = plot(AT_data.Btrack_End_Clip.P07/1e3, AT_data.elev_End_Clip.P2007);

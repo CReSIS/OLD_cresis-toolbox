@@ -39,6 +39,8 @@ fprintf('%s [Mode %d]: %s  (%s)\n', mfilename, param.multipass.comp_mode, ...
   param.multipass.pass_name, datestr(now));
 fprintf('=====================================================================\n');
 
+param = merge_structs(param,param_override);
+
 physical_constants;
 proj_load_standard;
 

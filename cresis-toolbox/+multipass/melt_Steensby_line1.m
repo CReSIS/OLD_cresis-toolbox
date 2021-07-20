@@ -55,6 +55,15 @@ AT_data.AT_vel.P2013 = pass(baseline_master_idx).along_track + pass(2).vel;
 AT_data.AT_vel.P2015 = pass(baseline_master_idx).along_track + pass(3).vel;
 AT_data.AT_vel.P2019 = pass(baseline_master_idx).along_track + pass(4).vel;
 
+% Latitudes and longitudes (Adjust for the master pass)  
+AT_data.latitudes.P2011 = interp1(pass(1).lat, pass(1).lat, pass(4).lat);
+AT_data.latitudes.P2013 = interp1(pass(2).lat, pass(2).lat, pass(4).lat);
+AT_data.latitudes.P2015 = interp1(pass(3).lat, pass(3).lat, pass(4).lat);
+%AT_data.latitudes.P2019 = pass(4).lat;
+AT_data.longitudes.P2011 = interp1(pass(1).lon, pass(1).lon, pass(4).lon);
+AT_data.longitudes.P2013 = interp1(pass(2).lon, pass(2).lon, pass(4).lon);
+AT_data.longitudes.P2015 = interp1(pass(3).lon, pass(3).lon, pass(4).lon);
+%AT_data.longitudes.P2019 = pass(4).lon;
 %% Section 2 - Mask, indexing, and clipping of along track
   
 % Locate Along Track start element in each profile, save element ID as a
@@ -121,7 +130,7 @@ AT_data.array_size.P15_AT = size(AT_data.Btrack_End_Clip.P15);
 AT_data.array_size.P19_AT = size(AT_data.Btrack_End_Clip.P19);
 
 %% Elevation data Clipping to Section size of Along Track files
-% Elevation data beginning clipping from start element in Along Track
+% Elevation data beginning clipping from start element in Along Track BED
 % AT_data.elev_Beg_Clip.P2007 = AT_data.elevB.P2007...
 %   (AT_data.find_AT_value.P07:end); 
 AT_data.elev_Beg_Clip.P2011 = AT_data.elevB.P2011...
@@ -133,7 +142,7 @@ AT_data.elev_Beg_Clip.P2015 = AT_data.elevB.P2015...
 AT_data.elev_Beg_Clip.P2019 = AT_data.elevB.P2019...
   (AT_data.find_AT_value.P19:end);
 
-% Elevation data end clipping from end of Along track data
+% Elevation data end clipping from end of Along track data BED
 % AT_data.elev_End_Clip.P2007 = AT_data.elev_Beg_Clip.P2007...
 %   (1:length(AT_data.Btrack_End_Clip.P07));
 AT_data.elev_End_Clip.P2011 = AT_data.elev_Beg_Clip.P2011...
@@ -145,12 +154,113 @@ AT_data.elev_End_Clip.P2015 = AT_data.elev_Beg_Clip.P2015...
 AT_data.elev_End_Clip.P2019 = AT_data.elev_Beg_Clip.P2019...
   (1:length(AT_data.Btrack_End_Clip.P19));
 
+% Elevation data beginning clipping from start element in Along Track SURF  
+AT_data.elev_Beg_Clip_SURF.P2011 = AT_data.elevS.P2011...
+  (AT_data.find_AT_value.P11:end);
+AT_data.elev_Beg_Clip_SURF.P2013 = AT_data.elevS.P2013...
+  (AT_data.find_AT_value.P13:end);
+AT_data.elev_Beg_Clip_SURF.P2015 = AT_data.elevS.P2015...
+  (AT_data.find_AT_value.P15:end);
+% AT_data.elev_Beg_Clip_SURF.P2019 = AT_data.elevS.P2019...
+%   (AT_data.find_AT_value.P19:end);
+  
+% Elevation data end clipping from end of Along track data SURF
+AT_data.elev_End_Clip_SURF.P2011 = AT_data.elev_Beg_Clip_SURF.P2011...
+  (1:length(AT_data.Btrack_End_Clip.P11));
+AT_data.elev_End_Clip_SURF.P2013 = AT_data.elev_Beg_Clip_SURF.P2013...
+  (1:length(AT_data.Btrack_End_Clip.P13));
+AT_data.elev_End_Clip_SURF.P2015 = AT_data.elev_Beg_Clip_SURF.P2015...
+  (1:length(AT_data.Btrack_End_Clip.P15));
+% AT_data.elev_End_Clip_SURF.P2019 = AT_data.elev_Beg_Clip_SURF.P2019...
+%   (1:length(AT_data.Btrack_End_Clip.P19));
+
+% Velocity data beginning clipping from start element in Along Track LAT 
+AT_data.elev_Beg_Clip_LAT.P2011 = AT_data.latitudes.P2011...
+  (AT_data.find_AT_value.P11:end);
+AT_data.elev_Beg_Clip_LAT.P2013 = AT_data.latitudes.P2013...
+  (AT_data.find_AT_value.P13:end);
+AT_data.elev_Beg_Clip_LAT.P2015 = AT_data.latitudes.P2015...
+  (AT_data.find_AT_value.P15:end);
+% AT_data.elev_Beg_Clip_LAT.P2019 = AT_data.latitudes.P2019...
+%   (AT_data.find_AT_value.P19:end);
+  
+% Velocity data end clipping from end of Along track data LAT
+AT_data.elev_End_Clip_LAT.P2011 = AT_data.elev_Beg_Clip_LAT.P2011...
+  (1:length(AT_data.Btrack_End_Clip.P11));
+AT_data.elev_End_Clip_LAT.P2013 = AT_data.elev_Beg_Clip_LAT.P2013...
+  (1:length(AT_data.Btrack_End_Clip.P13));
+AT_data.elev_End_Clip_LAT.P2015 = AT_data.elev_Beg_Clip_LAT.P2015...
+  (1:length(AT_data.Btrack_End_Clip.P15));
+% AT_data.elev_End_Clip_LAT.P2019 = AT_data.elev_Beg_Clip_LAT.P2019...
+%   (1:length(AT_data.Btrack_End_Clip.P19));
+
+% Velocity data beginning clipping from start element in Along Track LON 
+AT_data.elev_Beg_Clip_LON.P2011 = AT_data.longitudes.P2011...
+  (AT_data.find_AT_value.P11:end);
+AT_data.elev_Beg_Clip_LON.P2013 = AT_data.longitudes.P2013...
+  (AT_data.find_AT_value.P13:end); 
+AT_data.elev_Beg_Clip_LON.P2015 = AT_data.longitudes.P2015...
+  (AT_data.find_AT_value.P15:end);
+% AT_data.elev_Beg_Clip_LON.P2019 = AT_data.longitudes.P2019...
+%   (AT_data.find_AT_value.P19:end);
+  
+% Velocity data end clipping from end of Along track data LON
+AT_data.elev_End_Clip_LON.P2011 = AT_data.elev_Beg_Clip_LON.P2011...
+  (1:length(AT_data.Btrack_End_Clip.P11));
+AT_data.elev_End_Clip_LON.P2013 = AT_data.elev_Beg_Clip_LON.P2013...
+  (1:length(AT_data.Btrack_End_Clip.P13));
+AT_data.elev_End_Clip_LON.P2015 = AT_data.elev_Beg_Clip_LON.P2015...
+  (1:length(AT_data.Btrack_End_Clip.P15));
+% AT_data.elev_End_Clip_LON.P2019 = AT_data.elev_Beg_Clip_LON.P2019...
+%   (1:length(AT_data.Btrack_End_Clip.P19));
+
+% Velocity data beginning clipping from start element in Along Track PASS 
+AT_data.elev_Beg_Clip_PASS.P2011 = AT_data.pass.P2011...
+  (AT_data.find_AT_value.P11:end);
+AT_data.elev_Beg_Clip_PASS.P2013 = AT_data.pass.P2013...
+  (AT_data.find_AT_value.P13:end); 
+AT_data.elev_Beg_Clip_PASS.P2015 = AT_data.pass.P2015...
+  (AT_data.find_AT_value.P15:end);
+% AT_data.elev_Beg_Clip_PASS.P2019 = AT_data.pass.P2019...
+%   (AT_data.find_AT_value.P19:end);
+  
+% Velocity data end clipping from end of Along track data PASS
+AT_data.elev_End_Clip_PASS.P2011 = AT_data.elev_Beg_Clip_PASS.P2011...
+  (1:length(AT_data.Btrack_End_Clip.P11));
+AT_data.elev_End_Clip_PASS.P2013 = AT_data.elev_Beg_Clip_PASS.P2013...
+  (1:length(AT_data.Btrack_End_Clip.P13));
+AT_data.elev_End_Clip_PASS.P2015 = AT_data.elev_Beg_Clip_PASS.P2015...
+  (1:length(AT_data.Btrack_End_Clip.P15));
+% AT_data.elev_End_Clip_PASS.P2019 = AT_data.elev_Beg_Clip_PASS.P2019...
+%   (1:length(AT_data.Btrack_End_Clip.P19));
+
 % Save along elevation data size as variable to see if there is any errors
-% AT_data.array_size.P07_elev = size(AT_data.elev_End_Clip.P2007);
+% BED
+%AT_data.array_size.P07_elev = size(AT_data.elev_End_Clip.P2007);
 AT_data.array_size.P11_elev = size(AT_data.elev_End_Clip.P2011);
 AT_data.array_size.P13_elev = size(AT_data.elev_End_Clip.P2013);
 AT_data.array_size.P15_elev = size(AT_data.elev_End_Clip.P2015);
-AT_data.array_size.P19_elev = size(AT_data.elev_End_Clip.P2019);
+% AT_data.array_size.P19_elev = size(AT_data.elev_End_Clip.P2019);
+% SURF
+AT_data.array_size.P11_elevSURF = size(AT_data.elev_End_Clip_SURF.P2011);
+AT_data.array_size.P13_elevSURF = size(AT_data.elev_End_Clip_SURF.P2013);
+AT_data.array_size.P15_elevSURF = size(AT_data.elev_End_Clip_SURF.P2015);
+% AT_data.array_size.P19_elevSURF = size(AT_data.elev_End_Clip_SURF.P2019);
+% LAT
+AT_data.array_size.P11_LAT = size(AT_data.elev_End_Clip_LAT.P2011);
+AT_data.array_size.P13_LAT = size(AT_data.elev_End_Clip_LAT.P2013);
+AT_data.array_size.P15_LAT = size(AT_data.elev_End_Clip_LAT.P2015);
+% AT_data.array_size.P19_LAT = size(AT_data.elev_End_Clip_LAT.P2019);
+% LON
+AT_data.array_size.P11_LON = size(AT_data.elev_End_Clip_LON.P2011);
+AT_data.array_size.P13_LON = size(AT_data.elev_End_Clip_LON.P2013);
+AT_data.array_size.P15_LON = size(AT_data.elev_End_Clip_LON.P2015);
+% AT_data.array_size.P19_LON = size(AT_data.elev_End_Clip_LON.P2019);
+% PASS
+AT_data.array_size.P11_PASS = size(AT_data.elev_End_Clip_PASS.P2011);
+AT_data.array_size.P13_PASS = size(AT_data.elev_End_Clip_PASS.P2013);
+AT_data.array_size.P15_PASS = size(AT_data.elev_End_Clip_PASS.P2015);
+% AT_data.array_size.P19_PASS = size(AT_data.elev_End_Clip_PASS.P2019);
 
 %% Derive Along track spacing array, interpolated profiles and melt by Year
   
@@ -175,43 +285,128 @@ AT_data.AT_vel.P2011(end));
 % AT_data.interp_data.P07 = interp1(AT_data.Btrack_End_Clip.P07, ...
 %   AT_data.elev_End_Clip.P2007, AT_data.query_array.P07);
 
-% 2011
+% 2011 BED
 AT_data.interp_data.P11 = interp1(AT_data.Btrack_End_Clip.P11, ...
   AT_data.elev_End_Clip.P2011, AT_data.query_array.P11);
-
-% 2013
+% 2013 BED
 AT_data.interp_data.P13 = interp1(AT_data.Btrack_End_Clip.P13, ...
   AT_data.elev_End_Clip.P2013, AT_data.query_array.P11);
-
-% 2015
+% 2015 BED
 AT_data.interp_data.P15 = interp1(AT_data.Btrack_End_Clip.P15, ...
   AT_data.elev_End_Clip.P2015, AT_data.query_array.P11);
+% 2019 BED
+% AT_data.interp_data.P19 = interp1(AT_data.Btrack_End_Clip.P19, ...
+%   AT_data.elev_End_Clip.P2019, AT_data.query_array.P11);
 
-% 2019
-AT_data.interp_data.P19 = interp1(AT_data.Btrack_End_Clip.P19, ...
-  AT_data.elev_End_Clip.P2019, AT_data.query_array.P11);
-  
-% Calculate melt rates from interpolated profile pairings
-% 2007-2011 melt (Vertical difference in Features)
-% AT_data.melt_rates.P07_P11 = AT_data.interp_data.P11 - ...
-%   AT_data.interp_data.P07; 
-  
+% 2011 SURF
+AT_data.interp_data.P11_Surf = interp1(AT_data.Btrack_End_Clip.P11, ...
+  AT_data.elev_End_Clip_SURF.P2011, AT_data.query_array.P11);
+% 2013 SURF
+AT_data.interp_data.P13_Surf = interp1(AT_data.Btrack_End_Clip.P13, ...
+  AT_data.elev_End_Clip_SURF.P2013, AT_data.query_array.P11);
+% 2015 SURF
+AT_data.interp_data.P15_Surf = interp1(AT_data.Btrack_End_Clip.P15, ...
+  AT_data.elev_End_Clip_SURF.P2015, AT_data.query_array.P11);
+% 2019 SURF
+% AT_data.interp_data.P19_Surf = interp1(AT_data.Btrack_End_Clip.P19, ...
+%   AT_data.elev_End_Clip_SURF.P2019, AT_data.query_array.P11);
+
+% 2011 LAT
+AT_data.interp_data.P11_LAT = interp1(AT_data.Btrack_End_Clip.P11, ...
+  AT_data.elev_End_Clip_LAT.P2011, AT_data.query_array.P11);
+% 2013 LAT
+AT_data.interp_data.P13_LAT = interp1(AT_data.Btrack_End_Clip.P13, ...
+  AT_data.elev_End_Clip_LAT.P2013, AT_data.query_array.P11);
+% 2015 LAT
+AT_data.interp_data.P15_LAT = interp1(AT_data.Btrack_End_Clip.P15, ...
+  AT_data.elev_End_Clip_LAT.P2015, AT_data.query_array.P11);
+% 2019 LAT
+% AT_data.interp_data.P19_LAT = interp1(AT_data.Btrack_End_Clip.P19, ...
+%   AT_data.elev_End_Clip_LAT.P2019, AT_data.query_array.P11);
+
+% 2011 LON
+AT_data.interp_data.P11_LON = interp1(AT_data.Btrack_End_Clip.P11, ...
+  AT_data.elev_End_Clip_LON.P2011, AT_data.query_array.P11);
+% 2013 LON
+AT_data.interp_data.P13_LON = interp1(AT_data.Btrack_End_Clip.P13, ...
+  AT_data.elev_End_Clip_LON.P2013, AT_data.query_array.P11);
+% 2015 LON
+AT_data.interp_data.P15_LON = interp1(AT_data.Btrack_End_Clip.P15, ...
+  AT_data.elev_End_Clip_LON.P2015, AT_data.query_array.P11);
+% 2019 LON
+% AT_data.interp_data.P19_LON = interp1(AT_data.Btrack_End_Clip.P19, ...
+%   AT_data.elev_End_Clip_LON.P2019, AT_data.query_array.P11);
 % 2011-2013 melt (Vertical difference in Features)
 AT_data.melt_rates.P11_P13 = AT_data.interp_data.P13 - ...
   AT_data.interp_data.P11;
-  
+
+% 2011 PASS
+AT_data.interp_data.P11_PASS = interp1(AT_data.Btrack_End_Clip.P11, ...
+  AT_data.elev_End_Clip_PASS.P2011, AT_data.query_array.P11);
+% 2013 PASS
+AT_data.interp_data.P13_PASS = interp1(AT_data.Btrack_End_Clip.P13, ...
+  AT_data.elev_End_Clip_PASS.P2013, AT_data.query_array.P11);
+% 2015 PASS
+AT_data.interp_data.P15_PASS = interp1(AT_data.Btrack_End_Clip.P15, ...
+  AT_data.elev_End_Clip_PASS.P2015, AT_data.query_array.P11);
+% 2019 PASS
+% AT_data.interp_data.P19_PASS = interp1(AT_data.Btrack_End_Clip.P19, ...
+%   AT_data.elev_End_Clip_PASS.P2019, AT_data.query_array.P11);
+
+
+% 2011-2013 melt (Vertical difference in Features)
+AT_data.melt_rates.P11_P13 = AT_data.interp_data.P13 - ...
+  AT_data.interp_data.P11;
 % 2013-2015 melt (Vertical difference in Features)
 AT_data.melt_rates.P13_P15 = AT_data.interp_data.P15 - ...
   AT_data.interp_data.P13;
-
 % 2015-2019 melt (Vertical difference in Features)
 AT_data.melt_rates.P15_P19 = AT_data.interp_data.P19 - ...
   AT_data.interp_data.P15;
-
 % 2011-2019 melt (Vertical difference in Features)
 AT_data.melt_rates.P11_P19 = AT_data.interp_data.P19 - ...
   AT_data.interp_data.P11;
-  
+
+%% Export data to csv
+% Concatenate and take transpose of Lon, Lat, Surf, Bed fields. Concatenate horizontally for each year
+AT_data.export.P11 = cat(2, AT_data.interp_data.P11_LON.', AT_data.interp_data.P11_LAT.', AT_data.interp_data.P11_SURF.', AT_data.interp_data.P11.' );
+AT_data.export.P13 = cat(2, AT_data.interp_data.P13_LON.', AT_data.interp_data.P13_LAT.', AT_data.interp_data.P13_SURF.', AT_data.interp_data.P13.' );
+AT_data.export.P15 = cat(2, AT_data.interp_data.P15_LON.', AT_data.interp_data.P15_LAT.', AT_data.interp_data.P15_SURF.', AT_data.interp_data.P15.' );
+AT_data.export.P19 = cat(2, AT_data.interp_data.P19_LON.', AT_data.interp_data.P19_LAT.', AT_data.interp_data.P19_SURF.', AT_data.interp_data.P19.' );
+
+%% Define Header Array of strings and vertically concatenate to data 
+cheader = {'Lons', 'Lats', 'Surface', 'Depth'}; % header
+commaHeader = [cheader;repmat({','},1,numel(cheader))];
+commaHeader = commaHeader(:)';
+textHeader = cell2mat(commaHeader);
+
+% change folder
+cd 'C:\Users\c262b531\Documents\scripts\cresis-toolbox\cresis-toolbox\+multipass\CSV_export_files\'
+
+%write header to file 2011
+fid = fopen('Steensby1_lat_lon_surf_bed_11.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Steensby1_lat_lon_surf_bed_11.csv', AT_data.export.P11, '-append');
+
+%write header to file 2013
+fid = fopen('Steensby1_lat_lon_surf_bed_13.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Steensby1_lat_lon_surf_bed_13.csv', AT_data.export.P13, '-append');
+
+%write header to file 2015
+fid = fopen('Steensby1_lat_lon_surf_bed_15.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Steensby1_lat_lon_surf_bed_15.csv', AT_data.export.P15, '-append');
+
+%write header to file 2019
+fid = fopen('Steensby1_lat_lon_surf_bed_19.csv','w');
+fprintf(fid,'%s\n',textHeader);
+fclose(fid);
+dlmwrite('Steensby1_lat_lon_surf_bed_19.csv', AT_data.export.P19, '-append');
+
 %% Test Figures Section 
 
 figure(1)
