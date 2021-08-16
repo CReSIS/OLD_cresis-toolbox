@@ -58,6 +58,7 @@ classdef layerdata < handle
   methods (Access = private)
     
     %% create: create layer file
+    % NOTE: just creates the file structure, but does not save it
     function create(obj,frm)
       obj.check_records();
 
@@ -174,6 +175,8 @@ classdef layerdata < handle
       
       % Load/create-if-needed reference trajectory
       obj.records = records_reference_trajectory_load(obj.param,obj.records);
+      obj.param.records.gps.time_offset = obj.records.param_records.records.gps.time_offset;
+      obj.param.radar.lever_arm_fh = obj.records.param_records.radar.lever_arm_fh;
       
       obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
       

@@ -64,7 +64,14 @@ end
 layers_twtt = {};
 if ~isempty(layer_params)
   param = echo_param(mdata);
+  % Determine the range of frames that this echogram covers
+  [~,frm_id] = get_frame_id(param,mdata.GPS_time([1 end]));
+  % Get the frame before/after so that layers will be interpolated
+  % correctly.
+  param.cmd.frms = floor(frm_id(1))-1 : floor(frm_id(end))+1;
+  % Load the layers
   [layers] = opsLoadLayers(param,layer_params);
+  % Format each layer
   for lay_idx = 1:length(layers)
     ops_layer = [];
     ops_layer{1}.gps_time = layers(lay_idx).gps_time;

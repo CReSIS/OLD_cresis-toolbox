@@ -44,7 +44,7 @@ fprintf('Creating reference trajectory\t%s\n', datestr(now,'yyyymmdd_HHMMSS'));
 trajectory_param = struct('gps_source',records.gps_source, ...
   'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
   'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
-records = trajectory_with_leverarm(records,trajectory_param);
+[records,lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
 
 %% Save output
 % =====================================================================
@@ -55,7 +55,9 @@ if ~exist(ref_fn_dir,'dir')
 end
 ref_fn = fullfile(ref_fn_dir,sprintf('ref_%s.mat', param.day_seg));
 fprintf('Saving reference trajectory\t%s\t%s\n', ref_fn, datestr(now,'yyyymmdd_HHMMSS'));
+records.lever_arm_val = lever_arm_val;
+records.lever_arm_fh = param.radar.lever_arm_fh;
 records.file_version = '1';
 records.file_type = 'reference_trajectory';
 records.sw_version = current_software_version;
-ct_save(ref_fn,'-struct','records','gps_time','lat','lon','elev','gps_source','file_version','file_type','sw_version');
+ct_save(ref_fn,'-struct','records','gps_time','lat','lon','elev','gps_source','lever_arm_val','lever_arm_fh','file_version','file_type','sw_version');
