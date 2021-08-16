@@ -13,10 +13,10 @@ param_override = [];
 
 % params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
-% params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
-
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140516_01');%|20140415_05|20140421_01|20140516_01');%'20140415_05|20140421_01|20140514_01|20140313_09');
+% params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'))
+params = ct_set_params(params,'cmd.generic',1);%|20140415_05|20140421_01|20140516_01');%'20140415_05|20140421_01|20140514_01|20140313_09');
+%params = ct_set_params(params,'cmd.generic',0,'day_seg','20140310_01');
+params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
 % params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
@@ -35,11 +35,11 @@ param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
 % Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_lsm_20140516';
+param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_season';
 % Uncomment to enable OPS storage
 % param_override.layer_tracker.layer_params.source = 'ops';
 
-tracker_method = 'lsm'; % Choose the tracking method
+tracker_method = 'viterbi'; % Choose the tracking method
 % block_size_frms: Number of frames to be loaded at a time
 param_override.layer_tracker.block_size_frms = 1;
 
@@ -137,7 +137,11 @@ elseif strcmpi(tracker_method,'viterbi')
     track.filter_trim           = [0 120];
     track.norm.scale            = [-40 90];
     track.xcorr                 = echo_xcorr_profile('short_unitstep');
-    
+    track.ground_truth.en = true;
+    track.ground_truth.layers.source = 'layerdata';
+    track.ground_truth.layers.layerdata_source = 'layer';
+    track.ground_truth.layers.name = 'bottom_mc';
+    track.ground_truth.cutoff = 450;
     track_idx = track_idx + 1;
     param_override.layer_tracker.track{track_idx} = track;
   end
@@ -153,7 +157,7 @@ end
 % param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
-% param_override.cluster.desired_time_per_job  = 240*60;
+% param_ovserride.cluster.desired_time_per_job  = 240*60;
 param_override.cluster.cpu_time_mult  = 2;
 param_override.cluster.mem_mult  = 2;
 
