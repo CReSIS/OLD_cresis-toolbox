@@ -18,29 +18,39 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
-params = ct_set_params(params,'cmd.frms',[1]); % Specify specific frames (or leave empty/undefined to do all frames)
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20110331_02');
-% params = ct_set_params(params,'cmd.frms',19); % Specify specific frames (or leave empty/undefined to do all frames)
+if 1
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
+else
+  params = ct_set_params(params,'cmd.generic',1);
+  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+end
 
- param_override.layer_tracker.debug_plots = {'tracked_images'};
-% param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment for debugging
+% param_override.layer_tracker.debug_plots = {'tracked_images'}; % Uncomment to save jpg output files
+param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncomment to save jpg output files and debug
+% param_override.layer_tracker.debug_plots = {'visible'}; % Uncomment for debugging
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
 param_override.layer_tracker.echogram_source = 'qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
-param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
+% param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
 
-% layer_params: layerparams structure of where to store the output using
+param_override.layer_tracker.frm_types = {0,0,-1,-1,-1}; % Uncomment to only process "good" frames
+
+% layer_params: layerparams structure array of where to store the output using
 % opsCopyLayers.m
-param_override.layer_tracker.layer_params = [];
-% Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_vitAnj';
+param_override.layer_tracker.layer_params = []; layer_idx = 0;
+% Uncomment to enable CSARP_layer layerdata storage
+% layer_idx = layer_idx + 1;
+% param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'layer';
+% Uncomment to enable CSARP_post/CSARP_layer layerdata storage
+layer_idx = layer_idx + 1;
+param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'CSARP_post/layer';
 % Uncomment to enable OPS storage
-% param_override.layer_tracker.layer_params.source = 'ops';
+% layer_idx = layer_idx + 1;
+% param_override.layer_tracker.layer_params(layer_idx).source = 'ops';
 
 % block_size_frms: Number of frames to be loaded at a time
 param_override.layer_tracker.block_size_frms = 1;
@@ -63,17 +73,34 @@ switch ct_output_dir(params(1).radar_name)
     %% RDS
     
     %% RDS: Surface tracking
-    if 0
+    if 1
       track.profile = 'rds';
       
       track.layer_names                 = {'surface'};
       
+      % Override default filter settings for low AGL
+      if 0
+        track_override.min_bin = 0.75e-6;
+      end
+      
+      % Override default filter settings for broad bandwidth
+      if 0
+        track_override.max_rng	= [0 10];
+        track_override.max_rng_units = 'bins';
+      end
+      
+      % Override default filter settings for rapidly changing elevation
+      if 0
+        track_override.filter	= [5 1];
+      end
+      
       % Override default filter settings
       if 0
-        track.filter	= [3 3];
-        track.filter_trim	= [3 3];
-        track.threshold = 10;
-        track.max_rng	= [0 2];
+        track.filter	= [3 31];
+        track.filter_trim	= [3 31];
+        track.threshold = 7;
+        track.max_rng	= [0 1];
+        track_override.max_rng_units = 'bins';
       end
       
       % Use sidelobe rejection
@@ -126,10 +153,29 @@ switch ct_output_dir(params(1).radar_name)
       end
     end
     
+    %% RDS: Surface tracking (DEM)
+    % Use DEM and LIDAR with no automated tracking (use this when the
+    % echogram data are bad and no tracking is possible)
+    if 0
+      track.profile = 'RDS';
+      track.layer_names                 = {'surface_dem'};
+      
+      % Override default init method
+      track.init.method	= 'dem';
+      track.init.dem_offset = 0;
+      track.init.dem_layer = [];
+      track.init.max_diff = 0;
+      track.init.max_diff_method = 'merge_vectors';
+      
+      track.method = ''; % Just use DEM surface
+      track.max_rng = [0 0];
+      track.medfilt = [];
+    end
+    
     %% RDS: Viterbi bottom
     if 0
       track.method                      = 'viterbi';
-      track.layer_names                 = {'bottomA'};
+      track.layer_names                 = {'bottom'};
       
       track.min_bin = struct('name','tomo_top');
       track.max_bin = struct('name','tomo_bottom');
@@ -137,7 +183,7 @@ switch ct_output_dir(params(1).radar_name)
       track.crossover.en = true;
       track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
       % track.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
-      track.crossover.gps_time_good_eval = @(x) x < datenum_to_epoch(datenum('2014/03/01')); % Cross overs before this date are good
+      track.crossover.gps_time_good_eval = @(x) x > datenum_to_epoch(datenum('2010/01/01')); % Cross overs before this date are good
       
       if 0
         track.ice_mask.en = false;
@@ -164,12 +210,13 @@ switch ct_output_dir(params(1).radar_name)
       track.viterbi.transition_weight   = 1; % Larger --> smoother
       track.viterbi.gt_cutoff           = 50;
       
-      track.mult_suppress.en = true;
-      track.init.max_diff    = inf;
-      track.detrend          = [];
-      track.filter_trim      = [0 120];
-      track.norm.scale       = [-40 90];
-      track.xcorr            = echo_xcorr_profile('short_unitstep');
+      track.mult_suppress.en      = true;
+      track.init.max_diff         = inf;
+      track_override.init.method  = 'nan';
+      track.detrend               = [];
+      track.filter_trim           = [0 120];
+      track.norm.scale            = [-40 90];
+      track.xcorr                 = echo_xcorr_profile('short_unitstep');
     end
     
     %% RDS: MCMC bottom
@@ -336,6 +383,7 @@ switch ct_output_dir(params(1).radar_name)
         track.init.method  = 'snake';
         track.init.snake_rng = [-15e-9 15e-9];
         track.init.max_diff  = 0.3e-6;
+        track.method = 'snake';
       end
     end
     

@@ -16,9 +16,14 @@
 run_all;
 
 param_override = [];
-param_override.layer_update.in_path = 'layerData';
-param_override.layer_update.out_path = 'layer';
-param_override.layer_update.frames_records_en = true;
+
+if 0
+  % Example to convert old files to new format
+  param_override.layer_update.in_path = 'layerData';
+  param_override.layer_update.out_path = 'layer';
+elseif 0
+  % Example to ensure files are in the newest format (this is the default setting)
+end
 
 %% Automated Section
 % =========================================================================
