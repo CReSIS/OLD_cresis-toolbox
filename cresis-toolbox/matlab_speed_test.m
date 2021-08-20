@@ -1,3 +1,6 @@
+%% Date and Time
+fprintf('date_time\t%s\n', datestr(now,'yyyymmdd_HHMMSS'));
+
 %% FFT speed test
 start_time = tic;
 fprintf('fft_start\t%g\n', toc(start_time));
@@ -20,3 +23,14 @@ for run = 1:40
   end
 end
 fprintf('mat_inv_done\t%g\n', toc(start_time));
+
+%% Component wise matrix multiplies
+start_time = tic;
+fprintf('mat_mult_start\t%g\n', toc(start_time));
+A = randn(10e3,5e3) + 1i*randn(10e3,5e3);
+B = randn(10e3,5e3) + 1i*randn(10e3,5e3);
+fprintf('mat_mult_creation\t%g\n', toc(start_time));
+for run = 1:300
+  C = A .* B;
+end
+fprintf('mat_mult_done\t%g\n', toc(start_time));
