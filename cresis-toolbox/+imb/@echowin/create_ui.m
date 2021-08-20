@@ -104,6 +104,19 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
+obj.tool.list{end+1} = imb.picktool_stat;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click: Nothing
+% Left click and drag: Sets all points contains in draw to the currently
+%   selected quality level
+% Right click: Set cursor point
+% Right click and drag: Nothing
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
 obj.tool.list{end+1} = imb.picktool_snake;
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Enters a point based on parameters

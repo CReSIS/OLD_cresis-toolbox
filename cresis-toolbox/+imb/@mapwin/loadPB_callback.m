@@ -71,7 +71,7 @@ else
   addlistener(obj.echowin_list(echo_idx),'update_cursors',@obj.update_echowin_cursors);
   addlistener(obj.echowin_list(echo_idx),'update_map_selection',@obj.update_map_selection_echowin);
   addlistener(obj.echowin_list(echo_idx),'open_crossover_event',@obj.open_crossover_echowin);
-  addlistener(obj.echowin_list(echo_idx).tool.list{4},'ascope_memory',@obj.ascope_memory);
+  addlistener(obj.echowin_list(echo_idx).tool.list{5},'ascope_memory',@obj.ascope_memory);
   
   % Create a selection plot that identifies the echowin on the map
   obj.echowin_maps(echo_idx).h_cursor = plot(obj.map_panel.h_axes, [NaN],[NaN],'kx','LineWidth',2,'MarkerSize',10);
