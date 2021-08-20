@@ -1,5 +1,7 @@
-%% Date and Time
+%% Date and Time, Version
 fprintf('date_time\t%s\n', datestr(now,'yyyymmdd_HHMMSS'));
+A = ver('Matlab');
+fprintf('version\t%s\n', A.Release);
 
 %% FFT speed test
 start_time = tic;
