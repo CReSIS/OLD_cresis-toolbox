@@ -5,8 +5,8 @@
 % Authors: Anjali Pare, John Paden
 %
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
-% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
-% run_layer_tracker_tune.m
+% layer_tracker_task.m, layer_tracker_input_check.m,
+% layer_tracker_profile.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -19,9 +19,12 @@ params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
 
 if 1
+  % Example to run a specific segment or frame
   params = ct_set_params(params,'cmd.generic',0);
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140313_08');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
+  params = ct_set_params(params,'cmd.frms',[21]);
 else
+  % Example to run all segments
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
 end
@@ -43,11 +46,11 @@ param_override.layer_tracker.frm_types = {0,0,-1,-1,-1}; % Uncomment to only pro
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = []; layer_idx = 0;
 % Uncomment to enable CSARP_layer layerdata storage
-% layer_idx = layer_idx + 1;
-% param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'layer';
-% Uncomment to enable CSARP_post/CSARP_layer layerdata storage
 layer_idx = layer_idx + 1;
-param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'CSARP_post/layer';
+param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'layer';
+% Uncomment to enable CSARP_post/CSARP_layer layerdata storage
+% layer_idx = layer_idx + 1;
+% param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'CSARP_post/layer';
 % Uncomment to enable OPS storage
 % layer_idx = layer_idx + 1;
 % param_override.layer_tracker.layer_params(layer_idx).source = 'ops';
@@ -80,18 +83,23 @@ switch ct_output_dir(params(1).radar_name)
       
       % Override default filter settings for low AGL
       if 0
-        track_override.min_bin = 0.75e-6;
+        track.min_bin = 0.75e-6;
+      end
+      
+      % Trim bad data at start and end
+      if 0
+        track.prefilter_trim = [0 3.5e-6];
       end
       
       % Override default filter settings for broad bandwidth
       if 0
-        track_override.max_rng	= [0 10];
-        track_override.max_rng_units = 'bins';
+        track.max_rng	= [0 10];
+        track.max_rng_units = 'bins';
       end
       
       % Override default filter settings for rapidly changing elevation
       if 0
-        track_override.filter	= [5 1];
+        track.filter	= [5 1];
       end
       
       % Override default filter settings
@@ -100,7 +108,7 @@ switch ct_output_dir(params(1).radar_name)
         track.filter_trim	= [3 31];
         track.threshold = 7;
         track.max_rng	= [0 1];
-        track_override.max_rng_units = 'bins';
+        track.max_rng_units = 'bins';
       end
       
       % Use sidelobe rejection
@@ -129,7 +137,7 @@ switch ct_output_dir(params(1).radar_name)
       end
       
       % Use DEM and LIDAR for init
-      if 0
+      if 1
         track.init.method	= 'dem';
         track.init.dem_offset = 0;
         track.init.dem_layer.name = 'surface';
@@ -212,7 +220,7 @@ switch ct_output_dir(params(1).radar_name)
       
       track.mult_suppress.en      = true;
       track.init.max_diff         = inf;
-      track_override.init.method  = 'nan';
+      track.init.method  = 'nan';
       track.detrend               = [];
       track.filter_trim           = [0 120];
       track.norm.scale            = [-40 90];
