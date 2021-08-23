@@ -22,11 +22,10 @@ end
 param.search_range = search_range;
 image_x = param.image_x;
 image_y = param.image_y;
-cur_layers = param.cur_layers;
+% cur_layers = param.cur_layers;
 x = param.x;
 y = param.y;
 search_range = param.search_range;
-cmds = [];
 
 % fprintf('Insert point %f, %f\n', x, y);
 
@@ -42,7 +41,11 @@ end
 [~,image_x_idx] = min(abs(image_x-x));
 dy = image_y(2)-image_y(1);
 image_y_idx = 1 + round((y-image_y(1))/dy);
-if image_y_idx < 1 || image_y_idx > size(param.image_c,1)
+if image_y_idx < 1 
+  max_idx = image_y_idx;
+  image_y_idx = 1;
+elseif image_y_idx > size(param.image_c,1)
+  image_y_idx = size(param.image_c,1);
   max_idx = image_y_idx;
 else
   % Prevent search range from searching outside bounds of param.image_c
@@ -52,11 +55,11 @@ else
   max_idx = search_range(max_idx) + image_y_idx;
 end
 
-[~,point_idxs] = min(abs(param.layer.x-x));
+% [~,point_idxs] = min(abs(param.layer.x-x));
 new_y = interp1(1:length(image_y),image_y,max_idx,'linear','extrap');
-pnt = [point_idxs,image_y_idx];
+pnt = [image_x_idx,image_y_idx];
 param.val = param.image_c(pnt(2),pnt(1));
-fprintf('X = %f Y = %f Val = %f\n', point_idxs,new_y,param.val)
+fprintf('X = %f Y = %f Val = %f\n', x,new_y,param.val)
 cmds = [];
 
 return

@@ -69,9 +69,9 @@ else
   max_idx_init = search_range(max_idx_init) + image_y_idx_init;
 end
 
-[~,point_idxs_init] = min(abs(param.layer.x-x(1)));
+% [~,point_idxs_init] = min(abs(param.layer.x-x(1)));
 new_y_init = interp1(1:length(image_y),image_y,max_idx_init,'linear','extrap');
-pnt_init = [point_idxs_init,image_y_idx_init];
+pnt_init = [image_x_idx_init,image_y_idx_init];
 param.val_init = param.image_c(pnt_init(2),pnt_init(1));
 
 %% Find the closest point in the image - Final Point
@@ -92,24 +92,24 @@ else
   max_idx_final = search_range(max_idx_final) + image_y_idx_final;
 end
 
-[~,point_idxs_final] = min(abs(param.layer.x-x(2)));
+% [~,point_idxs_final] = min(abs(param.layer.x-x(2)));
 new_y_final = interp1(1:length(image_y),image_y,max_idx_final,'linear','extrap');
-pnt_final = [point_idxs_final,image_y_idx_final];
+pnt_final = [image_x_idx_final,image_y_idx_final];
 param.val_final = param.image_c(pnt_final(2),pnt_final(1));
 
 if image_y_idx_init > image_y_idx_final
-  SelArea = param.image_c(image_y_idx_final:image_y_idx_init,point_idxs_init:point_idxs_final);
+  SelArea = param.image_c(image_y_idx_final:image_y_idx_init,image_x_idx_init:image_x_idx_final);
 else
-  SelArea = param.image_c(image_y_idx_init:image_y_idx_final,point_idxs_init:point_idxs_final);
+  SelArea = param.image_c(image_y_idx_init:image_y_idx_final,image_x_idx_init:image_x_idx_final);
 end
-rline = point_idxs_init;
+rline = image_x_idx_init;
 cur_frm = num2str(find(param.echowin.eg.image_gps_time(rline) >= param.echowin.eg.start_gps_time,1,'last'));
 if isempty(cur_frm)
   cur_frm = num2str(1);
 end
 frm = strcat(param.echowin.eg.cur_sel.day_seg,'_',cur_frm);
-ip = ['[',num2str(image_x_idx_init),',',num2str(new_y_init),']'];
-fp = ['[',num2str(image_x_idx_final),',',num2str(new_y_final),']'];
+ip = ['[',num2str(x(1)),',',num2str(new_y_init),']'];
+fp = ['[',num2str(x(2)),',',num2str(new_y_final),']'];
 if stat_idx == 1
   SelArea = SelArea(:);
   max_val = sprintf('%.2f',nanmax(SelArea));
@@ -135,7 +135,7 @@ elseif stat_idx == 3
   h_fig = figure;
   clf(h_fig(1));
   h_axes(1) = axes('parent',h_fig(1));
-  rline = point_idxs_init:1:point_idxs_final;
+  rline = image_x_idx_init:1:image_x_idx_final;
   plot(h_axes(1),rline,max_val);
   hold(h_axes(1),'on')
   plot(h_axes(1),rline,min_val);
