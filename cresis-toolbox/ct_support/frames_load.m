@@ -18,7 +18,7 @@ if isempty(param)
 end
 
 if ischar(param)
-  frames_fn = param
+  frames_fn = param;
   param = [];
 elseif isstruct(param)
   frames_fn = ct_filename_support(param,'','frames');

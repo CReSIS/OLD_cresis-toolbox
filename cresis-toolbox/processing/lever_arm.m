@@ -78,7 +78,7 @@ radar_name = ct_output_dir(param.radar_name);
 % For the full simulator, remove 'sim' at the end($) of param.season_name
 param.season_name = regexprep(param.season_name,'sim$','','ignorecase');
 
-if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU'}))
+if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU','2020_SouthDakota_N1KU'}))
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -119,7 +119,7 @@ if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) %...
   gps.z = 0;
 end
 
-if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
+if any(strcmpi(param.season_name,{'2018_Alaska_SO','2021_Alaska_SO'})) ...
     && any(strcmpi(gps_source,{'nmea','lidar'}))
   % The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
   % Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
@@ -878,13 +878,13 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'accum'
   % along-track elements are combined using in cabin power combiners.
   % Each of the four combined channels are individually transmitted and
   % received on.
-  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
-  LArx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
+  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39 0]) - gps.y; % m
+  LArx(3,:)   = (-72.5*0.0254 + [0 0 0 0 0]) - gps.z; % m
 
-  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
-  LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
+  LAtx(1,:)   = (-433.3*0.0254 + [0 0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39 0]) - gps.y; % m
+  LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1:4;
@@ -2092,6 +2092,28 @@ if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU'})) ...
   end
 end
 
+if any(strcmpi(param.season_name,{'2020_SouthDakota_N1KU'})) ...
+    && strcmpi(radar_name,'snow')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  %
+  LAtx = [0.5486 0.2423 -1.6352].';
+
+  LArx = [0.2952 -2.1810 0.7222].';
+  LArx(:,2) = [0.3836 -1.6054 1.0586].';
+  LArx(:,3) = [0.4637  -1.0808 1.3995].';
+  LArx(:,4) = [0.4647  0.5980 1.3891].';
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
@@ -2115,7 +2137,7 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) ...
   end
 end
 
-if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
+if any(strcmpi(param.season_name,{'2018_Alaska_SO','2021_Alaska_SO'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,1) = -0.288;

@@ -348,9 +348,17 @@ for cmd_idx = 1:length(param.analysis.cmd)
       
       % cmd.peak_sgolay_filt: cell array with 2 elements containing the
       % 2nd and 3rd input arguments to sgolayfilt that is used to filter
-      % the peak values in the along-track dimension
+      % the peak values in the along-track dimension. This ensures that the
+      % frame size to sgolayfilt.m is odd and is approximately 40% of the
+      % length of the cmd.rlines.
       if ~isfield(cmd,'peak_sgolay_filt') || isempty(cmd.peak_sgolay_filt)
-        cmd.peak_sgolay_filt = {3,round(0.4*cmd.rlines)};
+        cmd.peak_sgolay_filt = {3,round(0.2*cmd.rlines)*2+1};
+      end
+      if length(cmd.peak_sgolay_filt) < 2
+        cmd.peak_sgolay_filt{2} = round(0.2*cmd.rlines)*2+1;
+      end
+      if ~mod(cmd.peak_sgolay_filt{2},2)
+        cmd.peak_sgolay_filt{2} = cmd.peak_sgolay_filt{2}+1;
       end
       
     case {'statistics'}

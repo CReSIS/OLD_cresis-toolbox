@@ -80,7 +80,7 @@ function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 %
 % Authors: John Paden, Victor Berger
 %
-% See also: run_update_img_combine.m, update_img_combine.m
+% See also: run_img_combine_update.m, img_combine_update.m
 
 %% Input checks
 % =========================================================================
@@ -112,13 +112,18 @@ if ~isfield(param.(param_mode), 'img_comb_trim') || isempty(param.(param_mode).i
       wf_adc_list = param.(param_mode).imgs{1};
     end
     wf_first = wf_adc_list(1,1);
-    if iscell(param.(param_mode).imgs{end})
-      % Multilook format (param_mode is 'array')
-      wf_adc_list = param.(param_mode).imgs{end}{1};
+    if isempty(param.(param_mode).img_comb)
+      % Only the first image is used when there is no combining
+      wf_last = wf_first;
     else
-      wf_adc_list = param.(param_mode).imgs{end};
+      if iscell(param.(param_mode).imgs{end})
+        % Multilook format (param_mode is 'array')
+        wf_adc_list = param.(param_mode).imgs{end}{1};
+      else
+        wf_adc_list = param.(param_mode).imgs{end};
+      end
+      wf_last = wf_adc_list(1,1);
     end
-    wf_last = wf_adc_list(1,1);
     param.(param_mode).img_comb_trim = [param.radar.wfs(wf_first).Tpd/2 -param.radar.wfs(wf_last).Tpd/2 0 inf];
   end
 end
@@ -160,7 +165,7 @@ for img = 1:num_imgs
   
   %% Combine a pair of images: image "img" with image "img-1"
   % Data, Time => combined result
-  % append.Data, append.Time => new data to append
+  % appended.Data, appended.Time => new data to appended
   if isempty(Time)
     if exist('data_in','var') %Overwrite data
       Data = data_in.Data{img};
@@ -219,26 +224,26 @@ for img = 1:num_imgs
     
   else
     if exist('data_in','var') %Overwrite data
-      append.Data = data_in.Data{img};
-      append.Time = data_in.Time{img};
+      appended.Data = data_in.Data{img};
+      appended.Time = data_in.Time{img};
     else
-      append = load(img_fn,'Time','Data');
+      appended = load(img_fn,'Time','Data');
     end
-    if length(append.Time) < 2
+    if length(appended.Time) < 2
       continue;
     end
     
     if img == num_imgs
-      if isempty(append.Time)
+      if isempty(appended.Time)
         TimeE = NaN;
       else
-        TimeE = append.Time(end);
+        TimeE = appended.Time(end);
       end
-      last_idx = find(append.Time <= TimeE+param.(param_mode).img_comb_trim(2) ...
-        & append.Time <= param.(param_mode).img_comb_trim(4),1,'last');
+      last_idx = find(appended.Time <= TimeE+param.(param_mode).img_comb_trim(2) ...
+        & appended.Time <= param.(param_mode).img_comb_trim(4),1,'last');
       if ~isempty(last_idx)
-        append.Time = append.Time(1:last_idx);
-        append.Data = append.Data(1:last_idx,:);
+        appended.Time = appended.Time(1:last_idx);
+        appended.Data = appended.Data(1:last_idx,:);
       else
         error('Zero range bin length images not supported.');
       end
@@ -247,8 +252,8 @@ for img = 1:num_imgs
     % Interpolate image N onto already loaded data (assumption is that image
     % N-1 always comes before image N)
     dt = Time(2)-Time(1);
-    newTime = (Time(1) : dt : append.Time(end)).';
-    append.Data = interp1(append.Time,append.Data,newTime,'linear',0);
+    newTime = (Time(1) : dt : appended.Time(end)).';
+    appended.Data = interp1(appended.Time,appended.Data,newTime,'linear',0);
     
     % Determine guard at end of image 1 that will not be used
     blend_bins = param.(param_mode).img_comb_bins;
@@ -277,12 +282,12 @@ for img = 1:num_imgs
     
     % Estimate difference
     if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
-      newData = zeros(size(append.Data),'single');
+      newData = zeros(size(appended.Data),'single');
       difference = NaN*zeros(1,size(newData,2));
       for rline = 1:size(newData,2)
         trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
-        if trans_bins <= size(append.Data,1)
-          difference(rline) = mean(Data(trans_bins,rline) ./ append.Data(trans_bins,rline));
+        if trans_bins <= size(appended.Data,1)
+          difference(rline) = mean(Data(trans_bins,rline) ./ appended.Data(trans_bins,rline));
         end
       end
       difference = nanmedian(difference);
@@ -293,15 +298,15 @@ for img = 1:num_imgs
     end
     
     % Combine images
-    newData = zeros(size(append.Data),'single');
+    newData = zeros(size(appended.Data),'single');
     for rline = 1:size(newData,2)
       trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
       weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-      if trans_bins <= size(append.Data,1)
+      if trans_bins <= size(appended.Data,1)
         newData(:,rline) = [Data(1:img_bins(1,rline),rline); ...
           weights.*Data(trans_bins,rline) ...
-          + difference*(1-weights).*append.Data(trans_bins,rline); ...
-          difference*append.Data(img_bins(2,rline)+1:end,rline)];
+          + difference*(1-weights).*appended.Data(trans_bins,rline); ...
+          difference*appended.Data(img_bins(2,rline)+1:end,rline)];
       else
         newData(:,rline) = Data(1:size(newData,1),rline);
       end

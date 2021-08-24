@@ -115,7 +115,7 @@ elseif param.window_units == 's'
   if ~isstruct(mdata)
     error('If param.window_units is "s", mdata must be an echogram struct since this echogram struct is used to determine the window.');
   end
-  window(1,:) = max(1,min(Nt, interp1(mdata.Time,1:Nt,window(1,:),'nearest','extrap') ));
+  window(1,:) = min(Nt,max(1, interp1(mdata.Time,1:Nt,window(1,:),'nearest','extrap') ));
   window(2,:) = max(window(1,:),min(Nt, interp1(mdata.Time,1:Nt,window(2,:),'nearest','extrap') ));
   
 elseif param.window_units == 'b'

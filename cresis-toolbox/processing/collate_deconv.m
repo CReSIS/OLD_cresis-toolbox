@@ -350,6 +350,10 @@ if param.collate_deconv.stage_one_en
         fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(1),fig_fn);
+        
+        if any(strcmp('visible',param.collate_deconv.debug_plots))
+          keyboard
+        end
       end
       
       if isempty(spec.deconv_gps_time)
@@ -1174,7 +1178,7 @@ if param.collate_deconv.stage_two_en
           hold(h_axes(3),'on');
           plot(h_axes(4), freq/freq_scale, h_filled_phase);
           hold(h_axes(4),'on');
-          radiometric_error_dB = lp(1/(c*final.twtt(idx)).^2) - lp(final.ref_nonnegative{idx}(1));
+          radiometric_error_dB = lp(1/(c/2*final.twtt(idx)).^2) - lp(final.ref_nonnegative{idx}(1));
           legend_str{idx} = sprintf('%d %s_%03.0f %7.0f %4.0fdB %4.1fus',idx, ...
             final.map_day_seg{idx},floor(final.frm(idx)),final.rec(idx),radiometric_error_dB, ...
             final.twtt(idx)*1e6);
