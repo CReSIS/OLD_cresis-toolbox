@@ -1,65 +1,55 @@
 function cmds = left_click(obj,param)
+% cmds = left_click(obj,param)
+%
+% imb.picker statistics tool
+%
+% Does not return any commands.
+%
+% Author: Dhagash Kapadia, John Paden
 
-%% Get search range from tool param window
-rbin_range_str = get(obj.panel.manual_rangeTB,'String');
-try
-  % Assumes the value entered is a matlab expression that can be evaluated
-  search_range = eval(sprintf('[%s]', rbin_range_str));
-  if length(search_range) == 1
-    search_range = -search_range:search_range;
-  else
-    search_range = round(min(search_range)):round(max(search_range));
-  end
-catch ME
-  warning('Search range parameter is not valid, using default range');
-  search_range = -5:5;
-end
-
-if isempty(search_range)
-  search_range = -5:5;
-end
-
-param.search_range = search_range;
+% General setup
 image_x = param.image_x;
 image_y = param.image_y;
-% cur_layers = param.cur_layers;
+
 x = param.x;
 y = param.y;
-search_range = param.search_range;
-
-% fprintf('Insert point %f, %f\n', x, y);
-
-% Clamp entered points to the x-boundaries
-xlims = [min(image_x) max(image_x)];
-if x < xlims(1)
-  x = xlims(1);
-elseif x > xlims(2)
-  x = xlims(2);
-end
-  
-% Find the closest point in the image
-[~,image_x_idx] = min(abs(image_x-x));
-dy = image_y(2)-image_y(1);
-image_y_idx = 1 + round((y-image_y(1))/dy);
-if image_y_idx < 1 
-  max_idx = image_y_idx;
-  image_y_idx = 1;
-elseif image_y_idx > size(param.image_c,1)
-  image_y_idx = size(param.image_c,1);
-  max_idx = image_y_idx;
-else
-  % Prevent search range from searching outside bounds of param.image_c
-  search_range = search_range(image_y_idx+search_range >= 1 ...
-    & image_y_idx+search_range < size(param.image_c,1));
-  [~,max_idx] = max(param.image_c(image_y_idx+search_range,image_x_idx));
-  max_idx = search_range(max_idx) + image_y_idx;
-end
-
-% [~,point_idxs] = min(abs(param.layer.x-x));
-new_y = interp1(1:length(image_y),image_y,max_idx,'linear','extrap');
-pnt = [image_x_idx,image_y_idx];
-param.val = param.image_c(pnt(2),pnt(1));
-fprintf('X = %f Y = %f Val = %f\n', x,new_y,param.val)
 cmds = [];
 
-return
+% Find x and y limits
+xlims = sort(image_x([1 end]));
+ylims = sort(image_y([1 end]));
+
+% Check to make sure selection box is valid
+if all(x < xlims(1)) || all(x > xlims(2))
+  % button down and button up outside x-axis limits so ignore
+  return
+end
+
+% Clip selection point to image limits
+x(x<xlims(1)) = xlims(1);
+x(x>xlims(2)) = xlims(2);
+y(y<ylims(1)) = ylims(1);
+y(y>ylims(2)) = ylims(2);
+
+% Find image indices
+x_idxs = sort(interp1(image_x,1:length(image_x),x,'nearest','extrap'));
+y_idxs = sort(interp1(image_y,1:length(image_y),y,'nearest','extrap'));
+
+% Create frame ID string
+cur_frm = num2str(find(param.echowin.eg.image_gps_time(x_idxs(1)) >= param.echowin.eg.start_gps_time,1,'last'));
+if isempty(cur_frm)
+  cur_frm = num2str(1);
+end
+frm_str = strcat(param.echowin.eg.cur_sel.day_seg,'_',cur_frm);
+
+% Compute statistics for range line and value of selected point
+data = param.image_c(:,x_idxs);
+frame_stat_str  = sprintf('Frame_ID    \t%s\n', frm_str);
+x_lim_str       = sprintf('x_value     \t%g\n', x);
+y_lim_str       = sprintf('y_value     \t%g\n', y);
+cur_val_str     = sprintf('Cur_value   \t%g\n',data(y_idxs));
+max_str         = sprintf('Min_value   \t%g\n',nanmax(data));
+min_str         = sprintf('Max_value   \t%g\n',nanmin(data));
+mean_str        = sprintf('Mean_value  \t%g\n',10*log10(nanmean(10.^(data./10))));
+median_str      = sprintf('Median_value\t%g\n',nanmedian(data));
+fprintf([frame_stat_str x_lim_str y_lim_str cur_val_str max_str min_str mean_str median_str]);

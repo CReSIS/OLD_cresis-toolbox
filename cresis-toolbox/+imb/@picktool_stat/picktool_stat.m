@@ -1,14 +1,15 @@
 classdef picktool_stat < imb.picktool
-  % Enter points pick tool
+  % Print or plot statistics pick tool
   %
-  % Left click: Enters a point based on parameters
-  %   Find max in range (specify range line/bin extent to search)
-  %   Find leading edge in range
-  %   Recomputes interp if point is within last interpolation range
-  % Left click and drag: Interpolates between manual points based on paramaters
-  %   Deletes all previous automated points in range
-  %   Interpolation tools: linear, spline, max-track, leading-edge-track
-  % Right click: Set cursor point
+  % obj = picktool_stat(h_fig)
+  % Constructer.
+  %
+  % Left click: Prints the value at the point clicked
+  % Left click and drag: Action depends on the statistic selected:
+  %   Line by Line Statistics
+  %   Overall Statistics
+  %   Histogram
+  % Right click: No action
   % Right click and drag: Delete all points in range
   % Scroll: Zooms in/out
   % Ctrl + any click: Select layer
@@ -16,22 +17,13 @@ classdef picktool_stat < imb.picktool
   % Any double click: Nothing
   % Ctrl + double click: Zoom reset
   %
+  % Author: Dhagash Kapadia, John Paden
+  
   properties
     table
     panel
-    % panel components
-    max_rbin_rng_label
-    max_rbin_rng_tbox
-    leading_edge_thresh_label
-    leading_edge_thresh_tbox
-    interp_mode_label
-    interp_mode_pdmenu
-    reinterp_mode_label
-    reinterp_mode_cbox
     
-    last_tool
-    last_layers
-    last_range_gps
+    h_fig_stat
   end
   
   properties (SetAccess = immutable, GetAccess = public) %constants
@@ -53,13 +45,14 @@ classdef picktool_stat < imb.picktool
       % Any code, including access to object
       % This is the first tool initialized by a new echowin
       obj.h_fig = h_fig;
-      obj.w = 200;
-      obj.h = 120;
-      obj.tool_name = '(s)tat';
+      obj.w = 280;
+      obj.h = 60;
+      obj.tool_name = 's(t)at';
       obj.tool_name_title = 'enter';
-      obj.tool_shortcut = 'e';
-      obj.help_string = sprintf('Left click: Enter point. Open param window (p) to set search range, enabling max point functionality (disabled by default)\nAlt + Left click and drag: Interpolate selected region. Change stat mode in param window (p)\nn.b. Leading edge tool (mentioned in param window) is not implemented. Leading edge and max track interpolation is not implemented\n\n');
+      obj.tool_shortcut = 't';
+      obj.help_string = sprintf('Left click: Print pixel value.\nAlt + Left click and drag: Run selected statistics command. Change stat mode in Tool Parameters window (p).\n\n');
 
+      obj.h_fig_stat = [];
       
       obj.create_ui;
     end
@@ -67,7 +60,16 @@ classdef picktool_stat < imb.picktool
     create_ui(obj);
     cmds = left_click(obj,h_image,layers,cur_layers,x,y,param);
     cmds = left_click_and_drag(obj,h_layer,h_image,layers,cur_layers,x,y,param);
-  
+    
+    function close_stat_windows(obj,hObj,event)
+      delete(obj.h_fig_stat);
+      obj.h_fig_stat = [];
+    end
+    
+    function delete(obj)
+      obj.close_stat_windows();
+    end
+    
   end
   
 end

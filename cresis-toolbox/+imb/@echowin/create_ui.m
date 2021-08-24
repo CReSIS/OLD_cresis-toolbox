@@ -91,6 +91,47 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
+obj.tool.list{end+1} = imb.picktool_viterbi;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click: Enters a manual point based on parameters
+%   Find max in range (specify range line/bin extent to search)
+% Left click and drag: Runs tomo.viterbi algorithm on selected data.
+% Right click: Set cursor point
+% Right click and drag: Delete all points in range
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
+obj.tool.list{end+1} = imb.picktool_snake;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click: Enters a point based on parameters
+%   Find max in range (specify range line/bin extent to search)
+%   Recomputes snake if point is within last range
+% Left click and drag: Snakes between manual points based on paramaters
+%   Deletes all previous automated points in range
+%   Snake tools: basic, crandall, panton
+% Right click: Set cursor point
+% Right click and drag: Delete all points in range
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
+obj.tool.list{end+1} = imb.picktool_copy([],obj);
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click and drag: Copy source layers to the selected layers
+%   Deletes all previous points in range
+% Right click: Set cursor point
+% Right click and drag: Nothing
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
 obj.tool.list{end+1} = imb.picktool_quality;
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Nothing
@@ -117,21 +158,6 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_snake;
-addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click: Enters a point based on parameters
-%   Find max in range (specify range line/bin extent to search)
-%   Recomputes snake if point is within last range
-% Left click and drag: Snakes between manual points based on paramaters
-%   Deletes all previous automated points in range
-%   Snake tools: basic, crandall, panton
-% Right click: Set cursor point
-% Right click and drag: Delete all points in range
-% Scroll: Zooms in/out
-% Ctrl + any click: Select layer
-% Ctrl + any click and drag: Zoom
-% Any double click: Nothing
-% Ctrl + double click: Zoom reset
 
 obj.tool.list{end+1} = imb.picktool_browse;
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
@@ -145,30 +171,6 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_copy([],obj);
-addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click and drag: Copy source layers to the selected layers
-%   Deletes all previous points in range
-% Right click: Set cursor point
-% Right click and drag: Nothing
-% Scroll: Zooms in/out
-% Ctrl + any click: Select layer
-% Ctrl + any click and drag: Zoom
-% Any double click: Nothing
-% Ctrl + double click: Zoom reset
-
-obj.tool.list{end+1} = imb.picktool_viterbi;
-addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click: Enters a manual point based on parameters
-%   Find max in range (specify range line/bin extent to search)
-% Left click and drag: Runs tomo.viterbi algorithm on selected data.
-% Right click: Set cursor point
-% Right click and drag: Delete all points in range
-% Scroll: Zooms in/out
-% Ctrl + any click: Select layer
-% Ctrl + any click and drag: Zoom
-% Any double click: Nothing
-% Ctrl + double click: Zoom reset
 
 % obj.tool.list{end+1} = imb.picktool_landmark;
 % Left click: Create landmark point
