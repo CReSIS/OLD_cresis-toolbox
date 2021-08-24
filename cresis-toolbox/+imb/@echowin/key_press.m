@@ -174,11 +174,11 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.set_visibility();
       
     case 'b'
-      set(obj.left_panel.toolPM,'Value',4);
-      tmp = obj.tool.list{4}; obj.tool.left_click_fh = @tmp.left_click;
-      tmp = obj.tool.list{4}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
-      tmp = obj.tool.list{4}; obj.tool.right_click_fh = @tmp.right_click;
-      tmp = obj.tool.list{4}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
+      set(obj.left_panel.toolPM,'Value',7);
+      tmp = obj.tool.list{7}; obj.tool.left_click_fh = @tmp.left_click;
+      tmp = obj.tool.list{7}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{7}; obj.tool.right_click_fh = @tmp.right_click;
+      tmp = obj.tool.list{7}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
       obj.toolPM_callback();      
       
     case 'c'
@@ -194,11 +194,11 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         obj.crossovers.gui.visibility_toggle();
       else
         % copy layer tool hotkey
-        set(obj.left_panel.toolPM,'Value',5);
-        tmp = obj.tool.list{5}; obj.tool.left_click_fh = @tmp.left_click;
-        tmp = obj.tool.list{5}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
-        tmp = obj.tool.list{5}; obj.tool.right_click_fh = @tmp.right_click;
-        tmp = obj.tool.list{5}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
+        set(obj.left_panel.toolPM,'Value',4);
+        tmp = obj.tool.list{4}; obj.tool.left_click_fh = @tmp.left_click;
+        tmp = obj.tool.list{4}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{4}; obj.tool.right_click_fh = @tmp.right_click;
+        tmp = obj.tool.list{4}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();      
       end
       
@@ -232,11 +232,11 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       
     case 'q'
       if isempty(event.Modifier)
-        set(obj.left_panel.toolPM,'Value',2);
-        tmp = obj.tool.list{2}; obj.tool.left_click_fh = @tmp.left_click;
-        tmp = obj.tool.list{2}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
-        tmp = obj.tool.list{2}; obj.tool.right_click_fh = @tmp.right_click;
-        tmp = obj.tool.list{2}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
+        set(obj.left_panel.toolPM,'Value',5);
+        tmp = obj.tool.list{5}; obj.tool.left_click_fh = @tmp.left_click;
+        tmp = obj.tool.list{5}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+        tmp = obj.tool.list{5}; obj.tool.right_click_fh = @tmp.right_click;
+        tmp = obj.tool.list{5}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
         obj.toolPM_callback();
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         new_quality = 1+mod(get(obj.left_panel.qualityPM,'Value'), ...
@@ -255,7 +255,8 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         tmp = obj.tool.list{3}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
         tmp = obj.tool.list{3}; obj.tool.right_click_fh = @tmp.right_click;
         tmp = obj.tool.list{3}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
-        obj.toolPM_callback();        
+        obj.toolPM_callback();
+        
       elseif ~obj.shift_pressed && ~obj.alt_pressed && obj.control_pressed
         %% Save screenshot of current echowin
         if ~exist('gRadar','var')
@@ -278,14 +279,21 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         obj.savePB_callback();
       end
       
+    case 't'
+      set(obj.left_panel.toolPM,'Value',6);
+      tmp = obj.tool.list{6}; obj.tool.left_click_fh = @tmp.left_click;
+      tmp = obj.tool.list{6}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{6}; obj.tool.right_click_fh = @tmp.right_click;
+      tmp = obj.tool.list{6}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
+      obj.toolPM_callback();
+      
     case 'v'
-      if isempty(event.Modifier)
-        set(obj.left_panel.toolPM,'Value',6);
-        tmp = obj.tool.list{3}; obj.tool.left_click_fh = @tmp.left_click;
-        tmp = obj.tool.list{3}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
-        tmp = obj.tool.list{3}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
-        obj.toolPM_callback();
-      end
+      set(obj.left_panel.toolPM,'Value',2);
+      tmp = obj.tool.list{2}; obj.tool.left_click_fh = @tmp.left_click;
+      tmp = obj.tool.list{2}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+      tmp = obj.tool.list{2}; obj.tool.right_click_fh = @tmp.right_click;
+      tmp = obj.tool.list{2}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
+      obj.toolPM_callback();
       
     case 'u'
       %% Undo last tool operation

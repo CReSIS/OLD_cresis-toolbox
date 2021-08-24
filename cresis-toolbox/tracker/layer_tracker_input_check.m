@@ -6,8 +6,8 @@
 % Authors: Anjali Pare, John Paden
 %
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
-% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
-% run_layer_tracker_tune.m
+% layer_tracker_task.m, layer_tracker_input_check.m,
+% layer_tracker_profile.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% Input Checks: layer_tracker
 % =====================================================================
@@ -305,6 +305,18 @@ for track_idx = 1:length(param.layer_tracker.track)
     end
   end
   
+  % max_rng: two element numeric vector, default is [0 0]. After the layer
+  % is tracked, this allows the tracked layer to be updated with the
+  % maximum value in a window around the tracked layer. Specifies the range
+  % of bins [start stop] to search for a maximum relative to the tracked
+  % layer. Negative values are before the tracked layer and positive values
+  % are after the tracked layer. To not update the tracked layer set this
+  % to [0 0]. A common use is to use the threshold tracker and then follow
+  % this with a positive range to search for a peak after the treshold was
+  % exceeded. For example, [0 0.1e-6] with max_rng_units of 'time' would
+  % cause the layer to be updated to the location of the maximum value that
+  % occurs in the range from where the threshold was exceeded to 0.1e-6
+  % seconds after it was exceeded.
   if ~isfield(track,'max_rng') || isempty(track.max_rng)
     track.max_rng = [0 0];
   end
@@ -313,6 +325,9 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.max_rng_filter = track.filter;
   end
   
+  % max_rng_units: string, default 'time'. Specifies the units of max_rng.
+  % Options are 'time' (units of seconds two way travel time) and 'bins'
+  % (range bins or rows).
   if ~isfield(track,'max_rng_units') || isempty(track.max_rng_units)
     track.max_rng_units = 'time';
   end
@@ -359,8 +374,24 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.name = sprintf('t%03d', track_idx);
   end
   
+  % prefilter_trim: two element numeric vector of nonnegative numbers,
+  % default is [0 0]. The first values specifies how much to trim off the
+  % start of each range line before any processing occurs and the second
+  % number specifies how much to trim off the end of each range line.
+  % Useful, when it is known that there are artifacts at the start/stop of
+  % each range line that will confuse the tracker and the layer to be
+  % tracked does not go into these regions of the image. The default value
+  % [0 0] effectively disables the prefilter_trim since nothing will be
+  % trimmed off.
   if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
     track.prefilter_trim = [0 0];
+  end
+  
+  % prefilter_trim_units: string, default 'time'. Specifies the units of
+  % prefilter_trim. Options are 'time' (units of seconds two way travel
+  % time) and 'bins' (range bins or rows).
+  if ~isfield(track,'prefilter_trim_units') || isempty(track.prefilter_trim_units)
+    track.prefilter_trim_units = 'time';
   end
   
   if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(track,'sidelobe_dB') || isempty(track.sidelobe_dB)

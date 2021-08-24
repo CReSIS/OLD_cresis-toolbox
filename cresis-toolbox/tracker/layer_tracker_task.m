@@ -18,8 +18,8 @@ function success = layer_tracker_task(param)
 % Authors: Anjali Pare, John Paden
 %
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
-% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
-% run_layer_tracker_tune.m
+% layer_tracker_task.m, layer_tracker_input_check.m,
+% layer_tracker_profile.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% Input Checks: track field
 % =====================================================================
@@ -208,11 +208,13 @@ else
   end
 
 end
+mdata = echo_param_update(mdata,param);
 Nx = size(mdata.Data,2);
 if isnan(dt)
   warning('This set of frame(s) does not have a fast-time axis because the data records were all bad.');
   mdata.Time = [0 1];
 end
+
 
 %% Track
 % =========================================================================
@@ -248,24 +250,36 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Load ocean mask, land DEM, sea surface DEM
   if isfield(track,'init') && strcmpi(track.init.method,'dem')
-    global gdem;
-    if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
-      gdem = dem_class(param,500);
-    end
-    gdem.set_res(500);
-    gdem.ocean_mask_mode = 'l';
-    
-    gdem_str = sprintf('%s:%s:%s_%03d_%03d',param.radar_name,param.season_name,param.day_seg,param.layer_tracker.frms([1 end]));
-    if ~strcmpi(gdem_str,gdem.name)
-      gdem.set_vector(mdata.Latitude,mdata.Longitude,gdem_str);
+    if isstruct(param.layer_tracker.echogram_source)
+      % Only do this if it has not already been done in layer_tracker.m
+      global gdem;
+      if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
+        gdem = dem_class(param,500);
+      end
+      gdem.set_res(500);
+      gdem.ocean_mask_mode = 'l';
+      
+      gdem_str = sprintf('%s:%s:%s_%03d_%03d',param.radar_name,param.season_name,param.day_seg,param.layer_tracker.frms([1 end]));
+      if ~strcmpi(gdem_str,gdem.name)
+        gdem.set_vector(mdata.Latitude,mdata.Longitude,gdem_str);
+      end
     end
   end
   
-  %% Track: Interpolate GIMP and Geoid
+  %% Track: Interpolate DEM, ocean mask, and mean sea level
   if strcmpi(track.init.method,'dem')
-    gdem.set_vector(mdata.Latitude,mdata.Longitude);
-    [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
-    
+    if isstruct(param.layer_tracker.echogram_source)
+      % If layer_tracker.m did not load dem:
+      gdem.set_vector(mdata.Latitude,mdata.Longitude);
+      [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
+    else
+      % If layer_tracker.m did load dem:
+      land_dem = interp1(param.layer_tracker.gps_time,param.layer_tracker.land_dem,mdata.GPS_time);
+      ocean_mask = interp1(param.layer_tracker.gps_time,double(param.layer_tracker.ocean_mask),mdata.GPS_time);
+      msl = interp1(param.layer_tracker.gps_time,param.layer_tracker.msl,mdata.GPS_time);
+    end
+
+    ocean_mask = logical(ocean_mask);
     % Merge land surface and sea surface DEMs
     track.dem = double(land_dem);
     track.dem(ocean_mask) = msl(ocean_mask);
@@ -276,85 +290,34 @@ for track_idx = param.layer_tracker.tracks_in_task
   
   %% Track: Ice mask calculation
   if track.ice_mask.en
-    if strcmp(track.ice_mask.type,'bin')
-      mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
-      [fid,msg] = fopen(track.ice_mask.fn,'r');
-      if fid < 1
-        fprintf('Could not open file %s\n', track.ice_mask.fn);
-        error(msg);
+    if isstruct(param.layer_tracker.echogram_source)
+      % If layer_tracker.m did not load ice_mask:
+      if strcmp(track.ice_mask.type,'bin')
+        mask = load(track.ice_mask.mat_fn,'R','X','Y','proj');
+        [fid,msg] = fopen(track.ice_mask.fn,'r');
+        if fid < 1
+          fprintf('Could not open file %s\n', track.ice_mask.fn);
+          error(msg);
+        end
+        mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
+        fclose(fid);
+      else
+        [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
+        mask.proj = geotiffinfo(track.ice_mask.fn);
       end
-      mask.maskmask = logical(fread(fid,[length(mask.Y),length(mask.X)],'uint8'));
-      fclose(fid);
+      [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
+      mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
+      mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
+      [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
+      ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
+      ice_mask.mask(isnan(ice_mask.mask)) = 1;
+      track.ice_mask = ice_mask.mask;
     else
-      [mask.maskmask,mask.R,~] = geotiffread(track.ice_mask.fn);
-      mask.proj = geotiffinfo(track.ice_mask.fn);
+      % If layer_tracker.m did load ice_mask:
+      track.ice_mask = interp1(param.layer_tracker.gps_time,param.layer_tracker.ice_mask,mdata.GPS_time);
     end
-    [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
-    mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.maskmask,2));
-    mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.maskmask,1));
-    [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
-    ice_mask.mask = round(interp2(mask.X, mask.Y, double(mask.maskmask), mask.x, mask.y));
-    ice_mask.mask(isnan(ice_mask.mask)) = 1;
-    track.ice_mask = ice_mask.mask;
   else
     track.ice_mask = ones(1,Nx);
-  end
-
-  %% Track: Crossover loading
-  if track.crossover.en
-    sys = ct_output_dir(param.radar_name);
-    ops_param = [];
-    ops_param.properties.search_str = frm_str{frm_idx};
-    ops_param.properties.location = param.post.ops.location;
-    ops_param.properties.season = param.season_name;
-    [status,ops_data_segment] = opsGetFrameSearch(sys,ops_param);
-    if status == 1
-      ops_param = [];
-      ops_param.properties.location = param.post.ops.location;
-      ops_param.properties.lyr_name = track.crossover.name;
-      ops_param.properties.frame = frm_str;
-      ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
-      [status,ops_data] = opsGetCrossovers(sys,ops_param);
-      if status == 1
-        ops_data.properties.twtt = ops_data.properties.twtt(:).';
-        ops_data.properties.source_point_path_id = double(ops_data.properties.source_point_path_id(:).');
-        ops_data.properties.cross_point_path_id = double(ops_data.properties.cross_point_path_id(:).');
-        ops_data.properties.source_elev = ops_data.properties.source_elev.';
-        ops_data.properties.cross_elev = ops_data.properties.cross_elev.';
-
-        % Get the OPS 
-        ops_param = [];
-        ops_param.properties.location = param.post.ops.location;
-        ops_param.properties.point_path_id = [ops_data.properties.source_point_path_id ops_data.properties.cross_point_path_id];
-        [status,ops_data_gps_time] = opsGetPath(sys,ops_param);
-        
-        source_gps_time = zeros(size(ops_data.properties.source_point_path_id));
-        crossover_gps_time = zeros(size(ops_data.properties.source_point_path_id));
-        good_mask = true(size(ops_data.properties.source_point_path_id));
-        % Ensure crossover season is good
-        for idx = 1:length(ops_data.properties.source_point_path_id)
-          match_idx = find(ops_data.properties.source_point_path_id(idx) == ops_data_gps_time.properties.id,1);
-          source_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
-          match_idx = find(ops_data.properties.cross_point_path_id(idx) == ops_data_gps_time.properties.id,1);
-          crossover_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
-          if any(strcmp(ops_data.properties.season_name{idx}, track.crossover.season_names_bad))
-            good_mask(idx) = false;
-          end
-        end
-        % Ensure crossover gps_time is good
-        good_mask = good_mask & track.crossover.gps_time_good_eval(crossover_gps_time);
-        
-        % Convert crossover twtt to source twtt and then convert from twtt
-        % to rows/bins
-        cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
-        rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
-          + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
-        track.crossovers = [cols; rows; track.crossover.cutoff*ones(size(cols))];
-        track.crossovers = track.crossovers(:,isfinite(cols));
-      end
-    end
-  else
-    track.crossovers = zeros(3,0);
   end
   
   %% Track: Ground Truth
@@ -370,6 +333,88 @@ for track_idx = param.layer_tracker.tracks_in_task
     track.ground_truths = zeros(3,0);
   end
   
+  %% Track: Crossover loading
+  if track.crossover.en
+    if isstruct(param.layer_tracker.echogram_source)
+      % Crossovers not loaded during layer_tracker.m
+      sys = ct_output_dir(param.radar_name);
+      ops_param = [];
+      ops_param.properties.search_str = frm_str{frm_idx};
+      ops_param.properties.location = param.post.ops.location;
+      ops_param.properties.season = param.season_name;
+      [status,ops_data_segment] = opsGetFrameSearch(sys,ops_param);
+      if status == 1
+        ops_param = [];
+        ops_param.properties.location = param.post.ops.location;
+        ops_param.properties.lyr_name = track.crossover.name;
+        ops_param.properties.frame = frm_str;
+        ops_param.properties.segment_id = ops_data_segment.properties.segment_id;
+        [status,ops_data] = opsGetCrossovers(sys,ops_param);
+        if status == 1
+          ops_data.properties.twtt = ops_data.properties.twtt(:).';
+          ops_data.properties.source_point_path_id = double(ops_data.properties.source_point_path_id(:).');
+          ops_data.properties.cross_point_path_id = double(ops_data.properties.cross_point_path_id(:).');
+          ops_data.properties.source_elev = ops_data.properties.source_elev.';
+          ops_data.properties.cross_elev = ops_data.properties.cross_elev.';
+          
+          % Get the OPS
+          ops_param = [];
+          ops_param.properties.location = param.post.ops.location;
+          ops_param.properties.point_path_id = [ops_data.properties.source_point_path_id ops_data.properties.cross_point_path_id];
+          [status,ops_data_gps_time] = opsGetPath(sys,ops_param);
+          
+          source_gps_time = zeros(size(ops_data.properties.source_point_path_id));
+          crossover_gps_time = zeros(size(ops_data.properties.source_point_path_id));
+          good_mask = true(size(ops_data.properties.source_point_path_id));
+          % Ensure crossover season is good
+          for idx = 1:length(ops_data.properties.source_point_path_id)
+            match_idx = find(ops_data.properties.source_point_path_id(idx) == ops_data_gps_time.properties.id,1);
+            source_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
+            match_idx = find(ops_data.properties.cross_point_path_id(idx) == ops_data_gps_time.properties.id,1);
+            crossover_gps_time(idx) = ops_data_gps_time.properties.gps_time(match_idx);
+            if any(strcmp(ops_data.properties.season_name{idx}, track.crossover.season_names_bad))
+              good_mask(idx) = false;
+            end
+          end
+          % Ensure crossover gps_time is good
+          good_mask = good_mask & track.crossover.gps_time_good_eval(crossover_gps_time);
+          
+          % Convert crossover twtt to source twtt and then convert from twtt
+          % to rows/bins
+          cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), source_gps_time(good_mask)));
+          rows = round(interp1(mdata.Time,1:length(mdata.Time), ops_data.properties.twtt(good_mask) ...
+            + (ops_data.properties.source_elev(good_mask) - ops_data.properties.cross_elev(good_mask))*2/c ));
+          track.crossovers = [cols; rows];
+          track.crossovers(3,:) = track.viterbi.gt_cutoff;
+        end
+      end
+      
+    else
+      % Crossovers already loaded during layer_tracker.m
+      % Ensure crossover season is good
+      good_mask = true(size(param.layer_tracker.crossover.twtt));
+      for idx = 1:length(param.layer_tracker.crossover.twtt)
+        if any(strcmp(param.layer_tracker.crossover.season_name{idx}, track.crossover.season_names_bad))
+          good_mask(idx) = false;
+        end
+      end
+      % Ensure crossover gps_time is good
+      good_mask = good_mask & track.crossover.gps_time_good_eval(param.layer_tracker.crossover.crossover_gps_time);
+      
+      % Convert crossover twtt to source twtt and then convert from twtt
+      % to rows/bins
+      cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), param.layer_tracker.crossover.source_gps_time(good_mask)));
+      rows = round(interp1(mdata.Time,1:length(mdata.Time), param.layer_tracker.crossover.twtt(good_mask) ...
+        + (param.layer_tracker.crossover.source_elev(good_mask) - param.layer_tracker.crossover.cross_elev(good_mask))*2/c ));
+      track.crossovers = [cols; rows];
+      track.crossovers(3,:) = track.viterbi.gt_cutoff;
+      
+    end
+    
+  else
+    track.crossovers = zeros(2,0);
+  end
+  
   %% Track: Multiple Suppression
   if track.mult_suppress.en
     data = lp(echo_mult_suppress(mdata,[],track.mult_suppress),1);
@@ -378,17 +423,40 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
  
   %% Track: Prefilter trim
-  % Also set leading/following zeros or ~isfinite to NaN
-  for rline = 1:Nx
-    start_bin = find(isfinite(data(:,rline)),1);
-    if ~isempty(start_bin)
-      stop_bin = min(size(data,1), start_bin+track.prefilter_trim(1)-1);
-      data(1:stop_bin,rline) = NaN;
+  % prefilter_trim: convert prefilter_trim to range bins
+  if strcmpi(track.prefilter_trim_units,'bins')
+    % Units of range bins (rows)
+    prefilter_trim = track.prefilter_trim;
+  else
+    % Units of time (default)
+    if isnan(dt)
+      prefilter_trim = [0 0];
+    else
+      prefilter_trim = round(track.prefilter_trim/dt);
     end
-    stop_bin = find(isfinite(data(:,rline)),1,'last');
-    if ~isempty(stop_bin)%
-      start_bin = max(1, stop_bin-track.prefilter_trim(2)+1);
-      data(start_bin:end,rline) = NaN;
+  end
+  for rline = 1:Nx
+    % Step 1. Sets leading zeros or ~isfinite to NaN
+    start_bin = find(isfinite(data(:,rline)) & data(:,rline) ~= 0,1);
+    if ~isempty(start_bin)
+      % Found finite non-zero value
+      stop_bin = min(size(data,1), start_bin+prefilter_trim(1)-1);
+      data(1:stop_bin,rline) = NaN;
+      
+      % Step 2. Sets leading/following zeros or ~isfinite to NaN
+      stop_bin = find(isfinite(data(:,rline)) & data(:,rline) ~= 0,1,'last');
+      if ~isempty(stop_bin)
+        % Found finite non-zero value
+        start_bin = max(1, stop_bin-prefilter_trim(2)+1);
+        data(start_bin:end,rline) = NaN;
+      else
+        % No finite non-zero values in this range line
+        data(:,rline) = NaN;
+      end
+      
+    else
+      % No finite non-zero values in this range line
+      data(:,rline) = NaN;
     end
   end
   
@@ -653,6 +721,17 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: Tracking
+  if strcmpi(track.method, 'lsm')
+    
+    if track.flag == 1
+      surf = interp_finite(interp1(param.layer_tracker.gt_params.gps_time,param.layer_tracker.gt_params.twtt,mdata.GPS_time));
+      surf_bins = round(interp1(mdata.Time,1:length(mdata.Time),surf));
+      if track.lsm.y == 1
+        track.lsm.y = mean(surf_bins);
+      end
+    end
+  end
+  
   if strcmpi(track.method,'threshold')
     if isnan(dt)
       new_layers = nan(1,Nx);
@@ -784,7 +863,7 @@ for track_idx = param.layer_tracker.tracks_in_task
     end
     
     %% Track: Debug plot
-    if tracked_images_en
+    if tracked_images_en || visible_en
       clf(h_fig(1));
       figure_name = sprintf('layer_tracker %s %d-%d layer %d',param.day_seg, param.layer_tracker.frms([1 end]), layer_idx);
       set(h_fig(1),'name',figure_name);
@@ -812,15 +891,17 @@ for track_idx = param.layer_tracker.tracks_in_task
         keyboard
       end
       
-      fig_fn = fullfile(ct_filename_ct_tmp(param,'',param.layer_tracker.debug_out_dir,''), ...
-        param.layer_tracker.layer_params.layerdata_source, ...
-        sprintf('%s_%s_l%03d_frm_%03d.jpg',track.name,track.method,layer_idx,param.layer_tracker.frms(1)));
-      fprintf('Saving %s\n', fig_fn);
-      fig_fn_dir = fileparts(fig_fn);
-      if ~exist(fig_fn_dir,'dir')
-        mkdir(fig_fn_dir);
+      if tracked_images_en
+        fig_fn = fullfile(ct_filename_ct_tmp(param,'',param.layer_tracker.debug_out_dir,''), ...
+          param.layer_tracker.layer_params.layerdata_source, ...
+          sprintf('%s_%s_l%03d_frm_%03d.jpg',track.name,track.method,layer_idx,param.layer_tracker.frms(1)));
+        fprintf('Saving %s\n', fig_fn);
+        fig_fn_dir = fileparts(fig_fn);
+        if ~exist(fig_fn_dir,'dir')
+          mkdir(fig_fn_dir);
+        end
+        ct_saveas(h_fig(1),fig_fn);
       end
-      ct_saveas(h_fig(1),fig_fn);
     end
     
     new_layers(layer_idx,overlap_rlines) = new_layer;
