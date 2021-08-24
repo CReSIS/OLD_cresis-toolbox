@@ -39,6 +39,14 @@ elseif 1
   layer_params(idx).layerdata_source = 'layer';
 
 elseif 0
+  %% Load two layers from the layerData file
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = {'surface','layer.*'};
+  layer_params(idx).source = 'layerdata';
+  layer_params(idx).layerdata_source = 'layer';
+
+elseif 0
   %% Compare echogram, layerData, and records
   ref_idx = 1;
   idx = idx + 1;
@@ -135,6 +143,7 @@ global gRadar;
 %% Load each of the day segments
 layers = {};
 day_seg = {};
+params_list = {};
 new_layer_params = [];
 for param_idx = 1:length(params)
   param = params(param_idx);
@@ -148,6 +157,7 @@ for param_idx = 1:length(params)
   fprintf('opsLoadLayers %s\n', param.day_seg);
   [layers{end+1},new_layer_params] = opsLoadLayers(param,layer_params);
   day_seg{end+1} = param.day_seg;
+  params_list{end+1} = param;
 end
 layer_params = new_layer_params;
 
@@ -195,28 +205,30 @@ if 1
         || isempty(layer_params(ref_idx).twtt_offset)
       layer_params(ref_idx).twtt_offset = 0;
     end
+
     figure(1); clf;
     h_axes = axes('Parent',1);
-    h_plot = plot(layers{seg_idx}(ref_idx).gps_time, ...
+    [~,ref_frm,~] = get_frame_id(params_list{seg_idx},layers{seg_idx}(ref_idx).gps_time,struct('segment_id_num',true));
+    h_plot = plot(ref_frm, ...
       layers{seg_idx}(ref_idx).twtt + layer_params(ref_idx).twtt_offset, ...
       'k.','Parent',h_axes);
     title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none','Parent',h_axes);
     legend_strs = {sprintf('Ref %d', ref_idx)};
     hold(h_axes,'on');
     grid(h_axes,'on');
-    xlabel('GPS time (sec)','Parent',h_axes);
+    xlabel('Frame','Parent',h_axes);
     ylabel('TWTT (us)','Parent',h_axes);
     
     figure(2); clf(2);
     h_axes_comp = axes('Parent',2);
-    h_plot_comp = plot(layers{seg_idx}(ref_idx).gps_time, ...
+    h_plot_comp = plot(ref_frm, ...
       layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset ...
       - (layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset), ...
       'k.','Parent',h_axes_comp);
     title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none','Parent',h_axes_comp);
     hold(h_axes_comp,'on');
     grid(h_axes_comp,'on');
-    xlabel('GPS time (sec)','Parent',h_axes_comp);
+    xlabel('Frame','Parent',h_axes_comp);
     ylabel('TWTT Difference (us)','Parent',h_axes_comp);
     
     fprintf('Layer Index\tMedian Offset\tMean Offset\n');
@@ -227,12 +239,13 @@ if 1
         layer_params(lay_idx).twtt_offset = 0;
       end
       
-      h_plot(end+1) = plot(layers{seg_idx}(lay_idx).gps_time, ...
+      [~,lay_frm,~] = get_frame_id(params_list{seg_idx},layers{seg_idx}(lay_idx).gps_time,struct('segment_id_num',true));
+      h_plot(end+1) = plot(lay_frm, ...
         layers{seg_idx}(lay_idx).twtt + layer_params(lay_idx).twtt_offset, ...
         plot_modes{mod(lay_idx-1,length(plot_modes))+1},'Parent',h_axes);
       legend_strs{end+1} = sprintf('Layer %d', lay_idx);
 
-      h_plot_comp(end+1) = plot(layers{seg_idx}(ref_idx).gps_time, ...
+      h_plot_comp(end+1) = plot(ref_frm, ...
         layers{seg_idx}(lay_idx).twtt_ref + layer_params(lay_idx).twtt_offset ...
         - (layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset), ...
         plot_modes{mod(lay_idx-1,length(plot_modes))+1},'Parent',h_axes_comp);
