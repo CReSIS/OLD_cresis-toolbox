@@ -172,7 +172,7 @@ end
 
 for img = param.collate_coh_noise.imgs
   
-  if isempty(param.collate_coh_noise.wf_adcs)
+  if isempty(param.collate_coh_noise.wf_adcs) || length(param.collate_coh_noise.wf_adcs) < img
     wf_adcs = 1:size(param.analysis.imgs{img},1);
   else
     wf_adcs = param.collate_coh_noise.wf_adcs{img};
@@ -573,7 +573,7 @@ for img = param.collate_coh_noise.imgs
     
     if enable_visible_plot
       % frm_id
-      fprintf('\nDebug breakpoint:\n  frm_id is a useful variable that maps the block to the frame that the block occurs in.\n\n');
+      fprintf('\nDebug breakpoint:\n  The variable "frm_id" maps the "Block" to the frame that the block occurs in. The fast-time axis is stored in the "time" variable. \n\n');
       [~,frm_id] = get_frame_id(param,noise.gps_time);
 
       % Bring plots to front

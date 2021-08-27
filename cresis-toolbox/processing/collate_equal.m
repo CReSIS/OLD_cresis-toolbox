@@ -130,7 +130,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       fn = fullfile(fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s (%s)\n', fn, datestr(now));
       waveform = load(fn);
-      if wf_adc == wf_adcs(1)
+      if sub_img_idx == 1 && wf_adc == wf_adcs(1)
         gps_time = waveform.gps_time;
         lat = waveform.lat;
         lon = waveform.lon;
@@ -311,17 +311,16 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
   if ~param.collate_equal.retrack_en
     surf_bin = zero_surf_bin*ones(1,Nx);
-  else
     
+  else
     surf_param = param;
-    surf_param.cmd.frms = 1;
+    surf_param.layer_tracker.frms = 1;
     surf_param.qlook.surf.min_bin = time(1);
     surf_param.qlook.surf.threshold_noise_rng = [0 (time(1)-time(zero_surf_bin))*2/3 (time(1)-time(zero_surf_bin))*1/3];
     surf_param.qlook.surf.threshold_rel_max = -9;
     surf_param.qlook.surf.max_rng = [0 0];
-    surf_param.qlook.surf.en = true;
-    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:));
-    surf_bin = layer_tracker(surf_param,[]);
+    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:),'Roll',roll(ref_wf_adc_idx,:));
+    surf_bin = layer_tracker_task(surf_param);
     surf_bin = round(interp1(time,1:length(time),surf_bin));
     surf_bin = surf_bin + 1;
     
