@@ -1,5 +1,5 @@
-function gps = trajectory_with_leverarm(gps,param)
-% gps = trajectory_with_leverarm(gps,param)
+function [gps,lever_arm_val] = trajectory_with_leverarm(gps,param)
+% [gps,lever_arm_val] = trajectory_with_leverarm(gps,param)
 %
 % Takes a struct, gps, and updates the fields lat, lon, elev, roll,
 % pitch, heading with the lever arm offset. All other fields of the struct
@@ -23,14 +23,15 @@ function gps = trajectory_with_leverarm(gps,param)
 % Author: John Paden
 
 if isempty(param.lever_arm_fh)
+  warning('No lever arm function is available. The reference trajectory is most likely incorrect without a lever arm defined. Normally this is defined in param.radar.lever_arm_fh and set to @lever_arm_fh.');
   return;
 end
 
 physical_constants;
 
 % Get the phase center of the receiver in question in BCS
-[base_phase_center] = param.lever_arm_fh(param, param.tx_weights, param.rx_path);
-base_phase_center = mean(base_phase_center,2);
+[lever_arm_val] = param.lever_arm_fh(param, param.tx_weights, param.rx_path);
+lever_arm_val = mean(lever_arm_val,2);
 
 phase_center = zeros(3,length(gps.roll));
 for rline = 1:length(gps.roll)
@@ -42,7 +43,7 @@ for rline = 1:length(gps.roll)
   
   % Middle and receiver phase centers with roll or roll/pitch only
   % compensation in NED coordinate system
-  phase_center(:,rline) = rotation_mat * base_phase_center;
+  phase_center(:,rline) = rotation_mat * lever_arm_val;
   
   % Convert from NED to ECEF (lv2ecef input is ENU, so we transpose the first
   % two inputs and negate the third)

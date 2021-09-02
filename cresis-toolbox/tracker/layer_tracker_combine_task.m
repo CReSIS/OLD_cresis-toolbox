@@ -7,7 +7,8 @@ function success = layer_tracker_combine_task(param)
 % Authors: Anjali Pare, John Paden
 %
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
-% layer_tracker_task.m, run_layer_tracker.m, run_layer_tracker_tune.m
+% layer_tracker_task.m, layer_tracker_input_check.m,
+% layer_tracker_profile.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% Setup Processing
 % =====================================================================

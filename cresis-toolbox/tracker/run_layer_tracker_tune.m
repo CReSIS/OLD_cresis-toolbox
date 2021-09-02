@@ -1,17 +1,12 @@
 % script run_layer_tracker_tune
+%
 % Runs layer_tracker.m for tuning layer tracking hyperparameters.
 %
 % Authors: Anjali Pare, John Paden
 %
 % See also: layer_tracker.m, layer_tracker_combine_task.m,
-% layer_tracker_task.m, layer_tracker_profile.m, run_layer_tracker.m,
-% run_layer_tracker_tune.m
-% temp_name - set to any string value as a unique identifier to save the
-% parameters
-% layer_tracker.layer_params.layerdate_source - Set the name of the layer
-% tracker_method - Set which tracking method you want to use 'lsm' or 'viterbi'
-
-
+% layer_tracker_task.m, layer_tracker_input_check.m,
+% layer_tracker_profile.m, run_layer_tracker.m, run_layer_tracker_tune.m
 
 %% User Settings
 % ----------------------------------------------------------------------
@@ -38,16 +33,24 @@ param_override.layer_tracker.echogram_img = 0; % To choose an image besides the 
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
 param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
+
+% temp_name: set to any string value as a unique identifier to save the
+% parameters
 param_override.layer_tracker.temp_name = 'test_anj'; % Set this name as a  unique identifier to save the parameters
 
 % layer_params: layerparams structure of where to store the output using
 % opsCopyLayers.m
 param_override.layer_tracker.layer_params = [];
-% Uncomment to enable layerdata storage
-param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_season_C_test';
-% Uncomment to enable OPS storage
-% param_override.layer_tracker.layer_params.source = 'ops';
+if 1
+  % Uncomment to enable layerdata storage
+  % layer_tracker.layer_params.layerdate_source: Set the name of the layer
+  param_override.layer_tracker.layer_params.layerdata_source = 'layer_tune_vit_season_C_test';
+else
+  % Uncomment to enable OPS storage
+  % param_override.layer_tracker.layer_params.source = 'ops';
+end
 
+% tracker_method: Set which tracking method you want to use 'lsm' or 'viterbi'
 tracker_method = 'viterbi'; % Choose the tracking method
 % block_size_frms: Number of frames to be loaded at a time
 param_override.layer_tracker.block_size_frms = 1;
@@ -114,7 +117,7 @@ elseif strcmpi(tracker_method,'viterbi')
     track.min_bin.name = 'surface';
     track.min_bin.eval.cmd = 's=s+0.5e-6;';
     track.max_bin = struct('name','tomo_bottom');
-    track.crossover.en = true;
+    track.crossover.en = false;
     track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
     % track.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
     track.crossover.gps_time_good_eval = @(x) x < datenum_to_epoch(datenum('2014/03/01')); % Cross overs before this date are good

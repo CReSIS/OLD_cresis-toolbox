@@ -1,5 +1,5 @@
-function [proj,h_fig] = plot_geotiff(geotiff_fn, lat, lon, h_fig, varargin)
-% [proj,h_fig] = plot_geotiff(geotiff_fn, lat, lon, h_fig, varargin)
+function [proj,h_fig] = geotiff_plot(geotiff_fn, lat, lon, h_fig, varargin)
+% [proj,h_fig] = geotiff_plot(geotiff_fn, lat, lon, h_fig, varargin)
 %
 % Function for quickly plotting a geotiff and optionally plotting
 % some points/vectors on top of that.  The first point is plotted
@@ -17,13 +17,13 @@ function [proj,h_fig] = plot_geotiff(geotiff_fn, lat, lon, h_fig, varargin)
 %
 % Examples:
 %   geotiff_fn = ct_filename_gis('greenland/Landsat-7/mzl7geo_90m_lzw.tif');
-%   plot_geotiff(geotiff_fn);
+%   geotiff_plot(geotiff_fn);
 %
 %   geotiff_fn = ct_filename_gis('world/NaturalEarth/NE2_HR_LC_SR_W_DR.tif');
-%   plot_geotiff(geotiff_fn);
+%   geotiff_plot(geotiff_fn);
 %
 %   geotiff_fn = ct_filename_gis('antarctica/Landsat-7/Antarctica_LIMA_480m.tif');
-%   plot_geotiff(geotiff_fn,Latitude,Longitude,'b-');
+%   geotiff_plot(geotiff_fn,Latitude,Longitude,'b-');
 %
 % Author: John Paden
 
