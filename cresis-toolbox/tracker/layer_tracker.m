@@ -184,7 +184,9 @@ for frm_idx = 1:length(frm_filenames)
           ops_param = [];
           ops_param.properties.location = param.post.ops.location;
           ops_param.properties.point_path_id = [ops_data.properties.source_point_path_id ops_data.properties.cross_point_path_id];
-          [status,ops_data_gps_time] = opsGetPath(sys,ops_param);
+          if ~isempty(ops_data.properties.twtt)
+            [status,ops_data_gps_time] = opsGetPath(sys,ops_param);
+          end
           
           source_gps_time = zeros(size(ops_data.properties.source_point_path_id));
           crossover_gps_time = zeros(size(ops_data.properties.source_point_path_id));
@@ -242,6 +244,9 @@ end
   if strcmpi(track.init.method,'dem')
     gdem.set_vector(lat,long);
     [land_dem,msl,ocean_mask] = gdem.get_vector_dem();
+    sparam.argsin{1}.dem.land_dem = land_dem;
+    sparam.argsin{1}.dem.ocean_mask = ocean_mask;
+    sparam.argsin{1}.dem.msl = msl;
   end
 
 %% Loading reference trajectory
@@ -253,9 +258,9 @@ sparam.argsin{1}.ice_mask.mask = temp;
 sparam.argsin{1}.ice_mask.gps_time = track.gps_time;
 sparam.argsin{1}.crossovers = crossover_temp;
 sparam.argsin{1}.frm_nam = frm_nam;
-sparam.argsin{1}.dem.land_dem = land_dem;
-sparam.argsin{1}.dem.ocean_mask = ocean_mask;
-sparam.argsin{1}.dem.msl = msl;
+%sparam.argsin{1}.dem.land_dem = land_dem;
+%sparam.argsin{1}.dem.ocean_mask = ocean_mask;
+% sparam.argsin{1}.dem.msl = msl;
 % end
 cpu_time_mult = zeros(size(param.layer_tracker.track));
 mem_mult = zeros(size(param.layer_tracker.track));
