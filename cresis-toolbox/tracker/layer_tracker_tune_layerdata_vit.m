@@ -13,6 +13,13 @@
 % Authors: Anjali Pare, John Paden
 % See layer_tracker_tune_plot.m to view 2 dimensional imagesc plots of the data.
 
+% Look at % correct. If we're close to the right ans 100 % of the time but
+% not quite right 100 % of the time is worse than being right 90% of the
+% time and completely wrong 10 % of the time. Need to correct in quality
+% control. Check if you are outside of a wondow and label as bad. % correct
+% should be exactly the same (not necesary). There could be offsets. 
+% 1-2 range bin. 
+
 dbstack_info = dbstack;
 fprintf('=====================================================================\n');
 fprintf('%s (%s)\n', dbstack_info(1).name, datestr(now,'HH:MM:SS'));
@@ -20,14 +27,17 @@ fprintf('=====================================================================\n
 
 %% General User Settings
 
-temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20201122_193803_t005_viterbi.mat');
+%temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20201122_193803_t005_viterbi.mat');
+temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20201202_020912_t005_viterbi.mat');
+temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20201202_020912_t005_viterbi.mat');
 param= temp.param;
-save_name = '/cresis/snfs1/scratch/anjali/cluster_tuning/result_layer_tune_vit_s012'; % where to store tuning final result
+save_name = '/cresis/snfs1/scratch/anjali/cluster_tuning/result_layer_tune_vit_s014'; % where to store tuning final result
 
 gt_layer_params = [];
 layer_params = [];
 res_matrix = [];
 num_layers = 0;
+range = 10;
 idx = 1;
 gt_layer_params(idx).name = 'bottom';
 layers = opsLoadLayers(param,gt_layer_params);
@@ -70,10 +80,21 @@ for track_idx = 1:length(param.layer_tracker.track)
         num_isnan.(sprintf('%s',gt_layer_params(layer_idx).name)) = num_isnan.(sprintf('%s',gt_layer_params(layer_idx).name)) + (sum(isfinite(surf_bins) & ~isfinite(surf_bins_itr)));
         num_points.(sprintf('%s',gt_layer_params(layer_idx).name)) = num_points.(sprintf('%s',gt_layer_params(layer_idx).name)) + (sum(abs(surf_bins-surf_bins_itr) < 5*dt));
         res_matrix{layer_idx}(frm_idx,param.layer_tracker.track{track_idx}.idx(pos)) = nanmean(abs(surf_bins - surf_bins_itr));
-        
+        counter = 0;
+        for i = 1:length(surf_bins)
+          if (abs(surf_bins(i) - surf_bins_itr(i)) <= range)
+            counter = counter + 1;
+          end
+        end
+        range_percent.(sprintf('%s_%03d', param.layer_tracker.track{track_idx}.name,frm))= (counter/length(surf_bins))*100;
       end
     end
   end
+  counter = 0;
+  for i = 1:length(param.cmd.frms)
+     counter = counter + range_percent.(sprintf('%s_%03d', param.layer_tracker.track{track_idx}.name,frm));
+  end
+  range_percent_all_frms.(sprintf('%s', param.layer_tracker.track{track_idx}.name)) = counter/length(param.cmd.frms);
 end
 
 points = [];
@@ -100,4 +121,4 @@ if ~exist(fn_dir,'dir')
   mkdir(fn_dir);
 end
 
-save(save_name,'res_matrix','num_isnan','num_points','num_gt_isfinite','points','min_val','res_matrix_all_frms','param','file_version','file_type'); 
+save(save_name,'res_matrix','range_percent','range_percent_all_frms','num_isnan','num_points','num_gt_isfinite','points','min_val','res_matrix_all_frms','param','file_version','file_type'); 

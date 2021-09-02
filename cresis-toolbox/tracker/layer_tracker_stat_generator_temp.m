@@ -42,18 +42,18 @@ fprintf('=====================================================================\n
 % Example to run 1 season with 1 segment all frames
 params_all = [];
 idx_segment = 1;
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140421_01');%'20140313_09|20140415_05|20140421_01|20140514_01');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140313_09|20140415_05|20140421_01|20140516_01');%'20140313_09|20140415_05|20140421_01|20140514_01');
 params(idx_segment).cmd.generic = 1;
 params(idx_segment).cmd.frms = [];
-% idx_segment = idx_segment + 1;
-% params(idx_segment).cmd.generic = 1;
-% params(idx_segment).cmd.frms = [];
-% idx_segment = idx_segment + 1;
-% params(idx_segment).cmd.generic = 1;
-% params(idx_segment).cmd.frms = [];
-% idx_segment = idx_segment + 1;
-% params(idx_segment).cmd.generic = 1;
-% params(idx_segment).cmd.frms = [];
+idx_segment = idx_segment + 1;
+params(idx_segment).cmd.generic = 1;
+params(idx_segment).cmd.frms = [];
+idx_segment = idx_segment + 1;
+params(idx_segment).cmd.generic = 1;
+params(idx_segment).cmd.frms = [];
+idx_segment = idx_segment + 1;
+params(idx_segment).cmd.generic = 1;
+params(idx_segment).cmd.frms = [];
 params_all{end+1} = params;
 
 % Example to run 1 season with 2 segment and different frames
@@ -106,12 +106,22 @@ filename = [];
  %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210315_220253_t005_viterbi.mat');
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_09_20210311_013103_t056_lsm.mat');
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140415_05_20210311_013232_t056_lsm.mat');
-filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140421_01_20210311_014435_t056_lsm.mat');
+%filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140421_01_20210311_014435_t056_lsm.mat');
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140514_01_20210311_015110_t056_lsm.mat');
  % two segments
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_08_20210107_162824_t005_viterbi.mat');
 %filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210107_163106_t005_viterbi.mat');
 
+
+filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_09_20210331_232507_t005_viterbi.mat');
+filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140415_05_20210331_233855_t005_viterbi.mat');
+filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140421_01_20210401_004304_t005_viterbi.mat');
+filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210401_012014_t005_viterbi.mat');
+
+% filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140313_09_20210401_230350_t005_viterbi.mat');
+% filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140415_05_20210401_231542_t005_viterbi.mat');
+% filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140421_01_20210402_000547_t005_viterbi.mat');
+% filename{end+1} = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210402_003509_t005_viterbi.mat');
 %% Setup plots
 % set fig_format to true to generate .fig plots
 options.segment_vs_frame.plot = true; % absolute error vs frames (for each segment)
@@ -131,7 +141,7 @@ options.hist_generation.multiple_plots = true;
 
 %% Setup save
 % Enter filename of where you want to store the images
-img_dir = '/cresis/snfs1/scratch/anjali/cluster_tuning/lsm_test';
+img_dir = '/cresis/snfs1/scratch/anjali/cluster_tuning/vit_4seg_NC';
 if ~exist(img_dir,'dir')
   mkdir(img_dir);
 end
@@ -151,18 +161,19 @@ seg_idx = 0;
 season_vect_frm = [];
 segment_vect_frm = [];
 frame_vect_frm  = [];
-range = 100; % set acceptable range for error
+range = 20; % set acceptable range for error
 idx = 1;
 
 % If only bottom
- %gt_layer_params(idx).name = 'bottom'; % specify layer names
+ foo{idx} = [];
+ gt_layer_params(idx).name = 'bottom'; % specify layer names
 
 % If surface and bottom
-foo{idx} = [];
-gt_layer_params(idx).name = 'surface';
-idx = idx + 1;
-foo{idx} = [];
-gt_layer_params(idx).name = 'bottom'; % specify layer names
+% foo{idx} = [];
+% gt_layer_params(idx).name = 'surface';
+% idx = idx + 1;
+% foo{idx} = [];
+% gt_layer_params(idx).name = 'bottom'; % specify layer names
 
 num_layers = idx;
 
@@ -581,7 +592,7 @@ for season_idx = 1:length(params_all) %seasons
       %
       %       end
       
-      save_name = sprintf('/cresis/snfs1/scratch/anjali/cluster_tuning/lsm_test/result_layer_tune_lsm_s%d',param_idx);
+      save_name = sprintf('/cresis/snfs1/scratch/anjali/cluster_tuning/vit_4seg_NC/result_layer_tune_lsm_s%d',param_idx);
       save(save_name,'res_matrix_all','frame_error','range_per','percent_error','season_vect','res_matrix','points','min_val','gps_time','param');
     end
   end

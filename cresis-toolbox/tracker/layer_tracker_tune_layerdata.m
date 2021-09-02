@@ -20,6 +20,7 @@ fprintf('=====================================================================\n
 
 %% General User Settings
 
+%temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210128_232704_t004_lsm.mat');%load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20210124_024502_t004_lsm.mat');%load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20200921_121933_t063_lsm.mat');
 temp = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/layer_tracker/rds/2014_Greenland_P3/20140516_01_20200921_121933_t063_lsm.mat');
 param= temp.param;
 save_name = '/cresis/snfs1/scratch/anjali/cluster_tuning/result_layer_tune_mean.mat'; % where to store tuning final result

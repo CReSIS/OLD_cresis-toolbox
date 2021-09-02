@@ -14,7 +14,7 @@ function success = layer_tracker_tune_plot_vit
 % =====================================================================
 %filename = ct_filename_out(param,param.layer_tracker.layer_params.layerdata_source,'layer_tracker_tmp'); %where temporary files are saved
 img_format = 'jpg';
-filename = '/cresis/snfs1/scratch/anjali/cluster_tuning/result_layer_tune_vit_s012.mat'; % where the matrix is saved. Images generated will be saved in the same folder
+filename = '/cresis/snfs1/scratch/anjali/cluster_tuning/result_layer_tune_vit_s014.mat'; % where the matrix is saved. Images generated will be saved in the same folder
 num_layers = 1; % enter number of layers
 img_dir = fileparts(filename);
 if ~exist(img_dir,'dir')
