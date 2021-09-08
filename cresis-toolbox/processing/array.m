@@ -121,6 +121,13 @@ if ~isfield(param.array,'img_comb') || isempty(param.array.img_comb)
   param.array.img_comb = [];
 end
 
+% Check img_comb length
+if ~isempty(param.array.img_comb) && length(param.array.img_comb) ~= 3*(length(param.array.imgs)-1)
+  error('param.array.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
+end
+
+param = img_combine_input_check(param,'array');
+
 if ~isfield(param.array,'in_path') || isempty(param.array.in_path)
   param.array.in_path = 'sar';
 end
