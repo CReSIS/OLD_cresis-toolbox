@@ -20,5 +20,6 @@ function ctrl = cluster_save_sparam(ctrl,sparam)
 % cluster_update_task.m
 
 static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+cluster_new_task_sparam_check;
 static_param = sparam;
 robust_save(static_in_fn,ctrl.cluster.file_version,'static_param');

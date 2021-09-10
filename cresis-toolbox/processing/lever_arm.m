@@ -78,6 +78,12 @@ radar_name = ct_output_dir(param.radar_name);
 % For the full simulator, remove 'sim' at the end($) of param.season_name
 param.season_name = regexprep(param.season_name,'sim$','','ignorecase');
 
+if any(strcmpi(param.season_name,{'2021_Arctic_Vanilla'}))
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU','2020_SouthDakota_N1KU'}))
   gps.x = 0;
   gps.y = 0;
@@ -2073,6 +2079,22 @@ end
 % =========================================================================
 %% Snow Radar
 % =========================================================================
+if any(strcmpi(param.season_name,{'2021_Arctic_Vanilla'})) && strcmpi(radar_name,'snow')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  % Undetermined, temporarily set to zeros
+  LArx = [0	0	0].';
+  LAtx = [0	0	0].';
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if any(strcmpi(param.season_name,{'2019_SouthDakota_N1KU'})) ...
     && strcmpi(radar_name,'snow')
