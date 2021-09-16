@@ -1,4 +1,4 @@
-% function collate_coh_noise(param,param_override)
+function collate_coh_noise(param,param_override)
 % collate_coh_noise(param,param_override)
 %
 % Collects analysis.m results from coherent noise tracking (coh_noise

@@ -145,7 +145,15 @@ for frm_idx = 1:length(param.cmd.frms)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
           adc = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,2));
+<<<<<<< Updated upstream
           rx_path = mdata.(param_field).radar.wfs(wf).rx_paths(adc);
+=======
+          try
+            rx_path = param.radar.wfs(wf).rx_paths(adc);
+          catch ME
+            rx_path = 1;
+          end
+>>>>>>> Stashed changes
           
           % t_ref correction
           if ~isfield(param.radar.wfs(wf),'t_ref') ...
@@ -304,7 +312,15 @@ for frm_idx = 1:length(param.cmd.frms)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
           adc = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,2));
+<<<<<<< Updated upstream
           rx_path = mdata.(param_field).radar.wfs(wf).rx_paths(adc);
+=======
+          try
+            rx_path = param.radar.wfs(wf).rx_paths(adc);
+          catch ME
+            rx_path = 1;
+          end
+>>>>>>> Stashed changes
           
           mdata.(param_field).radar.wfs(wf).t_ref = param.radar.wfs(wf).t_ref;
           mdata.(param_field).radar.wfs(wf).Tsys(rx_path) = param.radar.wfs(wf).Tsys(rx_path);

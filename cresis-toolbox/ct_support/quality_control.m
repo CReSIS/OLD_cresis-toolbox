@@ -42,6 +42,7 @@
 
 
 %% Automated Section
+play_mode = 0;
 
 if strcmpi(update_field_type,'double')
 elseif strcmpi(update_field_type,'mask')
@@ -172,7 +173,7 @@ while ~quit_cmd
       else
         [tmp1,tmp2,tmp3] = fileparts(echo_fn{img}); [~,tmp1] = fileparts(tmp1);
         set(img,'Name',sprintf('%d: %s', img, fullfile(tmp1,[tmp2 tmp3])),'NumberTitle','off');
-        fprintf('  Loading output %s\n', echo_fn{img});
+%         fprintf('  Loading output %s\n', echo_fn{img});
         if strcmpi(img_type,'mat')
           mdata = load(echo_fn{img});
           mdata = uncompress_echogram(mdata);
@@ -282,63 +283,53 @@ while ~quit_cmd
     beep;
   end
   
-  val = input(sprintf('F(%03i:%s): ', frm, update_field_str),'s');
-  if all(isstrprop(val,'wspace'))
-    % Go to next frame
-    frm_idx = frm_idx + 1;
+  hara_xtra_str = {'LAND/ICEBERG', 'un', 'SNR', 'BAD', 'MISSING', 'vert.stripes', 'deconv', 'coh_noise'};
+  hara_xtra = {''}; hara_dec=[];
+  for hidx=1:length(update_field_str)
+    if str2num(update_field_str(hidx))
+      hara_dec = [hara_dec,num2str(length(update_field_str)-hidx+1)];
+      hara_xtra = strcat(hara_xtra, {' '}, hara_xtra_str{hidx});
+    end
+  end
+  
+  if play_mode %% PLAY MODE
+%     t = timer('ExecutionMode', 'singleShot', 'StartDelay', 0.0, 'TimerFcn', @pressEnter);
+    t = timer('TimerFcn',@pressEnter, 'Period', 1);
+    start(t);
+    play_mode_check = input(sprintf('F(%03i:%s): [ %s ] [ %s ]:', frm, update_field_str, hara_xtra{1}, hara_dec),'s');
+    stop(t); delete(t);
+    if isempty(play_mode_check)
+      % Go to next frame
+      frm_idx = frm_idx + 1; pause(0.0);
+    else
+      play_mode = 0;
+    end
   else
-    num_val = str2double(val);
-    
-    if any(strcmpi(val,{'c','k'}))
-      fprintf('Variables are frames.%s. dbcont when finished.\n', update_field);
-      if strcmpi(update_field_type,'mask')
-        fprintf('  To update frames.%s, consider using bitor. E.g. bitor(frames.%s,bin2dec(''1000'')).\n',update_field,update_field);
-      end
-      keyboard
+    val = input(sprintf('F(%03i:%s): [ %s ] [ %s ]:', frm, update_field_str, hara_xtra{1}, hara_dec),'s');
+    if all(isstrprop(val,'wspace'))
+      % Go to next frame
+      frm_idx = frm_idx + 1;
+    else
+      num_val = str2double(val);
       
-    elseif strcmpi(val,'d')
-      fprintf('\n');
-      diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
-        & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
-      fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
-      for cur_frm = diff_frms
-        if isnan(old_frames.(update_field)(cur_frm))
-          old_dec2bin_str = 'NaN';
-        else
-          old_dec2bin_str = dec2bin(old_frames.(update_field)(cur_frm),8);
+      if any(strcmpi(val,{'c','k'}))
+        fprintf('Variables are frames.%s. dbcont when finished.\n', update_field);
+        if strcmpi(update_field_type,'mask')
+          fprintf('  To update frames.%s, consider using bitor. E.g. bitor(frames.%s,bin2dec(''1000'')).\n',update_field,update_field);
         end
-        if isnan(frames.(update_field)(cur_frm))
-          dec2bin_str = 'NaN';
-        else
-          dec2bin_str = dec2bin(frames.(update_field)(cur_frm),8);
-        end
-        fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
-          old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
-          old_dec2bin_str, dec2bin_str);
-      end
-      fprintf('\n');
-      
-    elseif strcmpi(val,'f')
-      nan_frms = find(isnan(frames.(update_field)));
-      fprintf('\nThere are %d frames with isnan(frames.%s).\n', length(nan_frms), update_field);
-      if ~isempty(nan_frms)
-        fprintf('These frames are: %s\n\n', mat2str_generic(nan_frms));
-      else
+        keyboard
+        
+      elseif any(strcmpi(val,{'h'}))
+        fprintf('Entering play_mode\n');
+        play_mode = 1; 
+        continue;
+        
+      elseif strcmpi(val,'d')
         fprintf('\n');
-      end
-      
-      zero_frms = find(frames.(update_field) == 0);
-      fprintf('There are %d frames with frames.%s == 0.\n', length(zero_frms), update_field);
-      if ~isempty(zero_frms)
-        fprintf('These frames are: %s\n\n', mat2str_generic(zero_frms));
-      else
-        fprintf('\n');
-      end
-      
-      fprintf('Frames which are ~isnan and ~=0:\n');
-      fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
-      for cur_frm = 1:length(frames.(update_field))
-        if ~isnan(frames.(update_field)(cur_frm)) && frames.(update_field)(cur_frm) ~= 0
+        diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
+          & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
+        fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
+        for cur_frm = diff_frms
           if isnan(old_frames.(update_field)(cur_frm))
             old_dec2bin_str = 'NaN';
           else
@@ -353,97 +344,136 @@ while ~quit_cmd
             old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
             old_dec2bin_str, dec2bin_str);
         end
-      end
-      fprintf('\n');
-      
-    elseif strcmp(val,'i')
-      if strcmpi(param.img_type,img_type)
-        img_type = 'mat';
-      else
-        img_type = param.img_type;
-      end
-      
-    elseif strcmp(val,'I')
-      fmcw_img_debug_mode = ~fmcw_img_debug_mode;
-      fprintf(' Toggled false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
-      
-    elseif ~isempty(strfind(upper(val),'J'))
-      try
-        val = input('    Enter frame to jump to: ');
-      catch
-        val = [];
-      end
-      if isempty(val)
-        % Ignore command
-      else
-        [~,new_frm_idx] = min(abs(val-frms));
-        if ~isempty(new_frm_idx)
-          frm_idx = new_frm_idx;
-        end
-      end
-      
-    elseif ~isnan(num_val)
-      if strcmpi(update_field_type,'double')
-        fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, num_val);
-      elseif strcmpi(update_field_type,'mask')
-        if isnan(num_val)
-          fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, num_val);
+        fprintf('\n');
+        
+      elseif strcmpi(val,'f')
+        nan_frms = find(isnan(frames.(update_field)));
+        fprintf('\nThere are %d frames with isnan(frames.%s).\n', length(nan_frms), update_field);
+        if ~isempty(nan_frms)
+          fprintf('These frames are: %s\n\n', mat2str_generic(nan_frms));
         else
-          num_val = str2double(char(unique(double(sprintf('%d',num_val)))));
-          if num_val ~= 0
-            num_val = sum(2.^(double(sprintf('%d',num_val))-48-1));
+          fprintf('\n');
+        end
+        
+        zero_frms = find(frames.(update_field) == 0);
+        fprintf('There are %d frames with frames.%s == 0.\n', length(zero_frms), update_field);
+        if ~isempty(zero_frms)
+          fprintf('These frames are: %s\n\n', mat2str_generic(zero_frms));
+        else
+          fprintf('\n');
+        end
+        
+        fprintf('Frames which are ~isnan and ~=0:\n');
+        fprintf('%s\t%s\t%s\t%s\t%s\n', 'Frm', 'Old_Value', 'New_Value', 'Old_Binary', 'New_Binary');
+        for cur_frm = 1:length(frames.(update_field))
+          if ~isnan(frames.(update_field)(cur_frm)) && frames.(update_field)(cur_frm) ~= 0
+            if isnan(old_frames.(update_field)(cur_frm))
+              old_dec2bin_str = 'NaN';
+            else
+              old_dec2bin_str = dec2bin(old_frames.(update_field)(cur_frm),8);
+            end
+            if isnan(frames.(update_field)(cur_frm))
+              dec2bin_str = 'NaN';
+            else
+              dec2bin_str = dec2bin(frames.(update_field)(cur_frm),8);
+            end
+            fprintf('%3.0f\t%9.0f\t%9.0f\t%10s\t%10s\n', cur_frm, ...
+              old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
+              old_dec2bin_str, dec2bin_str);
           end
-          fprintf('    Changing frames.%s(%d) to b%s (d%d)\n', update_field, ...
-            frm, dec2bin(num_val,update_field_mask_len), num_val);
         end
-      end
-      frames.(update_field)(frm) = num_val;
-      frm_idx = frm_idx + 1;
-      
-    elseif strcmpi(val,'n')
-      fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, NaN);
-      frames.(update_field)(frm) = NaN;
-      frm_idx = frm_idx + 1;
-      
-    elseif strcmpi(val,'p')
-      frm_idx = frm_idx - 1;
-      
-    elseif strcmpi(val,'q')
-      quit_cmd = true;
-      fprintf('Quitting\n');
-      break;
-      
-    elseif strcmpi(val,'s')
-      out_dir = fileparts(frames_fn);
-      if ~exist(out_dir,'dir')
-        mkdir(out_dir);
-      end
-      fprintf('  Saving frames file %s\n',frames_fn);
-      ct_save(frames_fn,'-struct','frames');
-      old_frames = frames;
-      
-    elseif strcmpi(val,'?')
-      fprintf(' <enter>: go to next frame\n');
-      fprintf(' p: previous frame\n');
-      fprintf(' i: swap image type between mat and %s (currently %s)\n', param.img_type, img_type);
-      fprintf(' I: toggle false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
-      fprintf(' d: print out differences or changes to frames so far\n');
-      fprintf(' f: print out status of frames\n');
-      fprintf(' j: jump to frame\n');
-      fprintf(' c or k: enter matlab command\n');
-      fprintf(' s: save frames file\n');
-      fprintf(' q: quit\n');
-      if strcmpi(update_field_type,'double')
-        fprintf(' #: set frame.%s to #\n', update_field);
-      else
-        fprintf(' #[#...#]: sets frame.%s masks according to:\n', update_field);
-        for idx=2:update_field_mask_len+1
-          fprintf('   %d: %s\n',idx-1,update_field_mask{idx});
+        fprintf('\n');
+        
+      elseif strcmp(val,'i')
+        if strcmpi(param.img_type,img_type)
+          img_type = 'mat';
+        else
+          img_type = param.img_type;
         end
-        fprintf('   For example, entering the number 13 sets the first and third mask bits.\n   Entering 0 clears all mask bits.\n');
+        
+      elseif strcmp(val,'I')
+        fmcw_img_debug_mode = ~fmcw_img_debug_mode;
+        fprintf(' Toggled false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
+        
+      elseif ~isempty(strfind(upper(val),'J'))
+        try
+          val = input('    Enter frame to jump to: ');
+        catch
+          val = [];
+        end
+        if isempty(val)
+          % Ignore command
+        else
+          [~,new_frm_idx] = min(abs(val-frms));
+          if ~isempty(new_frm_idx)
+            frm_idx = new_frm_idx;
+          end
+        end
+        
+      elseif ~isnan(num_val)
+        if strcmpi(update_field_type,'double')
+          fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, num_val);
+        elseif strcmpi(update_field_type,'mask')
+          if isnan(num_val)
+            fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, num_val);
+          else
+            num_val = str2double(char(unique(double(sprintf('%d',num_val)))));
+            if num_val ~= 0
+              num_val = sum(2.^(double(sprintf('%d',num_val))-48-1));
+            end
+            fprintf('    Changing frames.%s(%d) to b%s (d%d)\n', update_field, ...
+              frm, dec2bin(num_val,update_field_mask_len), num_val);
+          end
+        end
+        frames.(update_field)(frm) = num_val;
+        frm_idx = frm_idx + 1;
+        
+      elseif strcmpi(val,'n')
+        fprintf('    Changing frames.%s(%d) to %d\n', update_field, frm, NaN);
+        frames.(update_field)(frm) = NaN;
+        frm_idx = frm_idx + 1;
+        
+      elseif strcmpi(val,'p')
+        frm_idx = frm_idx - 1;
+        
+      elseif strcmpi(val,'q')
+        quit_cmd = true;
+        fprintf('Quitting\n');
+        break;
+        
+      elseif strcmpi(val,'s')
+        out_dir = fileparts(frames_fn);
+        if ~exist(out_dir,'dir')
+          mkdir(out_dir);
+        end
+        fprintf('  Saving frames file %s\n',frames_fn);
+        ct_save(frames_fn,'-struct','frames');
+        old_frames = frames;
+        
+      elseif strcmpi(val,'?')
+        fprintf(' <enter>: go to next frame\n');
+        fprintf(' p: previous frame\n');
+        fprintf(' i: swap image type between mat and %s (currently %s)\n', param.img_type, img_type);
+        fprintf(' I: toggle false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
+        fprintf(' d: print out differences or changes to frames so far\n');
+        fprintf(' f: print out status of frames\n');
+        fprintf(' h: play_mode to auto press Enter key\n');
+        fprintf(' j: jump to frame\n');
+        fprintf(' c or k: enter matlab command\n');
+        fprintf(' s: save frames file\n');
+        fprintf(' q: quit\n');
+        if strcmpi(update_field_type,'double')
+          fprintf(' #: set frame.%s to #\n', update_field);
+        else
+          fprintf(' #[#...#]: sets frame.%s masks according to:\n', update_field);
+          for idx=2:update_field_mask_len+1
+            fprintf('   %d: %s\n',idx-1,update_field_mask{idx});
+          end
+          fprintf('   For example, entering the number 13 sets the first and third mask bits.\n   Entering 0 clears all mask bits.\n');
+        end
       end
     end
-  end
+  end %% PLAY MODE
 end
 
 %% Print out frames that changed
@@ -482,4 +512,12 @@ if ~isempty(diff_frms)
   else
     warning('Not saving (can still manually save by pasting save commands above this warning message).');
   end
+end
+
+function pressEnter(HObj, event)
+  import java.awt.*;
+  import java.awt.event.*;
+  rob = Robot;
+  rob.keyPress(KeyEvent.VK_ENTER)
+  rob.keyRelease(KeyEvent.VK_ENTER)
 end

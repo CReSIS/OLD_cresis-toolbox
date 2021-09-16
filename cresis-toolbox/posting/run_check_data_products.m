@@ -50,62 +50,79 @@ elseif any(strcmp(radar_name,{'kaband3','kuband3','snow3','kuband2','snow2','kub
   csv_outputs = {'kml'};
   csv_en = 1;
 elseif any(strcmp(radar_name,{'snow8'}))
-  % Run 1
+  % Run 1 %% to check for support files + compressed qlook + post for entire season
+  run_var = 1;
   supports = {'gps','frames','records'};
-  outputs = {'CSARP_qlook'};
-  outputs_post_dir = 'CSARP_post';
+  outputs = {'qlook'};
+  outputs_post_dir = 'post';
   images = {'maps','echo'};
   pdf_en = 0;
   csv_outputs = {'kml'};
   csv_en = 1;
-%   % Run 2
+%   % Run 2 %% to check for post_uwb images
+%   run_var = 2;
 %   supports = {};
 %   outputs = {};
-%   outputs_post_dir = 'CSARP_post_uwb';
+%   outputs_post_dir = 'post_uwb';
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-6');
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-8');
 %   images = {'echo'};
 %   pdf_en = 0;
 %   csv_outputs = {'kml'};
 %   csv_en = 0;
-%   % Run 3
+%   % Run 3 %% to check for post_kuband images
+%   run_var = 3;
 %   supports = {};
 %   outputs = {};
-%   outputs_post_dir = 'CSARP_post_kuband';
+%   outputs_post_dir = 'post_kuband';
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-6');
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-8');
 %   images = {'echo'};
 %   pdf_en = 0;
 %   csv_outputs = {'kml'};
 %   csv_en = 0;
-%   % Run 4
+%   % Run 4 %% to check for post_deconv images
+%   run_var = 4;
 %   supports = {};
 %   outputs = {};
-%   outputs_post_dir = 'CSARP_post_deconv';
+%   outputs_post_dir = 'post_deconv';
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-6');
 %   images = {'echo'};
 %   pdf_en = 0;
 %   csv_outputs = {'kml'};
 %   csv_en = 0;
-%   % Run 5
+%   % Run 5 %% to check for compressed qlook (deconv) in CSARP_post
+%   run_var = 5;
 %   supports = {};
-%   outputs = {'CSARP_deconv'};
+%   outputs = {'deconv'};
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-6');
-%   outputs_post_dir = 'CSARP_post';
+%   outputs_post_dir = 'post';
 %   images = {};
 %   pdf_en = 0;
 %   csv_outputs = {'kml'};
 %   csv_en = 0;
-%   % Run 6
+%   % Run 6 %% to check for compressed qlook (kuband)
+%   run_var = 6;
 %   supports = {};
-%   outputs = {'CSARP_qlook_kuband','CSARP_qlook_uwb'};
+%   outputs = {'qlook_kuband'};
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-6');
 %   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-8');
-%   outputs_post_dir = 'CSARP_post';
+%   outputs_post_dir = 'post';
 %   images = {};
 %   pdf_en = 0;
 %   csv_outputs = {'kml'};
 %   csv_en = 0;
+  % Run 7 %% to check for compressed qlook (uwb)
+  run_var = 7;
+  supports = {};
+  outputs = {'qlook_uwb'};
+  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-6');
+  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','2-8');
+  outputs_post_dir = 'post';
+  images = {};
+  pdf_en = 0;
+  csv_outputs = {'kml'};
+  csv_en = 0;
 end
 gps_sources = {'atm-final_20170620'}; % Should be checked at least once before data posting
 % gps_sources = {}; % Leave empty/undefined to not check gps_sources
