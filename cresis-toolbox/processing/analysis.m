@@ -486,6 +486,11 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
   cpu_time_mult = 4e-8;
   mem_mult = 17;
   
+elseif strcmpi(radar_name,'snow9')
+  total_num_sam = 45000 * ones(size(param.analysis.imgs));
+  cpu_time_mult = 4e-8;
+  mem_mult = 17;
+  
 else
   error('radar_name %s not supported yet.', radar_name);
   

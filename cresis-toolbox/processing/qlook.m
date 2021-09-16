@@ -209,6 +209,11 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
   total_num_sam = 32000 * ones(size(param.qlook.imgs));
   cpu_time_mult = 8e-8;
   mem_mult = 64;
+
+elseif strcmpi(radar_name,'snow9')
+  total_num_sam = 45000 * ones(size(param.qlook.imgs));
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
   
 else
   error('radar_name %s not supported yet.', radar_name);
