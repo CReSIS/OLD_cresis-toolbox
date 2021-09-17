@@ -6,7 +6,7 @@
 %
 % See also load_data, pulse_compress
 
-run_example = 1;
+run_example = 6;
 clear data;
 
 if run_example == 1
