@@ -488,7 +488,9 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   end
   
   if any(strcmp('comp_image',param.collate_equal.debug_plots))
-    h_comp_fig = get_figures(Nc,true,'comp_image');
+    % These windows are not saved so they are always displayed even in
+    % visible is not set in debug_plots.
+    h_comp_fig = get_figures(Nc,true,[mfilename '_comp_image']);
     set(h_comp_fig,'WindowStyle','docked')
     for wf_adc = 1:Nc
       clf(h_comp_fig(wf_adc));

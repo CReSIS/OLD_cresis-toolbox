@@ -97,6 +97,8 @@ if ~isempty(param.qlook.img_comb) && length(param.qlook.img_comb) ~= 3*(length(p
   error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
 end
 
+param = img_combine_input_check(param,'qlook');
+
 % Incoherent decimation (inc_dec, inc_B_filter) input check
 % Setting inc_dec = 0: returns coherent data
 % Setting inc_dec = 1: returns power detected data with no decimation

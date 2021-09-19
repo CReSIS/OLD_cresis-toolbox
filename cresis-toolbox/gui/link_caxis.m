@@ -35,6 +35,7 @@ if ~isempty(h_axes)
   if isempty(clims)
     clims = caxis(h_axes(1));
   end
+  clims = sort(clims);
   for axis_idx = 1:length(h_axes)
     caxis(h_axes(axis_idx),clims);
   end

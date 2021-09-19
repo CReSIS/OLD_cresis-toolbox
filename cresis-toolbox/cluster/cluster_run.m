@@ -1,4 +1,4 @@
-function ctrl_chain = cluster_run(ctrl_chain,cluster_run_mode)
+function [ctrl_chain,cluster_run_mode] = cluster_run(ctrl_chain,cluster_run_mode)
 % ctrl_chain = cluster_run(ctrl_chain,cluster_run_mode)
 %
 % Submits jobs in a list of batch chains. Each chain in the list runs in
@@ -96,7 +96,7 @@ if iscell(ctrl_chain)
         
         % 4. Submit jobs from the active stage for each parallel control structure
         %   ctrl.max_active_jobs.
-        ctrl = cluster_run(ctrl,cluster_run_mode);
+        [ctrl,cluster_run_mode] = cluster_run(ctrl,cluster_run_mode);
         
         % 5. Update ctrl_chain
         ctrl_chain{chain}{active_stage(chain)} = ctrl;

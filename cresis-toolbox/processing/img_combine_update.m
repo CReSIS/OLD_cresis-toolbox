@@ -34,21 +34,7 @@ fprintf('=====================================================================\n
 
 mode = param.img_combine_update.mode;
 
-if ~isfield(param.(mode),'img_comb_mult') || isempty(param.(mode).img_comb_mult)
-  param.(mode).img_comb_mult = inf;
-end
-
-if ~isfield(param.(mode),'img_comb_weights') || isempty(param.(mode).img_comb_weights)
-  param.(mode).img_comb_weights = [];
-end
-
-if ~isfield(param.(mode),'img_comb_weights_mode') || isempty(param.(mode).img_comb_weights_mode)
-  param.(mode).img_comb_weights_mode = '';
-end
-
-if ~isfield(param.(mode),'img_comb_bins') || isempty(param.(mode).img_comb_bins)
-  param.(mode).img_comb_bins = 1;
-end
+param = img_combine_input_check(param,mode);
 
 % Load frames file
 frames = frames_load(param);
@@ -109,7 +95,19 @@ for frm = param.cmd.frms
   [Data, Time] = img_combine(param, mode, layers);
 
   % Update parameter structure with new parameters
-  cmd = sprintf('%s.(mode) = param.(mode);', param_mode_str);
+  cmd = sprintf('%s.(mode).img_comb = param.(mode).img_comb;', param_mode_str);
+  eval(cmd);
+  cmd = sprintf('%s.(mode).img_comb_weights = param.(mode).img_comb_weights;', param_mode_str);
+  eval(cmd);
+  cmd = sprintf('%s.(mode).img_comb_mult = param.(mode).img_comb_mult;', param_mode_str);
+  eval(cmd);
+  cmd = sprintf('%s.(mode).img_comb_bins = param.(mode).img_comb_bins;', param_mode_str);
+  eval(cmd);
+  cmd = sprintf('%s.(mode).img_comb_weights_mode = param.(mode).img_comb_weights_mode;', param_mode_str);
+  eval(cmd);
+  cmd = sprintf('%s.(mode).img_comb_trim = param.(mode).img_comb_trim;', param_mode_str);
+  eval(cmd);
+  cmd = sprintf('%s.(mode).img_comb_layer_params = param.(mode).img_comb_layer_params;', param_mode_str);
   eval(cmd);
   
   % Save output
