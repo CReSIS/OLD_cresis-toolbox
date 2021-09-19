@@ -193,7 +193,7 @@ params = ct_set_params(params,['cmd.' cmd_method],0);
 % -------------------------------------------------------------------------
 % 2019_Greenland_P3
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190403_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190403_03'); % Deconvolution segment
+params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190403_03'); % Deconvolution/equalization/array-calibration segment
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190403_04');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190405_02');
 

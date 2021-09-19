@@ -97,6 +97,8 @@ if ~isempty(param.qlook.img_comb) && length(param.qlook.img_comb) ~= 3*(length(p
   error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
 end
 
+param = img_combine_input_check(param,'qlook');
+
 % Incoherent decimation (inc_dec, inc_B_filter) input check
 % Setting inc_dec = 0: returns coherent data
 % Setting inc_dec = 1: returns power detected data with no decimation
@@ -205,6 +207,11 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.qlook.imgs));
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
+
+elseif strcmpi(radar_name,'snow9')
+  total_num_sam = 45000 * ones(size(param.qlook.imgs));
   cpu_time_mult = 8e-8;
   mem_mult = 64;
   

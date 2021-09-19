@@ -65,7 +65,7 @@ arena.adc(adc_idx).stream = 'file';
 arena.adc(adc_idx).ip = '10.0.0.51';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 1;
-arena.adc(adc_idx).gain_dB = [0 0];
+arena.adc(adc_idx).gain_dB = [-6 -6];
 %          <dataStream type="file">
 %             <id>0</id>
 %             <name>dataStream0</name>
@@ -93,8 +93,8 @@ arena.psc.type = 'psc_0003';
 
 arena.daq.type = 'daq_0001';
 
-arena.ctu.name = 'ctu';
-arena.ctu.type = 'ctu_001D';
+arena.ctu.name = 'ctu00';
+arena.ctu.type = 'ctu_0032';
 if 1
   % External GPS
   arena.ctu.nmea = 31;
@@ -246,11 +246,15 @@ default.post.ops.location = 'arctic';
 defaults = {};
 
 % Survey Mode 2-8 GHz
-default.radar.wfs(1).f0 = 2e9;
-default.radar.wfs(1).f1 = 8e9;
+default.records.data_map = {[0 0 1 1]};
+default.radar.wfs(1).f0 = 500e6;
+default.radar.wfs(1).f1 = 750e6;
+default.radar.wfs(1).fmult = 24;
+default.radar.wfs(1).fLO = -10e9
 default.radar.wfs(1).Tpd = 180e-6;
-default.radar.wfs(1).BW_window = [2.4e9 7.1e9];
+default.radar.wfs(1).BW_window = [2e9 8e9];
 default.radar.wfs(1).t_ref = 0;
+default.radar.wfs(1).tx_paths = [1];
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-8 GHz';

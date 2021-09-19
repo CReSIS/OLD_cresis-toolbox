@@ -385,6 +385,8 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % clip new axis to limits of loaded data
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
+      button_motion(obj);
+      
     case 'uparrow' % Up-arrow: Move Echogram Up
       if ~isempty(current_object) && (current_object == obj.left_panel.layerLB || current_object == obj.left_panel.sourceLB)
         return
@@ -406,6 +408,8 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % clip new axis to limits of loaded data
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
+      button_motion(obj);
+      
     case 'rightarrow' % Right arrow
       cur_axis = [get(obj.h_axes,'Xlim') ...
         get(obj.h_axes,'YLim')];
@@ -423,6 +427,8 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % Draw data with new axis
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
       
+      button_motion(obj);
+      
     case 'leftarrow' % Left arrow
       cur_axis = [get(obj.h_axes,'Xlim') ...
         get(obj.h_axes,'YLim')];
@@ -439,6 +445,8 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       
       % Draw data with new axis
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
+      
+      button_motion(obj);
       
   end
 end
