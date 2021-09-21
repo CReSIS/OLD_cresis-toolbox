@@ -1254,7 +1254,7 @@ classdef layerdata < handle
           obj.layer{frm}.lat = obj.records.lat(recs);
           obj.layer{frm}.lon = obj.records.lon(recs);
         else
-          if frm < length(obj.frame_idxs)
+          if frm < length(obj.frames.frame_idxs)
             frm_mask = find(obj.along_track >= obj.records.along_track(obj.frames.frame_idxs(frm)) ...
               & obj.along_track < obj.records.along_track(obj.frames.frame_idxs(frm+1)));
           else
