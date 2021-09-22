@@ -47,7 +47,7 @@ if exist(ref_fn,'file')
         'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
       [lever_arm_val] = param.radar.lever_arm_fh(trajectory_param, [], 0);
     end
-    if isempty(param.radar.lever_arm_fh) || isequal(ref_traj.lever_arm_val,lever_arm_val)
+    if isempty(param.radar.lever_arm_fh) || sum(abs(ref_traj.lever_arm_val-lever_arm_val)) < 1e-6
       ref = records;
       ref.lat = ref_traj.lat;
       ref.lon = ref_traj.lon;
