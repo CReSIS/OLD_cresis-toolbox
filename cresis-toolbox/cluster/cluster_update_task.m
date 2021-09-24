@@ -12,6 +12,13 @@ function ctrl = cluster_update_task(ctrl,task_id,update_mode)
 %  .out = up-to-Nx1 vector of cells containing the outputs for each
 %    job as they complete (read in from the output.mat files)
 % job_id: the job id to check up on
+% update_mode: scalar integer (-1, 0, 1, or 2). Default is 1.
+%   -1: populates cpu_time and like fields and returns without checking
+%   ==0: is not subject to cluster_hold
+%   >0: check stdout/stderr
+%   >0: print error information
+%   >0: cpu time and memory warnings
+%   >0: retry failed jobs
 %
 % Outputs:
 % ctrl = updated ctrl structure

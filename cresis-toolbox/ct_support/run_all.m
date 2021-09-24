@@ -69,6 +69,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
+% param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 
 %% CReSIS Snow Radar
 % param_fns{end+1} = 'snow_param_2009_Antarctica_DC8.xls';
@@ -127,7 +128,6 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2008_Greenland_TO.xls'; % MCRDS not supported
 % param_fns{end+1} = 'rds_param_2009_Greenland_TO.xls'; % MCRDS not supported
 % param_fns{end+1} = 'rds_param_2011_Greenland_TO.xls'; % Season not completed
-% param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls'; % Season not completed
 
 %% CReSIS Snow Radar (not complete)
 % param_fns{end+1} = 'snow_param_2013_Greenland_Ground.xls'; % Season not complete/NOT CREATED
