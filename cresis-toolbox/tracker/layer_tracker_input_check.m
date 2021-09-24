@@ -136,6 +136,16 @@ for track_idx = 1:length(param.layer_tracker.track)
     continue;
   end
   
+  %  .age: override age in output layer (see layerdata for field info)
+  if ~isfield(track,'age') || isempty(track.age)
+    track.age = [];
+  end
+  %  .age_source: override age source in output layer (see layerdata for
+  %  field info)
+  if ~isfield(track,'age_source') || isempty(track.age_source)
+    track.age_source = [];
+  end
+  
   %  .compress: double scalar (default is empty), empty matrix disables,
   %  compress values to a limited range from [0 to .compress]
   if ~isfield(track,'compress') || isempty(track.compress)
@@ -180,12 +190,19 @@ for track_idx = 1:length(param.layer_tracker.track)
     track.data_noise_en = false;
   end
   
-  % debug_time_guard: Vertical band around layer in debug plot
+  %  .debug_time_guard: Vertical band around layer in debug plot
   if ~isfield(track,'debug_time_guard') || isempty(track.debug_time_guard)
     track.debug_time_guard = 50e-9;
   end
   param.layer_tracker.debug_time_guard = track.debug_time_guard;
   
+  %  .desc: override description in output layer (see layerdata for
+  %  field info)
+  if ~isfield(track,'desc') || isempty(track.desc)
+    track.desc = [];
+  end
+  
+  %  .detrend: optional detrending fields (NEED MORE DESCRIPTION HERE)
   if ~isfield(track,'detrend') || isempty(track.detrend)
     track.detrend = [];
   end
@@ -251,6 +268,12 @@ for track_idx = 1:length(param.layer_tracker.track)
     error('The number of ground truth layers must match the number of elements in the cutoff vector. numel(track.ground_truth.layers)=%d ~= numel(track.ground_truth.cutoff)=%d.',numel(track.ground_truth.layers),numel(track.ground_truth.cutoff));
   end
   
+  %  .group_name: override group name in output layer (see layerdata for
+  %  field info)
+  if ~isfield(track,'group_name') || isempty(track.group_name)
+    track.group_name = [];
+  end
+
   %  .ice_mask: struct controlling ice mask loading
   if ~isfield(track,'ice_mask') || isempty(track.ice_mask)
     track.ice_mask = [];

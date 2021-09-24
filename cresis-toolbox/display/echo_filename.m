@@ -51,5 +51,5 @@ echo_fn_dir = ct_filename_out(param,ct_filename_out_fn);
 if img == 0
   echo_fn = fullfile(echo_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
 else
-  echo_fn = fullfile(echo_fn_dir,sprintf('Data_%02d_%s_%03d.mat',img,param.day_seg,frm));
+  echo_fn = fullfile(echo_fn_dir,sprintf('Data_img_%02d_%s_%03d.mat',img,param.day_seg,frm));
 end

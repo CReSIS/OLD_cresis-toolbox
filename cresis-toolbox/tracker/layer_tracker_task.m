@@ -391,14 +391,14 @@ for track_idx = param.layer_tracker.tracks_in_task
       
     else
       % Crossovers already loaded during layer_tracker.m
-      % Ensure crossover season is good
+      % Ensure season of the crossing line is good
       good_mask = true(size(param.layer_tracker.crossover.twtt));
       for idx = 1:length(param.layer_tracker.crossover.twtt)
         if any(strcmp(param.layer_tracker.crossover.season_name{idx}, track.crossover.season_names_bad))
           good_mask(idx) = false;
         end
       end
-      % Ensure crossover gps_time is good
+      % Ensure gps_time of the crossing line is good
       good_mask = good_mask & track.crossover.gps_time_good_eval(param.layer_tracker.crossover.crossover_gps_time);
       
       % Convert crossover twtt to source twtt and then convert from twtt
@@ -406,7 +406,11 @@ for track_idx = param.layer_tracker.tracks_in_task
       cols = round(interp1(mdata.GPS_time,1:length(mdata.GPS_time), param.layer_tracker.crossover.source_gps_time(good_mask)));
       rows = round(interp1(mdata.Time,1:length(mdata.Time), param.layer_tracker.crossover.twtt(good_mask) ...
         + (param.layer_tracker.crossover.source_elev(good_mask) - param.layer_tracker.crossover.cross_elev(good_mask))*2/c ));
-      track.crossovers = [cols; rows];
+      % Crossover with NaN cols is a crossover that is not in this frame,
+      % remove any cols that fall outside of this frame
+      good_mask = isfinite(cols);
+      % Build crossover matrix, track.crossovers
+      track.crossovers = [cols(good_mask); rows(good_mask)];
       track.crossovers(3,:) = track.viterbi.gt_cutoff;
       
     end
