@@ -128,12 +128,10 @@ elseif isstruct(ctrl_chain)
 elseif isnumeric(ctrl_chain)
   if strcmpi(mode,'batch')
     ctrl = cluster_get_batch(ctrl_chain,false,0);
-    ctrl_chain = cluster_print_chain({{ctrl}},force_check);
+    [ctrl_chain,stats] = cluster_print_chain({{ctrl}},force_check);
   else
     ctrl_chain = cluster_load_chain(ctrl_chain);
-    ctrl_chain = cluster_print_chain(ctrl_chain,force_check);
+    [ctrl_chain,stats] = cluster_print_chain(ctrl_chain,force_check);
   end
   
 end
-
-return
