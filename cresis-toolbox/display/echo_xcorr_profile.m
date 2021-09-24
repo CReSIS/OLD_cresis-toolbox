@@ -50,6 +50,10 @@ switch (profile_name)
     param.h_filt = [0.1 0.1 0.4 0.5 0.4 0.1 0.1];
     param.h_filt = param.h_filt-mean(param.h_filt);
     param.h_filt_offset = -3;
+  case 'short_unitstep+peaky' % Enhance peaky with unit step responses
+    param.h_filt = fliplr([0.1*ones(1,6) 0.5*ones(1,7)]) + [0 0 0 0.1 0.1 0.4 0.5 0.4 0.1 0.1 0 0 0];
+    param.h_filt = param.h_filt-mean(param.h_filt);
+    param.h_filt_offset = -4;
   otherwise
     error('Profile %s does not exist.', profile_name);
 end

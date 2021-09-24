@@ -27,6 +27,9 @@ else
   % Example to run all segments
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+else
+  cmd_method = 'generic';
+  rds_settings;
 end
 
 % param_override.layer_tracker.debug_plots = {'tracked_images'}; % Uncomment to save jpg output files
@@ -36,6 +39,7 @@ param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncom
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
 param_override.layer_tracker.echogram_source = 'qlook';
+% param_override.layer_tracker.echogram_source = 'standard';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/standard';
@@ -55,7 +59,7 @@ param_override.layer_tracker.layer_params(layer_idx).layerdata_source = 'layer';
 % layer_idx = layer_idx + 1;
 % param_override.layer_tracker.layer_params(layer_idx).source = 'ops';
 
-% block_size_frms: Number of frames to be loaded at a time
+% block_size_frms: Number of frames to be loaded at a time (inf for all)
 param_override.layer_tracker.block_size_frms = 1;
 
 % track_per_task: Number of tracks per task
@@ -183,13 +187,13 @@ switch ct_output_dir(params(1).radar_name)
     %% RDS: Viterbi bottom
     if 0
       track.method                      = 'viterbi';
-      track.layer_names                 = {'bottom'};
+      track.layer_names                 = {'bottom_viterbi'};
       
       track.min_bin = struct('name','tomo_top');
       track.max_bin = struct('name','tomo_bottom');
       
       track.crossover.en = true;
-      track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3'}; % Bad seasons to not include
+      track.crossover.season_names_bad = {'2003_Greenland_P3', '2005_Greenland_P3', param.season_name}; % Bad seasons to not include
       % track.crossover.gps_time_good_eval = @(x) true; % All cross overs are good
       track.crossover.gps_time_good_eval = @(x) x > datenum_to_epoch(datenum('2010/01/01')); % Cross overs before this date are good
       
@@ -218,9 +222,10 @@ switch ct_output_dir(params(1).radar_name)
       track.viterbi.transition_weight   = 1; % Larger --> smoother
       track.viterbi.gt_cutoff           = 50;
       
+      track.surf_suppress.eval_cmd = '6*log2(time/surf) - 15*max(0,1 - abs(time-surf)/2e-6);';
       track.mult_suppress.en      = true;
       track.init.max_diff         = inf;
-      track.init.method  = 'nan';
+      track.init.method           = 'nan';
       track.detrend               = [];
       track.filter_trim           = [0 120];
       track.norm.scale            = [-40 90];
