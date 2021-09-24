@@ -15,9 +15,13 @@ function layers = opsCopyLayers(param,copy_param)
 %   param: Parameter structure from read_param_xls parameter spreadsheet
 %   copy_param: Structure which controls copying process
 %     .layer_source: structure specifying the source layer
+%
 %       .name: cell array of layer names or a string with a single layer
-%         name in it; layer names are unique (e.g. 'surface', 'Surface',
-%         'bottom', 'atm', etc)
+%       name in it; layer names must be unique even if the group name is
+%       different (e.g. 'surface', 'Surface', 'bottom', 'atm', etc. are all
+%       different layers); the same layer can be copied multiple times in a
+%       single call
+%
 %       .source: string (e.g. 'records', 'echogram', 'layerdata', 'lidar',
 %         'custom', or 'ops')
 %       .echogram_source: used only with "echogram" source, string
@@ -58,6 +62,7 @@ function layers = opsCopyLayers(param,copy_param)
 %       .quality: used only with custom source, cell array of Nx by 1
 %         vectors corresponding to gps_time field containing quality (1=good,
 %         2=moderate, 3=derived/poor), 1 is default when not specified or NaN
+%       END CUSTOM SOURCE FIELDS
 %       -------------------------------------------------------------------
 %
 %     .layer_dest = structure specifying the destination layer
@@ -76,13 +81,37 @@ function layers = opsCopyLayers(param,copy_param)
 %         layers that do not exist (default is true). If false, the layer
 %         will be created if it does not exist. If true, an error will be
 %         thrown if the layer does not exist.
-%       .group: used only with ops source and only needed when the layer
-%         does not already exist. Should be a string containing the group
-%         name that the layer should be added to. Leave blank to use the
-%         standard group.
-%       .description: used only with ops source and only needed when the layer
-%         does not already exist. Should be a string containing a
-%         description of the layer contents.
+%
+%        .group_name (or .group to support legacy code): Optional argument.
+%        This field is for overriding the group_name of the source. It
+%        should be a cell array with the same dimensions as .name if .name
+%        is a cell array or a string if .name is a string. Leave undefined
+%        or an empty matrix to use the default. If a cell has an empty
+%        matrix in it, [], then the default is used for that layer. Note
+%        that an empty string is a valid entry and will not trigger the
+%        default to be used. The strings should contain the group_name of
+%        the corresponding layer in .name. The default value is the value
+%        from the destination layer if it already exists. If the
+%        destination layer does not exist, then the layer source value is
+%        used. If the layer source does not have a value set, then the
+%        value will be the string "standard" for each layer.
+%
+%        .desc (or .description to support legacy code): Has the same
+%        behavior as .group_name except the default value is an empty
+%        string when no other value is available
+%
+%        .age: Has the same behavior as .group_name except the fields are
+%        double scalars. The default value is a NaN when no other value is
+%        available.
+%
+%        .age_source: Has the same behavior as .group_name except the
+%        fields are all structure arrays. The default value is an empty
+%        structure array when no other value is available. Note that to
+%        override the age_source field to remove any age sources, care must
+%        be taken to ensure that an empty structure is passed in as
+%        "struct()" and not "[]" since the latter will cause the default
+%        value to be used.
+%
 %     .eval: Optional structure for performing operations on the source
 %       before it is written to the destination.
 %       .cmd: Command string that will be passed to eval
@@ -154,6 +183,91 @@ if ~any(copy_param.quality.value == [1 2 3])
   error('Invalid quality value %d', copy_param.quality.value);
 end
 
+% Legacy format used .group and .description, update these if needed
+if ~isfield(copy_param.layer_dest,'desc') && isfield(copy_param.layer_dest,'description')
+  copy_param.layer_dest.desc = copy_param.layer_dest.description;
+end
+if ~isfield(copy_param.layer_dest,'group_name') && isfield(copy_param.layer_dest,'group')
+  copy_param.layer_dest.group_name = copy_param.layer_dest.group;
+end
+
+% copy_param.layer_dest.age: optional field, overrides age field in the
+% corresponding output fields. If a single scalar numeric value, then all
+% layers will be written with this value. If a cell array, then each cell
+% corresponds to the layer_source layer at the same index. If the contents
+% of the cell are [] or if the cell does not exist, then the default value
+% is used. The default value first looks at the destination layer. If not
+% defined, then the default value pulls from the source layer. If not
+% defined, then the value is NaN.
+if ~isfield(copy_param.layer_dest,'age')
+  copy_param.layer_dest.age = {};
+end
+if iscell(copy_param.layer_dest.age)
+  for idx = 1:length(copy_param.layer_dest.age)
+    if ~isnumeric(copy_param.layer_dest.age{idx})
+      error('copy_param.layer_dest.age{%d} must be 1) a numeric scalar or 2) an empty matrix [].', idx);
+    end
+  end
+else
+  if ~isempty(copy_param.layer_dest.age) && ~isnumeric(copy_param.layer_dest.age)
+    error('copy_param.layer_dest.age must be 1) a cell array of numeric scalars, 2) a numeric scalar, 3) an empty numeric matrix [], or 4) undefined.');
+  end
+end
+
+% copy_param.layer_dest.age_source: Same as .age field except instead of
+% numeric values it is a structure array. If not defined elsewhere, then
+% the value is struct() instead of NaN.
+if ~isfield(copy_param.layer_dest,'age_source')
+  copy_param.layer_dest.age_source = {};
+end
+if iscell(copy_param.layer_dest.age_source)
+  for idx = 1:length(copy_param.layer_dest.age_source)
+    if ~isstruct(copy_param.layer_dest.age_source{idx})
+      error('copy_param.layer_dest.age_source{%d} must be 1) a struct array or 2) an empty matrix [].', idx);
+    end
+  end
+else
+  if ~isempty(copy_param.layer_dest.age_source) && ~isstruct(copy_param.layer_dest.age_source)
+    error('copy_param.layer_dest.age_source must be 1) a cell array of structure arrays, 2) a structure array, 3) an empty numeric matrix [], or 4) undefined.');
+  end
+end
+
+% copy_param.layer_dest.group_name: Same as .age field except instead of
+% numeric values it is a string. If not defined elsewhere, then
+% the value is 'standard' instead of NaN.
+if ~isfield(copy_param.layer_dest,'group_name')
+  copy_param.layer_dest.group_name = {};
+end
+if iscell(copy_param.layer_dest.group_name)
+  for idx = 1:length(copy_param.layer_dest.group_name)
+    if ~ischar(copy_param.layer_dest.group_name{idx})
+      error('copy_param.layer_dest.group_name{%d} must be 1) a string or 2) an empty matrix [].', idx);
+    end
+  end
+else
+  if ~isempty(copy_param.layer_dest.group_name) && ~ischar(copy_param.layer_dest.group_name)
+    error('copy_param.layer_dest.group_name must be 1) a cell array of strings, 2) a string, 3) an empty numeric matrix [], or 4) undefined.');
+  end
+end
+
+% copy_param.layer_dest.desc: Same as .age field except instead of
+% numeric values it is a string. If not defined elsewhere, then
+% the value is '' (empty string) instead of NaN.
+if ~isfield(copy_param.layer_dest,'desc')
+  copy_param.layer_dest.desc = {};
+end
+if iscell(copy_param.layer_dest.desc)
+  for idx = 1:length(copy_param.layer_dest.desc)
+    if ~ischar(copy_param.layer_dest.desc{idx})
+      error('copy_param.layer_dest.desc{%d} must be 1) a string or 2) an empty matrix [].', idx);
+    end
+  end
+else
+  if ~isempty(copy_param.layer_dest.desc) && ~ischar(copy_param.layer_dest.desc)
+    error('copy_param.layer_dest.desc must be 1) a cell array of strings, 2) a string, 3) an empty numeric matrix [], or 4) undefined.');
+  end
+end
+
 if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
   % Default is the CSARP_layer directory
   copy_param.layer_dest.layerdata_source = 'layer';
@@ -214,34 +328,12 @@ if strcmpi(copy_param.layer_source.source,'custom')
     else
       layer_source(layer_idx).quality = ones(size(layer_source(layer_idx).gps_time));
     end
-    % age
-    if isfield(copy_param.layer_source,'age') ...
-        && ~isempty(copy_param.layer_source.age)
-      layer_source(layer_idx).age = copy_param.layer_source.age{layer_idx};
-    else
-      layer_source(layer_idx).age = [];
-    end
-    % age_source
-    if isfield(copy_param.layer_source,'age_source') ...
-        && ~isempty(copy_param.layer_source.age_source)
-      layer_source(layer_idx).age_source = copy_param.layer_source.age_source{layer_idx};
-    else
-      layer_source(layer_idx).age_source = [];
-    end
-    % desc
-    if isfield(copy_param.layer_source,'desc') ...
-        && ~isempty(copy_param.layer_source.desc)
-      layer_source(layer_idx).desc = copy_param.layer_source.desc{layer_idx};
-    else
-      layer_source(layer_idx).desc = [];
-    end
-    % group_name
-    if isfield(copy_param.layer_source,'group_name') ...
-        && ~isempty(copy_param.layer_source.group_name)
-      layer_source(layer_idx).group_name = copy_param.layer_source.group_name{layer_idx};
-    else
-      layer_source(layer_idx).group_name = [];
-    end
+    % age, age_source, desc, group_name not set for custom sources, these
+    % can be set using the corresponding destination override fields
+    layer_source(layer_idx).age = [];
+    layer_source(layer_idx).age_source = [];
+    layer_source(layer_idx).desc = [];
+    layer_source(layer_idx).group_name = [];
   end
 else
   layer_source = opsLoadLayers(load_param,copy_param.layer_source);
@@ -543,6 +635,7 @@ for layer_idx = 1:length(layer_source)
     drawnow;
     pause(1);
   end
+  
 end
 
 if strcmpi(copy_param.layer_dest.source,'ops')
@@ -556,8 +649,39 @@ if strcmpi(copy_param.layer_dest.source,'ops')
       % Create the layer if it does not exist
       ops_param = [];
       ops_param.properties.lyr_name = layer_dest(layer_idx).name;
-      ops_param.properties.lyr_group_name = layer_dest(layer_idx).group_name;
-      ops_param.properties.lyr_description = layer_dest(layer_idx).desc;
+      
+      if ischar(copy_param.layer_dest.group_name)
+        ops_param.properties.lyr_group_name = copy_param.layer_dest.group_name;
+        
+      elseif length(copy_param.layer_dest.group_name) >= layer_idx && ischar(copy_param.layer_dest.group_name{layer_idx})
+        ops_param.properties.lyr_group_name = copy_param.layer_dest.group_name{layer_idx};
+
+      elseif ischar(layer_dest(layer_idx).group_name)
+        ops_param.properties.lyr_group_name = layer_dest(layer_idx).group_name;
+        
+      elseif ischar(layer_source(layer_idx).group_name)
+        ops_param.properties.lyr_group_name = layer_source(layer_idx).group_name;
+        
+      else
+        ops_param.properties.lyr_group_name = 'standard';
+      end
+      
+      if ischar(copy_param.layer_dest.desc)
+        ops_param.properties.lyr_description = copy_param.layer_dest.desc;
+        
+      elseif length(copy_param.layer_dest.desc) >= layer_idx && ischar(copy_param.layer_dest.desc{layer_idx})
+        ops_param.properties.lyr_description = copy_param.layer_dest.desc{layer_idx};
+
+      elseif ischar(layer_dest(layer_idx).group_name)
+        ops_param.properties.lyr_description = layer_dest(layer_idx).desc;
+        
+      elseif ischar(layer_source(layer_idx).desc)
+        ops_param.properties.lyr_description = layer_source(layer_idx).desc;
+        
+      else
+        ops_param.properties.lyr_description = 'standard';
+      end
+      
       ops_param.properties.public = true;
       
       [status,ops_data] = opsCreateLayer(sys,ops_param);
@@ -587,30 +711,74 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
         error('Layer %s not found in layer organizer file %s. Set copy_param.layer_dest.existence_check to false to ignore this error and opsCopyLayers will create layers that do not exist already.\n', layer_dest(layer_idx).name, layers.layer_organizer_fn());
       else
         layer_organizer = [];
-        if ~isempty(layer_source(layer_idx).group_name)
-          layer_organizer.lyr_group_name = {layer_source(layer_idx).group_name};
-        else
+        
+        if ischar(copy_param.layer_dest.group_name)
+          layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name};
+          
+        elseif length(copy_param.layer_dest.group_name) >= layer_idx && ischar(copy_param.layer_dest.group_name{layer_idx})
+          layer_organizer.lyr_group_name = {copy_param.layer_dest.group_name{layer_idx}};
+          
+        elseif ischar(layer_dest(layer_idx).group_name)
           layer_organizer.lyr_group_name = {layer_dest(layer_idx).group_name};
+          
+        elseif ischar(layer_source(layer_idx).group_name)
+          layer_organizer.lyr_group_name = {layer_source(layer_idx).group_name};
+          
+        else
+          ops_param.properties.lyr_group_name = 'standard';
         end
+        
         layer_organizer.lyr_name = {layer_dest(layer_idx).name};
         id = layers.insert_layers(layer_organizer);
       end
     end
-    % Update layer information
-    if ~isempty(layer_source(layer_idx).age)
-      layers.set_age(id,layer_source(layer_idx).age);
-    elseif isfield(copy_param.layer_dest,'age')
-      layers.set_age(id,copy_param.layer_dest.age);
-    end
-    if ~isempty(layer_source(layer_idx).age_source)
-      layers.set_age_source(id,layer_source(layer_idx).age_source);
-    elseif isfield(copy_param.layer_dest,'age_source')
-      layers.set_age_source(id,copy_param.layer_dest.age_source);
-    end
-    if ~isempty(layer_source(layer_idx).desc)
-      layers.set_desc(id,layer_source(layer_idx).desc);
-    elseif isfield(copy_param.layer_dest,'desc')
+    % Update "desc" field
+    if ischar(copy_param.layer_dest.desc)
       layers.set_desc(id,copy_param.layer_dest.desc);
+      
+    elseif length(copy_param.layer_dest.desc) >= layer_idx && ischar(copy_param.layer_dest.desc{layer_idx})
+      layers.set_desc(id,copy_param.layer_dest.desc{layer_idx});
+      
+    elseif ischar(layer_dest(layer_idx).desc)
+      layers.set_desc(id,layer_dest(layer_idx).desc);
+      
+    elseif ischar(layer_source(layer_idx).desc)
+      layers.set_desc(id,layer_source(layer_idx).desc);
+      
+    else
+      layers.set_desc(id,NaN);
+    end
+    % Update "age" field
+    if isnumeric(copy_param.layer_dest.age)
+      layers.set_age(id,copy_param.layer_dest.age);
+      
+    elseif length(copy_param.layer_dest.age) >= layer_idx && isnumeric(copy_param.layer_dest.age{layer_idx})
+      layers.set_age(id,copy_param.layer_dest.age{layer_idx});
+      
+    elseif isnumeric(layer_dest(layer_idx).age)
+      layers.set_age(id,layer_dest(layer_idx).age);
+      
+    elseif isnumeric(layer_source(layer_idx).age)
+      layers.set_age(id,layer_source(layer_idx).age);
+      
+    else
+      layers.set_age(id,'standard');
+    end
+    % Update "age_source" field
+    if isstruct(copy_param.layer_dest.age_source)
+      layers.set_age_source(id,copy_param.layer_dest.age_source);
+      
+    elseif length(copy_param.layer_dest.age_source) >= layer_idx && isstruct(copy_param.layer_dest.age_source{layer_idx})
+      layers.set_age_source(id,copy_param.layer_dest.age_source{layer_idx});
+      
+    elseif isstruct(layer_dest(layer_idx).age_source)
+      layers.set_age_source(id,layer_dest(layer_idx).age_source);
+      
+    elseif isstruct(layer_source(layer_idx).age_source)
+      layers.set_age_source(id,layer_source(layer_idx).age_source);
+      
+    else
+      layers.set_age_source(id,struct());
     end
     
     % Update layer vectors

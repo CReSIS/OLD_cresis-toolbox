@@ -437,7 +437,7 @@ if ice_mask_en
     mask.proj = geotiffinfo(track.ice_mask.fn);
   end
   
-  [mask.x, mask.y] = projfwd(mask.proj, mdata.Latitude, mdata.Longitude);
+  [mask.x, mask.y] = projfwd(mask.proj, lat, lon);
   mask.X = mask.R(3,1) + mask.R(2,1)*(1:size(mask.mask,2));
   mask.Y = mask.R(3,2) + mask.R(1,2)*(1:size(mask.mask,1));
   [mask.X,mask.Y] = meshgrid(mask.X,mask.Y);
