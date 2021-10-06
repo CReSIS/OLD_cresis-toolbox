@@ -333,12 +333,12 @@ if any(param.records.file.version == [9 10 103 412])
     if board_hdrs{board_idx}.pps_ftime_cntr_latch(first_reset) > 10e6
       mask(1:first_reset) = 0;
     end
-    
     epri_pris = board_hdrs{board_idx}.profile_cntr_latch(mask);
-    
+
     %% Correct EPRI/Arena: Find EPRI jumps and mask out
     % =====================================================================
-    jump_idxs = find( abs(diff(double(epri_pris))/configs.total_presums - 1) > 0.1);
+%     jump_idxs = find( abs(diff(double(epri_pris))/configs.total_presums - 1) > 0.1);
+    jump_idxs = find( abs(diff(double(epri_pris))/configs.adc{board_idx}.presums - 1) > 0.1);
     
     bad_mask = zeros(size(epri_pris));
     for jump_idx = jump_idxs

@@ -20,9 +20,11 @@ function mdata = load_L1B(fn)
 %
 % See also: plot_L1B.m, uncompress_echogram.m
 
+%% Load File
 [fn_dir,fn_name,fn_ext] = fileparts(fn);
 
 if strcmpi(fn_ext,'.nc')
+  % NETCDF
   mdata = netcdf_to_mat(fn);
   
   mdata.Latitude = mdata.lat;
@@ -52,6 +54,7 @@ if strcmpi(fn_ext,'.nc')
   mdata = rmfield(mdata,'heading');
   
 elseif strcmpi(fn_ext,'.mat')
+  % MAT
   mdata = load(fn);
   
 else
@@ -60,6 +63,7 @@ end
 
 mdata = uncompress_echogram(mdata);
 
+%% param_get_heights
 if isfield(mdata,'param_get_heights')
   if isequal({'get_heights'},fieldnames(mdata.param_get_heights))
     % param_get_heights is incomplete structure, supplement with param_records
@@ -124,6 +128,7 @@ if isfield(mdata,'param_get_heights')
   end
 end
 
+%% param_csarp
 if isfield(mdata,'param_csarp')
   if ~isfield(mdata.param_csarp,'csarp')
     % Very old file format
@@ -151,6 +156,7 @@ if isfield(mdata,'param_csarp')
   mdata.file_type = 'echo';
 end
 
+%% param_combine
 if isfield(mdata,'param_combine')
   mdata.param_array = mdata.param_combine;
   mdata = rmfield(mdata,'param_combine');
@@ -177,12 +183,31 @@ if isfield(mdata,'param_combine')
   mdata.file_type = 'echo';
 end
 
+%% param_combine_wf_chan
 if isfield(mdata,'param_combine_wf_chan')
   mdata.param_array.array = mdata.param_combine_wf_chan;
   mdata = rmfield(mdata,'param_combine_wf_chan');
   
+  if isfield(mdata.param_array.array,'array')
+    warning('Very old file format. Fixing array field.');
+    tmp_array = mdata.param_array.array.array;
+    mdata.param_array.array = rmfield(mdata.param_array.array,'array');
+    mdata.param_array.array = merge_structs(mdata.param_array.array,tmp_array);
+  end
   % Ensure param_records has standard 3 fields (some old files do not
   % have)
+  if ~isfield(mdata.param_sar,'day_seg')
+    warning('Very old file format. No day_seg field present for this L1B data.');
+    mdata.param_sar.day_seg = '';
+  end
+  if ~isfield(mdata.param_sar,'season_name')
+    warning('Very old file format. No season_name field present for this L1B data.');
+    mdata.param_sar.season_name = '';
+  end
+  if ~isfield(mdata.param_sar,'radar_name')
+    warning('Very old file format. No radar_name field present for this L1B data.');
+    mdata.param_sar.radar_name = '';
+  end
   mdata.param_records.day_seg = mdata.param_sar.day_seg;
   mdata.param_records.season_name = mdata.param_sar.season_name;
   mdata.param_records.radar_name = mdata.param_sar.radar_name;
@@ -239,6 +264,42 @@ if isfield(mdata,'param_combine_wf_chan')
   mdata.file_type = 'echo';
 end
 
+%% records.gps.time_offset, radar.lever_arm_fh
+if isfield(mdata,'param_qlook')
+  if ~isfield(mdata.param_qlook.records,'gps')
+    mdata.param_qlook.records.gps = [];
+  end
+  if ~isfield(mdata.param_qlook.records.gps,'time_offset')
+    mdata.param_qlook.records.gps.time_offset = NaN;
+  end
+  if ~isfield(mdata.param_qlook.radar,'lever_arm_fh')
+    if isfield(mdata.param_qlook.qlook.lever_arm_fh)
+      mdata.param_qlook.radar.lever_arm_fh = mdata.param_qlook.qlook.lever_arm_fh;
+      mdata.param_qlook.qlook = rmfield(mdata.param_qlook.qlook,'lever_arm_fh');
+    else
+      mdata.param_qlook.radar.lever_arm_fh = [];
+    end
+  end
+end
+
+if isfield(mdata,'param_array')
+  if ~isfield(mdata.param_array.records,'gps')
+    mdata.param_array.records.gps = [];
+  end
+  if ~isfield(mdata.param_array.records.gps,'time_offset')
+    mdata.param_array.records.gps.time_offset = NaN;
+  end
+  if ~isfield(mdata.param_array.radar,'lever_arm_fh')
+    if isfield(mdata.param_array.sar.lever_arm_fh)
+      mdata.param_array.radar.lever_arm_fh = mdata.param_array.sar.lever_arm_fh;
+      mdata.param_array.sar = rmfield(mdata.param_array.sar,'lever_arm_fh');
+    else
+      mdata.param_array.radar.lever_arm_fh = [];
+    end
+  end
+end
+
+%% Roll, Pitch, Heading
 if ~isfield(mdata,'Roll') && isfield(mdata,'GPS_time')
   mdata.Roll = zeros(size(mdata.GPS_time));
 end
@@ -248,6 +309,6 @@ if ~isfield(mdata,'Pitch') && isfield(mdata,'GPS_time')
 end
 
 if ~isfield(mdata,'Heading') && isfield(mdata,'GPS_time')
-  mdata.Heading = zeros(size(mdata.GPS_time));
+  mdata.Heading = nan(size(mdata.GPS_time));
 end
 

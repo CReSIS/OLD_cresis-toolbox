@@ -1,5 +1,5 @@
-function mdata = check_img_combine(data_fns, rlines)
-% mdata = check_img_combine(data_fns, rlines)
+function mdata = img_combine_check(data_fns, rlines)
+% mdata = img_combine_check(data_fns, rlines)
 %
 % Function for checking the gains of different images including those
 % formed with img_combine. Note that this function automatically searches

@@ -205,56 +205,25 @@ elseif strcmpi(example_str,'mass_conservation')
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'');
+  % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'');
+  params = read_param_xls(ct_filename_param('accum_param_2019_Antarctica_TObas.xls'),'');
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   params = ct_set_params(params,'cmd.frms',[]);
-%   params = ct_set_params(params,'cmd.generic',0);
-%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180421_01');
-%   params = ct_set_params(params,'cmd.frms',[14 15]);
+  % params = ct_set_params(params,'cmd.generic',0);
+  % params = ct_set_params(params,'cmd.generic',1,'day_seg','20200127_01');
+  % params = ct_set_params(params,'cmd.frms',[28:33]);
   
-  grid_fn = ct_filename_gis('greenland/mass_conservation/BedMachineGreenland-2017-09-20.nc');
-  
-  % Create geotiff projection structure
-  % 1. Grab from a geotiff file with the same projection
-  % insert_param.proj = geotiffinfo(ct_filename_gis([],'greenland\Landsat-7\Greenland_natural_90m.tif'));
-  % 2. Create an mstruct with the same projection
-  %[x,y,mstruct] = geodetic_to_stereographic(70,-45);
-  % 3. Hand construction of geotiff projection OR
-  insert_param.proj = [];
-  insert_param.proj.CornerCoords = [];
-  insert_param.proj.Ellipsoid = [];
-  insert_param.proj.PM = [];
-  insert_param.proj.PMLongToGreenwich = [];
-  insert_param.proj.Zone = [];
-  grid_ellipsoid = referenceEllipsoid('WGS84');
-  insert_param.proj.SemiMajor = grid_ellipsoid.SemimajorAxis;
-  insert_param.proj.SemiMinor = grid_ellipsoid.SemiminorAxis;
-  insert_param.proj.ProjParm = zeros(7,1);
-  insert_param.proj.ProjParm(1) = ncreadatt(grid_fn,'mapping','standard_parallel');
-  insert_param.proj.ProjParm(2) = ncreadatt(grid_fn,'mapping','straight_vertical_longitude_from_pole');
-  insert_param.proj.ProjParm(3) = 0;
-  insert_param.proj.ProjParm(4) = 0;
-  insert_param.proj.ProjParm(5) = 1;
-  insert_param.proj.ProjParm(6) = ncreadatt(grid_fn,'mapping','false_easting');
-  insert_param.proj.ProjParm(7) = ncreadatt(grid_fn,'mapping','false_northing');
-  
-  insert_param.proj.CTProjection = 'CT_PolarStereographic'; % Choose from list in toolbox/map/mapproj/private/projcode
-  insert_param.proj.GeoTIFFCodes.CTProjection = 15; % CT_PolarStereographic from toolbox/map/mapproj/private/projcode
-  
-  % Default GeoTIFFCode values
-  insert_param.proj.GeoTIFFCodes.Model = int16(1);
-  insert_param.proj.GeoTIFFCodes.PCS = int16(32767);
-  insert_param.proj.GeoTIFFCodes.GCS = int16(32767);
-  insert_param.proj.GeoTIFFCodes.UOMAngle = int16(32767);
-  insert_param.proj.GeoTIFFCodes.Datum = int16(32767);
-  insert_param.proj.GeoTIFFCodes.PM = int16(32767);
-  insert_param.proj.GeoTIFFCodes.ProjCode = int16(32767);
-  insert_param.proj.GeoTIFFCodes.Projection= int16(32767);
-  insert_param.proj.GeoTIFFCodes.MapSys = int16(32767);
-  
-  % Default units to meters for now
-  insert_param.proj.GeoTIFFCodes.UOMLength = int16(9001);
+  proj_load_standard;
+  if 0
+    % Greenland Mass Conservation
+    grid_fn = ct_filename_gis(fullfile('greenland','mass_conservation','BedMachineGreenland-2017-09-20.nc'));
+    insert_param.proj = arctic_proj;
+  else
+    % Antarctica Mass Conservation
+    grid_fn = ct_filename_gis(fullfile('antarctica','mass_conservation','BedMachineAntarctica_2020-07-15_v02.nc'));
+    insert_param.proj = antarctic_proj;
+  end
   
   insert_param.eval.ref_source.name = 'surface';
   insert_param.eval.ref_source.source = 'layerdata';
@@ -263,11 +232,8 @@ elseif strcmpi(example_str,'mass_conservation')
   insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = double(ncread(grid_fn,'x'));
   insert_param.y = double(ncread(grid_fn,'y'));
-  %insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
-  insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) - ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice)));
   
   insert_param.type = 'raster'; % Raster data
-  insert_param.layer_dest.name = 'bottom_mc_top';
   insert_param.layer_dest.source = 'layerdata';
   insert_param.layer_dest.layerdata_source = 'layer';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
@@ -276,15 +242,28 @@ elseif strcmpi(example_str,'mass_conservation')
   insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
   insert_param.copy_method = 'overwrite';
   insert_param.gaps_fill.method = 'interp_finite';
-  opsInsertLayer(params, insert_param);
   
-  insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) + ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice)));
-  insert_param.layer_dest.name = 'bottom_mc_bot';
-  opsInsertLayer(params, insert_param);
+  % ENABLE EACH DESIRED LAYER
+  if 1
+    % Mass conservation estimate
+    insert_param.data = max(0,(double(ncread(grid_fn,'thickness'))).' / (c/2/sqrt(er_ice)));
+    insert_param.layer_dest.name = 'bottom_mc';
+    opsInsertLayer(params, insert_param);
+  end
   
-  insert_param.data = max(0,(double(ncread(grid_fn,'thickness'))).' / (c/2/sqrt(er_ice)));
-  insert_param.layer_dest.name = 'bottom_mc';
-  opsInsertLayer(params, insert_param);
+  if 1
+    % Mass conservation estimate, lower (minimum elevation) bound
+    insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) - ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice))); % bottom_mc_top
+    insert_param.layer_dest.name = 'bottom_mc_top';
+    opsInsertLayer(params, insert_param);
+  end
+  
+  if 1
+    % Mass conservation estimate, upper (maximum elevation) bound
+    insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) + ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice))); % bottom_mc_bottom
+    insert_param.layer_dest.name = 'bottom_mc_bot';
+    opsInsertLayer(params, insert_param);
+  end
   
 elseif strcmpi(example_str,'gogineni_jakobshavn_grid')
   %% Example 6: Gogineni's Jakobshavn Grid

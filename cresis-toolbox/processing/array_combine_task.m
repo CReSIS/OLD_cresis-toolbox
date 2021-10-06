@@ -58,6 +58,7 @@ radiometric_corr_dB = param.array.radiometric_corr_dB;
 
 %% Combine chunks into each frame
 % =====================================================================
+[output_dir,radar_type] = ct_output_dir(param.radar_name);
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   

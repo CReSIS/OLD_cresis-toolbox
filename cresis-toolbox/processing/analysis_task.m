@@ -664,7 +664,7 @@ for img = 1:length(store_param.load.imgs)
             % nyquist zone will be 3 which is 0011 in binary and positions 0
             % and 1 are set to 1.
             nz_mask = char('0'*ones(1,32));
-            nz_mask(32-unique(hdr.nyquist_zone_hw{img,wf_adc}(rlines))) = '1';
+            nz_mask(32-unique(hdr.nyquist_zone_hw{img}(rlines))) = '1';
             nyquist_zone(1,rline0_idx) = bin2dec(nz_mask);
           else
             nyquist_zone(1,rline0_idx) = 1;

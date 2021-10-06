@@ -78,7 +78,8 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
     elseif feof(fid)
       break;
     else
-      fprintf('Locked at byte %d\n', ftell(fid)-8);
+      frame_sync_offset = ftell(fid)-8;
+      fprintf('Locked at byte %d\n', frame_sync_offset);
       lock_state = 1;
     end
   else
@@ -89,6 +90,8 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
       continue;
     elseif feof(fid)
       break;
+    else
+      frame_sync_offset = ftell(fid)-8;
     end
   end
   
@@ -164,7 +167,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         rec = size(data{adc,wf},2)+1;
       end
       if rec >= 0
-        hdr{adc,wf}.frame_sync(rec) = ftell(fid)-8;
+        hdr{adc,wf}.frame_sync(rec) = frame_sync_offset;
         hdr{adc,wf}.hdr_type(rec) = hdr_type;
         hdr{adc,wf}.hdr_len(rec) = hdr_len;
         

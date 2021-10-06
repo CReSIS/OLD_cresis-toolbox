@@ -108,7 +108,7 @@ for v_img = 1:length(param.tomo_collate.imgs)
     % to copy all the parameters and support variables over). We will update
     % the 3D image and time fields in the file at the end of fusing.
     combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm));
-    fprintf('Creating %s (%s)\n', combined_fn, datestr(now));
+    fprintf('Copying\n%s\n to\n%s (%s)\n', fns{1}, combined_fn, datestr(now));
     copyfile(fns{1}, combined_fn);
   end
   
@@ -349,6 +349,7 @@ for v_img = 1:length(param.tomo_collate.imgs)
 end
 
 % Append new fused image to the combined file
+fprintf('Saving %s (%s)\n', combined_fn, datestr(now));
 if param.ct_file_lock
   file_version = '1L';
 else
@@ -356,6 +357,7 @@ else
 end
 save(combined_fn,'-append','Time','Data','Tomo','file_version');
 
+% Create output argument which contains combined image
 mdata = mdata{1};
 mdata.Time = Time;
 mdata.Data = Data;

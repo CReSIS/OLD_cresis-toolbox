@@ -1251,10 +1251,6 @@ classdef surfdata < handle
         param.add_surf_from_dem.ice_mask_fn = [];
       end
       
-      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isempty(param.add_surf_from_dem.sv_cal_fn)
-        param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
-      end
-      
       % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
       %   Setting too high slows the process down, setting too low will miss
       %   DEM points needed to properly represent the surface.
@@ -1356,13 +1352,6 @@ classdef surfdata < handle
         else
           ice_mask_all = [];
         end
-        
-        % sv_cal_fn: steering vector calibration filename
-        sv_cal_fn = param.add_surf_from_dem.sv_cal_fn;
-        if ~exist(sv_cal_fn,'file')
-          sv_cal_fn = [];
-        end
-        
         
         %% add_surf_from_dem: DEM
         % Convert decimated origin coordinates from ECEF to geodetic and

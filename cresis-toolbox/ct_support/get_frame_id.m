@@ -17,6 +17,9 @@ function [day_seg,frm_id,recs,num_recs] = get_frame_id(param,gps_time,search_par
 %  .days_after: default is 1, searches this many days after max gps_time
 %  .segment_end_time_guard: default is 0 seconds, causes the end time of
 %    each segment to be this many seconds later than it actually is
+%  .segment_id_num: default is 0 and day_seg is returned as a cell array of
+%    strings, if set to true then day_seg is returned as a numeric
+%    YYYYMMDDSS.
 %
 % day_seg: cell array the same size as gps_time filled with the day_seg of
 %   the corresponding gps_time
@@ -55,6 +58,13 @@ end
 
 if ~isfield(search_params,'segment_end_time_guard') || isempty(search_params.segment_end_time_guard)
   search_params.segment_end_time_guard = 1;
+end
+
+% search_params.segment_id_num: logical scalar, default false, if false
+% then day_seg is a cell array of strings, if true then day_seg is a
+% numeric array which is much faster for large gps_time input vectors.
+if ~isfield(search_params,'segment_id_num') || isempty(search_params.segment_id_num)
+  search_params.segment_id_num = false;
 end
 
 %% Setup
@@ -152,7 +162,11 @@ end
 
 %% Determine the record and frame numbers and form outputs
 cur_fn_idx = NaN;
-day_seg = cell(size(gps_time));
+if search_params.segment_id_num
+  day_seg = zeros(size(gps_time));
+else
+  day_seg = cell(size(gps_time));
+end
 frm_id = zeros(size(frm_id));
 recs = zeros(size(recs));
 num_recs = zeros(size(num_recs));
@@ -192,7 +206,14 @@ if ~isnan(cur_fn_idx)
   gps_idx = gps_idx + 1;
   recs(cur_gps_idx:gps_idx-1) = interp1(records.gps_time,1:length(records.gps_time),sort_gps_time(cur_gps_idx:gps_idx-1),'linear','extrap');
   num_recs(cur_gps_idx:gps_idx-1) = length(records.gps_time);
-  [day_seg{cur_gps_idx:gps_idx-1}] = deal(param.day_seg);
+  if search_params.segment_id_num
+    % day_seg is numeric array
+    segment_id_num = 100*str2double(param.day_seg(1:8)) + str2double(param.day_seg(10:11));
+    [day_seg(cur_gps_idx:gps_idx-1)] = segment_id_num;
+  else
+    % day_seg is cell array
+    [day_seg{cur_gps_idx:gps_idx-1}] = deal(param.day_seg);
+  end
   for offset_idx = cur_gps_idx:gps_idx-1
     new_frm_id = find(frames.frame_idxs <= recs(offset_idx),1,'last');
     if isempty(new_frm_id)
