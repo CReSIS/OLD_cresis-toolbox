@@ -2,8 +2,23 @@ function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 % [Data, Time] = img_combine(param, param_mode, layers, data_in)
 %
 % Blends and combines together individual echogram image files
-% "Data_img_II_*" into a combined datafile "Data_*" according to the
-% param structure.
+% "Data_img_II_*" into a combined datafile "Data_*" according to the param
+% structure. Combining of different images is done in the vertical or
+% fast-time dimension (e.g. for low gain images with high gain images).
+%
+%  ------------------
+%  |                |
+%  |      IMG 1     |
+%  |                |
+%  ------------------
+%  |                |
+%  |       ...      |
+%  |                |
+%  ------------------
+%  |                |
+%  |      IMG N     |
+%  |                |
+%  ------------------
 %
 % param: parameter structure usually loaded from parameter spreadsheet with
 %   read_param_xls.m. The parameter structure will either look at the
@@ -133,6 +148,7 @@ else
     error('param.%s.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.', param_mode);
   end
 end
+Time = [];
 for img = 1:num_imgs
   if length(param.(param_mode).imgs) == 1
     img_fn = fullfile(img_fn_dir, sprintf('Data_%s_%03d.mat', ...
@@ -145,7 +161,7 @@ for img = 1:num_imgs
   %% Combine a pair of images: image "img" with image "img-1"
   % Data, Time => combined result
   % append.Data, append.Time => new data to append
-  if img == 1
+  if isempty(Time)
     if exist('data_in','var') %Overwrite data
       Data = data_in.Data{img};
       Time = data_in.Time{img};
@@ -153,25 +169,44 @@ for img = 1:num_imgs
     else
       load(img_fn,'Data','Time','GPS_time');
     end
+    if length(Time) == 1
+      % Force length==1 in fast time to just be empty to simplify data
+      % handling later. The idea is that a length 1 range line is useless
+      % anyway so we might as well simplify things by making it zero length.
+      Time = [];
+      Data = Data([],:);
+    end
     if ~isempty(param.(param_mode).img_comb_weights)
       Data = Data*10.^(param.(param_mode).img_comb_weights(img)/10);
     end
-    first_idx = find(Time >= Time(1)+param.(param_mode).img_comb_trim(1) ...
+    if isempty(Time)
+      Time1 = NaN;
+    else
+      Time1 = Time(1);
+    end
+    first_idx = find(Time >= Time1+param.(param_mode).img_comb_trim(1) ...
       & Time >= param.(param_mode).img_comb_trim(3),1,'first');
     if ~isempty(first_idx)
       Time = Time(first_idx:end);
       Data = Data(first_idx:end,:);
     else
-      error('Zero range bin length images not supported.');
+      Time  = [];
+      Data = Data([],:);
     end
     if img == num_imgs
-      last_idx = find(Time <= Time(end)+param.(param_mode).img_comb_trim(2) ...
+      if isempty(Time)
+        TimeE = NaN;
+      else
+        TimeE = Time(end);
+      end
+      last_idx = find(Time <= TimeE+param.(param_mode).img_comb_trim(2) ...
         & Time <= param.(param_mode).img_comb_trim(4),1,'last');
       if ~isempty(last_idx)
         Time = Time(1:last_idx);
         Data = Data(1:last_idx,:);
       else
-        error('Zero range bin length images not supported.');
+        Time  = [];
+        Data = Data([],:);
       end
     end
     Surface = zeros(size(GPS_time));
@@ -189,9 +224,17 @@ for img = 1:num_imgs
     else
       append = load(img_fn,'Time','Data');
     end
+    if length(append.Time) < 2
+      continue;
+    end
     
     if img == num_imgs
-      last_idx = find(append.Time <= append.Time(end)+param.(param_mode).img_comb_trim(2) ...
+      if isempty(append.Time)
+        TimeE = NaN;
+      else
+        TimeE = append.Time(end);
+      end
+      last_idx = find(append.Time <= TimeE+param.(param_mode).img_comb_trim(2) ...
         & append.Time <= param.(param_mode).img_comb_trim(4),1,'last');
       if ~isempty(last_idx)
         append.Time = append.Time(1:last_idx);

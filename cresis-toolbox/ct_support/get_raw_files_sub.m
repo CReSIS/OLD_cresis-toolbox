@@ -3,11 +3,6 @@ function load_info = get_raw_files_sub(param,wf_adc_list,records,recs)
 %
 % Support function for get_raw_files
 
-% adc_headers: the actual adc headers that were loaded
-if ~isfield(param.records.file,'adc_headers') || isempty(param.records.file.adc_headers)
-  param.records.file.adc_headers = param.records.file.adcs;
-end
-
 % boards_headers: the boards that the actual adc headers were loaded from
 [boards,board_idx,profile] = wf_adc_to_board(param,wf_adc_list);
 

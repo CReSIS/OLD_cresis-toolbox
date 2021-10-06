@@ -22,10 +22,10 @@ settings = [];
 
 % ----------------------------------------------------------------
 % paramFn: FILENAME.xls OF EXCEL CReSIS PARAMS SHEET
-settings.params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
+settings.params = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'));
 
-settings.params = ct_set_params(settings.params, 'cmd.generic', 1);
-settings.params = ct_set_params(settings.params, 'cmd.generic', 0, 'cmd.notes', 'do not process');
+% settings.params = ct_set_params(settings.params, 'cmd.generic', 1);
+% settings.params = ct_set_params(settings.params, 'cmd.generic', 0, 'cmd.notes', 'do not process');
 
 %settings.params = ct_set_params(settings.params, 'cmd.generic', 0);
 %settings.params = ct_set_params(settings.params, 'cmd.generic', 1, 'day_seg', '20120416_01');

@@ -115,24 +115,10 @@ for param_fn_idx = 1:length(param_fns)
         
         % Load frames file
         frames = frames_load(param);
+        param.cmd.frms = frames_param_cmd_frms(param,frames);
         
         fprintf('  Processing %s: %s (%s)\n', param.day_seg, records_fn, datestr(now,'HH:MM:SS'));
         gps = load(records_fn,'gps_time','lat','lon');
-        
-        if isempty(param.cmd.frms)
-          param.cmd.frms = 1:length(frames.frame_idxs);
-        end
-        % Remove frames that do not exist from param.cmd.frms list
-        [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-        if length(valid_frms) ~= length(param.cmd.frms)
-          bad_mask = ones(size(param.cmd.frms));
-          bad_mask(keep_idxs) = 0;
-          warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-            param.cmd.frms(find(bad_mask,1)));
-          param.cmd.frms = valid_frms;
-        end
-        % Force into a row vector
-        param.cmd.frms = param.cmd.frms(:).';
       end
 
       if strcmp(data_source,'gps')
@@ -182,7 +168,7 @@ for param_fn_idx = 1:length(param_fns)
               [x_first,y_first] = projfwd(proj,gps.lat(first_idx),gps.lon(first_idx));
               if 0
                 % Just the first point of the frame in black
-                plot(x_first/1e3,y_first/1e3,'.','MarkerSize',12,'Color','Black');
+                label.h_plot(match_idx) = plot(x_first/1e3,y_first/1e3,'.','MarkerSize',12,'Color','Black');
               else
                 % Whole frame in black
                 if frm == length(frames.frame_idxs)

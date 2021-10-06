@@ -6,7 +6,7 @@
 % Authors: John Paden
 
 %% Example Operations (just choose one)
-example_str = '';
+example_str = 'mass_conservation';
 
 if strcmpi(example_str,'gogineni_jakobshavn_point_cloud')
   %% Example 1: Gogineni's Jakobshavn Point Cloud
@@ -195,7 +195,7 @@ elseif strcmpi(example_str,'EGM96')
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif strcmpi(example_str,'EGM96')
+elseif strcmpi(example_str,'mass_conservation')
   %% Example 5: mass conservation grid
   % =====================================================================
   % =====================================================================
@@ -205,7 +205,13 @@ elseif strcmpi(example_str,'EGM96')
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'');
+  params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'');
+  params = ct_set_params(params,'cmd.generic',1);
+  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+  params = ct_set_params(params,'cmd.frms',[]);
+%   params = ct_set_params(params,'cmd.generic',0);
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180421_01');
+%   params = ct_set_params(params,'cmd.frms',[14 15]);
   
   grid_fn = ct_filename_gis('greenland/mass_conservation/BedMachineGreenland-2017-09-20.nc');
   
@@ -251,22 +257,33 @@ elseif strcmpi(example_str,'EGM96')
   insert_param.proj.GeoTIFFCodes.UOMLength = int16(9001);
   
   insert_param.eval.ref_source.name = 'surface';
-  insert_param.eval.ref_source.source = 'ops';
+  insert_param.eval.ref_source.source = 'layerdata';
+  insert_param.eval.ref_source.layerdata_source = 'layer';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
   insert_param.eval.cmd = 's = ref.twtt + s;';
   insert_param.x = double(ncread(grid_fn,'x'));
   insert_param.y = double(ncread(grid_fn,'y'));
-  insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
+  %insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
+  insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) - ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice)));
   
   insert_param.type = 'raster'; % Raster data
-  insert_param.layer_dest.name = 'mc_bottom';
-  insert_param.layer_dest.source = 'ops';
+  insert_param.layer_dest.name = 'bottom_mc_top';
+  insert_param.layer_dest.source = 'layerdata';
+  insert_param.layer_dest.layerdata_source = 'layer';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
   insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
   insert_param.layer_dest.description = 'Mass conservation ice bottom'; % For OPS layer_dest source
   insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
   insert_param.copy_method = 'overwrite';
   insert_param.gaps_fill.method = 'interp_finite';
+  opsInsertLayer(params, insert_param);
+  
+  insert_param.data = max(0,(double(ncread(grid_fn,'thickness')) + ncread(grid_fn,'errbed')).' / (c/2/sqrt(er_ice)));
+  insert_param.layer_dest.name = 'bottom_mc_bot';
+  opsInsertLayer(params, insert_param);
+  
+  insert_param.data = max(0,(double(ncread(grid_fn,'thickness'))).' / (c/2/sqrt(er_ice)));
+  insert_param.layer_dest.name = 'bottom_mc';
   opsInsertLayer(params, insert_param);
   
 elseif strcmpi(example_str,'gogineni_jakobshavn_grid')
@@ -459,7 +476,7 @@ elseif strcmpi(example_str,'south_dakota_grid')
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_CESSNA.xls'),'');
+  params = read_param_xls(ct_filename_param('snow_param_2019_SouthDakota_N1KU.xls'),'');
   params = ct_set_params(params,'cmd.generic',0);
   %params = ct_set_params(params,'cmd.generic',1,'day_seg','20200129_01');
   

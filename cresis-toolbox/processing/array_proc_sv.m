@@ -25,17 +25,37 @@ function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 % rx_paths: active receive adcs
 %
 % sv = steering vector of size Ny by Nsv
-% theta = incidence angle vector of size 1 by Nsv, defined by atan2(ky,kz)
+% theta = incidence angle vector of size 1 by Nsv, defined by atan2(ky,kz),
+% positive theta is left looking
 %
-% y is increasing to the right
-% z is increasing downwards
-% sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
-% A positive ky with a positive y (y points to the left) implies a positive
-% phase for the steering vector. This means the measurement is closer to
-% the target the bigger y gets (i.e. the more to the left you go)
-% and therefore positive ky implies a target from the left. Positive ky
-% corresponds to positive theta.
-% kz is always positive. A positive z is always moving away from the target.
+% 
+% Useful points to understand the coordinate system:
+% * y points to the left
+% * z points upwards
+% * theta is zero at nadir and increases to the left (theta is positive for
+% targets on the left). Theta is restricted to -90 to +90.
+% * k is the wavenumber (4*pi/lambda) where lambda = c/fc where c is the
+% speed of light and fc is the center frequency
+% * ky = k*sin(theta), ky is positive for targets on the left
+% * kz = k*cos(theta), kz is always positive in our field of view
+% * The expected wave is exp(1i*-k*R) where R is the distance to the target
+% and k is the wavenumber. As an antenna is moved toward the target, its
+% phase should become more positive because R is getting smaller and if an
+% antenna is moved away from the target, its phase should be more negative.
+% * Moving up, or in the positive z direction, causes the phase to be more
+% negative.
+% * Moving left, or in the positive y direction, causes the phase to be
+% more positive for targets on the left since theta and ky are positive on
+% the left).
+% * Steering vectors are defined as: sv = sqrt(1/length(yAnt)) *
+% exp(1i*(-zAnt*kz + yAnt*ky));
+% * We see that increasing "zAnt" always leads to a more negative phase
+% * We see that increasing "yAnt" (i.e. moving it to the left) causes a
+% more positive phase when ky is positive (i.e. target is on the left).
+% * TO DO: The sign of theta should be switched so that left targets have a
+% negative value since this would be more natural for plotting. This change
+% would require many changes through out the code (especially for
+% tomographic processing code) and has not been done yet.
 %
 % Author: John Paden
 

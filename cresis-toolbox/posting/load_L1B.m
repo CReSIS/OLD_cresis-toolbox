@@ -3,7 +3,7 @@ function mdata = load_L1B(fn)
 %
 % fn = filename string and must contain correct extension ('.nc' or '.mat')
 %
-% Loads L1B cresis echogram files.
+% Loads L1B cresis echogram (radar image) files.
 % L1B files can be in netcdf or mat format.
 % They can be "compressed" (compression is used for Snow and Kuband radar data
 % to make them smaller... main difference is that the surface is tracked
@@ -87,10 +87,6 @@ if isfield(mdata,'param_get_heights')
       mdata.param_records.records.file = mdata.param_records.file;
       mdata.param_records = rmfield(mdata.param_records,'file');
     end
-    if isfield(mdata.param_records,'gps_source')
-      mdata.param_records.records.gps_source = mdata.param_records.gps_source;
-      mdata.param_records = rmfield(mdata.param_records,'gps_source');
-    end
     if isfield(mdata.param_records,'records_fn')
       mdata.param_records = rmfield(mdata.param_records,'records_fn');
     end
@@ -129,10 +125,28 @@ if isfield(mdata,'param_get_heights')
 end
 
 if isfield(mdata,'param_csarp')
-  mdata.param_sar = mdata.param_csarp;
-  mdata = rmfield(mdata,'param_csarp');
-  mdata.param_sar.sar = mdata.param_sar.csarp;
-  mdata.param_sar = rmfield(mdata.param_sar,'csarp');
+  if ~isfield(mdata.param_csarp,'csarp')
+    % Very old file format
+    mdata.param_sar.sar = mdata.param_csarp;
+    mdata.param_sar.sw_version= mdata.param_csarp.sw_version;
+    mdata = rmfield(mdata,'param_csarp');
+  else
+    mdata.param_sar = mdata.param_csarp;
+    mdata = rmfield(mdata,'param_csarp');
+    mdata.param_sar.sar = mdata.param_sar.csarp;
+    mdata.param_sar = rmfield(mdata.param_sar,'csarp');
+  end
+  if isfield(mdata.param_records,'vectors') && isfield(mdata.param_records.vectors,'gps') && isfield(mdata.param_records.vectors.gps,'time_offset')
+    mdata.param_records.records.gps.time_offset = mdata.param_records.vectors.gps.time_offset;
+    mdata.param_sar.records.gps.time_offset = mdata.param_records.vectors.gps.time_offset;
+  else
+    if ~isfield(mdata.param_records,'records') || ~isfield(mdata.param_records.records,'gps') || ~isfield(mdata.param_records.records.gps,'time_offset')
+      mdata.param_records.records.gps.time_offset = 0;
+    end
+    if ~isfield(mdata.param_sar,'records') || ~isfield(mdata.param_sar.records,'gps') || ~isfield(mdata.param_sar.records.gps,'time_offset')
+      mdata.param_sar.records.gps.time_offset = 0;
+    end
+  end
   mdata.file_version = '0';
   mdata.file_type = 'echo';
 end
@@ -140,6 +154,25 @@ end
 if isfield(mdata,'param_combine')
   mdata.param_array = mdata.param_combine;
   mdata = rmfield(mdata,'param_combine');
+  if isfield(mdata.param_sar.sar,'lever_arm_fh')
+    lever_arm_fh = mdata.param_sar.sar.lever_arm_fh;
+  else
+    lever_arm_fh = [];
+  end
+  if ~isfield(mdata.param_records.radar,'lever_arm_fh')
+    mdata.param_records.radar.lever_arm_fh = lever_arm_fh;
+  end
+  if ~isfield(mdata.param_array.radar,'lever_arm_fh')
+    mdata.param_array.radar.lever_arm_fh = lever_arm_fh;
+  end
+  if ~isfield(mdata.param_sar.radar,'lever_arm_fh')
+    mdata.param_sar.radar.lever_arm_fh = lever_arm_fh;
+  end
+  if isfield(mdata.param_records,'vectors') && isfield(mdata.param_records.vectors,'gps') && isfield(mdata.param_records.vectors.gps,'time_offset')
+    mdata.param_array.records.gps.time_offset = mdata.param_records.vectors.gps.time_offset;
+  elseif ~isfield(mdata.param_array,'records') || ~isfield(mdata.param_array.records,'gps') || ~isfield(mdata.param_array.records.gps,'time_offset')
+    mdata.param_array.records.gps.time_offset = 0;
+  end
   mdata.file_version = '0';
   mdata.file_type = 'echo';
 end
@@ -164,10 +197,6 @@ if isfield(mdata,'param_combine_wf_chan')
   if isfield(mdata.param_records,'file')
     mdata.param_records.records.file = mdata.param_records.file;
     mdata.param_records = rmfield(mdata.param_records,'file');
-  end
-  if isfield(mdata.param_records,'gps_source')
-    mdata.param_records.records.gps_source = mdata.param_records.gps_source;
-    mdata.param_records = rmfield(mdata.param_records,'gps_source');
   end
   if isfield(mdata.param_records,'records_fn')
     mdata.param_records = rmfield(mdata.param_records,'records_fn');

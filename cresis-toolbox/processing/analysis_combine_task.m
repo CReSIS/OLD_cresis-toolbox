@@ -126,7 +126,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         spec = [];
         spec.deconv_fc = [];
         spec.deconv_t0 = [];
-        spec.dt = [];
+        spec.dt = NaN;
         spec.deconv_gps_time = [];
         spec.deconv_mean = {};
         spec.deconv_std = {};
@@ -163,6 +163,9 @@ for cmd_idx = 1:length(param.analysis.cmd)
           fprintf('  Load %s (%s)\n', out_fn, datestr(now));
           spec_in = load(out_fn);
           
+          if isfinite(spec_in.dt)
+            spec.dt = spec_in.dt;
+          end
           % Concatenate
           spec.deconv_gps_time(end+(1:numel(spec_in.deconv_gps_time))) = spec_in.deconv_gps_time;
           spec.deconv_fc(end+(1:numel(spec_in.deconv_fc))) = spec_in.deconv_fc;
@@ -187,7 +190,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         
         %% Specular: Store concatenated output
         % =================================================================
-        spec.dt = spec_in.dt;
         spec.param_analysis = spec_in.param_analysis;
         spec.param_records = spec_in.param_records;
         if param.ct_file_lock
@@ -220,6 +222,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         bad_recs = [];
         bad_waveforms_recs = {};
         bad_waveforms = {};
+        test_metric = [];
         
         for block_idx = 1:length(blocks)
           rec_load_start = blocks(block_idx);
@@ -242,10 +245,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
           noise = load(out_fn);
           
           bad_bins(end+(1:length(noise.bad_bins))) = noise.bad_bins;
-          bad_recs(end+(1:length(noise.bad_recs))) = rec_load_start + noise.bad_recs - 1;
+          bad_recs(end+(1:length(noise.bad_recs))) = rec_load_start-1 + noise.bad_recs;
           bad_recs_unique = unique(noise.bad_recs);
           bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(noise.bad_waveforms,2)) - 1;
           bad_waveforms{block_idx} = noise.bad_waveforms;
+          test_metric(:,end+(1:size(noise.test_metric,2))) = noise.test_metric;
         end
 
         % Constant noise fields carried over from last file loaded:
@@ -256,6 +260,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.bad_recs = bad_recs;
         noise.bad_waveforms_recs = bad_waveforms_recs;
         noise.bad_waveforms = bad_waveforms;
+        noise.test_metric = test_metric;
         
         if param.ct_file_lock
           noise.file_version = '1L';
@@ -285,6 +290,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         % =====================================================================
         Nt = [];
         t0 = [];
+        fc = NaN;
+        dt = NaN;
         gps_time = [];
         lat = [];
         lon = [];
@@ -326,6 +333,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
           
           Nt(block_idx) = noise.Nt;
           t0(block_idx) = noise.t0;
+          if ~isnan(noise.fc)
+            fc = noise.fc;
+          end
+          if ~isnan(noise.dt)
+            dt = noise.dt;
+          end
           
           gps_time(end+(1:length(noise.gps_time))) = noise.gps_time;
           lat(end+(1:length(noise.lat))) = noise.lat;
@@ -364,6 +377,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
 
         % Constant noise fields carried over from last file loaded:
         %   dt, fc, param_analysis, param_records
+        % Handle special case where a block had all bad records and fc and
+        % dt were NaN.
+        noise.fc = fc;
+        noise.dt = dt;
         
         % Overwrite concatenated dynamic fields for the whole segment:
         noise.Nt = Nt;

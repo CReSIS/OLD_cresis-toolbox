@@ -14,6 +14,7 @@ if isempty(gps.gps_time)
   return;
 end
 
+%% Sort records according to gps.gps_time
 [~,sort_idxs] = sort(gps.gps_time);
 if any(sort_idxs ~= 1:length(sort_idxs))
   warning('GPS time is not monotonically increasing. Manual inspection is suggested. May need to run gps_make_monotonic.m in gps_make_SEASON.m for this particular file.');
@@ -21,9 +22,15 @@ if any(sort_idxs ~= 1:length(sort_idxs))
   gps.lat = gps.lat(sort_idxs);
   gps.lon = gps.lon(sort_idxs);
   gps.elev = gps.elev(sort_idxs);
-  gps.roll = gps.roll(sort_idxs);
-  gps.pitch = gps.pitch(sort_idxs);
-  gps.heading = gps.heading(sort_idxs);
+  if isfield(gps,'roll')
+    gps.roll = gps.roll(sort_idxs);
+  end
+  if isfield(gps,'pitch')
+    gps.pitch = gps.pitch(sort_idxs);
+  end
+  if isfield(gps,'heading')
+    gps.heading = gps.heading(sort_idxs);
+  end
   if isfield(gps,'radar_time')
     gps.radar_time = gps.radar_time(sort_idxs);
   end
@@ -36,6 +43,7 @@ if any(sort_idxs ~= 1:length(sort_idxs))
   error_flag = true;
 end
 
+%% Remove nonmonotonically increasing records from gps.gps_time
 good_mask = [true, (diff(gps.gps_time) > 0)];
 
 if ~all(good_mask)
@@ -45,9 +53,15 @@ if ~all(good_mask)
   gps.lat = gps.lat(good_mask);
   gps.lon = gps.lon(good_mask);
   gps.elev = gps.elev(good_mask);
-  gps.roll = gps.roll(good_mask);
-  gps.pitch = gps.pitch(good_mask);
-  gps.heading = gps.heading(good_mask);
+  if isfield(gps,'roll')
+    gps.roll = gps.roll(good_mask);
+  end
+  if isfield(gps,'pitch')
+    gps.pitch = gps.pitch(good_mask);
+  end
+  if isfield(gps,'heading')
+    gps.heading = gps.heading(good_mask);
+  end
   if isfield(gps,'radar_time')
     gps.radar_time = gps.radar_time(good_mask);
   end
@@ -60,6 +74,7 @@ if ~all(good_mask)
   error_flag = true;
 end
 
+%% Remove nonmonotonically increasing records from gps.radar_time
 if isfield(gps,'radar_time')
   [~,sort_idxs] = sort(gps.radar_time);
   if any(sort_idxs ~= 1:length(sort_idxs))
@@ -76,9 +91,15 @@ if isfield(gps,'radar_time')
     gps.lat = gps.lat(good_mask);
     gps.lon = gps.lon(good_mask);
     gps.elev = gps.elev(good_mask);
-    gps.roll = gps.roll(good_mask);
-    gps.pitch = gps.pitch(good_mask);
-    gps.heading = gps.heading(good_mask);
+    if isfield(gps,'roll')
+      gps.roll = gps.roll(good_mask);
+    end
+    if isfield(gps,'pitch')
+      gps.pitch = gps.pitch(good_mask);
+    end
+    if isfield(gps,'heading')
+      gps.heading = gps.heading(good_mask);
+    end
     gps.radar_time = gps.radar_time(good_mask);
     if isfield(gps,'comp_time')
       gps.comp_time = gps.comp_time(good_mask);

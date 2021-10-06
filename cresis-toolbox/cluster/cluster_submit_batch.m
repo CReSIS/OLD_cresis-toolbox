@@ -5,12 +5,24 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time,mem)
 % about 30 seconds of overhead as long as a compile is not necessary.
 %
 % INPUTS:
-% fun: string containing the function name (e.g. 'hanning') that the task
-%   will run
+%
+% fun: String containing the function name (e.g. 'hanning') that the task
+% will run. This should NOT include '.m'. Note that if there are any
+% function dependencies to this function that are not explicit, these must
+% be added to gRadar.cluster.hidden_depend_funs in startup.m. This happens
+% when passing in a function handle or function name string as an input or
+% creating commands that run via eval because the cluster_compile function
+% cannot detect these implicit dependencies since the code must be
+% evaluated to see them.
+%
 % argsin: cell vector of input arguments to the task (e.g. {10,'arg2'})
+%
 % num_args_out: number of output arguments
+%
 % notes: string containing notes about the task
+%
 % cpu_time: expected maximum cpu time in seconds
+%
 % mem: expected maximum memory usage in bytes
 %
 % OUTPUTS:
@@ -52,7 +64,7 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time,mem)
 
 ctrl = cluster_new_batch;
 
-cluster_compile(fun,[],0,ctrl);
+cluster_compile({[fun '.m']},[],0,ctrl);
 
 param.task_function = fun;
 param.argsin = argsin;

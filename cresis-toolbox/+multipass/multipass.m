@@ -10,17 +10,26 @@
 %   (Motion compensation with phase correction)
 %   Quits after computing equalization coefficients
 % 2: to do coregistration and (if input_type=='sar') array process
-%   This is the mode to run when using input_type='echo'
+%   This is the mode that must be used when using input_type='echo'
 %   Co-register images using GPS and nadir squint angle assumption
 %   (Motion compensation without phase correction)
-%   Runs array processing if input_type=='sar'
+%   Runs array processing if input_type=='sar' and is used for cross-track
+%   slope estimation and basal swath imaging
 % 3: to differential INSAR
-%   Co-register images using GPS and nadir squint angle assumption
-%   (Motion compensation with phase correction AND slope correction)
-%   Saves output for interferometry
+%   Co-register images using GPS and nadir squint angle assumption (Motion
+%   compensation with phase correction AND slope correction) Saves output
+%   for (differential) interferometry (coherence and interferometric phase
+%   images created) and vertical velocity estimation.
 % 4: to plot results
 %   Co-register images using GPS and nadir squint angle assumption
 %   Quits after plotting results
+%
+% param.multipass.fn: string containing the full file to the file created
+% by multipass.combine_passes.
+%
+% param.multipass.layer: opsLoadLayers layer parameter structure that
+% specifies all the layers to load for each pass and to synchronize. The
+% default is struct('name',{'surface','bottom'}).
 %
 
 %% Setup
@@ -64,6 +73,8 @@ end
 baseline_master_idx = param.multipass.baseline_master_idx;
 
 % coregistration_time_shift: Fast time time shift. Default is zero.
+% Positive values cause the image to move towards the radar. Units are in
+% range bins.
 if ~isfield(param.multipass,'coregistration_time_shift') || isempty(param.multipass.coregistration_time_shift)
   param.multipass.coregistration_time_shift = zeros(1,length(pass));
 end
@@ -212,9 +223,16 @@ for pass_idx = 1:length(pass)
   if ~pass_en_mask(pass_idx)
     continue
   end
+
+  % Update the parameters with current gRadar settings so that the paths
+  % are correct. A common issue is that multipass.combine_passes files are
+  % created in one environemnt and then loaded here under a different
+  % environment and the paths are different.
+  param_override = merge_structs(gRadar,param_override);
+  param_paths_updated = merge_structs(pass(pass_idx).param_pass,param_override);
   
   % Load layers
-  pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_pass,param.multipass.layer);
+  pass(pass_idx).layers = opsLoadLayers(param_paths_updated,param.multipass.layer);
   
   % Interpolate all layers onto a common reference (ref)
   for lay_idx = 1:length(pass(pass_idx).layers)
@@ -341,7 +359,7 @@ if surf_flatten_en
 end
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
-  fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+  fprintf('Coregister: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
   
   %% Pass: 1. Position in ref coordinate system
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
@@ -430,6 +448,9 @@ for pass_out_idx = 1:length(pass_en_idxs)
   pass(pass_idx).freq_baseband = df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
   fc = pass(pass_idx).wfs(pass(pass_idx).wf).fc;
   pass(pass_idx).freq = fc + pass(pass_idx).freq_baseband;
+  if pass_idx == baseline_master_idx
+    ref.freq = pass(pass_idx).freq;
+  end
   
   time_shift = coregistration_time_shift(pass_idx) * dt;
   
@@ -531,20 +552,19 @@ if param.multipass.comp_mode ~= 1 && strcmp('sar',param.multipass.input_type)
 end
 
 if 0
-  %% Coregister: Data Dependent method to estimate System Time Delay
+  %% Estimate Coregistration: Data Dependent method to estimate System Time Delay
   % Apply fixed coregistration time shift
   coherence_sum = [];
   coregistration_time_shifts = -2:0.05:2;
   for pass_out_idx = 1:length(pass_en_idxs)
     pass_idx = pass_en_idxs(pass_out_idx);
-    fprintf('%d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
+    fprintf('Estimate Coregistration: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
     
-    freq = pass(pass_idx).freq;
+    freq = ref.freq;
     freq = freq - freq(1); % Remove center frequency offset
-    coherence_sum = [];
     for coregistration_time_shift_idx = 1:length(coregistration_time_shifts)
       coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
-      dt = coregistration_time_shift * (pass(pass_idx).time(2)-pass(pass_idx).time(1));
+      dt = coregistration_time_shift * (ref.time(2)-ref.time(1));
       adjusted = ifft(bsxfun(@times,fft(data(:,:,pass_idx)),exp(-1i*2*pi*freq*dt)));
       coherence = fir_dec(adjusted(rbins,:) .* conj(data(rbins,:,master_idx)) ./ abs(adjusted(rbins,:) .* data(rbins,:,master_idx)),ones(1,7)/7,1);
       coherence = fir_dec(coherence.',ones(1,3)/3,1).';
@@ -555,12 +575,12 @@ if 0
       %     imagesc(coherence); colormap(1-gray(256));
       %     pause
     end
-    [~,coregistration_time_shift_idx] = max(coherence_sum);
+    [~,coregistration_time_shift_idx] = max(coherence_sum,[],1);
     coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
   end
   figure(2000); clf;
   plot(coregistration_time_shifts,coherence_sum)
-  [~,coregistration_time_shift_idx] = max(coherence_sum);
+  [~,coregistration_time_shift_idx] = max(coherence_sum,[],1);
   coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
   fprintf('%g ', coregistration_time_shift); fprintf('\n');
   return
@@ -573,6 +593,7 @@ rbins = 1:size(data,1);
 master_out_idx = find(pass_en_idxs == master_idx);
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
+  fprintf('Plot: %d of %d (pass %d)\n', pass_out_idx, length(pass_en_idxs), pass_idx);
   
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')

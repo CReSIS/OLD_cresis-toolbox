@@ -410,11 +410,15 @@ for img = 1:length(param.load.imgs)
             
             % Pulse compression
             %   Apply matched filter and transform back to time domain
+            %   1. Extract the portion of the range line that is valid
             tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
+            %   2. Set ~isfinite values to zero (unless the whole record is bad,
+            %   then just leave the samples as is)
             tmp_data(bsxfun(@and,~isfinite(tmp_data),~hdr.bad_rec{img}(1,rlines,wf_adc))) = 0;
+            %   3. Apply pulse compression with zero padding
             tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
             
-            % Decimation
+            % Resampling
             data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
             
           end
@@ -612,6 +616,7 @@ for img = 1:length(param.load.imgs)
         
         %% Pulse compress: Deramp
         freq_axes_changed = false;
+        first_good_rec = true; % true until the time/freq axes created for the first time
         for rec = 1:size(data{img},2)
           
           if hdr.bad_rec{img}(rec)
@@ -637,12 +642,16 @@ for img = 1:length(param.load.imgs)
           DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
           hdr.DDC_freq{img}(rec) = hdr.DDC_freq{img}(rec) - DDC_freq_adjust;
 
-          % Check to see if axes has changed since last record
-          if rec == 1 ...
+          % Check to see if this is the first good record and the time/freq
+          % axis need to be created for the first time or if the time/freq
+          % axes has changed since the last record because of header
+          % changes and need to be regenerated
+          if first_good_rec ...
               || hdr.DDC_dec{img}(rec) ~= hdr.DDC_dec{img}(rec-1) ...
               || hdr.DDC_freq{img}(rec) ~= hdr.DDC_freq{img}(rec-1) ...
               || hdr.nyquist_zone_signal{img}(rec) ~= hdr.nyquist_zone_signal{img}(rec-1)
             
+            first_good_rec = false;
             freq_axes_changed = true;
             
             %% Pulse compress: Output time
@@ -1413,6 +1422,38 @@ for img = 1:length(param.load.imgs)
       plot(lp(beforef(:,rline)));
       hold on;
       plot(lp(afterf(:,rline)));
+    end
+    
+    %% Nulling unsteady Doppler spikes for specified range bins (for example, 20181011_02)
+    % .DSN, a parameter structure to control the Doppler spike nulling
+    %     .en, 0 or 1 to disable or enable the nulling 
+    %     .rbin_clusters, N by 2 array, N is the number of range bin
+    %      clusters, the first and the second collumns specify the start and stop range bin respectively for each range bin cluster
+    %     .threshold, Doppler threshold in dB above the mean of local Doppler signals
+    %     .surf_threshold, surface threshold in dB above the mean of local signals
+    if isfield(wfs(wf),'DSN') && wfs(wf).DSN.en
+      for rcluster = 1:size(wfs(wf).DSN.rbin_clusters,1)
+        for rbin = wfs(wf).DSN.rbin_clusters(rcluster,1):wfs(wf).DSN.rbin_clusters(rcluster,2)
+          good_rline_idxs = ~isnan(data{1}(rbin,:));
+          tmp = data{1}(rbin,good_rline_idxs);
+          thresholding_idxs = find(lp(tmp)>mean(lp(tmp))+wfs(wf).DSN.surf_threshold);
+          if ~isempty(thresholding_idxs)
+            continue                      % skipping surface remove most part of noise in general without  nulling artifact
+%           tmp(thresholding_idxs) = 0;   % thresholding surface signals
+          end
+          tmp = fft(tmp);
+          tmp_m = mean(lp(tmp));
+          tmp_spikes = lp(tmp)-tmp_m;
+          spike_idxs = find(tmp_spikes>wfs(wf).DSN.threshold);
+%           tmp = fft(data{1}(rbin,:));
+          if length(spike_idxs) >0
+            for spike_idx = 1:length(spike_idxs)
+              tmp(spike_idxs(spike_idx)) = 10^(-tmp_spikes(spike_idxs(spike_idx))/20)*tmp(spike_idxs(spike_idx));
+            end
+          end
+          data{1}(rbin,good_rline_idxs) = ifft(tmp);
+        end
+      end
     end
     
     %% Deconvolution

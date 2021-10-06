@@ -28,19 +28,7 @@ physical_constants;
 
 % Load the frames file
 frames = frames_load(param);
-
-if isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-% Remove frames that do not exist from param.cmd.frms list
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
-end
+param.cmd.frms = frames_param_cmd_frms(param,frames);
 
 if isempty(param.cmd.frms)
   % No valid frames specified to post
@@ -79,6 +67,12 @@ end
 
 if ~isfield(param.post,'echo_en') || isempty(param.post.echo_en)
   param.post.echo_en = false;
+end
+
+% echo_with_no_layer_en: only activated if echo_en is true. When true, an
+% echogram image file will be created with no layers plotted on it.
+if ~isfield(param.post,'echo_with_no_layer_en') || isempty(param.post.echo_with_no_layer_en)
+  param.post.echo_with_no_layer_en = true;
 end
 
 if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
@@ -414,8 +408,10 @@ for frm_idx = 1:length(param.cmd.frms)
     set(echo_info.fig_hand(1),'PaperUnits','inches');
     set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
     set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
-    fprintf('    Saving output %s\n', echo_fn);
-    print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
+    if param.post.echo_with_no_layer_en
+      fprintf('    Saving output %s\n', echo_fn);
+      print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
+    end
     
     if param.post.pdf_en
       % Remove current file and save new file
