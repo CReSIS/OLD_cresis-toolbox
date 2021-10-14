@@ -1,4 +1,4 @@
-function [data,x_axis,y_axis,surf_comp,layers_comp] = elevation_compensation(mdata,param,layers_twtt)
+function [mdata,x_axis,y_axis,surf_comp,layers_comp] = elevation_compensation(mdata,param,layers_twtt)
 % function [data,x_axis,y_axis,surf_comp,layers_comp] = elevation_compensation(mdata,param,layers_twtt)
 %
 % Inputs radar echogram (mdata.Data) and optional layers (layers_twtt) and
@@ -27,8 +27,16 @@ function [data,x_axis,y_axis,surf_comp,layers_comp] = elevation_compensation(mda
 % Outputs
 % =========================================================================
 %
-% data: Nt_out by Nx_out output matrix sampled at the specified x-axis and
-% y-axis units
+% mdata: The input L1B data structure with resampled variables:
+%
+%  .Data will be Nt_out by Nx_out output matrix sampled at the specified
+%  x-axis and y-axis units
+%
+%  .GPS_time, .Lat, .Lon, .Elev, .Roll, .Pitch, .Heading, .Surface,
+%  .Bottom: all Nx_out by 1
+%
+%  .Time: Remains unchanged, but no longer will match the data matrix if
+%  y-axis resampling is done. Use y_axis instead.
 % 
 % x_axis: 1 by Nx_out numeric vector holding the x-axis corresponding to
 % the row dimension of data output
@@ -152,6 +160,12 @@ end
 % layer_tracker_task.m
 % NOT IMPLEMENTED
 
+% .trim_nan_en: logical scalar, default true, if true, it removes rows that
+% are all NaN from the top and bottom of the image.
+if ~exist('param.trim_nan_en','var') || isempty(param.trim_nan_en)
+  param.trim_nan_en = true;
+end
+
 % .ylims_cmd: Matlab command string to be evaluated in the calculation of
 % y_axis. This specifies which bins to include in case a subset of the
 % data is desired. Several variables are made available to use with the
@@ -250,6 +264,36 @@ if strcmpi(param.mode_x_axis,'along_track')
   surf_filt = interp1(along_track,surf_filt,x_axis);
   Nx = length(x_axis);
   elev = interp1(along_track,mdata.Elevation,x_axis);
+  for layer_idx = 1:length(layers_twtt)
+    layers_twtt{layer_idx} = interp1(along_track,layers_twtt{layer_idx},x_axis);
+  end
+  if isfield(mdata,'Latitude')
+    mdata.Latitude = interp1(along_track,mdata.Latitude,x_axis);
+  end
+  if isfield(mdata,'Longitude')
+    mdata.Longitude = interp1(along_track,mdata.Longitude,x_axis);
+  end
+  if isfield(mdata,'Elevation')
+    mdata.Elevation = interp1(along_track,mdata.Elevation,x_axis);
+  end
+  if isfield(mdata,'Roll')
+    mdata.Roll = interp1(along_track,mdata.Roll,x_axis);
+  end
+  if isfield(mdata,'Pitch')
+    mdata.Pitch = interp1(along_track,mdata.Pitch,x_axis);
+  end
+  if isfield(mdata,'Heading')
+    mdata.Heading = interp1(along_track,mdata.Heading,x_axis);
+  end
+  if isfield(mdata,'Surface')
+    mdata.Surface = interp1(along_track,mdata.Surface,x_axis);
+  end
+  if isfield(mdata,'Bottom')
+    mdata.Bottom = interp1(along_track,mdata.Bottom,x_axis);
+  end
+  if isfield(mdata,'GPS_time')
+    mdata.GPS_time = interp1(along_track,mdata.GPS_time,x_axis);
+  end
 elseif strcmpi(param.mode_x_axis,'gps_time')
   % Resample data to be uniformily sampled in mdata.GPS_time
   dx = median(diff(mdata.GPS_time));
@@ -258,6 +302,36 @@ elseif strcmpi(param.mode_x_axis,'gps_time')
   surf_filt = interp1(mdata.GPS_time,surf_filt,x_axis);
   Nx = length(x_axis);
   elev = interp1(mdata.GPS_time,mdata.Elevation,x_axis);
+  for layer_idx = 1:length(layers_twtt)
+    layers_twtt{layer_idx} = interp1(mdata.GPS_time,layers_twtt{layer_idx},x_axis);
+  end
+  if isfield(mdata,'Latitude')
+    mdata.Latitude = interp1(mdata.GPS_time,mdata.Latitude,x_axis);
+  end
+  if isfield(mdata,'Longitude')
+    mdata.Longitude = interp1(mdata.GPS_time,mdata.Longitude,x_axis);
+  end
+  if isfield(mdata,'Elevation')
+    mdata.Elevation = interp1(mdata.GPS_time,mdata.Elevation,x_axis);
+  end
+  if isfield(mdata,'Roll')
+    mdata.Roll = interp1(mdata.GPS_time,mdata.Roll,x_axis);
+  end
+  if isfield(mdata,'Pitch')
+    mdata.Pitch = interp1(mdata.GPS_time,mdata.Pitch,x_axis);
+  end
+  if isfield(mdata,'Heading')
+    mdata.Heading = interp1(mdata.GPS_time,mdata.Heading,x_axis);
+  end
+  if isfield(mdata,'Surface')
+    mdata.Surface = interp1(mdata.GPS_time,mdata.Surface,x_axis);
+  end
+  if isfield(mdata,'Bottom')
+    mdata.Bottom = interp1(mdata.GPS_time,mdata.Bottom,x_axis);
+  end
+  if isfield(mdata,'GPS_time')
+    mdata.GPS_time = x_axis;
+  end
 elseif strcmpi(param.mode_x_axis,'range_line')
   % Nothing needs to be done, the echogram is already uniformily in
   % range_line units.
@@ -484,4 +558,27 @@ elseif strcmpi(param.mode_y_axis,'wgs84')
   
 else
   error('param.mode_y_axis %s not supported', param.mode_y_axis);
+end
+
+mdata.Data = data;
+
+%% Trim NaN from start/end of record
+trim_nan_en = true;
+if trim_nan_en
+  start_bin = nan(1,Nx);
+  stop_bin = nan(1,Nx);
+  for rline = 1:Nx
+    start_bin_tmp = find(~isnan(mdata.Data(:,rline)),1);
+    if ~isempty(start_bin_tmp)
+      start_bin(rline) = start_bin_tmp;
+    end
+    stop_bin_tmp = find(~isnan(mdata.Data(:,rline)),1,'last');
+    if ~isempty(stop_bin_tmp)
+      stop_bin(rline) = stop_bin_tmp;
+    end
+  end
+  start_bin = min(start_bin);
+  stop_bin = max(stop_bin);
+  mdata.Data = mdata.Data(start_bin:stop_bin,:);
+  y_axis(start_bin:stop_bin);
 end
