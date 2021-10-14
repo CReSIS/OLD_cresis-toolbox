@@ -13,10 +13,11 @@
 % test_case_str = 'no_layers_twtt_fn';
 % test_case_str = 'default_layers';
 % test_case_str = 'nonstandard_surface';
-% test_case_str = 'update_surface'; % NOT IMPLEMENTED
-% test_case_str = 'filter_surface'; % NOT IMPLEMENTED
-% test_case_str = 'posted_layers'; % NOT IMPLEMENTED
-test_case_str = 'arbitrary_layers'; % NOT IMPLEMENTED
+% test_case_str = 'update_surface';
+% test_case_str = 'filter_surface';
+% test_case_str = 'posted_layers';
+% test_case_str = 'arbitrary_layers';
+test_case_str = 'uniform_sampling';
 % test_case_str = 'layer_params';
 % test_case_str = 'wildcard_layers';
 % test_case_str = 'surface_nan';
@@ -63,6 +64,10 @@ if strcmpi(test_case_str,'arbitrary_layers')
   [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('RANGE'),'h_fig',2), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
   [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('TWTT'),'h_fig',3), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
   [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('WGS84'),'h_fig',4), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
+end
+
+if strcmpi(test_case_str,'uniform_sampling')
+  [data, layers_comp, h] = echo_plot(echo_fn, setfield(setfield(echo_plot_profile('WGS84'),'h_fig',4),'mode_x_axis','ALONG_TRACK'));
 end
 
 if strcmpi(test_case_str,'layer_params')

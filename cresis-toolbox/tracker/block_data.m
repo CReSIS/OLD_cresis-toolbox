@@ -102,6 +102,28 @@ if ~isfield(param.block_data.file,'mat_en') || isempty(param.block_data.file.mat
   param.block_data.file.mat_en = true;
 end
 
+% Incoherent decimation (inc_dec, inc_B_filter) input check
+% Setting inc_dec = 0: returns coherent data
+% Setting inc_dec = 1: returns power detected data with no decimation
+% Setting inc_dec > 1: decimates at the rate specified by inc_dec
+if ~isfield(param.block_data,'inc_dec') || isempty(param.block_data.inc_dec)
+  param.block_data.inc_dec = 1;
+end
+if ~isfield(param.block_data,'inc_B_filter') || isempty(param.block_data.inc_B_filter)
+  if param.block_data.inc_dec == 0 || param.block_data.inc_dec == 1
+    param.block_data.inc_B_filter = 1;
+  else
+    param.block_data.inc_B_filter = hanning(2*param.block_data.inc_dec+1);
+  end
+end
+if ~mod(length(param.block_data.inc_B_filter),2)
+  error('param.block_data.inc_B_filter must be odd length.');
+end
+param.block_data.inc_B_filter = param.block_data.inc_B_filter(:).'; % Must be row vector
+if abs(sum(param.block_data.inc_B_filter)-1) > 1e4*eps % Ensure filter weights sum to 1 to preserve radiometry
+  param.block_data.inc_B_filter = param.block_data.inc_B_filter / sum(param.block_data.inc_B_filter);
+end
+
 % block_data.out_path: string specifying which output directory to put the
 % block images in
 if ~isfield(param.block_data,'out_path') || isempty(param.block_data.out_path)
@@ -151,10 +173,29 @@ for frm = param.cmd.frms
     end
   end
 end
+% Add additional frames to start and end to account for blocks that extend
+% before the first desired frame and past the last desired frame
+frm_list = [];
+for block_idx = find(block_mask)
+  for frm = 1:length(frames.frame_idxs)
+    start_x = along_track(frames.frame_idxs(frm));
+    if frm == length(frames.frame_idxs)
+      stop_x = along_track(end);
+    else
+      stop_x = along_track(frames.frame_idxs(frm+1)-1);
+    end
+    if start_x < x1(block_idx) && stop_x > x0(block_idx)
+      frm_list(end+1) = frm;
+    end
+  end
+end
+frm_list = unique(frm_list);
 
 %% Load layers
 % =========================================================================
-[layers,layer_params] = opsLoadLayers(param,param.block_data.layer_params);
+ops_param = param;
+ops_param.cmd.frms = frm_list;
+[layers,layer_params] = opsLoadLayers(ops_param, param.block_data.layer_params);
 
 %% Block Loop
 % =========================================================================
@@ -188,7 +229,7 @@ for block_idx = find(block_mask)
       
       % Concatenate data
       cat_data = echo_concatenate(cat_data,mdata{frm});
-        
+      
     else
       if frm_mask(block_idx)
         frm_mask(frm) = false;
@@ -197,10 +238,62 @@ for block_idx = find(block_mask)
       end
     end
   end
+  Nx_original = length(cat_data.GPS_time);
   
-  %% Block: Condition data
+  %% Block: Echogram layer flattening
   % =======================================================================
-
+  param.block_data.flatten.resample_field = [];
+  param.block_data.flatten.resample_field.name = 'surface';
+  param.block_data.flatten.resample_field.source = 'layerdata';
+  param.block_data.flatten.interp_method = [];
+  if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
+    [cat_data.Data,resample_field] = echo_flatten(cat_data, ...
+      param.block_data.flatten.resample_field, false, ...
+      param.block_data.flatten.interp_method,[],true);
+  end
+  
+  %% Block: Incoherent filtering
+  % =======================================================================
+  
+  %  .inc_B_filter: double vector, FIR filter coefficients to apply before
+  %    incoherent average decimation. If not defined or empty, then
+  %    inc_B_filter is set to ones(1,inc_dec)/inc_dec.
+  %  .inc_dec = integer scalar, number of incoherent averages to apply
+  %    (also decimates by this number). If set to < 1, complex data are
+  %    returned.  Setting to 1 causes the data to be power detected (i.e.
+  %    become incoherent), but no averaging is done.
+  param.block_data.inc_B_filter = ones(1,21)/21;
+  param.block_data.inc_dec = 10;
+  param.block_data.nan_dec_normalize_threshold = [];
+  param.block_data.nan_dec = false;
+  % Along-track incoherent filtering (multilooking) of data
+  if param.block_data.nan_dec
+    cat_data.Data = nan_fir_dec(abs(cat_data.Data).^2, param.block_data.inc_B_filter, ...
+      param.block_data.inc_dec, [], [], [], [], param.block_data.nan_dec_normalize_threshold);
+  else
+    cat_data.Data = fir_dec(abs(cat_data.Data).^2, param.block_data.inc_B_filter, ...
+      param.block_data.inc_dec);
+  end
+  % Account for filtering and decimation in remaining fields
+  cat_data.GPS_time = fir_dec(cat_data.GPS_time, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Latitude = fir_dec(cat_data.Latitude, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Longitude = fir_dec(cat_data.Longitude, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Elevation = fir_dec(cat_data.Elevation, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Roll = fir_dec(cat_data.Roll, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Pitch = fir_dec(cat_data.Pitch, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Heading = fir_dec(cat_data.Heading, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Surface = fir_dec(cat_data.Surface, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  resample_field = fir_dec(resample_field, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  
   %% Block: Extract block
   % =======================================================================
   start_rec = find(along_track >= x0(block_idx),1);
@@ -208,21 +301,23 @@ for block_idx = find(block_mask)
   start_idx = find(cat_data.GPS_time >= records.gps_time(start_rec),1);
   stop_idx = find(cat_data.GPS_time <= records.gps_time(stop_rec),1,'last');
   
-  Nx = length(cat_data.GPS_time);
-  new_axis = linspace(start_idx,stop_idx,param.block_data.block_Nx);
-  cat_data.Data = interp1((1:Nx).',cat_data.Data.',new_axis.').';
-  cat_data.Elevation = interp1(1:Nx,cat_data.Elevation,new_axis);
-  cat_data.GPS_time = interp1(1:Nx,cat_data.GPS_time,new_axis);
-  cat_data.Heading = interp1(1:Nx,cat_data.Heading,new_axis);
-  cat_data.Latitude = interp1(1:Nx,cat_data.Latitude,new_axis);
-  cat_data.Longitude = interp1(1:Nx,cat_data.Longitude,new_axis);
-  cat_data.Roll = interp1(1:Nx,cat_data.Roll,new_axis);
-  cat_data.Pitch = interp1(1:Nx,cat_data.Pitch,new_axis);
-  cat_data.Surface = interp1(1:Nx,cat_data.Surface,new_axis);
+  dec_idxs = fir_dec(1:Nx_original, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  new_axis = linspace(dec_idxs(start_idx),dec_idxs(stop_idx),param.block_data.block_Nx);
+  
+  cat_data.Data = interp1(dec_idxs.',cat_data.Data.',new_axis.').';
+  cat_data.Elevation = interp1(dec_idxs,cat_data.Elevation,new_axis);
+  cat_data.GPS_time = interp1(dec_idxs,cat_data.GPS_time,new_axis);
+  cat_data.Heading = interp1(dec_idxs,cat_data.Heading,new_axis);
+  cat_data.Latitude = interp1(dec_idxs,cat_data.Latitude,new_axis);
+  cat_data.Longitude = interp1(dec_idxs,cat_data.Longitude,new_axis);
+  cat_data.Roll = interp1(dec_idxs,cat_data.Roll,new_axis);
+  cat_data.Pitch = interp1(dec_idxs,cat_data.Pitch,new_axis);
+  cat_data.Surface = interp1(dec_idxs,cat_data.Surface,new_axis);
+  resample_field = interp1(dec_idxs.',resample_field.',new_axis).';
   
   %% Block: Extract layers
   % =======================================================================
-  Nt = length(cat_data.Time);
   Nx = length(cat_data.GPS_time);
   layers_bin_bitmap = zeros(size(cat_data.Data),'uint8');
   layers_bitmap = zeros(size(cat_data.Data),'uint16');
@@ -230,7 +325,20 @@ for block_idx = find(block_mask)
   layers_vector = nan(length(layers),Nx);
   for idx = 1:length(layers)
     twtt = interp1(layers(idx).gps_time,layers(idx).twtt,cat_data.GPS_time);
-    twtt_bin = round(interp1(cat_data.Time, 1:length(cat_data.Time), twtt));
+    twtt_bin = zeros(size(twtt));
+    if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
+      for rline = 1:Nx
+        % time_flat: vector of twtt associated with each pixel for the
+        % particular column
+        time_flat = interp1(1:length(cat_data.Time),cat_data.Time,resample_field(:,rline),'linear','extrap');
+        twtt_bin(rline) = interp1(time_flat,1:length(time_flat),twtt(rline),'linear','extrap');
+      end
+    else
+      twtt_bin = interp1(cat_data.Time, 1:length(cat_data.Time), twtt);
+    end
+    twtt_bin = round(twtt_bin);
+    
+    Nt = size(cat_data.Data,1);
     good_idxs = find(isfinite(twtt_bin) & twtt_bin >= 1 & twtt_bin <= Nt);
     layers_bin_bitmap(twtt_bin(good_idxs) + Nt*(good_idxs-1)) = 1;
     layers_bitmap(twtt_bin(good_idxs) + Nt*(good_idxs-1)) = idx;
@@ -254,7 +362,31 @@ for block_idx = find(block_mask)
   layers_segment_bitmap = layers_segment_bitmap(min_layer:max_layer,:);
   layers_vector = layers_vector - min_layer + 1;
   cat_data.Data = cat_data.Data(min_layer:max_layer,:);
-  cat_data.Time = cat_data.Time(min_layer:max_layer);
+  resample_field = resample_field(min_layer:max_layer,:);
+  
+  %% Block: Log scaling data
+  % =======================================================================
+  cat_data.Data = db(cat_data.Data);
+  
+  %% Block: Detrend
+  % =======================================================================
+  param.block_data.detrend
+  param.block_data.norm
+  if isfield(param.block_data,'detrend') && ~isempty(param.block_data.detrend)
+    echo_detrend_data.Data = cat_data.Data;
+    echo_detrend_data.Time = cat_data.Time;
+    echo_detrend_data.Surface = cat_data.Surface;
+    data = echo_detrend(echo_detrend_data,param.block_data.detrend);
+  end
+  
+  %% Block: TBD (roll compensation, etc.)
+  % =======================================================================
+  
+  %% Block: Normalization
+  % =======================================================================
+  if isfield(param.block_data,'norm') && ~isempty(param.block_data.norm)
+    cat_data.Data = echo_norm(cat_data.Data,param.block_data.norm);
+  end
   
   %% Block: Save
   % =======================================================================
