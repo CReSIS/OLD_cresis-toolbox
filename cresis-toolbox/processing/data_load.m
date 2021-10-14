@@ -716,7 +716,11 @@ for state_idx = 1:length(states)
             hdr.Nt{img}(out_rec) = Nt{img}(1);
             hdr.t0_raw{img}(out_rec) = t0{img}(1);
             hdr.t_ref{img}(out_rec) = t_ref{img}(1);
-            
+            if any(param.records.file.version == [9])
+              hdr.t_ref{img}(out_rec) = wfs(wf).t_ref;
+%               hdr.t0_raw{img}(out_rec) = wfs(wf).t0_raw;
+%               hdr.DDC_freq{img}(out_rec) = wfs(wf).DDC_freq;
+            end
             if any(isfinite(wfs(wf).blank))
               % Blank data
               %  - Blank is larger of two numbers passed in through radar worksheet blank parameter:
