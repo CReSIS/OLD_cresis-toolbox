@@ -17,9 +17,9 @@ params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_P3.xls'));
 %params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091228_01');
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20160519_0[14]'); % 20120330_03
-params = ct_set_params(params,'cmd.frms',[24:500]);
+params = ct_set_params(params,'cmd.frms',[34:500]);
 
-param_override.block_data.block_along_track = 5e3; % Along-track length of each block
+param_override.block_data.block_along_track = 50e3; % Along-track length of each block
 param_override.block_data.block_Nx = 256; % Number of samples in each block
 param_override.block_data.block_overlap = 0.5; % Set the % of overlap between each block
 param_override.block_data.rows.t0_pad = 150;
@@ -31,8 +31,10 @@ param_override.block_data.out_path = 'block_data';
 
 param_override.block_data.layer_params = [];
 param_override.block_data.layer_params.name = 'surface';
+param_override.block_data.layer_params(1).source = 'layerdata';
 param_override.block_data.layer_params(1).layerdata_source = 'layer_overly2021';
 param_override.block_data.layer_params(2).regexp = 'snow.*';
+param_override.block_data.layer_params(2).source = 'layerdata';
 param_override.block_data.layer_params(2).layerdata_source = 'layer_overly2021';
 
 param_override.block_data.file.img_en = true;

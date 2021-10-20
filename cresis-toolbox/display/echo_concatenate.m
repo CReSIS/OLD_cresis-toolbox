@@ -63,3 +63,11 @@ end
 % Concatenate the data (interpolate the new data to the old time axis and
 % only concatenate new data)
 cat_data.Data = [cat_data.Data, interp1(data.Time,data.Data(:,good_mask),cat_data.Time)];
+
+try
+  cat_param_str = echo_param(cat_data,1);
+  param_str = echo_param(data,1);
+
+  cat_data.(cat_param_str).load.frm ...
+    = unique([cat_data.(cat_param_str).load.frm data.(param_str).load.frm]);
+end
