@@ -1432,7 +1432,7 @@ classdef surfdata < handle
         
 %         fprintf('Creating surface data object for %s_%03d \n', param.day_seg,frm);
         
-        if regexp(param.add_surf_from_dem.method,'sar')
+        if strcmp(param.add_surf_from_dem.method,'sar')
           
           fprintf('Creating surf sar data object for %s_%03d \n', param.day_seg,frm);
           
@@ -1482,7 +1482,7 @@ classdef surfdata < handle
           sd.surf(2) = tomo.surfdata.empty_surf();
           sd = tomo.surfdata(sd,param.add_surf_from_dem.surf_out_path);
           
-        elseif regexp(param.add_surf_from_dem.method,'surf')
+        elseif strcmp(param.add_surf_from_dem.method,'surf')
           gps_time = [];
           fcs = [];
           surf_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,frm);
@@ -1542,7 +1542,7 @@ classdef surfdata < handle
           ice_mask_all = [];
         end
         
-        if regexp(param.add_surf_from_dem.method,'surf') && ~isempty(ref_surf_idx)
+        if strcmp(param.add_surf_from_dem.method,'surf') && ~isempty(ref_surf_idx)
           y_active = sin(sd.surf(ref_surf_idx).x) .* sd.surf(ref_surf_idx).y * c/2;
           z_active = -cos(sd.surf(ref_surf_idx).x) .* sd.surf(ref_surf_idx).y * c/2;
           
@@ -1970,10 +1970,12 @@ classdef surfdata < handle
 %       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140401_03_lut';
 %       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140325_07_lut';
 %       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140506_01_lut';
-      param_override.add_surf_from_dem.in_path = 'surf_nominal';
+%       param_override.add_surf_from_dem.in_path = 'surf_nominal';
       
-      %       params = ct_set_params(params, 'add_surf_from_dem.method','sar');
-      %       param_override.add_surf_from_dem.in_path = 'sar_air';
+            % Use these options for create surfdata used to generate
+            % snapshots in array proc
+            params = ct_set_params(params, 'add_surf_from_dem.method','sar');
+            param_override.add_surf_from_dem.in_path = 'sar_air';
       
       
       %       param_override.add_surf_from_dem.in_path = 'sar_air';

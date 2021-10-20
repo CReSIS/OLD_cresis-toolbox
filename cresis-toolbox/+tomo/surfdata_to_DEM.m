@@ -102,8 +102,8 @@ if ~isfield(param.dem,'ice_mask_flag') || isempty(param.dem.ice_mask_flag)
   param.dem.ice_mask_flag = false;
 end
 
-if ~isfield(param.dem,'add_array_manifold_mask_flag') || isempty(param.dem.add_array_manifold_mask_flag)
-  param.dem.add_array_manifold_mask_flag = false;
+if ~isfield(param.dem,'array_manifold_mask_flag') || isempty(param.dem.array_manifold_mask_flag)
+  param.dem.array_manifold_mask_flag = false;
 end
 
 if param.dem.array_manifold_mask_flag
@@ -623,7 +623,7 @@ for frm_idx = 1:length(param.cmd.frms)
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
         img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
-        
+        doa_ax_trim = sd.surf(surface_idx).x(DOA_trim + 1:end-DOA_trim,:);
         ice_mask_trim = ice_mask(DOA_trim+1:end-DOA_trim,:);
       else
         % DOA method: 3D points are the estmated DOAs, which are usually
@@ -645,14 +645,17 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       warning off;
       F = TriScatteredInterp(dt,img_3D(good_idxs));
+      F2 = TriScatteredInterp(dt,doa_ax_trim(good_idxs));
       warning on;
       IMG_3D = F(xmesh,ymesh);
+      DOA_GRID = F2(xmesh,ymesh);
       
       % Use inpolygon to find bad interpolation points and set to NaN
       idxs_to_check = find(~isnan(DEM));
       bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
       DEM(idxs_to_check(bad_mask)) = NaN;
       IMG_3D(idxs_to_check(bad_mask)) = NaN;
+      DOA_GRID(idxs_to_check(bad_mask))=NaN;
       if param.dem.ice_mask_flag
         nan_mask = idxs_to_check(bad_mask);
         ICE_MASK = ice_mask_dem;
@@ -685,7 +688,56 @@ for frm_idx = 1:length(param.cmd.frms)
       good_mask = isfinite(points.elev);
       scatter(points.x(good_mask)/1e3,points.y(good_mask)/1e3,[],points.elev(good_mask),'Marker','.');
     else
-      imagesc(xaxis/1e3,yaxis/1e3,DEM,'parent',h_axes,'alphadata',~isnan(DEM));
+      % DEBUG ONLY CODE FOR PLOTTING TGRS ERROR MAPS
+      if 0
+%         dat = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_tgrs2021_evd_20140506_01_lut_error_maps/20140401_03/20140401_03_042_top_lut.mat');
+        dat = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nominal_tgrs2021_error_maps/20140401_03/20140401_03_042_top_lut.mat');
+        dem1 = nan(size(DEM));
+        dem1(~ARRAY_MANIFOLD_MASK) = DEM(~ARRAY_MANIFOLD_MASK);
+        mask1 = nan(size(DEM));
+       
+        dem2 = nan(size(dat.ARRAY_MANIFOLD_MASK));
+        dem2(~dat.ARRAY_MANIFOLD_MASK) = dat.DEM(~dat.ARRAY_MANIFOLD_MASK);
+        nanmask = dem2==32767;
+        dem2(nanmask) = nan;
+        
+        error_map = dem1 - dem2;
+        imagesc(xaxis/1e3,yaxis/1e3,error_map,'parent',h_axes,'alphadata',~isnan(error_map));
+        % Plot flightline
+        [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
+          mdata.param_array.array_proc.fcs.origin(1,:), ...
+          mdata.param_array.array_proc.fcs.origin(2,:), ...
+          mdata.param_array.array_proc.fcs.origin(3,:),WGS84.ellipsoid);
+        fline.lat = fline.lat*180/pi;
+        fline.lon = fline.lon*180/pi;
+        [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);
+        hplot = plot(fline.x/1e3,fline.y/1e3,'k');
+        
+        % Colorbar, labels, and legends
+        hcolor = colorbar;
+        set(get(hcolor,'YLabel'),'String','Elevation (WGS-84,m)');
+        xlabel('X (km)');
+        ylabel('Y (km)');
+        legend(hplot,'Flight line');
+        
+        axis(axis_equal(h_axes, fline.x,fline.y));
+        h_fig_dem.Position = [50 50 800 600];
+        set(h_fig_dem,'PaperPositionMode','auto');
+        %
+        % Clip and decimate the geotiff because it is usually very large
+        clip_and_resample_image(h_img,gca,10);
+        title(sprintf('DEM %s_%03d %s',param.day_seg,frm,surface_names{surface_names_idx}),'interpreter','none');
+        
+        % Save output
+        out_fn_name = sprintf('%s_%03d_%s',param.day_seg,frm,'error');
+        out_fn = [fullfile(out_dir,out_fn_name),'.fig'];
+        fprintf('  %s\n', out_fn);
+        saveas(h_fig_dem,out_fn);
+        keyboard
+        
+      else
+        imagesc(xaxis/1e3,yaxis/1e3,DEM,'parent',h_axes,'alphadata',~isnan(DEM));
+      end
     end
     
     % Plot flightline
@@ -930,10 +982,10 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     if param.dem.array_manifold_mask_flag
-      dem_savefields = [dem_savefields {'ARRAY_MANIFOLD_MASK'}];
+      dem_savefields = [dem_savefields {'ARRAY_MANIFOLD_MASK','DOA_GRID'}];
     end
 
-    ct_save(mat_fn, dem_savefields);
+    ct_save(mat_fn, dem_savefields{:});
 
   end
   try; delete(h_fig_dem); end;
