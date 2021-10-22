@@ -299,6 +299,43 @@ if isfield(mdata,'param_array')
   end
 end
 
+%% Detect LDEO SIR or DICE file
+if isfield(mdata,'Campaign') && isfield(mdata,'FlightNo') && isfield(mdata,'prodLevel') && isfield(mdata,'UTC_time')
+  mdata.GPS_time = mdata.UTC_time + utc_leap_seconds(mdata.UTC_time(1));
+  mdata.param_qlook.season_name = mdata.Campaign;
+  mdata.param_qlook.radar_name = 'LDEO_SIR';
+  mdata.param_qlook.cmd.mission_names = mdata.FlightNo;
+  mdata.param_qlook.qlook.dec = mdata.numAvg;
+  mdata.param_qlook.qlook.B_filter = ones(1,mdata.numAvg)/mdata.numAvg;
+  mdata.param_qlook.qlook.inc_dec = 0;
+  mdata.file_type = 'qlook';
+  mdata.file_version = '1';
+
+  mdata = rmfield(mdata,'Campaign');
+  mdata = rmfield(mdata,'FlightNo');
+  mdata = rmfield(mdata,'layerInd');
+  mdata = rmfield(mdata,'prodLevel');
+  mdata = rmfield(mdata,'UTC_time');
+  mdata = rmfield(mdata,'Surf_Elev');
+  mdata = rmfield(mdata,'numAvg');
+  
+  % Shallow Ice Radar (SIR) <-- RS02_L870_20161129_031707_level1a_SIR_177.mat
+  % 1 minute files
+  % Pulse compressed (FFT, deramp on receive)
+  % Motion compensation
+  % GPS synchronization
+  % Surface tracked
+  
+  % 5 minute files
+  % Pulse compressed
+  % Motion compensation
+  % GPS synchronization
+  % Surface tracked
+  % Unfocused SAR (averaging and decimation)
+
+  % Deep Ice Radar (DICE)
+end
+
 %% Roll, Pitch, Heading
 if ~isfield(mdata,'Roll') && isfield(mdata,'GPS_time')
   mdata.Roll = zeros(size(mdata.GPS_time));

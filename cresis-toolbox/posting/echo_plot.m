@@ -104,7 +104,13 @@ else
 end
 clf(h.fig);
 h.axes = axes('parent',h.fig);
-h.image = imagesc(x_axis, y_axis, 10*log10(mdata.Data), 'parent', h.axes);
+if ~isreal(mdata.Data)
+  % Complex (voltage data are always represented in complex baseband format)
+  h.image = imagesc(x_axis, y_axis, db(mdata.Data), 'parent', h.axes);
+else
+  % Linear power
+  h.image = imagesc(x_axis, y_axis, db(mdata.Data,'power'), 'parent', h.axes);
+end
 colormap(h.axes,1-gray(256));
 
 %% Plot x-axis
