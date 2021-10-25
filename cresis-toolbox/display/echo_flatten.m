@@ -53,7 +53,7 @@ function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,
 %  range is from 1 to Nt)
 %
 % interp_method: string containing 'circular_convolution', 'linear' or
-% 'interpft'. The default is 'linear'. interpft is not recommended unless
+% 'sinc'. The default is 'linear'. sinc is not recommended unless
 % the data are Nyquist sampled. Note that power detection doubles the
 % required sampling rate; for example 30 MHz data must be sampled at 60 MHz
 % before power detection occurs.
@@ -132,8 +132,9 @@ end
 
 if isnumeric(mdata)
   mdata = struct('Data',mdata);
+else
+  param = echo_param(mdata);
 end
-param = echo_param(mdata);
 
 Nx = size(mdata.Data, 2);
 
@@ -151,7 +152,7 @@ if isstruct(resample_field)
   
   % Load layers
   ops_param = param;
-  ops_param.cmd.frms = [param.load.frm(1)-1 param.load.frm param.load.frm(end)+1];
+  ops_param.cmd.frms = [param.load.frm(1)-1 : param.load.frm(end)+1];
   layers = opsLoadLayers(ops_param, resample_field);
   
   % Interpolate layers onto mdata.GPS_time and convert from twtt to

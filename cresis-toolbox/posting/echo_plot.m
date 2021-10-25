@@ -1,5 +1,5 @@
-function [data,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn,echo_plot_param,layer_params)
-% [data,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn,echo_plot_param,layer_params)
+function [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn,echo_plot_param,layer_params)
+% [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn,echo_plot_param,layer_params)
 %
 % Function for loading and plotting data with layers using
 % elevation_compensation.m
@@ -19,7 +19,7 @@ function [data,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn,echo_p
 % or a parameter structure.
 %
 % layer_params: See layerdata.m profile() static function. Can be either a
-% profile string or a parameter structure.
+% profile string or a opsLoadLayers.m parameter structure.
 %
 % Outputs:
 % =========================================================================
@@ -88,7 +88,7 @@ end
 
 %% Elevation compensation
 % =========================================================================
-[data,x_axis,y_axis,surf_comp,layers_comp] = elevation_compensation(mdata,echo_plot_param,layers_twtt);
+[mdata,x_axis,y_axis,surf_comp,layers_comp] = elevation_compensation(mdata,echo_plot_param,layers_twtt);
 
 %% Plot results
 % =========================================================================
@@ -104,7 +104,13 @@ else
 end
 clf(h.fig);
 h.axes = axes('parent',h.fig);
-h.image = imagesc(x_axis, y_axis, 10*log10(data), 'parent', h.axes);
+if ~isreal(mdata.Data)
+  % Complex (voltage data are always represented in complex baseband format)
+  h.image = imagesc(x_axis, y_axis, db(mdata.Data), 'parent', h.axes);
+else
+  % Linear power
+  h.image = imagesc(x_axis, y_axis, db(mdata.Data,'power'), 'parent', h.axes);
+end
 colormap(h.axes,1-gray(256));
 
 %% Plot x-axis
