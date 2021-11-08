@@ -45,11 +45,17 @@ if 1
   % gpuDeviceTable
   for gpu_idx = 1:gpuDeviceCount('available')
     gpu_dev = gpuDevice(gpu_idx);
-    fprintf('GPU\t%s\n', gpu_dev.Name);
-    
+    % 8 bytes per sample, 3 copies in memory, 10e3 rows, 80% utilization
+    cols = min(10e3,floor(gpu_dev.TotalMemory / 10e3 / 8 / 3 * 0.8));
+    if cols == 10e3
+      fprintf('GPU\t%s\n', gpu_dev.Name);
+    else
+      fprintf('GPU\t%s: only using %d instead of 10000 columns due to VRAM limitation\n', gpu_dev.Name, cols);
+    end
+
     start_time = tic;
     fprintf('fft_start\t%g\n', toc(start_time));
-    A = randn(10e3,10e3) + 1i*randn(10e3,10e3);
+    A = randn(10e3,10e3,'single') + 1i*randn(10e3,10e3,'single');
     % gpurng(0, 'Philox');
     % B = randn(10e3,5e3,'single','gpuArray') + 1i*randn(10e3,5e3,'single','gpuArray');
     B = gpuArray(A);
