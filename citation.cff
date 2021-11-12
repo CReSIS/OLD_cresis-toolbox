@@ -4,7 +4,7 @@ authors:
 - family-names: "Center for Remote Sensing of Ice Sheets (CReSIS)"
   ror: "https://ror.org/04t2m2598"
 title: "cresis-toolbox"
-version: 1.0.0
+version: 3.0.1
 doi: 10.5281/zenodo.5683959
 date-released: 2021-11-12
 url: "https://github.com/CReSIS/cresis-toolbox"
