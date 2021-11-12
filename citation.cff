@@ -2,7 +2,6 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
 - family-names: CReSIS
-  given-names: 
   orcid: https://ror.org/04t2m2598
 title: "cresis-toolbox"
 version: 3.0.1
