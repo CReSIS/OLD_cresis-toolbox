@@ -29,7 +29,6 @@ end
 if ~isfield(param.collate_equal,'cmd_idx') || isempty(param.collate_equal.cmd_idx)
   param.collate_equal.cmd_idx = 1;
 end
-cmd = param.analysis.cmd{param.collate_equal.cmd_idx};
 
 if ~isfield(param.collate_equal,'debug_out_dir') || isempty(param.collate_equal.debug_out_dir)
   param.collate_equal.debug_out_dir = 'collate_equal';
@@ -156,6 +155,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   dt = waveform.dt;
   fc = waveform.fc;
   ref_wf_adc_idx = param.collate_equal.ref;
+  cmd = waveform.param_analysis.analysis.cmd{param.collate_equal.cmd_idx};
   
   % Taper off end of record to reduce circular convolution effects that may
   % show up during time delay compensation.
