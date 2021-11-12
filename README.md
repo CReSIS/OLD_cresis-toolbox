@@ -16,8 +16,8 @@ vim: Vim code. Only includes setup files for using vimdiff.
 
 ## To cite usage of the CReSIS Toolbox please use the following:
 
-CReSIS. 2021. CReSIS Toolbox [computer software], Lawrence, Kansas, USA. Retrieved from https://github.com/CReSIS/.
-
+(2021). cresis-toolbox (Version 3.0.1) [Computer software]. https://doi.org/10.5281/zenodo.5683959
+  
 ## To acknowledge the use of the CReSIS Toolbox, please note Kansas, NSF and NASA contributions. For example:
 
 We acknowledge the use of the CReSIS toolbox from CReSIS generated with support from the University of Kansas, NASA Operation IceBridge grant NNX16AH54G, and NSF grants ACI-1443054, OPP-1739003, and IIS-1838230.
