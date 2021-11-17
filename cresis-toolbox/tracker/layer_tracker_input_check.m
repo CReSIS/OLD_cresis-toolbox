@@ -320,6 +320,19 @@ for track_idx = 1:length(param.layer_tracker.track)
     error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
   end
   
+  if ~isfield(track,'lsm') || isempty(track.lsm)
+    track.lsm = [];
+  end
+  % lsm.use_mean_surf_en: logical scalar, default false. If true, tracker
+  % uses the mean surface to initialize lsm.y
+  if ~isfield(track.lsm,'use_mean_surf_en') || isempty(track.lsm.use_mean_surf_en)
+    track.lsm.use_mean_surf_en = false;
+  end
+  % lsm.y: initial surface layer bin
+  if ~isfield(track.lsm,'y') || isempty(track.lsm.y)
+    track.lsm.y = 1;
+  end
+  
   if ~isfield(track,'max_bin') || isempty(track.max_bin)
     track.max_bin = inf;
   elseif isstruct(track.max_bin)

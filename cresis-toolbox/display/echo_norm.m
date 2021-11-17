@@ -40,10 +40,10 @@ if ~exist('param','var') || isempty(param)
 end
 
 % valid_max_range_dB: 2 element numeric vector; specifies the valid range
-% for the max value; default is [-inf inf] which effectively disables
-% this valid max value range constraint;
+% for the max value; default is [-inf inf]. Use [-inf inf] to effectively
+% disable this valid max value range constraint;
 if ~isfield(param,'valid_max_range_dB') || isempty(param.valid_max_range_dB)
-  param.valid_max_range_dB = [30 inf];
+  param.valid_max_range_dB = [-inf inf];
 end
 
 if ~isfield(param,'scale') || isempty(param.scale)
@@ -67,4 +67,4 @@ max_scalar = min(noise+param.valid_max_range_dB(2), ...
   max(data(:))));
 
 % Scale and offset data
-data = param.scale(1) + (data-noise) / (max_scalar - noise) * param.scale(2);
+data = param.scale(1) + (data-noise) / (max_scalar - noise) * (param.scale(2)-param.scale(1));
