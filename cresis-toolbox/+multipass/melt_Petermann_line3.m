@@ -31,6 +31,11 @@ AT_data.elevS.P2010A = (pass(2).layers(1).layer_elev);
 AT_data.elevS.P2010B = (pass(3).layers(1).layer_elev);
 AT_data.elevS.P2017 = (pass(4).layers(1).layer_elev);
 
+% Save Lidar Surface profiles
+AT_data.elev_lidar.P2010A = (pass(1).layers(3).layer_elev);
+AT_data.elev_lidar.P2010B = (pass(2).layers(3).layer_elev);
+AT_data.elev_lidar.P2017 = (pass(3).layers(3).layer_elev);
+
 %Save annual alongtrack profile data
 %AT_data.pass.P2007 = pass(1).along_track;
 AT_data.pass.P2010A = pass(2).along_track;
@@ -154,6 +159,26 @@ AT_data.elev_End_Clip_SURF.P2010B = AT_data.elev_Beg_Clip_SURF.P2010B...
 AT_data.elev_End_Clip_SURF.P2017 = AT_data.elev_Beg_Clip_SURF.P2017...
   (1:length(AT_data.Btrack_End_Clip.P17));
 
+% Elevation data beginning clipping from start element in Along Track LIDAR
+% AT_data.elev_Beg_Clip.P2007 = AT_data.elevB.P2007...
+%   (AT_data.find_AT_value.P07:end); 
+AT_data.elev_Beg_Clip_LIDAR.P2010A = AT_data.elev_lidar.P2010A...
+  (AT_data.find_AT_value.P10A:end);
+AT_data.elev_Beg_Clip_LIDAR.P2010B = AT_data.elev_lidar.P2010B...
+  (AT_data.find_AT_value.P10B:end);
+AT_data.elev_Beg_Clip_LIDAR.P2017 = AT_data.elev_lidar.P2017...
+  (AT_data.find_AT_value.P17:end);
+
+% Elevation data end clipping from end of Along track data LIDAR
+% AT_data.elev_End_Clip.P2007 = AT_data.elev_Beg_Clip.P2007...
+%   (1:length(AT_data.Btrack_End_Clip.P07));
+AT_data.elev_End_Clip_LIDAR.P2010A = AT_data.elev_Beg_Clip_LIDAR.P2010A...
+  (1:length(AT_data.Btrack_End_Clip.P10A));
+AT_data.elev_End_Clip_LIDAR.P2010B = AT_data.elev_Beg_Clip_LIDAR.P2010B...
+  (1:length(AT_data.Btrack_End_Clip.P10B));
+AT_data.elev_End_Clip_LIDAR.P2017 = AT_data.elev_Beg_Clip_LIDAR.P2017...
+  (1:length(AT_data.Btrack_End_Clip.P17));  
+
 % Elevation data beginning clipping from start element in Along Track LAT
 % AT_data.elev_Beg_Clip_LAT.P2007 = AT_data.latitudes.P2007...
 %   (AT_data.find_AT_value.P07:end); 
@@ -244,13 +269,13 @@ AT_data.array_size.P17_PASS = size(AT_data.elev_End_Clip_PASS.P2017);
 % interpolate by which ever line you choose. Sample spacing is every 0.1m
 % Switch middle value to change sample step
   
-% AT_data.query_array.P07 = (AT_data.AT_vel.P2007(1):0.1:...
+% AT_data.query_array.P07 = (AT_data.AT_vel.P2007(1):10:...
 %   AT_data.AT_vel.P2007(end));
-AT_data.query_array.P10A = (AT_data.AT_vel.P2010A(1):0.1:...
+AT_data.query_array.P10A = (AT_data.AT_vel.P2010A(1):10:...
 AT_data.AT_vel.P2010A(end));
-%AT_data.query_array.P10B = (AT_data.AT_vel.P2010B(1):0.1:...
+%AT_data.query_array.P10B = (AT_data.AT_vel.P2010B(1):10:...
 %AT_data.AT_vel.P2010B(end));
-%AT_data.query_array.P17 = (AT_data.AT_vel.P2017(1):0.1:...
+%AT_data.query_array.P17 = (AT_data.AT_vel.P2017(1):10:...
 %AT_data.AT_vel.P2017(end));
 
 % Apply interpolation to each profile using selected query array
@@ -260,53 +285,70 @@ AT_data.AT_vel.P2010A(end));
 
 % 2010A BED
 AT_data.interp_data.P10A = interp1(AT_data.Btrack_End_Clip.P10A, ...
-  AT_data.elev_End_Clip.P2010A, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010A, AT_data.query_array.P10A,'nearest','extrap');
 % 2010B BED
 AT_data.interp_data.P10B = interp1(AT_data.Btrack_End_Clip.P10B, ...
-  AT_data.elev_End_Clip.P2010B, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010B, AT_data.query_array.P10A,'nearest','extrap');
 % 2017 BED
 AT_data.interp_data.P17 = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip.P2017, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2017, AT_data.query_array.P10A,'nearest','extrap');
 
 % 2010A SURF
 AT_data.interp_data.P10A_SURF = interp1(AT_data.Btrack_End_Clip.P10A, ...
-  AT_data.elev_End_Clip.P2010A_SURF, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010A_SURF, AT_data.query_array.P10A,'nearest','extrap');
 % 2010B SURF
 AT_data.interp_data.P10B_SURF = interp1(AT_data.Btrack_End_Clip.P10B, ...
-  AT_data.elev_End_Clip.P2010B_SURF, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010B_SURF, AT_data.query_array.P10A,'nearest','extrap');
 % 2017 SURF
 AT_data.interp_data.P17_SURF = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip.P2017_SURF, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2017_SURF, AT_data.query_array.P10A,'nearest','extrap');
+
+% 2010A THICKNESS
+AT_data.interp_data.P10A_thickness = AT_data.interp_data.P10A_SURF - AT_data.interp_data.P10A;
+% 2010B THICKNESS
+AT_data.interp_data.P10B_thickness = AT_data.interp_data.P10B_SURF - AT_data.interp_data.P10B;
+% 2017 THICKNESS
+AT_data.interp_data.P17_thickness = AT_data.interp_data.P17_SURF - AT_data.interp_data.P17;
+
+% 2010A LIDAR
+AT_data.interp_data.P10A_LIDAR = interp1(AT_data.Btrack_End_Clip.P10A, ...
+  AT_data.elev_End_Clip_LIDAR.P2010A, AT_data.query_array.P10A,'nearest','extrap');
+% 2010B LIDAR
+AT_data.interp_data.P10B_LIDAR = interp1(AT_data.Btrack_End_Clip.P10B, ...
+  AT_data.elev_End_Clip_LIDAR.P2010B, AT_data.query_array.P10A,'nearest','extrap');
+% 2017 LIDAR
+AT_data.interp_data.P17_LIDAR = interp1(AT_data.Btrack_End_Clip.P17, ...
+ AT_data.elev_End_Clip_LIDAR.P2017, AT_data.query_array.P10A,'nearest','extrap');
 
 % 2010A LAT
 AT_data.interp_data.P10A_LAT = interp1(AT_data.Btrack_End_Clip.P10A, ...
-  AT_data.elev_End_Clip.P2010A_LAT, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010A_LAT, AT_data.query_array.P10A,'nearest','extrap');
 % 2010B LAT
 AT_data.interp_data.P10B_LAT = interp1(AT_data.Btrack_End_Clip.P10B, ...
-  AT_data.elev_End_Clip.P2010B_LAT, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010B_LAT, AT_data.query_array.P10A,'nearest','extrap');
 % 2017 LAT
 AT_data.interp_data.P17_LAT = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip.P2017_LAT, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2017_LAT, AT_data.query_array.P10A,'nearest','extrap');
 
 % 2010A LON
 AT_data.interp_data.P10A_LON = interp1(AT_data.Btrack_End_Clip.P10A, ...
-  AT_data.elev_End_Clip.P2010A_LON, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010A_LON, AT_data.query_array.P10A,'nearest','extrap');
 % 2010B LON
 AT_data.interp_data.P10B_LON = interp1(AT_data.Btrack_End_Clip.P10B, ...
-  AT_data.elev_End_Clip.P2010B_LON, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010B_LON, AT_data.query_array.P10A,'nearest','extrap');
 % 2017 LON
 AT_data.interp_data.P17_LON = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip.P2017_LON, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2017_LON, AT_data.query_array.P10A,'nearest','extrap');
 
 % 2010A PASS
 AT_data.interp_data.P10A_PASS = interp1(AT_data.Btrack_End_Clip.P10A, ...
-  AT_data.elev_End_Clip.P2010A_PASS, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010A_PASS, AT_data.query_array.P10A,'nearest','extrap');
 % 2010B PASS
 AT_data.interp_data.P10B_PASS = interp1(AT_data.Btrack_End_Clip.P10B, ...
-  AT_data.elev_End_Clip.P2010B_PASS, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2010B_PASS, AT_data.query_array.P10A,'nearest','extrap');
 % 2017 PASS
 AT_data.interp_data.P17_PASS = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip.P2017_PASS, AT_data.query_array.P07);
+  AT_data.elev_End_Clip.P2017_PASS, AT_data.query_array.P10A,'nearest','extrap');
 
 % Calculate melt rates from interpolated profile pairings
 % 2007-2010A melt (Vertical difference in Features)
@@ -324,13 +366,17 @@ AT_data.melt_rates.P10B_P17 = AT_data.interp_data.P17 - ...
 
 %% Export data to csv
 % Concatenate and take transpose of Lon, Lat, Surf, Bed fields. Concatenate horizontally for each year
-AT_data.export.P07 = cat(2, AT_data.interp_data.P07_LON.', AT_data.interp_data.P07_LAT.', AT_data.interp_data.P07_SURF.', AT_data.interp_data.P07.' );
-AT_data.export.P10A = cat(2, AT_data.interp_data.P10A_LON.', AT_data.interp_data.P10A_LAT.', AT_data.interp_data.P10A_SURF.', AT_data.interp_data.P10A.' );
-AT_data.export.P10B = cat(2, AT_data.interp_data.P10B_LON.', AT_data.interp_data.P10B_LAT.', AT_data.interp_data.P10B_SURF.', AT_data.interp_data.P10B.' );
-AT_data.export.P17 = cat(2, AT_data.interp_data.P17_LON.', AT_data.interp_data.P17_LAT.', AT_data.interp_data.P17_SURF.', AT_data.interp_data.P17.' );
+% AT_data.export.P07 = cat(2, AT_data.interp_data.P07_LON.', AT_data.interp_data.P07_LAT.', AT_data.interp.P10A_thickness.', ...
+%     AT_data.interp_data.P07_SURF.', AT_data.interp.P07_LIDAR.', AT_data.interp_data.P07.' );
+AT_data.export.P10A = cat(2, AT_data.interp_data.P10A_LON.', AT_data.interp_data.P10A_LAT.', AT_data.interp_data.P10A_thickness.', ...
+    AT_data.interp_data.P10A_SURF.', AT_data.interp_data.P10A_LIDAR.', AT_data.interp_data.P10A.' );
+AT_data.export.P10B = cat(2, AT_data.interp_data.P10B_LON.', AT_data.interp_data.P10B_LAT.', AT_data.interp_data.P10B_thickness.',...
+    AT_data.interp_data.P10B_SURF.', AT_data.interp_data.P10B_LIDAR.', AT_data.interp_data.P10B.' );
+AT_data.export.P17 = cat(2, AT_data.interp_data.P17_LON.', AT_data.interp_data.P17_LAT.', AT_data.interp_data.P17_thickness.', ...
+    AT_data.interp_data.P17_SURF.', AT_data.interp_data.P17_LIDAR.', AT_data.interp_data.P17.' );
 
 %% Define Header Array of strings and vertically concatenate to data 
-cheader = {'Lons', 'Lats', 'Surface', 'Depth'}; % header
+cheader = {'Lons', 'Lats', 'Thickness', 'Surface', 'Lidar', 'Depth'}; % header
 commaHeader = [cheader;repmat({','},1,numel(cheader))];
 commaHeader = commaHeader(:)';
 textHeader = cell2mat(commaHeader);

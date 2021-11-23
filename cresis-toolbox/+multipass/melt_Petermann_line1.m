@@ -243,6 +243,38 @@ AT_data.elev_End_Clip_SURF.P2018 = AT_data.elev_Beg_Clip_SURF.P2018...
 % AT_data.elev_End_Clip_SURF.P2019 = AT_data.elev_Beg_Clip_SURF.P2019...
 %   (1:length(AT_data.Btrack_End_Clip.P19));
 
+% Elevation data beginning clipping from start element in Along Track LIDAR
+% AT_data.elev_Beg_Clip.P2007 = AT_data.elevB.P2007...
+%   (AT_data.find_AT_value.P07:end); 
+AT_data.elev_Beg_Clip_LIDAR.P2013 = AT_data.elev_lidar.P2013...
+  (AT_data.find_AT_value.P13:end);
+AT_data.elev_Beg_Clip_LIDAR.P2014 = AT_data.elev_lidar.P2014...
+  (AT_data.find_AT_value.P14:end);
+AT_data.elev_Beg_Clip_LIDAR.P2015 = AT_data.elev_lidar.P2015...
+  (AT_data.find_AT_value.P15:end);
+AT_data.elev_Beg_Clip_LIDAR.P2017 = AT_data.elev_lidar.P2017...
+  (AT_data.find_AT_value.P17:end);
+AT_data.elev_Beg_Clip_LIDAR.P2018 = AT_data.elev_lidar.P2018...
+  (AT_data.find_AT_value.P18:end);
+% AT_data.elev_Beg_Clip_LIDAR.P2019 = AT_data.elev_lidar.P2019...
+%   (AT_data.find_AT_value.P19:end);
+
+% Elevation data end clipping from end of Along track data LIDAR
+% AT_data.elev_End_Clip.P2007 = AT_data.elev_Beg_Clip.P2007...
+%   (1:length(AT_data.Btrack_End_Clip.P07));
+AT_data.elev_End_Clip_LIDAR.P2013 = AT_data.elev_Beg_Clip_LIDAR.P2013...
+  (1:length(AT_data.Btrack_End_Clip.P13));
+AT_data.elev_End_Clip_LIDAR.P2014 = AT_data.elev_Beg_Clip_LIDAR.P2014...
+  (1:length(AT_data.Btrack_End_Clip.P14));
+AT_data.elev_End_Clip_LIDAR.P2015 = AT_data.elev_Beg_Clip_LIDAR.P2015...
+  (1:length(AT_data.Btrack_End_Clip.P15));
+AT_data.elev_End_Clip_LIDAR.P2017 = AT_data.elev_Beg_Clip_LIDAR.P2017...
+  (1:length(AT_data.Btrack_End_Clip.P17));  
+AT_data.elev_End_Clip_LIDAR.P2018 = AT_data.elev_Beg_Clip_LIDAR.P2018...
+  (1:length(AT_data.Btrack_End_Clip.P18));
+% AT_data.elev_End_Clip_LIDAR.P2019 = AT_data.elev_Beg_Clip_LIDAR.P2019...
+%   (1:length(AT_data.Btrack_End_Clip.P19));
+
 % Velocity data beginning clipping from start element in Along Track LAT
 AT_data.elev_Beg_Clip_LAT.P2011 = AT_data.latitudes.P2011...
   (AT_data.find_AT_value.P11:end);
@@ -405,79 +437,111 @@ AT_data.interp_data.P18 = interp1(AT_data.Btrack_End_Clip.P18, ...
 
 % 2011 SURF
 AT_data.interp_data.P11_Surf = interp1(AT_data.Btrack_End_Clip.P11, ...
-  AT_data.elev_End_Clip_SURF.P2011, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_SURF.P2011, AT_data.query_array.P11,'nearest','extrap');
 % 2014 SURF
 AT_data.interp_data.P14_Surf = interp1(AT_data.Btrack_End_Clip.P14, ...
-  AT_data.elev_End_Clip_SURF.P2014, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_SURF.P2014, AT_data.query_array.P11,'nearest','extrap');
 % 2015 SURF
 AT_data.interp_data.P15_Surf = interp1(AT_data.Btrack_End_Clip.P15, ...
-  AT_data.elev_End_Clip_SURF.P2015, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_SURF.P2015, AT_data.query_array.P11,'nearest','extrap');
 % 2017 SURF
 AT_data.interp_data.P17_Surf = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip_SURF.P2017, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_SURF.P2017, AT_data.query_array.P11,'nearest','extrap');
 % 2018 SURF
 AT_data.interp_data.P18_Surf = interp1(AT_data.Btrack_End_Clip.P18, ...
-  AT_data.elev_End_Clip_SURF.P2018, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_SURF.P2018, AT_data.query_array.P11,'nearest','extrap');
 % 2019 SURF
 % AT_data.interp_data.P19_Surf = interp1(AT_data.Btrack_End_Clip.P19, ...
-%   AT_data.elev_End_Clip_SURF.P2019, AT_data.query_array.P11);
+%   AT_data.elev_End_Clip_SURF.P2019, AT_data.query_array.P11,'nearest','extrap');
+
+% 2011 LIDAR
+AT_data.interp_data.P11_LIDAR = interp1(AT_data.Btrack_End_Clip.P11, ...
+  AT_data.elev_End_Clip_LIDAR.P2011, AT_data.query_array.P11,'nearest','extrap');
+% 2014 LIDAR
+AT_data.interp_data.P14_LIDAR = interp1(AT_data.Btrack_End_Clip.P14, ...
+  AT_data.elev_End_Clip_LIDAR.P2014, AT_data.query_array.P11,'nearest','extrap');
+% 2015 LIDAR
+AT_data.interp_data.P15_LIDAR = interp1(AT_data.Btrack_End_Clip.P15, ...
+  AT_data.elev_End_Clip_LIDAR.P2015, AT_data.query_array.P11,'nearest','extrap');
+% 2017 LIDAR
+AT_data.interp_data.P17_LIDAR = interp1(AT_data.Btrack_End_Clip.P17, ...
+ AT_data.elev_End_Clip_LIDAR.P2017, AT_data.query_array.P11,'nearest','extrap');
+% 2018 LIDAR
+AT_data.interp_data.P18_LIDAR = interp1(AT_data.Btrack_End_Clip.P18, ...
+  AT_data.elev_End_Clip_LIDAR.P2018, AT_data.query_array.P11,'nearest','extrap');
+% 2019 LIDAR
+% AT_data.interp_data.P19_LIDAR = interp1(AT_data.Btrack_End_Clip.P19, ...
+%   AT_data.elev_End_Clip_LIDAR.P2019, AT_data.query_array.P11,'nearest','extrap');
+
+% 2011 THICKNESS
+AT_data.interp_data.P11_thickness = AT_data.interp_data.P11_Surf - AT_data.interp_data.P11;
+% 2014 THICKNESS
+AT_data.interp_data.P14_thickness = AT_data.interp_data.P14_Surf - AT_data.interp_data.P14;
+% 2015 THICKNES
+AT_data.interp_data.P15_thickness = AT_data.interp_data.P15_Surf - AT_data.interp_data.P15;
+% 2017 THICKNESS
+AT_data.interp_data.P17_thickness = AT_data.interp_data.P17_Surf - AT_data.interp_data.P17;
+% 2018 THICKNESS
+AT_data.interp_data.P18_thickness = AT_data.interp_data.P18_Surf - AT_data.interp_data.P18;
+% 2019 THICKNESS
+% AT_data.interp_data.P19_thickness = AT_data.interp_data.P19_Surf - AT_data.interp_data.P19;
 
 % 2011 LAT
 AT_data.interp_data.P11_LAT = interp1(AT_data.Btrack_End_Clip.P11, ...
-  AT_data.elev_End_Clip_LAT.P2011, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LAT.P2011, AT_data.query_array.P11,'nearest','extrap');
 % 2014 LAT
 AT_data.interp_data.P14_LAT = interp1(AT_data.Btrack_End_Clip.P14, ...
-  AT_data.elev_End_Clip_LAT.P2014, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LAT.P2014, AT_data.query_array.P11,'nearest','extrap');
 % 2015 LAT
 AT_data.interp_data.P15_LAT = interp1(AT_data.Btrack_End_Clip.P15, ...
-  AT_data.elev_End_Clip_LAT.P2015, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LAT.P2015, AT_data.query_array.P11,'nearest','extrap');
 % 2017 LAT
 AT_data.interp_data.P17_LAT = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip_LAT.P2017, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LAT.P2017, AT_data.query_array.P11,'nearest','extrap');
 % 2018 LAT
 AT_data.interp_data.P18_LAT = interp1(AT_data.Btrack_End_Clip.P18, ...
-  AT_data.elev_End_Clip_LAT.P2018, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LAT.P2018, AT_data.query_array.P11,'nearest','extrap');
 % 2019 LAT
 % AT_data.interp_data.P19_LAT = interp1(AT_data.Btrack_End_Clip.P19, ...
-%   AT_data.elev_End_Clip_LAT.P2019, AT_data.query_array.P11);
+%   AT_data.elev_End_Clip_LAT.P2019, AT_data.query_array.P11,'nearest','extrap');
 
 % 2011 LON
 AT_data.interp_data.P11_LON = interp1(AT_data.Btrack_End_Clip.P11, ...
-  AT_data.elev_End_Clip_LON.P2011, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LON.P2011, AT_data.query_array.P11,'nearest','extrap');
 % 2014 LON
 AT_data.interp_data.P14_LON = interp1(AT_data.Btrack_End_Clip.P14, ...
-  AT_data.elev_End_Clip_LON.P2014, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LON.P2014, AT_data.query_array.P11,'nearest','extrap');
 % 2015 LON
 AT_data.interp_data.P15_LON = interp1(AT_data.Btrack_End_Clip.P15, ...
-  AT_data.elev_End_Clip_LON.P2015, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LON.P2015, AT_data.query_array.P11,'nearest','extrap');
 % 2017 LON
 AT_data.interp_data.P17_LON = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip_LON.P2017, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LON.P2017, AT_data.query_array.P11,'nearest','extrap');
 % 2018 LON
 AT_data.interp_data.P18_LON = interp1(AT_data.Btrack_End_Clip.P18, ...
-  AT_data.elev_End_Clip_LON.P2018, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_LON.P2018, AT_data.query_array.P11,'nearest','extrap');
 % 2019 LON
 % AT_data.interp_data.P19_LON = interp1(AT_data.Btrack_End_Clip.P19, ...
-%   AT_data.elev_End_Clip_LON.P2019, AT_data.query_array.P11);
+%   AT_data.elev_End_Clip_LON.P2019, AT_data.query_array.P11,'nearest','extrap');
 
 % 2011 PASS
 AT_data.interp_data.P11_PASS = interp1(AT_data.Btrack_End_Clip.P11, ...
-  AT_data.elev_End_Clip_PASS.P2011, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_PASS.P2011, AT_data.query_array.P11,'nearest','extrap');
 % 2014 PASS
 AT_data.interp_data.P14_PASS = interp1(AT_data.Btrack_End_Clip.P14, ...
-  AT_data.elev_End_Clip_PASS.P2014, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_PASS.P2014, AT_data.query_array.P11,'nearest','extrap');
 % 2015 PASS
 AT_data.interp_data.P15_PASS = interp1(AT_data.Btrack_End_Clip.P15, ...
-  AT_data.elev_End_Clip_PASS.P2015, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_PASS.P2015, AT_data.query_array.P11,'nearest','extrap');
 % 2017 PASS
 AT_data.interp_data.P17_PASS = interp1(AT_data.Btrack_End_Clip.P17, ...
-  AT_data.elev_End_Clip_PASS.P2017, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_PASS.P2017, AT_data.query_array.P11,'nearest','extrap');
 % 2018 PASS
 AT_data.interp_data.P18_PASS = interp1(AT_data.Btrack_End_Clip.P18, ...
-  AT_data.elev_End_Clip_PASS.P2018, AT_data.query_array.P11);
+  AT_data.elev_End_Clip_PASS.P2018, AT_data.query_array.P11,'nearest','extrap');
 % 2019 PASS
 % AT_data.interp_data.P19_PASS = interp1(AT_data.Btrack_End_Clip.P19, ...
-%   AT_data.elev_End_Clip_PASS.P2019, AT_data.query_array.P11);
+%   AT_data.elev_End_Clip_PASS.P2019, AT_data.query_array.P11,'nearest','extrap');
 
 % Calculate melt rates from interpolated profile pairings
 % 2011-2014 melt (Vertical difference in Features)
@@ -512,15 +576,21 @@ AT_data.melt_rates.P17_P18 = AT_data.interp_data.P18 - ...
 
 %% Export data to csv
 % Concatenate and take transpose of Lon, Lat, Surf, Bed fields. Concatenate horizontally for each year
-AT_data.export.P11 = cat(2, AT_data.interp_data.P11_LON.', AT_data.interp_data.P11_LAT.', AT_data.interp_data.P11_Surf.', AT_data.interp_data.P11.' );
-AT_data.export.P14 = cat(2, AT_data.interp_data.P14_LON.', AT_data.interp_data.P14_LAT.', AT_data.interp_data.P14_Surf.', AT_data.interp_data.P14.' );
-AT_data.export.P15 = cat(2, AT_data.interp_data.P15_LON.', AT_data.interp_data.P15_LAT.', AT_data.interp_data.P15_Surf.', AT_data.interp_data.P15.' );
-AT_data.export.P17 = cat(2, AT_data.interp_data.P17_LON.', AT_data.interp_data.P17_LAT.', AT_data.interp_data.P17_Surf.', AT_data.interp_data.P17.' );
-AT_data.export.P18 = cat(2, AT_data.interp_data.P18_LON.', AT_data.interp_data.P18_LAT.', AT_data.interp_data.P18_Surf.', AT_data.interp_data.P18.' );
-%AT_data.export.P19 = cat(2, AT_data.interp_data.P19_LON, AT_data.interp_data.P19_LAT, AT_data.interp_data.P19_Surf, AT_data.interp_data.P19 );
+AT_data.export.P11 = cat(2, AT_data.interp_data.P11_LON.', AT_data.interp_data.P11_LAT.', AT_data.interp.P11_thickness.', ...
+    AT_data.interp_data.P11_Surf.', AT_data.interp_data.P11_LIDAR.', AT_data.interp_data.P11.' );
+AT_data.export.P14 = cat(2, AT_data.interp_data.P14_LON.', AT_data.interp_data.P14_LAT.', AT_data.interp.P14_thickness.', ...
+    AT_data.interp_data.P14_Surf.', AT_data.interp_data.P14_LIDAR.', AT_data.interp_data.P14.' );
+AT_data.export.P15 = cat(2, AT_data.interp_data.P15_LON.', AT_data.interp_data.P15_LAT.', AT_data.interp.P15_thickness.', ...
+    AT_data.interp_data.P15_Surf.', AT_data.interp_data.P15_LIDAR.', AT_data.interp_data.P15.' );
+AT_data.export.P17 = cat(2, AT_data.interp_data.P17_LON.', AT_data.interp_data.P17_LAT.', AT_data.interp.P17_thickness.', ...
+    AT_data.interp_data.P17_Surf.', AT_data.interp_data.P17_LIDAR.', AT_data.interp_data.P17.' );
+AT_data.export.P18 = cat(2, AT_data.interp_data.P18_LON.', AT_data.interp_data.P18_LAT.', AT_data.interp.P18_thickness.', ...
+    AT_data.interp_data.P18_Surf.', AT_data.interp_data.P17_LIDAR.', AT_data.interp_data.P18.' );
+% AT_data.export.P19 = cat(2, AT_data.interp_data.P19_LON.', AT_data.interp_data.P19_LAT.', AT_data.interp.P19_thickness.', ...
+    %AT_data.interp_data.P19_Surf.', AT_data.interp_data.P19_LIDAR.', AT_data.interp_data.P19.' );
 
 %% Define Header Array of strings and vertically concatenate to data 
-cheader = {'Lons', 'Lats', 'Surface', 'Depth'}; % header
+cheader = {'Lons', 'Lats', 'Thickness', 'Surface', 'Lidar', 'Depth'}; % header
 commaHeader = [cheader;repmat({','},1,numel(cheader))];
 commaHeader = commaHeader(:)';
 textHeader = cell2mat(commaHeader);
