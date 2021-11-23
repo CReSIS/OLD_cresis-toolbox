@@ -127,6 +127,7 @@ if ~isfield(param.multipass,'pass_en_mask') || isempty(param.multipass.pass_en_m
 end
 % Assume any undefined passes are enabled
 param.multipass.pass_en_mask(end+1:length(pass)) = true;
+param.multipass.pass_en_mask = logical(param.multipass.pass_en_mask);
 pass_en_mask = param.multipass.pass_en_mask;
 if ~pass_en_mask(master_idx)
   error('The master index pass %d must be enabled in param.multipass.pass_en_mask.', master_idx);
@@ -308,6 +309,9 @@ if enable_debug_plot
   legend(h_plot_map,h_legend_map);
   legend(h_plot_elev,h_legend_elev);
   h_axes_echo = h_axes_echo(pass_en_mask);
+  % x-axes from each pass do not line up since the images are not
+  % registered yet so this does not really work in the x-axis unless the
+  % along-track sampling rate is similar between each pass
   linkaxes(h_axes_echo);
   xlim(h_axes_echo(1),[1 max_rlines]);
   ylim(h_axes_echo(1),param.multipass.time_gate*1e6);
@@ -621,7 +625,6 @@ for pass_out_idx = 1:length(pass_en_idxs)
       set(gca,'YDir','normal');
       
       % Convert layerPnts_y from TWTT to WGS_84 Elevation
-      elevation = pass(master_idx).elev;
       surface = pass(pass_idx).layers(1).twtt_ref;
       for lay_idx = 1:length(pass(pass_idx).layers)
         layer_y_curUnit = pass(pass_idx).layers(lay_idx).twtt_ref;
@@ -642,7 +645,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
       xlabel('Range line');
     end
     colormap(1-gray(256));
-    title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_pass.cmd.frms(1),pass(pass_idx).direction),'interpreter','none')
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_pass.day_seg,pass(pass_idx).param_pass.cmd.frms(1),pass(pass_idx).direction),'interpreter','none')
     %caxis([-90 8]);
     
   else
