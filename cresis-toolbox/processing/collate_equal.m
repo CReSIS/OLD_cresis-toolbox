@@ -29,7 +29,6 @@ end
 if ~isfield(param.collate_equal,'cmd_idx') || isempty(param.collate_equal.cmd_idx)
   param.collate_equal.cmd_idx = 1;
 end
-cmd = param.analysis.cmd{param.collate_equal.cmd_idx};
 
 if ~isfield(param.collate_equal,'debug_out_dir') || isempty(param.collate_equal.debug_out_dir)
   param.collate_equal.debug_out_dir = 'collate_equal';
@@ -130,7 +129,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       fn = fullfile(fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s (%s)\n', fn, datestr(now));
       waveform = load(fn);
-      if wf_adc == wf_adcs(1)
+      if sub_img_idx == 1 && wf_adc == wf_adcs(1)
         gps_time = waveform.gps_time;
         lat = waveform.lat;
         lon = waveform.lon;
@@ -156,6 +155,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   dt = waveform.dt;
   fc = waveform.fc;
   ref_wf_adc_idx = param.collate_equal.ref;
+  cmd = waveform.param_analysis.analysis.cmd{param.collate_equal.cmd_idx};
   
   % Taper off end of record to reduce circular convolution effects that may
   % show up during time delay compensation.
@@ -311,17 +311,16 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
   if ~param.collate_equal.retrack_en
     surf_bin = zero_surf_bin*ones(1,Nx);
-  else
     
+  else
     surf_param = param;
-    surf_param.cmd.frms = 1;
+    surf_param.layer_tracker.frms = 1;
     surf_param.qlook.surf.min_bin = time(1);
     surf_param.qlook.surf.threshold_noise_rng = [0 (time(1)-time(zero_surf_bin))*2/3 (time(1)-time(zero_surf_bin))*1/3];
     surf_param.qlook.surf.threshold_rel_max = -9;
     surf_param.qlook.surf.max_rng = [0 0];
-    surf_param.qlook.surf.en = true;
-    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:));
-    surf_bin = layer_tracker(surf_param,[]);
+    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:),'Roll',roll(ref_wf_adc_idx,:));
+    surf_bin = layer_tracker_task(surf_param);
     surf_bin = round(interp1(time,1:length(time),surf_bin));
     surf_bin = surf_bin + 1;
     
@@ -489,7 +488,9 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   end
   
   if any(strcmp('comp_image',param.collate_equal.debug_plots))
-    h_comp_fig = get_figures(Nc,true,'comp_image');
+    % These windows are not saved so they are always displayed even in
+    % visible is not set in debug_plots.
+    h_comp_fig = get_figures(Nc,true,[mfilename '_comp_image']);
     set(h_comp_fig,'WindowStyle','docked')
     for wf_adc = 1:Nc
       clf(h_comp_fig(wf_adc));

@@ -267,7 +267,7 @@ if strcmpi(example_str,'Ryder_line1_2011_2013_2015_2019')
   % master line must be 2 for best alignment (terminus is still problem)
   pass_name = sprintf('Ryder_line1_2011_2013_2015_2019');
   dist_min = 16000;
-  master_pass_idx = 1;
+  master_pass_idx = 3; % Use 2015 since it runs parallel to glacier
   start = struct('lat',81.420,'lon',-50.278);
   stop = struct('lat',81.835,'lon',-51.104);
   input_type = 'echo';
@@ -285,13 +285,13 @@ if strcmpi(example_str,'Ryder_line1_2011_2013_2015_2019')
   
   param_fn = 'rds_param_2015_Greenland_C130.xls';
   day_seg = '20150506_02';
-  frms = 20;
+  frms = 19:20;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-   param_fn = 'rds_param_2019_Greenland_P3.xls';
-   day_seg = '20190423_01';
-   frms = 15:16;
-   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  param_fn = 'rds_param_2019_Greenland_P3.xls';
+  day_seg = '20190423_01';
+  frms = 15:16;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
 if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')
@@ -319,10 +319,10 @@ if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')
   frms = 16:17;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-%   param_fn = 'rds_param_2019_Greenland_P3.xls';
-%   day_seg = '20190423_01';
-%   frms = 13:14;
-%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  param_fn = 'rds_param_2019_Greenland_P3.xls';
+  day_seg = '20190423_01';
+  frms = 13:14;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
 if strcmpi(example_str,'Humboldt_line1_2012_2013_2014_2017')

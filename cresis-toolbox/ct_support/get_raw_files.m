@@ -17,12 +17,16 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,r
 %  .day_seg: string containing the day segment (e.g. '20170412_01'). This
 %  is not required if frm_id is a string with the day_seg in it.
 %
-% frm_id: One of these options:
+% frm_id: Indicates which frames to get information about. Must be one of
+% these options:
 %
 %   1. string containing frame id (e.g. '20120514_01_317')
 %
-%   2. an integer containing the frame number (param.day_seg must be passed
-%   in)
+%   2. an integer array containing the frame numbers (param.day_seg must be
+%   passed in)
+%
+%   3. a cell array of strings containing frame ids (e.g.
+%   {'20120514_01_317','20120514_01_318'})
 %
 % imgs: a cell array of wf-adc pair lists, leave undefined or empty to do
 % all images

@@ -10,7 +10,7 @@ function get_raw_files_tape(load_info,retrieve_mode,varargin)
 % base_dir and new_base_dir strings as name value pairs (see example)
 %
 % % Get the file information
-% [load_info,gps_time,recs] = get_raw_files(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140410_01_057',{[1 1;1 5;1 9; 1 13]});
+% [load_info,gps_time,recs] = get_raw_files(ct_filename_param('rds_param_2014_Greenland_P3.xls'),{'20140410_01_057','20140410_01_058'},{[1 1;1 5;1 9; 1 13]});
 %
 % % List files
 % get_raw_files_tape(load_info,'list');

@@ -71,5 +71,3 @@ if isfield(mdata,'Truncate_Bins')
       mdata = rmfield(mdata,'Data');
   end
 end
-
-return;

@@ -20,9 +20,11 @@ function mdata = load_L1B(fn)
 %
 % See also: plot_L1B.m, uncompress_echogram.m
 
+%% Load File
 [fn_dir,fn_name,fn_ext] = fileparts(fn);
 
 if strcmpi(fn_ext,'.nc')
+  % NETCDF
   mdata = netcdf_to_mat(fn);
   
   mdata.Latitude = mdata.lat;
@@ -52,6 +54,7 @@ if strcmpi(fn_ext,'.nc')
   mdata = rmfield(mdata,'heading');
   
 elseif strcmpi(fn_ext,'.mat')
+  % MAT
   mdata = load(fn);
   
 else
@@ -60,6 +63,7 @@ end
 
 mdata = uncompress_echogram(mdata);
 
+%% param_get_heights
 if isfield(mdata,'param_get_heights')
   if isequal({'get_heights'},fieldnames(mdata.param_get_heights))
     % param_get_heights is incomplete structure, supplement with param_records
@@ -124,6 +128,7 @@ if isfield(mdata,'param_get_heights')
   end
 end
 
+%% param_csarp
 if isfield(mdata,'param_csarp')
   if ~isfield(mdata.param_csarp,'csarp')
     % Very old file format
@@ -151,6 +156,7 @@ if isfield(mdata,'param_csarp')
   mdata.file_type = 'echo';
 end
 
+%% param_combine
 if isfield(mdata,'param_combine')
   mdata.param_array = mdata.param_combine;
   mdata = rmfield(mdata,'param_combine');
@@ -177,6 +183,7 @@ if isfield(mdata,'param_combine')
   mdata.file_type = 'echo';
 end
 
+%% param_combine_wf_chan
 if isfield(mdata,'param_combine_wf_chan')
   mdata.param_array.array = mdata.param_combine_wf_chan;
   mdata = rmfield(mdata,'param_combine_wf_chan');
@@ -257,6 +264,79 @@ if isfield(mdata,'param_combine_wf_chan')
   mdata.file_type = 'echo';
 end
 
+%% records.gps.time_offset, radar.lever_arm_fh
+if isfield(mdata,'param_qlook')
+  if ~isfield(mdata.param_qlook.records,'gps')
+    mdata.param_qlook.records.gps = [];
+  end
+  if ~isfield(mdata.param_qlook.records.gps,'time_offset')
+    mdata.param_qlook.records.gps.time_offset = NaN;
+  end
+  if ~isfield(mdata.param_qlook.radar,'lever_arm_fh')
+    if isfield(mdata.param_qlook.qlook.lever_arm_fh)
+      mdata.param_qlook.radar.lever_arm_fh = mdata.param_qlook.qlook.lever_arm_fh;
+      mdata.param_qlook.qlook = rmfield(mdata.param_qlook.qlook,'lever_arm_fh');
+    else
+      mdata.param_qlook.radar.lever_arm_fh = [];
+    end
+  end
+end
+
+if isfield(mdata,'param_array')
+  if ~isfield(mdata.param_array.records,'gps')
+    mdata.param_array.records.gps = [];
+  end
+  if ~isfield(mdata.param_array.records.gps,'time_offset')
+    mdata.param_array.records.gps.time_offset = NaN;
+  end
+  if ~isfield(mdata.param_array.radar,'lever_arm_fh')
+    if isfield(mdata.param_array.sar.lever_arm_fh)
+      mdata.param_array.radar.lever_arm_fh = mdata.param_array.sar.lever_arm_fh;
+      mdata.param_array.sar = rmfield(mdata.param_array.sar,'lever_arm_fh');
+    else
+      mdata.param_array.radar.lever_arm_fh = [];
+    end
+  end
+end
+
+%% Detect LDEO SIR or DICE file
+if isfield(mdata,'Campaign') && isfield(mdata,'FlightNo') && isfield(mdata,'prodLevel') && isfield(mdata,'UTC_time')
+  mdata.GPS_time = mdata.UTC_time + utc_leap_seconds(mdata.UTC_time(1));
+  mdata.param_qlook.season_name = mdata.Campaign;
+  mdata.param_qlook.radar_name = 'LDEO_SIR';
+  mdata.param_qlook.cmd.mission_names = mdata.FlightNo;
+  mdata.param_qlook.qlook.dec = mdata.numAvg;
+  mdata.param_qlook.qlook.B_filter = ones(1,mdata.numAvg)/mdata.numAvg;
+  mdata.param_qlook.qlook.inc_dec = 0;
+  mdata.file_type = 'qlook';
+  mdata.file_version = '1';
+
+  mdata = rmfield(mdata,'Campaign');
+  mdata = rmfield(mdata,'FlightNo');
+  mdata = rmfield(mdata,'layerInd');
+  mdata = rmfield(mdata,'prodLevel');
+  mdata = rmfield(mdata,'UTC_time');
+  mdata = rmfield(mdata,'Surf_Elev');
+  mdata = rmfield(mdata,'numAvg');
+  
+  % Shallow Ice Radar (SIR) <-- RS02_L870_20161129_031707_level1a_SIR_177.mat
+  % 1 minute files
+  % Pulse compressed (FFT, deramp on receive)
+  % Motion compensation
+  % GPS synchronization
+  % Surface tracked
+  
+  % 5 minute files
+  % Pulse compressed
+  % Motion compensation
+  % GPS synchronization
+  % Surface tracked
+  % Unfocused SAR (averaging and decimation)
+
+  % Deep Ice Radar (DICE)
+end
+
+%% Roll, Pitch, Heading
 if ~isfield(mdata,'Roll') && isfield(mdata,'GPS_time')
   mdata.Roll = zeros(size(mdata.GPS_time));
 end
@@ -266,6 +346,15 @@ if ~isfield(mdata,'Pitch') && isfield(mdata,'GPS_time')
 end
 
 if ~isfield(mdata,'Heading') && isfield(mdata,'GPS_time')
-  mdata.Heading = zeros(size(mdata.GPS_time));
+  mdata.Heading = nan(size(mdata.GPS_time));
 end
 
+%% Time, Depth field correction for old files
+if size(mdata.Time,1) == 1 && size(mdata.Time,2) > 1
+  warning('mdata.Time is a row vector and should always be a column vector. Fixing.');
+  mdata.Time = mdata.Time.';
+end
+if isfield(mdata,'Depth')
+  warning('Old file format. mdata.Depth is deprecated. Removing field.');
+  mdata = rmfield(mdata,'Depth');
+end
