@@ -116,18 +116,19 @@ end
 
 if strcmpi(example_str,'Ryder_line1_2011_2013_2015_2019')
   %% Ryder Line 1 2011, 2013, 2015, 2019
-  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Ryder_line1_2011_2013_2015_2019');
+  param.multipass.fn = fullfile(gRadar.out_path,'rds','2015_Greenland_C130','CSARP_multipass','Ryder_line1_2011_2013_2015_2019');
   
   param.multipass.rbins = [];
   
-  param.multipass.baseline_master_idx = 2;
-  param.multipass.master_idx = 2;
+  % Use 2015 for master_idx since it runs parallel to glacier
+  param.multipass.baseline_master_idx = 3;
+  param.multipass.master_idx = 3;
   
   param.multipass.pass_en_mask = [];
   param.multipass.output_fn_midfix = [];
   param.multipass.coregistration_time_shift = [0 0 0 0];
   param.multipass.comp_mode = 2;
-  param.multipass.time_gate = [2e-6 13e-6];
+  param.multipass.time_gate = [2e-6 15e-6];
 end
 
 if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')

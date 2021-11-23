@@ -148,6 +148,8 @@ for passes_idx = 1: length(passes)
     param_pass = read_param_xls(param_fn,passes(passes_idx).day_seg);
     param_pass = merge_structs(param_pass, param_override);
     
+    frames = frames_load(param_pass);
+    
     if strcmp(param.combine_passes.input_type,'sar')
       %% Load: Load surface layer
       % Only required to combine SAR images together with img_combine
@@ -193,6 +195,23 @@ for passes_idx = 1: length(passes)
         metadata{passes_idx}.fcs.y = [];
         metadata{passes_idx}.fcs.z = [];
         metadata{passes_idx}.fcs.pos = [];
+      end
+      % Handle data overlap in old files
+      if tmp_data.GPS_time(1) < frames.gps_time(passes(passes_idx).frms(frm_idx)) ...
+        || tmp_data.GPS_time(end) > frames.gps_time(passes(passes_idx).frms(frm_idx)+1)
+        warning('Old echogram format with extra "overlap" data at start and/or end. Removing overlap.');
+        good_mask = tmp_data.GPS_time >= frames.gps_time(passes(passes_idx).frms(frm_idx)) ...
+          & tmp_data.GPS_time <= frames.gps_time(passes(passes_idx).frms(frm_idx)+1);
+        tmp_data.GPS_time = tmp_data.GPS_time(good_mask);
+        tmp_data.Data = tmp_data.Data(:,good_mask);
+        tmp_data.Latitude = tmp_data.Latitude(good_mask);
+        tmp_data.Longitude = tmp_data.Longitude(good_mask);
+        tmp_data.Elevation = tmp_data.Elevation(good_mask);
+        tmp_data.Roll = tmp_data.Roll(good_mask);
+        tmp_data.Pitch = tmp_data.Pitch(good_mask);
+        tmp_data.Heading = tmp_data.Heading(good_mask);
+        tmp_data.Surface = tmp_data.Surface(good_mask);
+        tmp_data.Bottom = tmp_data.Bottom(good_mask);
       end
       metadata{passes_idx}.gps_time = [metadata{passes_idx}.gps_time ,tmp_data.GPS_time];
       metadata{passes_idx}.lat = [metadata{passes_idx}.lat ,tmp_data.Latitude];
@@ -240,7 +259,7 @@ for passes_idx = 1: length(passes)
         metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z, tmp_data.param_array.array_proc.fcs.z];
         metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos, tmp_data.param_array.array_proc.fcs.pos];
       end
-      data{passes_idx} = [data{passes_idx} ,tmp_data.Data];
+      data{passes_idx} = [data{passes_idx}, tmp_data.Data];
     end
   else
     %% Load: Load "sar" Data
