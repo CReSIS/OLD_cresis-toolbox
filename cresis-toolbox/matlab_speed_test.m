@@ -43,7 +43,7 @@ end
 %% GPU Section
 if 1
   % gpuDeviceTable
-  for gpu_idx = 1:gpuDeviceCount('available')
+  for gpu_idx = 1:gpuDeviceCount
     gpu_dev = gpuDevice(gpu_idx);
     % 8 bytes per sample, 3 copies in memory, 10e3 rows, 80% utilization
     cols = min(10e3,floor(gpu_dev.TotalMemory / 10e3 / 8 / 3 * 0.8));
