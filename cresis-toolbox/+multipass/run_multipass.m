@@ -18,7 +18,7 @@ example_str = 'egig_2011_2012_2014_2018_allwf';
 
 % param.multipass.layer: Choose which layers to include in the coregistered output.
 % Default is surface and bottom from CSARP_layer.
-%param_override.multipass.layer = struct('name',{'surface' 'bottom_qc'},'source',{'ops');
+%param_override.multipass.layer = struct('name',{'surface' 'bottom_qc'},'source',{'ops'});
 %param_override.multipass.layer = struct('name',{'surface' 'bottom_qc' 'surface'},'source',{'ops','ops','lidar'},'lidar_source','atm');
 
 if strcmpi(example_str,'Thwaites_201902_201912_202001')
@@ -133,18 +133,18 @@ end
 
 if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')
   %% Steensby Line 1 2011, 2013, 2015, 2019
-  param.multipass.fn = fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_multipass','Steensby_line1_2011_2013_2015_2019');
+  param.multipass.fn = fullfile(gRadar.out_path,'rds','2011_Greenland_P3','CSARP_multipass','Steensby_line1_2011_2013_2015_2019');
   
   param.multipass.rbins = [];
   
-  param.multipass.baseline_master_idx = 2;
-  param.multipass.master_idx = 2;
+  param.multipass.baseline_master_idx = 1;
+  param.multipass.master_idx = 1;
   
   param.multipass.pass_en_mask = [];
   param.multipass.output_fn_midfix = [];
   param.multipass.coregistration_time_shift = [0 0 0 0];
   param.multipass.comp_mode = 2;
-  param.multipass.time_gate = [2e-6 13e-6];
+  param.multipass.time_gate = [2e-6 10e-6];
 end
 
 if strcmpi(example_str,'ZI_line1_2010_2014_2016_2017_2018_2019')
