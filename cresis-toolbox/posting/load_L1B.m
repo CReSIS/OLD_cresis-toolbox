@@ -349,3 +349,12 @@ if ~isfield(mdata,'Heading') && isfield(mdata,'GPS_time')
   mdata.Heading = nan(size(mdata.GPS_time));
 end
 
+%% Time, Depth field correction for old files
+if size(mdata.Time,1) == 1 && size(mdata.Time,2) > 1
+  warning('mdata.Time is a row vector and should always be a column vector. Fixing.');
+  mdata.Time = mdata.Time.';
+end
+if isfield(mdata,'Depth')
+  warning('Old file format. mdata.Depth is deprecated. Removing field.');
+  mdata = rmfield(mdata,'Depth');
+end
