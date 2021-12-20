@@ -197,7 +197,8 @@ elseif obj.map.source == 1
   
   % Setup the Google map
   if isempty(obj.google.map)
-    obj.google.map = google_map();
+    global gRadar;
+    obj.google.map = google_map(gRadar.ops.google_map_api_key);
   end
   
   % Update axes labels
