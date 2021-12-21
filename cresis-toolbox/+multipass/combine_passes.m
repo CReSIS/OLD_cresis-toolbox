@@ -289,9 +289,9 @@ for passes_idx = 1: length(passes)
         %JDP -  Determine that wf-adc pair for this pass
         % wf_adc_pairs(passes_idx) = passes(passes_idx).imgs;
         
-        params = read_param_xls(ct_filename_param(param.combine_passes.passes(passes_idx).param_fn));
-        param = merge_structs(param, param_override);
-        param = merge_structs(param, param_override.param_pass);
+        params = read_param_xls(ct_filename_param(param.combine_passes.passes(passes_idx).param_fn)); % MOVE UP
+        param = merge_structs(param, param_override); % ??
+        param = merge_structs(param, param.combine_passes.passes.param_override); % PER PASS MERGE
         for wf_adc = 1:length(length( passes(passes_idx).imgs))
             wf_adc_pair = passes(passes_idx).imgs{1,wf_adc};
             chan_equal ...
