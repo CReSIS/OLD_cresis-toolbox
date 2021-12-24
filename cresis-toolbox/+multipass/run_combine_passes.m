@@ -16,14 +16,8 @@ passes = [];
 
 example_str = 'egig_2011_2012_2014_2018_allwf';
 %----------------------------------------------------
-% LOAD NEW EQUALIZATION COEFFICIENTS
-
-% copy the new coefficients from run_analysis.m
-% wf_equal = 2;
-% adc = 2:16;
-% param.radar.wfs(wf_equal).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
-% param.radar.wfs(wf_equal).chan_equal_deg = [-108.7    145.5     0.0          -142.3    -174.4    40.6        155.8     161.9     -164.8    150.4     175.2     -27.0      -110.6    -95.3      -89.6];                
-% param.radar.wfs(wf_equal).Tsys_ns = [2.82        2.88        0.00        6.44        2.10        1.43        2.33        -17.62    -23.01    -23.64    -28.59    -29.18    -24.75    -24.27    -18.99 ];    
+% LOAD NEW EQUALIZATION COEFFICIENTS WITHIN THE RIGHT SEASONS, 
+% CHECK EXAMPLE OF EGIG BELOW
 
 %---------------------------------------------------
 
@@ -506,7 +500,7 @@ if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
   
   master_pass_idx = 8;
   input_type = 'sar';
-  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[],'param_override',[]);
 
   % Initial line:
   % 2011: 20110426_11_005: Raw data on tape
@@ -523,65 +517,109 @@ if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
   % 2018: 20180501_01_051 and 053, 054, and 055
   
   param_fn = 'rds_param_2014_Greenland_P3.xls';
-  param_override = param;
-  param_override.param.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
-  param_override.param.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
-  param_override.param.radar.wfs(3).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
-  param_override.param.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(3).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
-  param_override.param.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
-  param_override.param.radar.wfs(3).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  
+  pass_override = [];
+  pass_override.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
+  pass_override.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(3).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(3).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(3).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
 
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
-    passes(end+1).param_override = merge_structs(param,param_override);
+    passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}},'param_override',pass_override);
+%     passes(end).param_override = merge_structs(param,param_override);
+%     passes.param_override = param_override;
   end
   
   param_fn = 'rds_param_2011_Greenland_P3.xls';
-  param_override = param;
-    param_override.param.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
-  param_override.param.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
-  param_override.param.radar.wfs(3).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
-  param_override.param.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(3).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
-  param_override.param.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
-  param_override.param.radar.wfs(3).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ]; 
+  pass_override = [];
+  pass_override.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
+  pass_override.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+    for adc = 2:16
+    passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
+%     passes(end).param_override.param = merge_structs(param,param_override.param);
+  end
+  
+  param_fn = 'rds_param_2012_Greenland_P3.xls';
+  pass_override = [];
+  pass_override.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
+  pass_override.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
-%     passes(end+1).param_override.param = merge_structs(param,param_override.param);
+    passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
+%     passes(end).param_override.param = merge_structs(param,param_override.param);
   end
   
   % param_fn = 'rds_param_2017_Greenland_P3.xls';
   % for adc = 2:16
   %   passes(end+1) = struct('day_seg','20170506_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
   % end
-  
+  if 0  % This set up still has bugs
   param_fn = 'rds_param_2018_Greenland_P3.xls';
-  param_override = param;
-    param_override.param.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
-  param_override.param.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
-  param_override.param.radar.wfs(3).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
-  param_override.param.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(3).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
-  param_override.param.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
-  param_override.param.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
-  param_override.param.radar.wfs(3).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ]; 
-  for adc = [1:4,6:16]
-    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
-      'in_path','','imgs',{{[1 adc], [3 adc], [5 adc]}});
-%     passes(end+1).param_override.param = merge_structs(param,param_override.param);
-  end
-  for adc = [1:4,6:16]
-    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
-      'in_path','','imgs',{{[2 adc], [4 adc], [6 adc]}});
-%     passes(end+1).param_override.param = merge_structs(param,param_override.param);
-  end
+  pass_override = [];
+  pass_override.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
+  pass_override.radar.wfs(2).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(3).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(4).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
+  pass_override.radar.wfs(5).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(6).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(2).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(3).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(4).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(5).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(6).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(2).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(3).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];  
+  pass_override.radar.wfs(4).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(5).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(6).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];  
 
+  for adc = [1:4,6:16]
+    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
+      'in_path','','imgs',{{[1 adc],[3 adc], [5 adc]}},'param_override',pass_override);
+%     passes(end).param_override.param = merge_structs(param,param_override.param);
+  end
+  
+ %%{
+  for adc = [1:4,6:16]
+    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
+      'in_path','','imgs',{{[2 adc], [4 adc], [6 adc]}},'param_override',pass_override);
+%     passes(end).param_override.param = merge_structs(param,param_override.param);
+  end
+  %}
+  end
+  if 1
+  param_fn = 'rds_param_2018_Greenland_P3.xls';
+  pass_override = [];
+  pass_override.radar.wfs(1).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];                
+  pass_override.radar.wfs(3).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(5).chan_equal_dB = [2.7 2.1 0.0  -2.4 0.2 1.4 2.5 3.1 -0.7 1.4 2.5 2.8 1.3  0.0  2.6];
+  pass_override.radar.wfs(1).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(3).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(5).chan_equal_deg = [-108.7 145.5 0.0 -142.3 -174.4 40.6 155.8 161.9 -164.8 150.4 175.2 -27.0 -110.6 -95.3 -89.6];                
+  pass_override.radar.wfs(1).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(3).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];    
+  pass_override.radar.wfs(5).Tsys = [2.82 2.88 0.00 6.44 2.10 1.43 2.33 -17.62 -23.01 -23.64 -28.59 -29.18 -24.75 -24.27 -18.99 ];  
+
+  for adc = [1:4,6:16]
+    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
+      'in_path','','imgs',{{[1 adc], [3 adc], [5 adc]}},'param_override',pass_override);
+%     passes(end).param_override.param = merge_structs(param,param_override.param);
+  end
+  end
 end
 
 %% Automated section
