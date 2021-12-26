@@ -76,6 +76,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   %% Profile Linux/Mac (PROFILE 2)
   % ----------------------------------------------------------------------
@@ -110,6 +111,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   %% KU Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
@@ -155,6 +157,7 @@ if ~(~ismcc && isdeployed)
 
   % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
 
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
@@ -192,6 +195,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -225,6 +229,7 @@ if ~(~ismcc && isdeployed)
 
   % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   %% IU Profile Linux (PROFILE 6)
   % ----------------------------------------------------------------------
@@ -275,6 +280,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
@@ -305,6 +311,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   %% AWI Profile Field Linux (PROFILE 8)
   % ----------------------------------------------------------------------
@@ -342,7 +349,8 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
-
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
@@ -384,7 +392,8 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
-
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
   %% Startup code (Automated Section)
   % =====================================================================
   
