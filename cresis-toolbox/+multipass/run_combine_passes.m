@@ -90,7 +90,7 @@ if strcmpi(example_str,'Petermann_line2_2013_2014_2017')
   master_pass_idx = 1;
   start = struct('lat',80.517191,'lon',-59.844969);
   stop = struct('lat',81.031,'lon',-61.672);
-
+  
   input_type = 'echo';
   passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
   param_fn = 'rds_param_2013_Greenland_P3.xls';
@@ -123,7 +123,7 @@ if strcmpi(example_str,'Petermann_line3_2010_2017')
   param_fn = 'rds_param_2010_Greenland_DC8.xls';
   day_seg = '20100420_03';
   frms = 8:9;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post\standard'); 
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post\standard');
   
   param_fn = 'rds_param_2017_Greenland_P3.xls';
   day_seg = '201700414_01';
@@ -254,10 +254,10 @@ if strcmpi(example_str,'79N_Cross1_2012_2017_2018_2019')
   frms = 1;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-%   param_fn = 'rds_param_2019_Greenland_P3.xls';
-%   day_seg = '20190405_02';
-%   frms = 15;
-%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  % param_fn = 'rds_param_2019_Greenland_P3.xls';
+  % day_seg = '20190405_02';
+  % frms = 15;
+  % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
 end
 
 
@@ -363,7 +363,7 @@ if strcmpi(example_str,'ZI_line1_2010_2014_2016_2017_2018_2019')
   stop = struct('lat',78.927951,'lon',-19.105975);
   input_type = 'echo';
   passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
- 
+  
   param_fn = 'rds_param_2010_Greenland_P3.xls';
   day_seg = '20100525_04';
   frms = 09;
@@ -389,10 +389,10 @@ if strcmpi(example_str,'ZI_line1_2010_2014_2016_2017_2018_2019')
   frms = 18:19;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
   
-%   param_fn = 'rds_param_2019_Greenland_P3.xls';
-%   day_seg = '20190405_01';
-%   frms = 22:23;
-%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  % param_fn = 'rds_param_2019_Greenland_P3.xls';
+  % day_seg = '20190405_01';
+  % frms = 22:23;
+  % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
 if strcmpi(example_str,'camp_century_2014_2_weeks')
@@ -495,15 +495,8 @@ if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
   
   master_pass_idx = 8;
   input_type = 'sar';
-  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
-
-  % Initial line:
-  % 2011: 20110426_11_005: Raw data on tape
-  % 2012: 20120411_02_009 and 010: Raw data on tape
-  % 2014: 20140410_01_057: Raw data on tape
-  % 2017: 20170506_01_057: Raw data on Indiana University tape
-  % 2018: 20180501_01_052: Raw data at Indiana University DC
-  %
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[],'param_override',[]);
+  
   % Additional data to capture physical signals of interest
   % 2011: 20110426_11_006 and 007
   % 2012: 20120411_02_007 and 008
@@ -512,35 +505,50 @@ if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
   % 2018: 20180501_01_051 and 053, 054, and 055
   
   param_fn = 'rds_param_2014_Greenland_P3.xls';
+  pass_override = [];
+  tmp_param = read_param_xls(ct_filename_param(param_fn),'20140410_01');
+  for wf = 1:length(tmp_param.radar.wfs)
+    pass_override.radar.wfs(wf).chan_equal_dB = tmp_param.radar.wfs(wf).chan_equal_dB;
+    pass_override.radar.wfs(wf).chan_equal_deg = tmp_param.radar.wfs(wf).chan_equal_deg;
+    pass_override.radar.wfs(wf).Tsys = tmp_param.radar.wfs(wf).Tsys;
+  end
+  pass_override.radar.wfs(3).chan_equal_deg = pass_override.radar.wfs(3).chan_equal_deg + (54-78.174); % wf 2 to 3 correction
+  pass_override.radar.wfs(3).Tsys = pass_override.radar.wfs(3).Tsys - 11.37e-9; % wf 2 to 3 correction
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
+    passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}},'param_override',pass_override);
   end
   
   param_fn = 'rds_param_2011_Greenland_P3.xls';
+  pass_override = [];
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+    passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
   end
   
   param_fn = 'rds_param_2012_Greenland_P3.xls';
+  pass_override = [];
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+    passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
   end
   
+  % 2017 data on tape, no SAR data products
   % param_fn = 'rds_param_2017_Greenland_P3.xls';
   % for adc = 2:16
   %   passes(end+1) = struct('day_seg','20170506_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
   % end
   
   param_fn = 'rds_param_2018_Greenland_P3.xls';
+  pass_override = [];
   for adc = [1:4,6:16]
     passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
-      'in_path','','imgs',{{[1 adc], [3 adc], [5 adc]}});
+      'in_path','','imgs',{{[1 adc],[3 adc], [5 adc]}},'param_override',pass_override);
   end
-  for adc = [1:4,6:16]
-    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
-      'in_path','','imgs',{{[2 adc], [4 adc], [6 adc]}});
-  end
-
+  % Combining left and right beams could present a problem due to them
+  % having common phase centers so disabling the right transmit beam data
+  %for adc = [1:4,6:16]
+  %  passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
+  %    'in_path','','imgs',{{[2 adc], [4 adc], [6 adc]}},'param_override',pass_override);
+  %end
+  
 end
 
 %% Automated section
