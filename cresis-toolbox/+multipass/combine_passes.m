@@ -141,12 +141,15 @@ param.combine_passes.passes = passes;
 metadata = {};
 data = {};
 for passes_idx = 1: length(passes)
-  %% Load: Load param xls
+  %% Load: Load parameter spreadsheet
   param_fn = ct_filename_param(passes(passes_idx).param_fn);
   % Only load the parameter spreadsheet if it is not already in memory
   if passes_idx == 1 || ~strcmp(passes(passes_idx).day_seg,passes(passes_idx-1).day_seg)
     param_pass = read_param_xls(param_fn,passes(passes_idx).day_seg);
+    % General parameter override merge:
     param_pass = merge_structs(param_pass, param_override);
+    % Pass-specific parameter override merge:
+    param_pass = merge_structs(param_pass, passes(passes_idx).param_override);
     
     frames = frames_load(param_pass);
     
@@ -164,9 +167,9 @@ for passes_idx = 1: length(passes)
     param = merge_structs(param_pass,param);
   end
   
-  %% Load: Load Data
+  %% Load: Data
   if strcmp(param.combine_passes.input_type,'echo')
-    %% Load: Load "echo" Data
+    %% Load Data: Echogram
     echo_fn_dir{passes_idx} = ct_filename_out(param_pass, passes(passes_idx).in_path); %creates directory for pass, from given data format
     % Loop to load each echogram frame
     for frm_idx = 1:length(passes(passes_idx).frms)
@@ -198,7 +201,7 @@ for passes_idx = 1: length(passes)
       end
       % Handle data overlap in old files
       if tmp_data.GPS_time(1) < frames.gps_time(passes(passes_idx).frms(frm_idx)) ...
-        || tmp_data.GPS_time(end) > frames.gps_time(passes(passes_idx).frms(frm_idx)+1)
+          || tmp_data.GPS_time(end) > frames.gps_time(passes(passes_idx).frms(frm_idx)+1)
         warning('Old echogram format with extra "overlap" data at start and/or end. Removing overlap.');
         good_mask = tmp_data.GPS_time >= frames.gps_time(passes(passes_idx).frms(frm_idx)) ...
           & tmp_data.GPS_time <= frames.gps_time(passes(passes_idx).frms(frm_idx)+1);
@@ -262,9 +265,9 @@ for passes_idx = 1: length(passes)
       data{passes_idx} = [data{passes_idx}, tmp_data.Data];
     end
   else
-    %% Load: Load "sar" Data
+    %% Load Data: SAR
     
-    % Setup param_sar structure used to load SAR data
+    % Setup param_sar structure used in load_sar_data.m
     param_sar = param_pass;
     % (wf,adc) pairs to load
     param_sar.load_sar_data.imgs = passes(passes_idx).imgs;
@@ -277,9 +280,50 @@ for passes_idx = 1: length(passes)
     [data{end+1},metadata{end+1}] = load_sar_data(param_sar);
     
     metadata{end}.frms = passes(passes_idx).frms;
+    
+    % Update param_pass radar.wfs structure
+    if passes_idx == 1 || ~strcmp(passes(passes_idx).day_seg,passes(passes_idx-1).day_seg)
+      % Load records for data_load_wfs.m and save original param_pass
+      % structure
+      param_pass_original = param_pass;
+      records = records_load(param_pass);
+    else
+      % Reset param_pass so it starts at the same point for each wf-adc
+      % pair
+      param_pass = param_pass_original;
+    end
+    [tmp_wfs,~] = data_load_wfs(setfield(param_pass,'load',struct('imgs',{passes(passes_idx).imgs})),records);
     metadata{end}.param_pass = param_pass;
     
-    %% Do image combining
+    %% Load Data SAR: equalization
+    param_pass.radar.wfs = merge_structs(param_pass.radar.wfs,tmp_wfs);
+    for img = 1:length(passes(passes_idx).imgs)
+      % Get the wf and adc values for this image
+      wf = passes(passes_idx).imgs{img}(1,1);
+      adc = passes(passes_idx).imgs{img}(1,2);
+      % Check to see if the parameter-spreadsheet/param_override values
+      % have been updated from when the SAR data were created.
+      chan_equal ...
+        = 10.^((param_pass.radar.wfs(wf).chan_equal_dB(param_pass.radar.wfs(wf).rx_paths(adc)) ...
+        - metadata{end}.wfs(wf).chan_equal_dB(param_pass.radar.wfs(wf).rx_paths(adc)) )/20) ...
+        .* exp(1i*( ...
+        param_pass.radar.wfs(wf).chan_equal_deg(param_pass.radar.wfs(wf).rx_paths(adc)) ...
+        - metadata{end}.wfs(wf).chan_equal_deg(param_pass.radar.wfs(wf).rx_paths(adc)) )/180*pi);
+      Tsys_old = metadata{end}.wfs(wf).Tsys(param_pass.radar.wfs(wf).rx_paths(adc));
+      Tsys = param_pass.radar.wfs(wf).Tsys(param_pass.radar.wfs(wf).rx_paths(adc));
+      dTsys = Tsys-Tsys_old;
+      if dTsys ~= 0
+        fprintf('  Updating Tsys for wf %d adc %d from %g to %g (dTsys is %g)\n', wf, adc, Tsys_old, Tsys, dTsys);
+        data{end}{img} = ifft(bsxfun(@times,fft(data{end}{img},[],1), ...
+          exp(1i*2*pi*metadata{end}.wfs(wf).freq*dTsys)));
+      end
+      if chan_equal ~= 1
+        fprintf('  Updating chan_equal for wf %d adc %d (dchan_equal is %g dB %g deg)\n', wf, adc, db(chan_equal), angle(chan_equal)*180/pi);
+        data{end}{img} = data{end}{img} ./ chan_equal;
+      end
+    end
+    
+    %% Load Data SAR: img_comb
     % Combines low-gain and high-gain images into a single image
     param_mode = 'array';
     param_img_combine = param_pass;
