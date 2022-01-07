@@ -29,7 +29,6 @@ end
 if ~isfield(param.collate_equal,'cmd_idx') || isempty(param.collate_equal.cmd_idx)
   param.collate_equal.cmd_idx = 1;
 end
-cmd = param.analysis.cmd{param.collate_equal.cmd_idx};
 
 if ~isfield(param.collate_equal,'debug_out_dir') || isempty(param.collate_equal.debug_out_dir)
   param.collate_equal.debug_out_dir = 'collate_equal';
@@ -130,7 +129,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       fn = fullfile(fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s (%s)\n', fn, datestr(now));
       waveform = load(fn);
-      if wf_adc == wf_adcs(1)
+      if sub_img_idx == 1 && wf_adc == wf_adcs(1)
         gps_time = waveform.gps_time;
         lat = waveform.lat;
         lon = waveform.lon;
@@ -156,6 +155,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   dt = waveform.dt;
   fc = waveform.fc;
   ref_wf_adc_idx = param.collate_equal.ref;
+  cmd = waveform.param_analysis.analysis.cmd{param.collate_equal.cmd_idx};
   
   % Taper off end of record to reduce circular convolution effects that may
   % show up during time delay compensation.
@@ -211,7 +211,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     pos = get(h_fig(1),'Position');
     set(h_fig(1),'Position',[pos(1:2) 700 800]);
     h_axes = subplot(3,1,1,'parent',h_fig(1));
-    plot(h_axes(1), lp(wf_data(plot_bins,:,debug_wf_adc_idx) ./ wf_data(plot_bins,:,ref_wf_adc_idx)).','.')
+    plot(h_axes(1), db(wf_data(plot_bins,:,debug_wf_adc_idx) ./ wf_data(plot_bins,:,ref_wf_adc_idx)).','.')
     grid(h_axes(1),'on');
     title(h_axes(1),sprintf('Compare wf-adc pair %d to %d',debug_wf_adc_idx,ref_wf_adc_idx));
     ylabel(h_axes(1),'Relative power (dB)');
@@ -228,7 +228,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     clf(h_fig(2));
     set(h_fig(2),'Name','Echogram-Surface');
     h_axes(4) = subplot(3,1,1:2,'parent',h_fig(2));
-    imagesc(lp(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
+    imagesc(db(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
     ylabel(h_axes(4), 'Relative range bin');
     h_axes(5) = subplot(3,1,3,'parent',h_fig(2));
     plot(h_axes(5), time_rng(:,:).'*3e8/2);
@@ -311,17 +311,16 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   ml_data = fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1);
   if ~param.collate_equal.retrack_en
     surf_bin = zero_surf_bin*ones(1,Nx);
-  else
     
+  else
     surf_param = param;
-    surf_param.cmd.frms = 1;
+    surf_param.layer_tracker.frms = 1;
     surf_param.qlook.surf.min_bin = time(1);
     surf_param.qlook.surf.threshold_noise_rng = [0 (time(1)-time(zero_surf_bin))*2/3 (time(1)-time(zero_surf_bin))*1/3];
     surf_param.qlook.surf.threshold_rel_max = -9;
     surf_param.qlook.surf.max_rng = [0 0];
-    surf_param.qlook.surf.en = true;
-    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:));
-    surf_bin = layer_tracker(surf_param,[]);
+    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:),'Roll',roll(ref_wf_adc_idx,:));
+    surf_bin = layer_tracker_task(surf_param);
     surf_bin = round(interp1(time,1:length(time),surf_bin));
     surf_bin = surf_bin + 1;
     
@@ -341,7 +340,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     clf(h_fig(1));
     set(h_fig(1),'Name','Echogram');
     h_axes = axes('parent',h_fig(1));
-    imagesc(lp(ml_data),'parent',h_axes(1));
+    imagesc(db(ml_data,'power'),'parent',h_axes(1));
     colormap(h_axes(1),1-gray(256));
     hold(h_axes(1),'on');
     plot(h_axes(1), surf_bin);
@@ -352,7 +351,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       clf(h_fig(2));
       set(h_fig(2),'Name','Echogram Surface Corrected');
       h_axes(2) = axes('parent',h_fig(2));
-      imagesc(lp(fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1)),'parent',h_axes(2));
+      imagesc(db(fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1),'power'),'parent',h_axes(2));
       colormap(h_axes(2),1-gray(256));
       
       linkaxes(h_axes);
@@ -489,14 +488,16 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   end
   
   if any(strcmp('comp_image',param.collate_equal.debug_plots))
-    h_comp_fig = get_figures(Nc,true,'comp_image');
+    % These windows are not saved so they are always displayed even in
+    % visible is not set in debug_plots.
+    h_comp_fig = get_figures(Nc,true,[mfilename '_comp_image']);
     set(h_comp_fig,'WindowStyle','docked')
     for wf_adc = 1:Nc
       clf(h_comp_fig(wf_adc));
       wf = wf_adc_list(wf_adc,1);
       adc = wf_adc_list(wf_adc,2);
       h_axes(wf_adc) = axes('parent',h_comp_fig(wf_adc));
-      imagesc(lp(wf_data(:,:,wf_adc)),'Parent',h_axes(end), 'parent', h_axes(wf_adc));
+      imagesc(db(wf_data(:,:,wf_adc)),'Parent',h_axes(end), 'parent', h_axes(wf_adc));
       title(h_axes(wf_adc),sprintf('wf %d adc %d', wf, adc));
       xlabel(h_axes(wf_adc),'Range line');
       ylabel(h_axes(wf_adc),'Range bin');
@@ -516,7 +517,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     pos = get(h_fig(1),'Position');
     set(h_fig(1),'Position',[pos(1:2) 700 800]);
     h_axes = subplot(3,1,1,'parent',h_fig(1));
-    plot(h_axes(1), lp(wf_data(plot_bins,:,debug_wf_adc_idx) ./ wf_data(plot_bins,:,ref_wf_adc_idx)).','.')
+    plot(h_axes(1), db(wf_data(plot_bins,:,debug_wf_adc_idx) ./ wf_data(plot_bins,:,ref_wf_adc_idx)).','.')
     grid(h_axes(1),'on');
     title(h_axes(1),sprintf('Compare wf-adc pair %d to %d',debug_wf_adc_idx,ref_wf_adc_idx));
     ylabel(h_axes(1),'Relative power (dB)');
@@ -533,7 +534,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     clf(h_fig(2));
     set(h_fig(2),'Name','Echogram-Surface');
     h_axes(4) = subplot(3,1,1:2,'parent',h_fig(2));
-    imagesc(lp(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
+    imagesc(db(wf_data(:,:,ref_wf_adc_idx)),'parent',h_axes(4));
     ylabel(h_axes(4), 'Relative range bin');
     h_axes(5) = subplot(3,1,3,'parent',h_fig(2));
     plot(h_axes(5), time_rng(:,:).'*3e8/2);
@@ -651,20 +652,20 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
         [corr_int,lags] = xcorr(abs(in), abs(ref_in) .* Hcorr_wind);
       elseif delay_method == 1
         % Time delay: threshold method
-        threshold = lp(mean(abs(wf_data(param.collate_equal.noise_bin,:,ref_wf_adc_idx)).^2)) + 30;
+        threshold = db(mean(abs(wf_data(param.collate_equal.noise_bin,:,ref_wf_adc_idx)).^2),'power') + 30;
         in = interpft(wf_data(:,rline,wf_adc), Mt*Nt);
         ref_in = interpft(wf_data(:,rline,ref_wf_adc_idx), Mt*Nt);
         
-        in_bin = find(lp(in)>threshold,1);
-        ref_in_bin = find(lp(ref_in)>threshold,1);
+        in_bin = find(db(in)>threshold,1);
+        ref_in_bin = find(db(ref_in)>threshold,1);
         if ~isempty(in_bin) && ~isempty(ref_in_bin)
           % If the threshold was exceeded, then we use this range line
           peak_offset(wf_adc,rline) = (in_bin - ref_in_bin)/Mt;
           if abs(peak_offset(wf_adc,rline)) > 5
             figure(1); clf;
-            plot(lp(in));
+            plot(db(in));
             hold on;
-            plot(lp(ref_in),'r');
+            plot(db(ref_in),'r');
             keyboard
           end
           
@@ -695,7 +696,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     legend_str = cell(1,Nc);
     plot_mode = [0 0 0; hsv(7)];
     for wf_adc = 1:Nc
-      h_plot(wf_adc) = plot(h_axes,lp(ct_smooth(peak_val(wf_adc,:),0.01)), ...
+      h_plot(wf_adc) = plot(h_axes,db(ct_smooth(abs(peak_val(wf_adc,:)).^2,0.01),'power'), ...
         'Color', plot_mode(mod(wf_adc-1,length(plot_mode))+1,:), ...
         'LineStyle','none','Marker', '.');
       hold(h_axes, 'on');
@@ -842,11 +843,11 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     
     equal.Tsys_offset{wf} = nanmean(peak_offset(:,rlines),2)*dt;
     equal.chan_equal_deg_offset{wf} = angle(nanmean(peak_val(:,rlines),2)) * 180/pi;
-    equal.chan_equal_dB_offset{wf} = lp(nanmean(abs(peak_val(:,rlines)).^2,2),1);
+    equal.chan_equal_dB_offset{wf} = db(nanmean(abs(peak_val(:,rlines)).^2,2),'power');
     
     equal.Tsys_offset_std{wf} = nanstd(peak_offset(:,rlines),[],2)*dt;
     equal.chan_equal_deg_offset_std{wf} = angle(nanstd(peak_val(:,rlines),[],2)) * 180/pi;
-    equal.chan_equal_dB_offset_std{wf} = lp(nanstd(abs(peak_val(:,rlines)).^2,[],2),1);
+    equal.chan_equal_dB_offset_std{wf} = db(nanstd(abs(peak_val(:,rlines)).^2,[],2),'power');
     
     equal.Tsys_offset{wf} = reshape(equal.Tsys_offset{wf},[1 Nc]);
     equal.chan_equal_deg_offset{wf} = reshape(equal.chan_equal_deg_offset{wf},[1 Nc]);

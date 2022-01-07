@@ -58,6 +58,7 @@ classdef layerdata < handle
   methods (Access = private)
     
     %% create: create layer file
+    % NOTE: just creates the file structure, but does not save it
     function create(obj,frm)
       obj.check_records();
 
@@ -174,6 +175,8 @@ classdef layerdata < handle
       
       % Load/create-if-needed reference trajectory
       obj.records = records_reference_trajectory_load(obj.param,obj.records);
+      obj.param.records.gps.time_offset = obj.records.param_records.records.gps.time_offset;
+      obj.param.radar.lever_arm_fh = obj.records.param_records.radar.lever_arm_fh;
       
       obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
       
@@ -994,7 +997,7 @@ classdef layerdata < handle
       if ischar(id)
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
-        if isempty(id)
+        if isempty(match_idx)
           error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
         id = obj.layer_organizer.lyr_id(match_idx);
@@ -1251,7 +1254,7 @@ classdef layerdata < handle
           obj.layer{frm}.lat = obj.records.lat(recs);
           obj.layer{frm}.lon = obj.records.lon(recs);
         else
-          if frm < length(obj.frame_idxs)
+          if frm < length(obj.frames.frame_idxs)
             frm_mask = find(obj.along_track >= obj.records.along_track(obj.frames.frame_idxs(frm)) ...
               & obj.along_track < obj.records.along_track(obj.frames.frame_idxs(frm+1)));
           else
@@ -1422,6 +1425,68 @@ classdef layerdata < handle
       end
       delete(layers);
     end
+    
+    %% profile: define layerdata opsLoadLayers profiles
+    % layer_params = profile(layer_profile)
+    %
+    % This function converts profile strings into standard opsLoadLayers
+    % layer_params structures.
+    %
+    % Inputs:
+    % =====================================================================
+    %
+    % layer_profile: Structure or string. If string, then should contain
+    % the name of a layer parameter profile to load into the output
+    % layer_params. If structure then layer_params is set equal to
+    % layer_profile and nothing else is done.
+    %
+    % Outputs:
+    % =====================================================================
+    %
+    % layer_params: layer parameter structure of which layers to load and how
+    % 
+    % Example:
+    % 
+    % layer_params = profile('rds_ops_layer');
+    function layer_params = profile(layer_profile)
+      if isempty(layer_profile)
+        layer_params = [];
+      elseif isstruct(layer_profile)
+        layer_params = layer_profile;
+      elseif ischar(layer_profile)
+        
+        if strcmpi(layer_profile, 'accum_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface'});
+          
+        elseif strcmpi(layer_profile, 'accum_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface'});
+          
+        elseif strcmpi(layer_profile, 'rds_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface'});
+          
+        elseif strcmpi(layer_profile, 'rds_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface'});
+          
+        elseif strcmpi(layer_profile, 'rds_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface', 'bottom'});
+          
+        elseif strcmpi(layer_profile, 'rds_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface', 'bottom'});
+          
+        elseif strcmpi(layer_profile, 'snow_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface'});
+          
+        elseif strcmpi(layer_profile, 'snow_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface'});
+          
+        else
+          error('Profile string specified does not exist.');
+        end
+      else
+        error('Invalid type for layer_profile which must be empty, a layer profile string, or layer_params structure.');
+      end
+    end
+  
     
     % Functions for editing layerdata properties or merging two separate
     % layerdata directories

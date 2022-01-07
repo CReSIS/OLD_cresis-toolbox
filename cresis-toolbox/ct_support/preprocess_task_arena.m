@@ -91,7 +91,7 @@ for config_idx = 1:length(configs)
     default_num_expected = int32(512);
     num_header_fields = int32(33);
     length_field_offset = int32(260);
-  elseif strcmpi(configs(config_idx).radar_name,'ku0001')
+  elseif strcmpi(configs(config_idx).radar_name,'ku0001') || strcmpi(configs(config_idx).radar_name,'ku0002')
     radar_header_type = ku0001_radar_header_type;
     min_num_expected = int32(0);
     max_num_expected = int32(configs(config_idx).max_num_bins);
@@ -211,10 +211,16 @@ for config_idx = 1:length(configs)
       end
       
       % Check to see if outputs already exist
-      if reuse_tmp_files && exist(out_hdr_fn,'file') ...
-          && (strcmpi(configs(config_idx).datastream_type,'tcp') || exist(out_fn,'file'))
-        load(out_hdr_fn,'last_bytes','last_bytes_len','num_expected','pkt_counter');
-        continue;
+      if strcmpi(configs(config_idx).radar_name,'ku0002')
+        if reuse_tmp_files && exist(out_hdr_fn,'file')      
+          continue;
+        end
+      else
+        if reuse_tmp_files && exist(out_hdr_fn,'file') ...
+            && (strcmpi(configs(config_idx).datastream_type,'tcp') || exist(out_fn,'file'))
+          load(out_hdr_fn,'last_bytes','last_bytes_len','num_expected','pkt_counter');
+          continue;
+        end
       end
       
       %% Read in headers from data file and create network packet stripped data file
@@ -223,9 +229,13 @@ for config_idx = 1:length(configs)
           num_expected,pkt_counter,min_num_expected,max_num_expected, ...
           default_num_expected,num_header_fields,length_field_offset);
       else
-        [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
-          num_expected,pkt_counter,min_num_expected,max_num_expected, ...
-          default_num_expected,num_header_fields,length_field_offset);
+        if strcmpi(configs(config_idx).radar_name,'ku0002')
+          [hdr,data] = basic_load_arena(fn);
+        else
+          [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
+            num_expected,pkt_counter,min_num_expected,max_num_expected, ...
+            default_num_expected,num_header_fields,length_field_offset);
+        end
       end
       
       %% Write header output file
@@ -243,7 +253,19 @@ for config_idx = 1:length(configs)
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
             'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
             'last_bytes','last_bytes_len','num_expected','pkt_counter');
+        elseif strcmpi(configs(config_idx).radar_name,'ku0002') 
+          offset = hdr{1}.frame_sync;
+          mode_latch = hdr{1}.mode;
+          subchannel = hdr{1}.subchannel;
+          wg_delay_latch = 0;
+          rel_time_cntr_latch = hdr{1}.rel_time_cntr_latch;
+          profile_cntr_latch = hdr{1}.profile_cntr_latch;
+          pps_ftime_cntr_latch =hdr{1}.pps_ftime_cntr_latch;
+          pps_cntr_latch = hdr{1}.pps_cntr_latch;
           
+          save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
+            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');          
         elseif strcmpi(configs(config_idx).radar_name,'KUSnow')
           offset = mod(hdr(1,:),2^32);
           mode_latch = mod(hdr(3,:),2^8);
@@ -415,9 +437,12 @@ for config_idx = 1:length(configs)
     board_idx = board_idx_wfs(wf_idx);
     mode_latch = mode_wfs(wf_idx);
     subchannel = subchannel_wfs(wf_idx);
-    
     fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq*1e6;
     BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth*1e6;
+    if strcmpi(configs(config_idx).radar_name,'ku0002')
+      fc = fc*param.config.defaults{1}.radar.wfs(wf).fmult + param.config.defaults{1}.radar.wfs(wf).fLO;
+      BW = BW*param.config.defaults{1}.radar.wfs(wfs).fmult;
+    end
     Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints;
     fs = configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6;
     Tpd = Nt/fs;

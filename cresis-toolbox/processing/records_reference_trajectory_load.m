@@ -39,14 +39,26 @@ ref_fn = fullfile(ref_fn_dir,sprintf('ref_%s.mat', param.day_seg));
 if exist(ref_fn,'file')
   % If reference trajectory file exists, load and use it (this is much
   % faster usually than creating a new reference trajectory)
-  ref = load(ref_fn);
-  if strcmp(ref.gps_source,records.gps_source)
-    records.lat = ref.lat;
-    records.lon = ref.lon;
-    records.elev = ref.elev;
-    return;
+  ref_traj = load(ref_fn);
+  if strcmp(ref_traj.gps_source,records.gps_source)
+    if ~isempty(param.radar.lever_arm_fh)
+      trajectory_param = struct('gps_source',records.gps_source, ...
+        'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
+        'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
+      [lever_arm_val] = param.radar.lever_arm_fh(trajectory_param, [], 0);
+    end
+    if isempty(param.radar.lever_arm_fh) || sum(abs(ref_traj.lever_arm_val-lever_arm_val)) < 1e-6
+      ref = records;
+      ref.lat = ref_traj.lat;
+      ref.lon = ref_traj.lon;
+      ref.elev = ref_traj.elev;
+      ref.param_records.radar.lever_arm_fh = ref_traj.lever_arm_fh;
+      return;
+    else
+    end
+  else
+    warning('records_reference_trajectory_load:gps_source','Reference trajectory file exists, but gps_source does not match. Run records_reference_trajectory.m to recreate: %s', ref_fn);
   end
-  warning('records_reference_trajectory_load:gps_source','Reference trajectory file exists, but gps_source does not match. Run records_reference_trajectory.m to recreate: %s', ref_fn);
 end
 
 % No usable reference trajectory file, so we have to create the reference

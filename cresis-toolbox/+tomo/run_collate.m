@@ -372,6 +372,10 @@ elseif strcmpi(example_setup,'grid')
   tomo_collate.layer_params(2).name = 'bottom';
   tomo_collate.layer_params(2).source = 'layerdata';
   
+  % .tomo_params: parameters to constrain the range-bins of the 3D tracker
+  %tomo_collate.tomo_params = struct('name','surface','source','layerdata','eval',struct('cmd','s=s-1e-6;'));
+  %tomo_collate.tomo_params(2) = struct('name','bottom','source','layerdata','eval',struct('cmd','s=s+5e-6;'));
+  
   % surfData_mode: surfData mode ('overwrite','fillgaps', or 'append', note that append with the
   %   same surface name as an existing surface will overwrite that surface whereas fillgaps
   %   will leave the surface untouched if it already exists)
