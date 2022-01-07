@@ -87,14 +87,14 @@ if ~isfield(param.tomo_collate,'top_name') || isempty(param.tomo_collate.top_nam
 end
 
 if ~isfield(param.tomo_collate,'array_manifold_cal_flag') || isempty(param.tomo_collate.array_manifold_cal_flag)
-  param.tomo_collate.array_manifold_cal_flag = 'false';
+  param.tomo_collate.array_manifold_cal_flag = false;
 end
 
 if ~isfield(param.tomo_collate,'suppress_surf_flag') || isempty(param.tomo_collate.suppress_surf_flag)
   if param.tomo_collate.array_manifold_cal_flag
-    param.tomo_collate.suppress_surf_flag = 'false';
+    param.tomo_collate.suppress_surf_flag = false;
   else
-    param.tomo_collate.suppress_surf_flag = 'false';
+    param.tomo_collate.suppress_surf_flag = false;
   end
 end
 

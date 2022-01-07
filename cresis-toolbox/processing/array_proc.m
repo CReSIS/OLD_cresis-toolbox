@@ -1576,8 +1576,8 @@ for line_idx = 1:1:Nx_out
         [~,SV_nom] = cfg.sv_fh(sv_arg{:});
         
         % Geonull beamformer        
-        Wgeo_lut = w'*SV_lut;
-        Wgeo_nom = w'*SV_nom;
+        Wgeo_lut = wgeo'*SV_lut;
+        Wgeo_nom = wgeo'*SV_nom;
         
         % Normalized periodogram
         Sp_lut = (1/size(dataSample,1))*abs(sum(conj(dataSample)*SV_lut,1)).^2;

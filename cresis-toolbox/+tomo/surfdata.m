@@ -1936,13 +1936,15 @@ classdef surfdata < handle
       %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
       %       params = ct_set_params(params,'cmd.frms',[19, 41, 42, 45]);
       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-      params = ct_set_params(params,'cmd.frms',[13 15 16 19]);
+%       params = ct_set_params(params,'cmd.frms',[4, 5, 13, 15, 16, 19, 20, 34, 35, 41, 42, 45]);
+%       params = ct_set_params(params,'cmd.frms',[13]);
+%       params = ct_set_params(params,'cmd.frms',[34 35 38]);
 %             params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%             params = ct_set_params(params,'cmd.frms',[38 41 42 45]);
+%             params = ct_set_params(params,'cmd.frms',[41 42 45]);
       %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
       %       params = ct_set_params(params,'cmd.frms',[45]);
-      %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-      %       params = ct_set_params(params,'cmd.frms',[13, 15, 16, 38]);
+            params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+            params = ct_set_params(params,'cmd.frms',[20, 34, 35, 38]);
       %       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
       %       params = ct_set_params(params,'cmd.frms',[ 13, 15:16, 38, 41, 42, 45]);
       
@@ -1971,11 +1973,14 @@ classdef surfdata < handle
 %       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140325_07_lut';
 %       param_override.add_surf_from_dem.in_path = 'surf_tgrs2021_evd_20140506_01_lut';
 %       param_override.add_surf_from_dem.in_path = 'surf_nominal';
-      
+
+%       param_override.add_surf_from_dem.in_path = 'surf_em_model_20140325_07_lut';
+%       param_override.add_surf_from_dem.in_path = 'surf_em_model_20140506_01_lut';
+      param_override.add_surf_from_dem.in_path = 'surf_pseudoinverse_evd_20140506_01_lut_test';
             % Use these options for create surfdata used to generate
             % snapshots in array proc
-            params = ct_set_params(params, 'add_surf_from_dem.method','sar');
-            param_override.add_surf_from_dem.in_path = 'sar_air';
+%             params = ct_set_params(params, 'add_surf_from_dem.method','sar');
+%             param_override.add_surf_from_dem.in_path = 'sar_air';
       
       
       %       param_override.add_surf_from_dem.in_path = 'sar_air';
