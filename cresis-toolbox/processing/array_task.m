@@ -183,7 +183,7 @@ for img = 1:length(param.array.imgs)
               if dTsys ~= 0
                 % Positive dTsys means Tsys > Tsys_old and we should reduce the
                 % time delay to all targets by dTsys.
-                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
+                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name),[],1),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)),[],1);
               end
               
               % Concatenate data (resample in fast-time if needed since
@@ -266,7 +266,7 @@ for img = 1:length(param.array.imgs)
           if dTsys ~= 0
             % Positive dTsys means Tsys > Tsys_old and we should reduce the
             % time delay to all targets by dTsys.
-            sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
+            sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name),[],1),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)),[],1);
           end
           
           % Concatenate data (handle situation of time axis of previous
@@ -331,7 +331,7 @@ for img = 1:length(param.array.imgs)
               if dTsys ~= 0
                 % Positive dTsys means Tsys > Tsys_old and we should reduce the
                 % time delay to all targets by dTsys.
-                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
+                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name),[],1),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)),[],1);
               end
               
               % Concatenate data (resample in fast-time if needed since
