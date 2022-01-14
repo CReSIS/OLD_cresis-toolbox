@@ -268,6 +268,9 @@ for img = 1:length(param.load.imgs)
         time_correction = param.radar.wfs(wf).time_correction;
         time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
         dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
+      elseif strcmpi(radar_type,'deramp')
+        % No compensation is done for deramp before coherent noise removal
+        dTsys = 0;
       else
         dTsys = Tsys-Tsys_old;
       end
@@ -654,7 +657,7 @@ for img = 1:length(param.load.imgs)
             first_good_rec = false;
             freq_axes_changed = true;
             
-            %% Pulse compress: Output time
+            %% Pulse compress Deramp: Output time
             % The output time axes for every choice of DDC_dec must have
             % the same sample spacing. We compute the resampling ratio
             % required to achieve this in the pulse compressed time domain.
@@ -759,7 +762,7 @@ for img = 1:length(param.load.imgs)
               q
             end
             
-            %% Pulse compress: IF->Delay
+            %% Pulse compress Deramp: IF->Delay
             % =============================================================
             if 0
               % ENABLE_FOR_DEBUG_FREQ_MAP
@@ -845,7 +848,7 @@ for img = 1:length(param.load.imgs)
               ylabel('Frequency (Hz)');
             end
             
-            %% Pulse compress: IF->Delay (Coh Noise)
+            %% Pulse compress Deramp: IF->Delay (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               % =============================================================
               
@@ -889,7 +892,7 @@ for img = 1:length(param.load.imgs)
             
             freq_axes_changed = false; % Reset state
             
-            %% Pulse compress: Time axis
+            %% Pulse compress Deramp: Time axis
             
             % Convert IF frequency to time delay and account for reference
             % deramp time offset, hdr.t_ref
@@ -915,7 +918,7 @@ for img = 1:length(param.load.imgs)
             deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
             time_correction_freq = exp(1i*2*pi*(freq-fc)*time_correction);
             
-            %% Pulse compress: Time axis (Coh Noise)
+            %% Pulse compress Deramp: Time axis (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               
               % Convert IF frequency to time delay and account for reference
@@ -1021,7 +1024,7 @@ for img = 1:length(param.load.imgs)
           end
           
           
-          %% Pulse compress: FFT and Deskew
+          %% Pulse compress Deramp: FFT and Deskew
           
           % Window and DFT (raw deramped time to regular time)
           NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).Tadc_adjust + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
@@ -1266,6 +1269,7 @@ for img = 1:length(param.load.imgs)
           df = 1/T;
           hdr.freq{img} = fc + df * ifftshift(-floor(wfs(wf).Nt/2) : floor((wfs(wf).Nt-1)/2)).';
         end
+        
         % Method of copying to make this more efficient for very large
         % complex (real/imag) arrays. Lots of small matrix operations on
         % huge complex matrices is very slow in matlab. Real only matrices
@@ -1273,6 +1277,20 @@ for img = 1:length(param.load.imgs)
         blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
         for block = 1:length(blocks)-1
           rlines = blocks(block) : blocks(block+1)-1;
+          
+          % Apply wf-adc specific system time delay (for multichannel
+          % systems). For pulsed systems this is taken care of in
+          % data_load_wfs.m where the reference function is created.
+          Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+          if Tsys ~= 0
+            % Positive Tsys means the time delay to the target is too large
+            % and we should reduce the time delay to all targets by Tsys.
+            data{img}(:,rlines,wf_adc) ...
+              = ifft(bsxfun(@times, ...
+              fft(data{img}(:,rlines,wf_adc),[],1), ...
+              exp(1i*2*pi*hdr.freq{img}*Tsys)),[],1);
+          end
+          
           reD = real(data{img}(:,rlines,wf_adc));
           imD = imag(data{img}(:,rlines,wf_adc));
           for rec = 1:length(rlines)
