@@ -248,38 +248,37 @@ for img = 1:length(param.load.imgs)
       end
       coh_noise = coh_noise * 10.^((system_dB_noise-system_dB)/20);
       
-      % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
-      % changes relative to when the coherent noise was loaded and
-      % estimated.
-      coh_noise = coh_noise * 10.^(( ...
-        noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
-        - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
-        .* exp(1i*( ...
-        noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
-        - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
-      
-      % Tadc_adjust changes do not matter since they do not affect the data
-      % (only the time axis is affected).
-      
-      % Correct any changes in Tsys
-      Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-      Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-      if strcmpi(radar_type,'pulsed')
-        time_correction = param.radar.wfs(wf).time_correction;
-        time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
-        dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
-      elseif strcmpi(radar_type,'deramp')
-        % No compensation is done for deramp before coherent noise removal
-        dTsys = 0;
-      else
-        dTsys = Tsys-Tsys_old;
-      end
       noise.Nt = size(coh_noise,1);
       noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
-      if dTsys ~= 0
-        % Positive dTsys means Tsys > Tsys_old and we should reduce the
-        % time delay to all targets by dTsys.
-        coh_noise = ifft(bsxfun(@times, fft(coh_noise), exp(1i*2*pi*noise.freq*dTsys)));
+      if ~strcmpi(radar_type,'deramp')
+        % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
+        % changes relative to when the coherent noise was loaded and
+        % estimated.
+        coh_noise = coh_noise * 10.^(( ...
+          noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
+          - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
+          .* exp(1i*( ...
+          noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+          - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
+        
+        % Tadc_adjust changes do not matter since they do not affect the data
+        % (only the time axis is affected).
+        
+        % Correct any changes in Tsys
+        Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+        Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+        if strcmpi(radar_type,'pulsed')
+          time_correction = param.radar.wfs(wf).time_correction;
+          time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
+          dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
+        else
+          dTsys = Tsys-Tsys_old;
+        end
+        if dTsys ~= 0
+          % Positive dTsys means Tsys > Tsys_old and we should reduce the
+          % time delay to all targets by dTsys.
+          coh_noise = ifft(bsxfun(@times, fft(coh_noise), exp(1i*2*pi*noise.freq*dTsys)));
+        end
       end
       
       recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
@@ -1024,7 +1023,7 @@ for img = 1:length(param.load.imgs)
           end
           
           
-          %% Pulse compress Deramp: FFT and Deskew
+          %% Pulse compress Deramp: FFT, Deskew, Coh Noise Removal
           
           % Window and DFT (raw deramped time to regular time)
           NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).Tadc_adjust + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
@@ -1252,6 +1251,8 @@ for img = 1:length(param.load.imgs)
           grid on;
         end
         
+        %% Pulse compress Deramp: Corrections, Constant Nt
+        
         % Create a matrix of data with constant time rows, fill invalid samples with NaN
         if wf_adc == 1
           if all(isnan(hdr.t0{img}))
@@ -1277,19 +1278,6 @@ for img = 1:length(param.load.imgs)
         blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
         for block = 1:length(blocks)-1
           rlines = blocks(block) : blocks(block+1)-1;
-          
-          % Apply wf-adc specific system time delay (for multichannel
-          % systems). For pulsed systems this is taken care of in
-          % data_load_wfs.m where the reference function is created.
-          Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-          if Tsys ~= 0
-            % Positive Tsys means the time delay to the target is too large
-            % and we should reduce the time delay to all targets by Tsys.
-            data{img}(:,rlines,wf_adc) ...
-              = ifft(bsxfun(@times, ...
-              fft(data{img}(:,rlines,wf_adc),[],1), ...
-              exp(1i*2*pi*hdr.freq{img}*Tsys)),[],1);
-          end
           
           reD = real(data{img}(:,rlines,wf_adc));
           imD = imag(data{img}(:,rlines,wf_adc));
@@ -1322,6 +1310,29 @@ for img = 1:length(param.load.imgs)
             imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
+          
+          % Corrections:
+          % Apply wf-adc specific channel equalization (for multichannel
+          % systems). For pulsed systems this is taken care of in
+          % data_load.m in corrections.
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = chan_equal .* data{img}(1:wfs(wf).Nt,rlines,wf_adc);
+          
+          % Corrections:
+          % Apply wf-adc specific system time delay (for multichannel
+          % systems). For pulsed systems this is taken care of in
+          % data_load_wfs.m where the reference function is created.
+          Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+          if Tsys ~= 0
+            % Positive Tsys means the time delay to the target is too large
+            % and we should reduce the time delay to all targets by Tsys.
+            data{img}(1:wfs(wf).Nt,rlines,wf_adc) ...
+              = ifft(bsxfun(@times, ...
+              fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc),[],1), ...
+              exp(1i*2*pi*hdr.freq{img}*Tsys)),[],1);
+          end
+          
         end
         clear reD imD;
         
