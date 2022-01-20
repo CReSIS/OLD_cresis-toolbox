@@ -619,6 +619,9 @@ for img = 1:length(param.load.imgs)
         %% Pulse compress: Deramp
         freq_axes_changed = false;
         first_good_rec = true; % true until the time/freq axes created for the first time
+        if wf_adc == 1
+          new_Nt = hdr.Nt{img};
+        end
         for rec = 1:size(data{img},2)
           
           if hdr.bad_rec{img}(rec)
@@ -1221,24 +1224,26 @@ for img = 1:length(param.load.imgs)
           else
             tmp = tmp(1 : end-1);
           end
-          hdr.Nt{img}(rec) = length(tmp);
-          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = tmp;
+          if wf_adc == 1
+            new_Nt(rec) = length(tmp);
+          end
+          data{img}(1:new_Nt(rec),rec,wf_adc) = tmp;
         end
         
         if 0
           % ENABLE_FOR_DEBUG
           figure(1); clf;
           Mt = 10;
-          data_oversampled = interpft(data{img}(1:hdr.Nt{img}(rec),:,wf_adc), hdr.Nt{img}(rec)*Mt);
+          data_oversampled = interpft(data{img}(1:new_Nt(rec),:,wf_adc), new_Nt(rec)*Mt);
           [~,idx] = max(data_oversampled);
-          time_oversampled = time(1) + dt/Mt* (0:hdr.Nt{img}(rec)*Mt-1).';
+          time_oversampled = time(1) + dt/Mt* (0:new_Nt(rec)*Mt-1).';
           plot((time_oversampled(idx).' - tds)/dt)
           grid on;
           xlabel('Record');
           ylabel('Time error (\Delta_t)');
           
           figure(2); clf;
-          phase_sim = max(data{img}(1:hdr.Nt{img}(rec),:,wf_adc));
+          phase_sim = max(data{img}(1:new_Nt(rec),:,wf_adc));
           [~,ref_idx] = min(abs(tds-wfs(wf).td_mean));
           plot(angle(phase_sim./phase_sim(ref_idx)),'+-');
           hold on
@@ -1262,7 +1267,7 @@ for img = 1:length(param.load.imgs)
             dt = 1;
           else
             idx_start = min(round(hdr.t0{img}/dt));
-            wfs(wf).Nt = max(round(hdr.t0{img}/dt) + hdr.Nt{img})-idx_start;
+            wfs(wf).Nt = max(round(hdr.t0{img}/dt) + new_Nt)-idx_start;
           end
           hdr.time{img} = idx_start*dt + dt*(0:wfs(wf).Nt-1).';
           fc = sum(wfs(wf).BW_window)/2;
@@ -1288,10 +1293,10 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = 0;
             else
               cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
-              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + new_Nt(rlines(rec));
             end
             
-            reD(cur_idx_start : cur_idx_stop,rec) = reD(1:hdr.Nt{img}(rlines(rec)),rec);
+            reD(cur_idx_start : cur_idx_stop,rec) = reD(1:new_Nt(rlines(rec)),rec);
             reD(1:cur_idx_start-1,rec) = wfs(wf).bad_value;
             reD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
@@ -1302,10 +1307,10 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = 0;
             else
               cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
-              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + new_Nt(rlines(rec));
             end
             
-            imD(cur_idx_start : cur_idx_stop,rec) = imD(1:hdr.Nt{img}(rlines(rec)),rec);
+            imD(cur_idx_start : cur_idx_stop,rec) = imD(1:new_Nt(rlines(rec)),rec);
             imD(1:cur_idx_start-1,rec) = wfs(wf).bad_value;
             imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
@@ -1484,7 +1489,9 @@ for img = 1:length(param.load.imgs)
       df = hdr.freq{img}(2)-hdr.freq{img}(1);
       BW = df * wfs(wf).Nt;
       deconv_dfc = deconv_fc - fc;
-      hdr.freq{img} = mod(hdr.freq{img} + deconv_dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
+      if wf_adc == 1
+        new_deconv_hdr_freq = mod(hdr.freq{img} + deconv_dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
+      end
       
       for unique_idxs_idx = 1:length(unique_idxs)
         % deconv_mask: Create logical mask corresponding to range lines that use this deconv waveform
@@ -1591,6 +1598,15 @@ for img = 1:length(param.load.imgs)
       end
     end
 
+  end
+  
+  % Update frequency axis for deconv
+  if param.load.pulse_comp == 1 && wfs(wf).deconv.en && wfs(wf).Nt > 0
+    hdr.freq{img} = new_deconv_hdr_freq;
+  end
+  % Update record length field
+  if param.load.pulse_comp == 1 && strcmpi(radar_type,'deramp')
+    hdr.Nt{img} = new_Nt;
   end
   
   if param.load.pulse_comp == 1
