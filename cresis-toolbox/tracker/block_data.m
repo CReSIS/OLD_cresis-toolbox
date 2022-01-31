@@ -456,7 +456,7 @@ for block_idx = find(block_mask)
   %% Block: Detrend
   % =======================================================================
   if isfield(param.block_data,'detrend') && ~isempty(param.block_data.detrend)
-    param.block_data.detrend.layer_top = surf_bin;
+    param.block_data.detrend.layer_top = interp_finite(surf_bin,1);
     param.block_data.detrend.layer_bottom = nan(size(surf_bin));
     cat_data.Data = echo_detrend(cat_data,param.block_data.detrend);
   end
@@ -472,6 +472,9 @@ for block_idx = find(block_mask)
   
   %% Block: Save
   % =======================================================================
+  if ~exist(out_fn_dir,'dir')
+    mkdir(out_fn_dir);
+  end
   
   if param.block_data.file.img_en
     out_fn_name = sprintf('img_%s_%04d.png',param.day_seg,block_idx);
@@ -505,11 +508,37 @@ for block_idx = find(block_mask)
     imwrite(uint8(layers_segment_bitmap), out_fn);
   end
   
+  if 0
+    % Debug code to review images
+    % =====================================================================
+    out_fn_name = sprintf('img_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    imshow(out_fn);
+    
+    out_fn_name = sprintf('layer_bin_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    
+    out_fn_name = sprintf('layer_mult_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    
+    out_fn_name = sprintf('layer_seg_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+  end
+  
   if ~param.block_data.file.mat_en
     cat_data = rmfield(cat_data,'Data');
-  end
-  if ~exist(out_fn_dir,'dir')
-    mkdir(out_fn_dir);
   end
   out_fn_name = sprintf('%s_%04d.mat',param.day_seg,block_idx);
   out_fn = fullfile(out_fn_dir,out_fn_name);

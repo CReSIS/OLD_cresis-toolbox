@@ -1410,7 +1410,7 @@ classdef layerdata < handle
     % varargin: strings containing layer names
     %
     % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
-    % mdata = load(fn);
+    % mdata = load_L1B(fn);
     % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
     % [layer_list{1:N}] = layerdata.load_layers(mdata,'',layer_names{1:N});
     function varargout = load_layers(mdata,layerdata_source,varargin)

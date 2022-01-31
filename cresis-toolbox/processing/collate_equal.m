@@ -22,19 +22,28 @@ if ~isfield(param,'collate_equal') || isempty(param.collate_equal)
   param.collate_equal = [];
 end
 
+% chan_eq_en: logical scalar. Default is true. If true, channel
+% equalization with current parameter spreadsheet values is applied.
+% Includes Tadc_adjust, Tsys, chan_equal_dB, and chan_equal_deg.
 if ~isfield(param.collate_equal,'chan_eq_en') || isempty(param.collate_equal.chan_eq_en)
   param.collate_equal.chan_eq_en = true;
 end
 
+% .cmd_idx: positive scalar. Index into the analysis.cmd cell array.
+% Specifies which analysis output files will be loaded for equalization.
 if ~isfield(param.collate_equal,'cmd_idx') || isempty(param.collate_equal.cmd_idx)
   param.collate_equal.cmd_idx = 1;
 end
 
+% .debug_out_dir: string containing the output folder name to use for the
+% debug outputs. This is input to ct_filename_ct_tmp().
 if ~isfield(param.collate_equal,'debug_out_dir') || isempty(param.collate_equal.debug_out_dir)
   param.collate_equal.debug_out_dir = 'collate_equal';
 end
 debug_out_dir = param.collate_equal.debug_out_dir;
 
+% .debug_out_fn: string containing a word to insert into the output file
+% name to identify files for  this specific run.
 if ~isfield(param.collate_equal,'debug_out_fn') || isempty(param.collate_equal.debug_out_fn)
   param.collate_equal.debug_out_fn = 'analysis';
 end
@@ -44,20 +53,37 @@ if ~isfield(param.collate_equal,'debug_plots')
 end
 enable_visible_plot = any(strcmp('visible',param.collate_equal.debug_plots));
 
+% .delay: strucure controlling how the equalization coefficients are
+% estimated.
 if ~isfield(param.collate_equal,'delay') || isempty(param.collate_equal.delay)
   param.collate_equal.delay = [];
 end
+% .delay.method: string containing the method name. Default is
+% 'xcorr_complex'.
 if ~isfield(param.collate_equal.delay,'method') || isempty(param.collate_equal.delay.method)
   param.collate_equal.delay.method = 'xcorr_complex';
 end
+% .delay.Mt: Positive scalar integer. Fast-time oversampling to use in
+% equalization. Default is 64.
 if ~isfield(param.collate_equal.delay,'Mt') || isempty(param.collate_equal.delay.Mt)
   param.collate_equal.delay.Mt = 64;
 end
+% .delay.ref_bins: Array of scalar integers. Default is [-20 20]. Only the
+% first and last entry are used in the array. This specifies the relative
+% to zero_surf_bin range to use for correlation methods for the
+% param.collate_equal.ref wf_adc pair. For example, [-20 20] specifies 20
+% bins before the zero_surf_bin to 20 bins after the zero_surf_bin (so 41
+% total).
 if ~isfield(param.collate_equal.delay,'ref_bins') || isempty(param.collate_equal.delay.ref_bins)
-  param.collate_equal.delay.ref_bins = -20:20;
+  param.collate_equal.delay.ref_bins = [-20 20];
 end
+% .delay.search_bins: Array of scalar integers. Default is [-7 7]. Only
+% the first and last entry are used in the array. This specifies the
+% relative to zero_surf_bin range to use for correlation methods. For
+% example, [-7 7] specifies 7 bins before the zero_surf_bin to 7 bins
+% after the zero_surf_bin (so 15 total).
 if ~isfield(param.collate_equal.delay,'search_bins') || isempty(param.collate_equal.delay.search_bins)
-  param.collate_equal.delay.search_bins = -7:7;
+  param.collate_equal.delay.search_bins = [-7 7];
 end
 
 if ~isfield(param.collate_equal,'img_lists') || isempty(param.collate_equal.img_lists)
@@ -70,30 +96,53 @@ if ~isfield(param.collate_equal,'in_path') || isempty(param.collate_equal.in_pat
   param.collate_equal.in_path = 'analysis';
 end
 
+% motion_comp_en: logical scalar. Default is true. If true, motion
+% compensation is applied for the squint direction (nadir).
 if ~isfield(param.collate_equal,'motion_comp_en') || isempty(param.collate_equal.motion_comp_en)
   param.collate_equal.motion_comp_en = true;
 end
 
+% out_path: string containing the output path for the equalization results.
+% Passed to ct_filename_out. Default is 'equal' for CSARP_equal.
 if ~isfield(param.collate_equal,'out_path') || isempty(param.collate_equal.out_path)
   param.collate_equal.out_path = 'equal';
 end
 
+% ref: positive scalar integer. Specifies the index into the wf_adc list
+% for each image that should be used as the reference channel.
 if ~isfield(param.collate_equal,'ref') || isempty(param.collate_equal.ref)
   param.collate_equal.ref = 1;
 end
 
+% retrack_en: logical scalar. Default is true. Retracks the layer that
+% determines where in the analysis waveform extracted data the equalization
+% coefficients will be derived.
 if ~isfield(param.collate_equal,'retrack_en') || isempty(param.collate_equal.retrack_en)
   param.collate_equal.retrack_en = true;
 end
 
+% rlines: array of positive integers. Default is empty. Defines which range
+% lines will be used to estimate the equalization coefficients. If left
+% empty, then all range lines are used.
 if ~isfield(param.collate_equal,'rlines') || isempty(param.collate_equal.rlines)
   param.collate_equal.rlines = [];
 end
 
+% wf_adcs: cell array of wf_adc index lists that correpond to entries in
+% param.collate_equal.img_lists. For each image that equalization is run
+% on, indexes to specific wf_adc pairs can be specified so that not all
+% wf-adc pairs are equalized. The default is empty. If left empty or
+% undefined for a particular img_lists entry, then all wf-adc pairs are
+% equalized.
 if ~isfield(param.collate_equal,'wf_adcs') || isempty(param.collate_equal.wf_adcs)
   param.collate_equal.wf_adcs = [];
 end
 
+% zero_surf_bin: positive integer scalar. Default is empty. Normally should
+% be left empty unless there is an error in the timing. This specifies the
+% bin to be used for the equalization process. If empty, the zero_surf_bin
+% is automatically determined from the analysis waveform start_time custom
+% fields.
 if ~isfield(param.collate_equal,'zero_surf_bin') || isempty(param.collate_equal.zero_surf_bin)
   param.collate_equal.zero_surf_bin = [];
 end
@@ -114,7 +163,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   for sub_img_idx = 1:length(param.collate_equal.img_lists{img_lists_idx})
     sub_img = param.collate_equal.img_lists{img_lists_idx}(sub_img_idx);
     
-    if isempty(param.collate_equal.wf_adcs)
+    if isempty(param.collate_equal.wf_adcs) || isempty(param.collate_equal.wf_adcs{img_lists_idx}{sub_img_idx})
       wf_adcs = 1:size(param.analysis.imgs{sub_img},1);
     else
       wf_adcs = param.collate_equal.wf_adcs{img_lists_idx}{sub_img_idx};

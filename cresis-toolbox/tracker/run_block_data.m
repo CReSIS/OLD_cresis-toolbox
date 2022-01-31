@@ -16,7 +16,7 @@ params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_P3.xls'));
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091228_01');
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20160519_0[14]'); % 20120330_03
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20160519_01');
 params = ct_set_params(params,'cmd.frms',[34:44]);
 
 param_override.block_data.block_along_track = 50e3; % Along-track length of each block
@@ -35,6 +35,7 @@ param_override.block_data.detrend.method = 'polynomial';
 param_override.block_data.flatten.resample_field = [];
 param_override.block_data.flatten.resample_field.name = 'surface';
 param_override.block_data.flatten.resample_field.source = 'layerdata';
+param_override.block_data.flatten.resample_field.layerdata_source = 'layer_overly2021';
 param_override.block_data.flatten.interp_method = [];
 
 param_override.block_data.echo_path = 'CSARP_post/qlook';
