@@ -2,8 +2,6 @@
 %
 % Makes the GPS files for 2020_South_Dakota_N1KU field season
 
-tic;
-
 %% Set Season Information
 % ======================================================================
 season_name = '2020_SouthDakota_N1KU';
@@ -157,8 +155,28 @@ if strcmpi(gps_source_to_use,'NMEA')
 %   gps_source{file_idx} = 'nmea-field';
 %   sync_flag{file_idx} = 0;
 %   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-
-  year = 2021; month = 03; day = 01;
+% 
+%   year = 2021; month = 03; day = 01;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+% 
+%   year = 2021; month = 03; day = 02;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+  
+  year = 2021; month = 03; day = 28;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -167,6 +185,7 @@ if strcmpi(gps_source_to_use,'NMEA')
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+  
 elseif strcmpi(gps_source_to_use,'novatel')
   %% NOVATEL
   % ======================================================================
@@ -179,10 +198,10 @@ elseif strcmpi(gps_source_to_use,'novatel')
 %   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
 %   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
 %   params{file_idx}.textscan = {};
-%   gps_source{file_idx} = 'cresis-field20210206';
+%   gps_source{file_idx} = 'cresis-final20210323';
 %   sync_flag{file_idx} = 0;
 %   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  
+%   
 %   year = 2021; month = 02; day = 09;
 %   file_idx = file_idx + 1;
 %   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
@@ -191,11 +210,71 @@ elseif strcmpi(gps_source_to_use,'novatel')
 %   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
 %   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
 %   params{file_idx}.textscan = {};
-%   gps_source{file_idx} = 'cresis-field20210206';
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   
+%   year = 2021; month = 02; day = 16;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   
+%   year = 2021; month = 02; day = 18;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
 %   sync_flag{file_idx} = 0;
 %   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   
-  year = 2021; month = 02; day = 16;
+%   year = 2021; month = 02; day = 19;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+  
+%   year = 2021; month = 02; day = 20;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   
+%   year = 2021; month = 02; day = 24;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+  
+  year = 2021; month = 02; day = 25;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -203,45 +282,57 @@ elseif strcmpi(gps_source_to_use,'novatel')
   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
   params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-field20210206';
+  gps_source{file_idx} = 'cresis-final20210323';
   sync_flag{file_idx} = 0;
   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   
-  year = 2021; month = 02; day = 18;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-field20210206';
-  sync_flag{file_idx} = 0;
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  
-  year = 2021; month = 02; day = 19;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-field20210206';
-  sync_flag{file_idx} = 0;
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  
-  year = 2021; month = 02; day = 20;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-field20210206';
-  sync_flag{file_idx} = 0;
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   year = 2021; month = 02; day = 26;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   
+%   year = 2021; month = 02; day = 28;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   
+%   year = 2021; month = 03; day = 1;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   
+%   year = 2021; month = 03; day = 2;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,'',sprintf('%04d%02d%02d',year,month,day),'ver1.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',21,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final20210323';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   
 end
 
@@ -260,11 +351,11 @@ for idx = 1:length(file_type)
     [gps,error_flag] = gps_make_monotonic(gps);
     
     warning('Smoothing elevation and heading data: %s', out_fn);
-    gps.elev = sgolayfilt(gps.elev,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.elev = ct_sgolayfilt(gps.elev,2,101); % Adjust filter length as needed to remove high frequency noise
     heading_x = cos(gps.heading);
     heading_y = sin(gps.heading);
-    heading_x  = sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
-    heading_y  = sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_x  = ct_sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = ct_sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
     gps.heading = atan2(heading_y,heading_x);
     
     save(out_fn,'-append','-struct','gps','elev','heading');

@@ -1,882 +1,551 @@
-
-function status = block_data(params,block_data_param)
-% status = block_data(params,block_data_param)
-
-% params: Parameter structure from read_param_xls parameter spreadsheet
-
-% block_data_param: Structure which controls the size of each block
+% function status = block_data(param,param_override)
+% status = block_data(param,param_override)
+%
+% param: Parameter structure from read_param_xls parameter spreadsheet
+%
+% param.block_data: Structure which controls the size of each block
+%
 %  .block_size: number of columns in each block
+%
 %  .block_overlap: the percentage of overlap between each block
-%  .top_gap: number of rows before the first layer
-%  .bottom_pad : number of rows after the deepest layer
-%  .surface_flat_en:	Enable/Disable surface flattening
-%  .surface_rel_layers_flat_en:	Optional feature when surface filtering is enabled. Enable this feature to flatten the layers relative to the filtered surface.
-%  .surface_filter_len:	Specifies the length of the filter for filtering the surface
-%  .pre_detrend_filter_en:	Enable/Disable filtering before detrending
-%  .post_detrend_filter_en:	Enable/Disable filtering after detrending (before normalization)
-%  .uncompress_en:	Depending on the echogram data product used (e.g qlook, post), the echogram may be compressed. This flag when true uncompresses the compressed data using uncompress_echogram function prior to any processing.
-%  .early_trunc:	Truncate data immediately after surface flattening (before detrending and normalizing)
-%  .late_trunc:	Truncate data after all data manipulation( i.e detrending and normalizing ) is done.
+%
 %  .debug_plot:	Set to true for debug plots.
+%
 %  .detrend_debug:	Set to true for detrend debug plots.
-%  .echo_path:	Path to echogram data, typically an argument of ct_filename_out function e.g 'CSARP\standard' => ct_filename_out(param,'CSARP\standard').
-%  .out_fn:	Path where output blocks and files are saved. Currently, this is passed as an argument to ct_filename_tmp to save the outputs in KU user's scratch
-%  .layers_source:	This specifies where the layer data is loaded from(e.g layerdata, records, lidar, etc). This forms a field of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
-%  .layerdata_source:	When layers_source is layerdata, this string specifies the layerdata (e.g layer_koenig, layer, post) to be loaded. This field is also one of the fields of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
-%  .regexp:	When layers_source is layerdata, all the layers with layer names that match this regular expression pattern are loaded. This field is also one of the fields of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
-
-
+%
+%  .bottom_pad : number of rows after the deepest layer
+%
+%  .early_trunc:	Truncate data immediately after surface flattening
+%  (before detrending and normalizing)
+%
+%  .echo_path:	Path to echogram data, typically an argument of
+%  ct_filename_out function e.g 'CSARP\standard' =>
+%  ct_filename_out(param,'CSARP\standard').
+%
+%  .late_trunc:	Truncate data after all data manipulation( i.e detrending
+%  and normalizing ) is done.
+%
+%  .layer_params: opsLoadLayers.m structure describing which layers to load
+%  and store in the block files
+%
+%  .layers_source:	This specifies where the layer data is loaded from(e.g
+%  layerdata, records, lidar, etc). This forms a field of the layer_params
+%  struct passed into opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .layerdata_source:	When layers_source is layerdata, this string
+%  specifies the layerdata (e.g layer_koenig, layer, post) to be loaded.
+%  This field is also one of the fields of the layer_params struct passed
+%  into opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .out_fn:	Path where output blocks and files are saved. Currently, this
+%  is passed as an argument to ct_filename_tmp to save the outputs in KU
+%  user's scratch
+%
+%  .post_detrend_filter_en:	Enable/Disable filtering after detrending
+%  (before normalization)
+%
+%  .pre_detrend_filter_en:	Enable/Disable filtering before detrending
+%
+%  .regexp:	When layers_source is layerdata, all the layers with layer
+%  names that match this regular expression pattern are loaded. This field
+%  is also one of the fields of the layer_params struct passed into
+%  opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .surf_param: opsLoadLayers.m structure describing which surface to load
+%  and store in the preprocessing and in the block files
+%
+%  .surface_flat_en:	Enable/Disable surface flattening
+%
+%  .surface_rel_layers_flat_en:	Optional feature when surface filtering is
+%  enabled. Enable this feature to flatten the layers relative to the
+%  filtered surface.
+%
+%  .surface_filter_len:	Specifies the length of the filter for filtering
+%  the surface
+%
+%  .top_gap: number of rows before the first layer
+%
+%  .uncompress_en:	Depending on the echogram data product used (e.g qlook,
+%  post), the echogram may be compressed. This flag when true uncompresses
+%  the compressed data using uncompress_echogram function prior to any
+%  processing.
+%
 % Authors: Ibikunle ( Adapted from John Paden's koenig_mat_loader )
+%
+% See also: run_block_data.m, block_data.m, run_unblock_data.m,
+% unblock_data.m
 
+%% General Setup
+% =====================================================================
+param = merge_structs(param, param_override);
 
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
+
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 physical_constants;
 
-block_data = block_data_param.block_data;
+%% Input Checks: cmd
+% =========================================================================
 
-% Check conditions
-if ~isfield(block_data,'block_size') || isempty(block_data.block_size)
-  block_size = 256; % Use default block size
-  fprintf(' Invalid/ empty block size: default value %d is used',block_size);
-else
-  block_size = block_data.block_size;
+% Remove frames that do not exist from param.cmd.frms list
+frames = frames_load(param);
+param.cmd.frms = frames_param_cmd_frms(param,frames);
+
+records = records_load(param);
+ref = records_reference_trajectory_load(param,records);
+along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
+
+%% Input Checks: block_data
+% =========================================================================
+
+if ~isfield(param,'block_data') || isempty(param.block_data)
+  param.block_data = [];
 end
 
-if ~isfield(block_data,'block_overlap') || isempty(block_data.block_overlap) && block_data.block_overlap > 1
-  error('Invalid/ empty block overlap')
-else
-  block_overlap = block_data.block_overlap;
+% block_data.block_along_track: scalar double, along-track length of each
+% block in meters, default is 5000 m
+if ~isfield(param.block_data,'block_along_track') || isempty(param.block_data.block_along_track)
+  param.block_data.block_along_track = 5e3; % Use default block size
 end
 
-if ~isfield(block_data,'top_gap') || isempty(block_data.top_gap)
-  error('Please specify the value of top gap used')
-else
-  top_gap = block_data.top_gap;
+% block_data.block_Nx: scalar integer, number of columns in each output
+% block, default is 256
+if ~isfield(param.block_data,'block_Nx') || isempty(param.block_data.block_Nx)
+  param.block_data.block_Nx = 256; % Use default block size
 end
 
-if ~isfield(block_data,'bottom_pad') || isempty(block_data.bottom_pad)
-  error('Please specify the value of bottom gap used')
-else
-  bottom_pad = block_data.bottom_pad;
+% block_data.block_overlap: scalar double, percentage overlap for each
+% block, default is 0.5, valid range is 0 to 1
+if ~isfield(param.block_data,'block_overlap') || isempty(param.block_data.block_overlap)
+  param.block_data.block_overlap = 0.5;
+end
+param.block_data.block_overlap = min(1,param.block_data.block_overlap);
+param.block_data.block_overlap = max(0,param.block_data.block_overlap);
+
+% block_data.echo_img: scalar integer, image number, default is 0 (the
+% combined image Data_YYYYMMDD_SS_FFF.mat).
+if ~isfield(param.block_data,'echo_img') || isempty(param.block_data.echo_img)
+  param.block_data.echo_img = 0; % Use default echo_img
 end
 
-echo_path = block_data.echo_path;
+% block_data.file: structure controlling file saving and which output files
+% will be generated
+if ~isfield(param.block_data,'file') || isempty(param.block_data.file)
+  param.block_data.file = [];
+end
+if ~isfield(param.block_data.file,'img_en') || isempty(param.block_data.file.img_en)
+  param.block_data.file.img_en = true;
+end
+if ~isfield(param.block_data.file,'layer_bin_en') || isempty(param.block_data.file.layer_bin_en)
+  param.block_data.file.layer_bin_en = true;
+end
+if ~isfield(param.block_data.file,'layer_mult_en') || isempty(param.block_data.file.layer_mult_en)
+  param.block_data.file.layer_mult_en = true;
+end
+if ~isfield(param.block_data.file,'layer_seg_en') || isempty(param.block_data.file.layer_seg_en)
+  param.block_data.file.layer_seg_en = true;
+end
+if ~isfield(param.block_data.file,'mat_en') || isempty(param.block_data.file.mat_en)
+  param.block_data.file.mat_en = true;
+end
 
-surface_flat_en = block_data.surface_flat_en;
+% block_data.flatten: structure controlling echo_flatten.m
+if ~isfield(param.block_data,'flatten') || isempty(param.block_data.flatten)
+  param.block_data.flatten = [];
+end
+if ~isfield(param.block_data.flatten,'resample_field') || isempty(param.block_data.flatten.resample_field)
+  param.block_data.flatten.resample_field = [];
+end
+if ~isfield(param.block_data.flatten,'interp_method') || isempty(param.block_data.flatten.interp_method)
+  param.block_data.flatten.interp_method = [];
+end
 
-detrend_en = block_data.detrend_en;
-filter_echo_en = block_data.filter_echo_en;
-
-
-fn = block_data.out_fn;
-
-layers_name = block_data.layers_name;
-layers_source = block_data.layers_source;
-layerdata_source = block_data.layerdata_source;
-regexp_string = block_data.regexp;
-
-
-% Debug Yay or nay?? :)
-debug_plot = block_data.debug_plot;
-detrend_debug = block_data.debug_plot;
-
-
-
-
-
-
-%% Automated Section
-
-for param_idx = 1:length(params)
-  param = params(param_idx);
-  day_seg_path_echo = ct_filename_out(param,echo_path);
-  echo_fns_all = get_filenames(day_seg_path_echo, 'Data_2012','0','.mat',struct('recursive',true));
-  start = 1; stop =length(echo_fns_all);
-  echo_fns = echo_fns_all( start:stop);
-  
-  %% Load layer for the entire day_seg
-  % Check radar type and load layers
-  
-  if regexp(param.radar_name,'snow')
-    idx = 1;
-    layer_params(idx).name = 'surface';
-    layer_params(idx).source = layers_source;
-    layer_params(idx).layerdata_source = layerdata_source;
-    %     idx = idx + 1;
-    %     layer_params(idx).name = 'bottom';
-    %     layer_params(idx).source = layers_source;
-    %     layer_params(idx).layerdata_source = layerdata_source;
-    idx = idx + 1;
-    layer_params(idx).regexp = regexp_string;
-    layer_params(idx).source = layers_source;
-    layer_params(idx).layerdata_source = layerdata_source; % This might need to be updated
-    
-    layers_struct = opsLoadLayers(param,layer_params);
-    
-    %     layers_struct = load('layers_cell.mat'); % remove afterwards!
-    %     layers_struct = layers_cell.layers_cell;
-    
-    
-  elseif regexp(param.radar_name,'mcords')
-    
-    idx = 1;
-    layer_params(idx).name = 'surface';
-    layer_params(idx).source = layers_source;
-    layer_params(idx).layerdata_source = layerdata_source;
-    idx = idx + 1;
-    layer_params(idx).name = 'bottom';
-    layer_params(idx).source = layers_source;
-    layer_params(idx).layerdata_source = layerdata_source;
-    idx = idx + 1;
-    layer_params(idx).regexp = regexp_string;
-    layer_params(idx).source = layers_source;
-    layer_params(idx).layerdata_source = 'layer_MacGregor'; % This might need to be updated
-    
-    layers_struct = opsLoadLayers(param,layer_params);
-    
-    
+% Incoherent decimation (inc_dec, inc_B_filter) input check
+% Setting inc_dec = 0: returns coherent data
+% Setting inc_dec = 1: returns power detected data with no decimation
+% Setting inc_dec > 1: decimates at the rate specified by inc_dec
+if ~isfield(param.block_data,'inc_dec') || isempty(param.block_data.inc_dec)
+  param.block_data.inc_dec = 1;
+end
+if ~isfield(param.block_data,'inc_B_filter') || isempty(param.block_data.inc_B_filter)
+  if param.block_data.inc_dec == 0 || param.block_data.inc_dec == 1
+    param.block_data.inc_B_filter = 1;
   else
-    warning('Radar type not recognized');
-    break;
-    
+    param.block_data.inc_B_filter = hanning(2*param.block_data.inc_dec+1);
   end
+end
+if ~mod(length(param.block_data.inc_B_filter),2)
+  error('param.block_data.inc_B_filter must be odd length.');
+end
+param.block_data.inc_B_filter = param.block_data.inc_B_filter(:).'; % Must be row vector
+if abs(sum(param.block_data.inc_B_filter)-1) > 1e4*eps % Ensure filter weights sum to 1 to preserve radiometry
+  param.block_data.inc_B_filter = param.block_data.inc_B_filter / sum(param.block_data.inc_B_filter);
+end
 
-  % Surface
-  surf = [];
-  surf.twtt = layers_struct(1).twtt ;
-  surf.gps_time = layers_struct(1).gps_time;
-  surf.elev = layers_struct(1).elev ;
-  
-  loaded_layers = zeros( length(layers_struct), length(surf.twtt) ) ;
-  
-  for iter_idx = 1 : size(loaded_layers,1)
-    loaded_layers(iter_idx,:) = layers_struct(iter_idx).twtt ;
-  end
-  
-  % Put surface and bottom in the right positions
-  %   loaded_layers(1,:) = surf.twtt;
-  %   loaded_layers(end+1,:) = loaded_layers(2,:) ; % move bottom to the last entry
-  %   loaded_layers(2:end-1,:) = loaded_layers(3:end,:) ;
-  %   loaded_layers(end,:) =[]; % remove duplicate bottom
-  
-  % Filter Surface
-  filter_len = block_data.surface_filter_len;
-  if filter_len ~=1 && surface_flat_en == 1 % Only filter surface if surface flattening is enabled
-    
-    surf.twtt_filtered = surf.twtt - surf.elev/(c/2);
-    surf.twtt_filtered = fir_dec(surf.twtt_filtered,ones(1,filter_len)/filter_len,1);
-    surf.twtt_filtered = surf.twtt_filtered + surf.elev/(c/2);
-    
-    if block_data.surface_rel_layers_flat_en
-      % To remove high frequency variations in internal layers,
-      % flatten the internal layers relative to filtered surface
-      
-      layers = bsxfun(@minus,loaded_layers(2:end,:),surf.twtt);
-      layers = bsxfun(@plus,layers, surf.twtt_filtered);
-      layers = [surf.twtt; layers];    
-        
-      % Layers in a cell ( This is needed for opsInterpLayersToMasterGPSTime)
-      layers_cell = [];
-      for layer_idx = 1: length(layers_struct)
-        layers_tmp = layers_struct(layer_idx);
-        layers_tmp.twtt = layers(layer_idx,:);
-        layers_cell{end+1} = layers_tmp;
-      end
-      
-    else
-      layers = loaded_layers;
-    end
-    
-    
+% block_data.out_path: string specifying which output directory to put the
+% block images in
+if ~isfield(param.block_data,'out_path') || isempty(param.block_data.out_path)
+  param.block_data.out_path = 'block_data';
+end
+out_fn_dir = ct_filename_out(param,param.block_data.out_path);
+
+% block_data.rows: structure controlling truncation in row dimension
+if ~isfield(param.block_data,'rows') || isempty(param.block_data.rows)
+  param.block_data.rows = [];
+end
+
+% block_data.rows.t0_pad: integer controlling how many rows of the image
+% will be preserved beyond the top layer. Default is inf which will
+% preserve all available rows on the top of the image.
+if ~isfield(param.block_data.rows,'t0_pad') || isempty(param.block_data.rows.t0_pad)
+  param.block_data.rows.t0_pad = inf;
+end
+
+% block_data.rows.t1_pad: integer controlling how many rows of the image
+% will be preserved below the bottom layer. Default is inf which will
+% preserve all available rows on the bottom of the image.
+if ~isfield(param.block_data.rows,'t1_pad') || isempty(param.block_data.rows.t1_pad)
+  param.block_data.rows.t1_pad = inf;
+end
+
+%% Create blocks
+% =========================================================================
+dx = param.block_data.block_along_track*param.block_data.block_overlap;
+X = param.block_data.block_along_track;
+x0 = 0:dx:along_track(end)-X;
+x1 = x0 + X;
+
+%% Determine which blocks to create
+% =========================================================================
+block_mask = false(size(x0));
+for frm = param.cmd.frms
+  start_x = along_track(frames.frame_idxs(frm));
+  if frm == length(frames.frame_idxs)
+    stop_x = along_track(end);
   else
-    
-    surf.twtt_filtered = surf.twtt; % No filtering
-    layers = loaded_layers;      
-  
-    % Layers in a cell ( This is needed for opsInterpLayersToMasterGPSTime)
-    layers_cell = [];
-    for layer_idx = 1: length(layers_struct)
-      layers_cell{end+1} = layers_struct(layer_idx);
+    stop_x = along_track(frames.frame_idxs(frm+1)-1);
+  end
+  for block_idx = 1:length(x0)
+    if x0(block_idx) < stop_x && x1(block_idx) > start_x
+      block_mask(block_idx) = true;
     end
+  end
+end
+% Add additional frames to start and end to account for blocks that extend
+% before the first desired frame and past the last desired frame
+frm_list = [];
+for block_idx = find(block_mask)
+  for frm = 1:length(frames.frame_idxs)
+    start_x = along_track(frames.frame_idxs(frm));
+    if frm == length(frames.frame_idxs)
+      stop_x = along_track(end);
+    else
+      stop_x = along_track(frames.frame_idxs(frm+1)-1);
+    end
+    if start_x < x1(block_idx) && stop_x > x0(block_idx)
+      frm_list(end+1) = frm;
+    end
+  end
+end
+frm_list = unique(frm_list);
 
-    
-  end
+%% Load layers
+% =========================================================================
+ops_param = param;
+ops_param.cmd.frms = frm_list;
+[layers,layer_params] = opsLoadLayers(ops_param, param.block_data.layer_params);
+
+%% Load surface layer
+% =========================================================================
+ops_param = param;
+ops_param.cmd.frms = frm_list;
+[surf,surf_param] = opsLoadLayers(ops_param, param.block_data.surf_param);
+
+%% Block Loop
+% =========================================================================
+frm_mask = false(size(frames.frame_idxs));
+echogram_fn_dir = ct_filename_out(param,param.block_data.echo_path);
+mdata = {};
+for block_idx = find(block_mask)
   
-  % ============== End load surface and layers ===========
-  
-  
-  % Create output folder if it does not exist
-  out_dir = ct_filename_tmp(param,'',fn,sprintf('frames_%03d_%03d',start,stop));
-  if ~exist(out_dir,'dir')
-    mkdir(out_dir)
-  end
-  
-  % Load frames and records data
-  
-  load(ct_filename_support(param,'','frames')); % load frames
-  records = load(ct_filename_support(param,'','records')); % load records
-  
-  
-  % Initializations for left-over data
-  left_over = [];
-  processed_day_seg = {};
-  processed_years = {};
-  longest_col = 0;
-  frame_overlap = 0; % Flag to indicate that a block is an overlap of frames
-  rangeline_offset = 0;
-  
-  % Iterate over each frame in the day segment
-  for fn_idx = 1 : length(echo_fns)
-       
-    echo_fn = echo_fns{fn_idx};
-    [~,fn_name] = fileparts(echo_fn);
-    fprintf('%d of %d (%s)\n', fn_idx, length(echo_fns), datestr(now));
-    fprintf('  %s\n', echo_fn);
-    
-    % Load echogram data
-    tmp1 = load(echo_fn);    
-    
-    if 0
-      %  View loaded echogram
-      figure(10);
-      imagesc(lp(tmp1.Data)); colormap(1-gray(256))
-      title(sprintf('Loaded data %s',fn_name),'Interpreter','none')
-    end
-    
-    if block_data.uncompress_en
-      tmp = uncompress_echogram(tmp1);
+  %% Block: Frames to load
+  % =========================================================================
+  cat_data = [];
+  for frm = 1:length(frames.frame_idxs)
+    start_x = along_track(frames.frame_idxs(frm));
+    if frm == length(frames.frame_idxs)
+      stop_x = along_track(end);
     else
-      tmp = tmp1;
+      stop_x = along_track(frames.frame_idxs(frm+1)-1);
     end
-    
-    [Nt,Nx] = size(tmp.Data);
-    
-    
-    % Pre detrend along track incoherent averaging
-    if block_data.pre_detrend_filter_en
-      tmp.Data = echo_filt(tmp.Data,filter_len);
-    end
-    
-    
-    % Check fields in the tmp struct
-    
-    if ~isfield(tmp,'Roll')
-      tmp.Roll = interp1(records.gps_time,records.roll,tmp.GPS_time);
-    end
-    
-    if ~isfield(tmp,'Heading')
-      tmp.Heading = interp1(records.gps_time,records.heading,tmp.GPS_time);
-    end
-    
-    if ~isfield(tmp,'Pitch')
-      tmp.Pitch = interp1(records.gps_time,records.pitch,tmp.GPS_time);
-    end
-    
-    %% Check if roll data is in radians and convert to degrees
-    
-    tmp.Roll = tmp.Roll * (180/pi); % Convert roll to degrees
-    
-    
-    % Remove rangelines that overlap with previous frame using GPS_time.
-    
-    if (fn_idx > 1) && (fn_idx < length(echo_fns))
-      
-      keep_idx = find(tmp.GPS_time>=records.gps_time(frame_idxs(fn_idx)) & tmp.GPS_time<= records.gps_time(frame_idxs(fn_idx+1)-1));
-      rangeline_offset = keep_idx(1) -1;
-      
-      
-      tmp.Data = tmp.Data(:,keep_idx);
-      tmp.GPS_time =  tmp.GPS_time(keep_idx);
-      
-      tmp.Latitude = tmp.Latitude(keep_idx);
-      tmp.Longitude = tmp.Longitude(keep_idx);
-      tmp.Elevation = tmp.Elevation(keep_idx);
-      tmp.Surface = tmp.Surface(keep_idx);
-      tmp.Pitch = tmp.Pitch(keep_idx);
-      tmp.Heading = tmp.Heading(keep_idx);
-      tmp.Roll = tmp.Roll(keep_idx);
-      
-    end
-    
-    mdata = tmp; % This will be modified when there's left_over data     
-   
-    
-    % Interpolate current frame using opsInterpLayersToMasterGPSTime    
-    tmp_layers = opsInterpLayersToMasterGPSTime(tmp,layers_cell,[300 60]);    
-    
-    % curr_layers is the layers twtt for the current frame
-    curr_layers = zeros( size(layers,1),size(tmp.Data,2) );
-    
-    for idx = 1: size(layers,1)
-      curr_layers(idx,:) = tmp_layers.layerData{1,idx}.value{1,2}.data;
-    end
-    
-  % Interpolate surface data for the current frame from the entire day_seg
-    mdata.curr_surf_twtt = curr_layers(1,:); % filtered surface
-    mdata.unfiltered_surface = interp1(surf.gps_time,surf.twtt,tmp.GPS_time); % unfiltered surface
-    mdata.offset_rounding = mdata.curr_surf_twtt - mdata.unfiltered_surface; % filtering offset ( This is zero when there's no filtering )
-    
-    % Check surface    
-    if 0
-      figure;clf;
-      imagesc([],tmp.Time,lp(tmp.Data)); colormap(1-gray(256))
-      hold on; plot( mdata.curr_surf_twtt )
-      title(sprintf('Plot of surface on Echogram data %s',fn_name),'Interpreter','none');
-    end   
-    
-    
-    if surface_flat_en == 0
-      
-      layer_rangebin1 = round(interp1(tmp.Time,1:length(tmp.Time),curr_layers));
-      surf_index = layer_rangebin1(1,:);
-      mdata.layer_rangebin = layer_rangebin1 - top_gap* ones(size(layer_rangebin1));
-      
-      %       Check top_gap value
-      if any(mdata.layer_rangebin(1,:)  < 0 )
-        error('top_gap value is too large');
-        break;
-      end
-      
-      longest_col = max( max(mdata.layer_rangebin(:)),longest_col);
-      flattened_Data = tmp.Data;
-      
-      
-    else
-      % Surface flattening is enabled (e.g for snow data)
-      
-      surf_index = round(interp1(tmp.Time,1:length(tmp.Time),mdata.curr_surf_twtt)); % filtered surface index
-      if any(~isfinite(surf_index))
-        
-        if all(~isfinite(surf_index))
-          warning (sprintf('No surface found for %s: skipping to the next frame',fn_name));
-          continue;
+    if start_x < x1(block_idx) && stop_x > x0(block_idx)
+      if ~frm_mask(frm)
+        frm_mask(frm) = true;
+        % Load frame into memory
+        if param.block_data.echo_img == 0
+          echogram_fn_name = sprintf('Data_%s_%03d.mat', param.day_seg, frm);
         else
-          def_val = surf_index(find(~isnan(surf_index),1)); % should I use mean instead?
-          surf_index = interp_finite(surf_index,def_val);
+          echogram_fn_name = sprintf('Data_img_%02d_%s_%03d.mat', param.block_data.echo_img, param.day_seg, frm);
         end
-        
+        echogram_fn = fullfile(echogram_fn_dir,echogram_fn_name);
+        mdata{frm} = load_L1B(echogram_fn);
       end
       
-      % Convert current layers (twtt) to rangebin index
-      layer_rangebin1 = zeros(size(curr_layers));
-      layer_rangebin1(1,:) = surf_index; % surface index using filtered surface
+      % Concatenate data
+      cat_data = echo_concatenate(cat_data,mdata{frm});
       
-      for layers_idx = 2:size(layers,1)
-        layer_rangebin1(layers_idx,:) = round(interp1(tmp.Time,1:length(tmp.Time),curr_layers(layers_idx,:)));
+    else
+      if frm_mask(block_idx)
+        frm_mask(frm) = false;
+        % Remove frame from memory
+        mdata{frm} = [];
       end
-      
-      
-      %% Create a new (flattened) data matrix
-      shift  = surf_index - top_gap;
-      flattened_Data = [tmp.Data ; nan(Nt,Nx)];
-      
+    end
+  end
+  Nx_original = length(cat_data.GPS_time);
+  if ~isempty(param.block_data.surf_param)
+    cat_data.Surface = interp_finite(interp1(surf.gps_time,surf.twtt,cat_data.GPS_time),0);
+  end
+  
+  %% Block: Echogram layer flattening
+  % =======================================================================
+  if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
+    [cat_data.Data,resample_field] = echo_flatten(cat_data, ...
+      param.block_data.flatten.resample_field, false, ...
+      param.block_data.flatten.interp_method,[],true);
+  end
+  
+  %% Block: Incoherent filtering
+  % =======================================================================
+  
+  %  .inc_B_filter: double vector, FIR filter coefficients to apply before
+  %    incoherent average decimation. If not defined or empty, then
+  %    inc_B_filter is set to ones(1,inc_dec)/inc_dec.
+  %  .inc_dec = integer scalar, number of incoherent averages to apply
+  %    (also decimates by this number). If set to < 1, complex data are
+  %    returned.  Setting to 1 causes the data to be power detected (i.e.
+  %    become incoherent), but no averaging is done.
+  param.block_data.inc_B_filter = ones(1,21)/21;
+  param.block_data.inc_dec = 10;
+  param.block_data.nan_dec_normalize_threshold = [];
+  param.block_data.nan_dec = false;
+  % Along-track incoherent filtering (multilooking) of data
+  if param.block_data.nan_dec
+    cat_data.Data = nan_fir_dec(abs(cat_data.Data).^2, param.block_data.inc_B_filter, ...
+      param.block_data.inc_dec, [], [], [], [], param.block_data.nan_dec_normalize_threshold);
+  else
+    cat_data.Data = fir_dec(abs(cat_data.Data).^2, param.block_data.inc_B_filter, ...
+      param.block_data.inc_dec);
+  end
+  % Account for filtering and decimation in remaining fields
+  cat_data.GPS_time = fir_dec(cat_data.GPS_time, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Latitude = fir_dec(cat_data.Latitude, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Longitude = fir_dec(cat_data.Longitude, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Elevation = fir_dec(cat_data.Elevation, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Roll = fir_dec(cat_data.Roll, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Pitch = fir_dec(cat_data.Pitch, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Heading = fir_dec(cat_data.Heading, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  cat_data.Surface = fir_dec(cat_data.Surface, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  resample_field = fir_dec(resample_field, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  
+  %% Block: Extract block
+  % =======================================================================
+  start_rec = find(along_track >= x0(block_idx),1);
+  stop_rec = find(along_track <= x1(block_idx),1,'last');
+  start_idx = find(cat_data.GPS_time >= records.gps_time(start_rec),1);
+  stop_idx = find(cat_data.GPS_time <= records.gps_time(stop_rec),1,'last');
+  
+  dec_idxs = fir_dec(1:Nx_original, param.block_data.inc_B_filter, ...
+    param.block_data.inc_dec);
+  new_axis = linspace(dec_idxs(start_idx),dec_idxs(stop_idx),param.block_data.block_Nx);
+  
+  cat_data.Data = interp1(dec_idxs.',cat_data.Data.',new_axis.').';
+  cat_data.Elevation = interp1(dec_idxs,cat_data.Elevation,new_axis);
+  cat_data.GPS_time = interp1(dec_idxs,cat_data.GPS_time,new_axis);
+  cat_data.Heading = interp1(dec_idxs,cat_data.Heading,new_axis);
+  cat_data.Latitude = interp1(dec_idxs,cat_data.Latitude,new_axis);
+  cat_data.Longitude = interp1(dec_idxs,cat_data.Longitude,new_axis);
+  cat_data.Roll = interp1(dec_idxs,cat_data.Roll,new_axis);
+  cat_data.Pitch = interp1(dec_idxs,cat_data.Pitch,new_axis);
+  cat_data.Surface = interp1(dec_idxs,cat_data.Surface,new_axis);
+  resample_field = interp1(dec_idxs.',resample_field.',new_axis).';
+  
+  %% Block: Extract surface
+  % =======================================================================
+  Nx = length(cat_data.GPS_time);
+  if isempty(param.block_data.surf_param)
+    surf_bin = interp1(cat_data.Time,1:length(cat_data.Time),cat_data.Surface);
+  else
+    % Loaded an update to the surface
+    cat_data.Surface = interp_finite(interp1(surf.gps_time,surf.twtt,cat_data.GPS_time),0);
+    twtt = interp1(surf.gps_time,surf.twtt,cat_data.GPS_time);
+    surf_bin = zeros(size(twtt));
+    if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
       for rline = 1:Nx
-        flattened_Data(:,rline) = circshift(flattened_Data(:,rline), -shift(rline));
-      end
-      
-      % Adjust internal layers after shifting
-      layer_rangebin = layer_rangebin1 - repmat(layer_rangebin1(1,:)-top_gap,size(layers,1),1) ; % change layers index to match flattened surface
-      
-      % I need to confirm if this wouldn't lead to any issues
-      flattened_Data(isnan(flattened_Data)) = 0;
-      
-      % Handle situation where internal layers may go above surface
-      % after shifting particularly for last(bad) frames
-      layer_rangebin(layer_rangebin < min(layer_rangebin(1,:) ) ) = min(layer_rangebin(1,:) );
-      mdata.layer_rangebin = layer_rangebin;
-      
-      stop_col = max(mdata.layer_rangebin(:)) + bottom_pad ;% Stop col using flattened surface
-      longest_col = max(longest_col,stop_col);
-      
-      if block_data.early_trunc
-        flattened_Data = flattened_Data(1:longest_col,:);
-        mdata.Time = tmp.Time(1:longest_col);
-      end
-      
-      
-    end
-    % =========== End of layer adjustments and surface flattening =========== %
-    
-    if debug_plot
-      
-      % Check Loaded data
-      figure(100); imagesc(lp(tmp.Data));colormap(1-gray);
-      a = title(sprintf(' Frame %s ',fn_name));
-      ylabel(' Row index')
-      set(a,'Interpreter','none' )
-      for idx = 1:size(layer_rangebin1,1)
-        hold on;
-        plot(layer_rangebin1(idx,:))
-      end
-      keyboard
-      
-      % Check flattened_data
-      figure(101); imagesc(lp(flattened_Data));colormap(1-gray);
-      a = title(sprintf('Flattened Frame %s ',fn_name));
-      ylabel(' Row index')
-      set(a,'Interpreter','none' )
-      for idx = 1:size(layer_rangebin,1)
-        hold on;
-        plot(mdata.layer_rangebin(idx,:))
-      end
-      
-    end
-    
-    % Is Pre_detrend filter enabled?
-    if filter_echo_en % If filtering is enabled
-      flattened_Data = echo_filt(flattened_Data,11);
-    end
-    
-    frame_rline = (1:length(surf_index)) + rangeline_offset; % range line index
-    mdata.surf_index = surf_index;
-    
-    
-    %% Create layer raster from layer_rangebin
-    Layer = zeros(size(flattened_Data));
-    for layer_idx = 1:size(layer_rangebin,1)
-      for layer_col = 1:size(layer_rangebin,2)
-        temp = round(layer_rangebin(layer_idx,layer_col)); % This idx represents the column of the layer
-        %         temp = temp + top_gap; % Add top_gap offset
-        if ~isnan(temp)
-          if Layer(temp,layer_col) == 0
-            Layer(temp,layer_col) = layer_idx;
-          end
-        else
-          continue;
-        end
+        % time_flat: vector of twtt associated with each pixel for the
+        % particular column
+        time_flat = interp1(1:length(cat_data.Time),cat_data.Time,resample_field(:,rline),'linear','extrap');
+        surf_bin(rline) = interp1(time_flat,1:length(time_flat),twtt(rline),'linear','extrap');
       end
     end
-    
-    % ================  End: Create layer  =========================%
-    
-    
-    
-    %%     Merge data and meta-data when there's left-over from previous frame
-    
-    if ~isempty(left_over) && fn_idx ~= length(echo_fns)
-      threshold = (size(flattened_Data,1) - size(left_over.data,1)); % Check which has more rows ("range bins")
-      
-      if threshold < 0 % left_over has more, zero pad flattened_Data
-        flattened_Data = [flattened_Data ; zeros(abs(threshold),size(flattened_Data,2)) ];
-        Layer = [Layer ; zeros(abs(threshold),size(flattened_Data,2)) ];
-      end
-      
-      appended_data = zeros(size(flattened_Data,1),size(left_over.data,2));
-      appended_data(1:size(left_over.data,1),:) = left_over.data;
-      appended_layer = zeros(size(Layer,1),size(left_over.layer,2));
-      appended_layer(1:size(left_over.layer,1),:) = left_over.layer;
-      
-      flattened_Data = [appended_data  flattened_Data ];
-      Layer = [appended_layer Layer];
-      
-      % Modified meta data
-      mdata.GPS_time =  [left_over.GPS_time_left tmp.GPS_time ];
-      mdata.Latitude = [left_over.Latitude_left mdata.Latitude];
-      mdata.Longitude = [left_over.Longitude_left mdata.Longitude];
-      mdata.Elevation = [left_over.Elevation_left mdata.Elevation];
-      mdata.Roll = [left_over.Roll_left mdata.Roll];
-      mdata.Pitch = [left_over.Pitch_left mdata.Pitch];
-      mdata.Heading = [left_over.Heading_left mdata.Heading];
-      
-      mdata.surf_index = [left_over.surf_index_left mdata.surf_index];
-      mdata.curr_surf_twtt = [left_over.Surface_left mdata.curr_surf_twtt];
-      
-      mdata.unfiltered_surface = [left_over.unfiltered_surface_left mdata.unfiltered_surface];
-      
-      mdata.offset_rounding = [left_over.offset_rounding_left mdata.offset_rounding];
-      mdata.layer_rangebin = [left_over.layer_rangebin_left mdata.layer_rangebin];
-      frame_rline = [left_over.frame_rline_left frame_rline];
-      frame_overlap = 1;
-      
-    end
-    
-    
-    
-    %% Search for valid data and break data into blocks
-    good_rline = ~any(isnan(flattened_Data));
-    rline = find(good_rline,1);
-    
-    while ~isempty(rline)
-      rline_end = find(~good_rline(rline:end),1)-2 + rline;
-      if isempty(rline_end)
-        rline_end = size(flattened_Data,2);
-      end
-      if rline_end >= rline + block_size
-        rline_end = rline + block_size-1;
-      end
-      
-      if rline_end-rline+1 >= block_size || fn_idx == length(echo_fns)
-        
-        %% Create directories to save data
-        
-        day_seg = fn_name(6:16);
-        
-        if isempty(processed_day_seg) || ~ismember(day_seg,processed_day_seg)
-          processed_day_seg{end+1} = day_seg;
-        end
-        
-        year = fn_name(6:9);        
-        if isempty(processed_years) || ~ismember(year,processed_years)
-          processed_years{end+1} = year;
-          
-          block = 1;
-          
-          % Create output directories for the day_seg
-          base_layer_bin = fullfile(out_dir,'layer_bin');
-          base_layer = fullfile(out_dir,'layer');
-          base_image = fullfile(out_dir,'image');
-          base_figures = fullfile(out_dir,'figures');
-          
-          
-          if ~exist(base_layer_bin, 'dir')
-            mkdir(base_layer_bin);
-          end
-          
-          if ~exist(base_layer, 'dir')
-            mkdir(base_layer);
-          end
-          
-          if ~exist(base_image, 'dir')
-            mkdir(base_image);
-          end
-          
-          if ~exist(base_figures, 'dir')
-            mkdir(base_figures);
-          end
-          
-        else
-          block= block+1;
-          
-        end
-        
-        %% Break (data and layer) into Nt by block_size images (slow time)
-        
-        data = flattened_Data(:,rline:rline_end);
-        layer = Layer(:,rline:rline_end);
-        raster = uint8(layer);
-        
-        if detrend_debug
-          figure(400);clf;
-          imagesc(lp(data)); colormap(1-gray(256));
-          title(sprintf('Data before detrending:  block%d, %s',block,fn_name),'Interpreter','None' )
-          
-          figure(500);clf;
-          title(sprintf('A-scope before detrending:  block%d, %s',block,fn_name),'Interpreter','None' )
-          for idx = 1:size(data,2)
-            hold on;
-            plot(data(:,idx));
-          end
-        end
-        
-        
-        % For snow data; bottom should be set to nan so echo_detrend uses data
-        % from surface to Nt
-        if regexp(param.radar_name,'snow')
-          dt_bottom = nan(1,size(data,2));
-        else
-          dt_bottom = interp1(1:length(mdata.Time),mdata.Time,mdata.layer_rangebin(end,rline:rline_end));
-        end
-        
-        if detrend_en
-          detrend_param = block_data.norm_detrend_params;
-          detrend_param.layer_top = interp1(1:length(mdata.Time),mdata.Time,mdata.layer_rangebin(1,rline:rline_end));
-          detrend_param.layer_bottom= dt_bottom;
-          detrend_param.roll= mdata.Roll(rline:rline_end);
-          detrend_param.block = block;
-          detrend_param.fn_name = fn_name;
-          detrend_param.out_dir = out_dir;
-          
-          % Let's see...what's the min and max roll for this block?
-          sprintf('Max %2.3f, Min %2.3f', max(detrend_param.roll), min(detrend_param.roll))
-          
-          % It's time to detrend!!! Detrend to correct large dynamic range in data
-          dt_Data = echo_detrend(struct('Time',mdata.Time,'Data',lp(data)),detrend_param);
-          dt_mask = isfinite(dt_Data);
-          
-          if detrend_debug
-            figure(401);clf;
-            imagesc(dt_Data); colormap(1-gray(256));
-            title(sprintf('Data after detrending:  block%d, %s',block,fn_name),'Interpreter','None' )
-            
-            figure(501);clf;
-            title(sprintf('A-scope after detrending:  %s block%d,',fn_name,block),'Interpreter','None' )
-            
-            for idx = 1:size(dt_Data,2)
-              hold on;
-              plot(dt_Data(:,idx))
-            end
-          end
-          
-        else
-          
-          dt_Data = 10*log10(data); % Convert to log; no detrending
-          
-        end
-        
-        
-        % Post detrend along track filtering: reduce 'em noise...
-        if block_data.post_detrend_filter_en
-          filter_len = block_data.norm_detrend_params.filter_len;
-          
-          % Convert -inf to nan for nan_fir_dec
-          dt_Data(isinf(dt_Data)) = nan;
-          filt_Data = 10*log10( nan_fir_dec( 10.^(dt_Data/10),ones(1,filter_len)/filter_len,1) );
-          
-        else
-          filt_Data = dt_Data;
-        end
-        
-        if detrend_debug
-          figure(402);clf;
-          imagesc(filt_Data); colormap(1-gray(256));
-          title(sprintf('Data after detrending and filtering:  block%d, %s',block,fn_name),'Interpreter','None' )
-          
-          figure(502);clf;
-          title(sprintf('A-scope after detrending and filtering: log scale %s block%d,',fn_name,block),'Interpreter','None' )
-          
-          for idx = 1:size(filt_Data,2)
-            hold on;
-            plot(filt_Data(:,idx))
-          end
-          
-        end
-        
-        
-        scale_min = block_data.norm_detrend_params.scale_min;
-        scale_max = block_data.norm_detrend_params.scale_max;
-        
-        % "window" specifies that rangebins that'd be used to estimate the noise floor
-        
-        if any(~isnan(dt_bottom))
-          % Estimate noise floor
-          %           nf = nanmean(echo_noise(struct('Time',mdata.Time,'Data',mfilt_Data),struct('window',[dt_bottom+5e-6; inf(size(dt_bottom))])));
-          % Adaptively set scale_min and scale_max ??
-          
-          norm_Data = echo_norm(struct('Time',mdata.Time,'Data',filt_Data),struct('scale',[scale_min scale_max],'window',[dt_bottom+5e-6; inf(size(dt_bottom))]));
-        else
-          valid_max_range_dB = [0 inf];
-          norm_window = block_data.norm_detrend_params.norm_window;
-          
-          % Estimate noise floor
-          nf = echo_noise(struct('Time',mdata.Time,'Data',filt_Data),struct(...
-            'window_units','%','window',norm_window,'valid_max_range_dB',valid_max_range_dB));
-          
-          nf = nanmean(nf(isfinite(nf)));
-          
-          surf_idx = min(mdata.layer_rangebin(1,:));
-          sc_Data = filt_Data(surf_idx:end,:); % scaling data: data used to determine min/max scale
-          sc_Data = sc_Data(dt_mask(surf_idx:end,:));
-          sc_min = nanmin(sc_Data(:));
-          sc_max = nanmax(sc_Data(:));
-          
-          scale_min = ( nf - sc_min  ) / ( sc_max - sc_min );
-          scale_max = 1 - scale_min;
-          
-          norm_Data = echo_norm(struct('Time',mdata.Time,'Data',filt_Data),struct('scale',[scale_min scale_max],'window_units','%','window',norm_window,'valid_max_range_dB',valid_max_range_dB));
-        end
-        
-        if block_data.late_trunc
-          norm_Data = norm_Data ( top_gap : longest_col+bottom_pad,:); % Truncate after the longest data
-        end
-        
-        if detrend_debug % Again :(
-          figure(403);clf;
-          imagesc(norm_Data);
-          title(sprintf('Image after normalizing block%d, %s',block,fn_name),'Interpreter','None' )
-          colormap(gray(256));
-          caxis([0 1]);
-          link_figures([400,401,403]);
-          
-          figure(503);clf;
-          title(sprintf('A-scope after normalizing: log scale block%d, %s',block,fn_name),'Interpreter','None' )
-          for idx = 1:size(norm_Data,2)
-            hold on;
-            plot(norm_Data(:,idx))
-          end
-        end
-        
-        % Check if there's a row of zeros and truncate
-        % This may occur as a result of zero-padding for left over case
-        if  any ( all(~isfinite(data),2) )
-          zero_index = find ( all(~isfinite(data),2),1,'first');
-          data = data(1:zero_index-1,:) ;
-          layer = layer(1:zero_index-1,:) ;
-        end
-        
-        
-        data2 = single(norm_Data); % Just to make sure output data is "single"
-        
-        
-        %% Mirror last block with insufficient rline
-        if rline_end-rline+1 < block_size && fn_idx == length(echo_fns)
-          % Mirror last data to complete 256 cols
-          
-          extra = block_size - size(data,2);
-          data2 = [data2 data2(:,end-extra+1:end) ];
-          layer = [layer layer(:,end-extra+1:end) ];
-          raster = [raster raster(:,end-extra+1:end) ];
-          
-        end
-        
-        if debug_plot % Check flattened_data
-          figure(102);
-          
-          subplot(211)
-          imagesc(lp(flattened_Data));colormap(1-gray);
-          a = title(sprintf(' Flattened Frame %s ',fn_name));
-          ylabel(' Row index')
-          set(a,'Interpreter','none' )
-          for idx = 1:size(mdata.layer_rangebin,1)
-            hold on;
-            plot(layer_rangebin(idx,:))
-          end
-          
-          subplot(212)
-          imagesc((data));colormap(1-gray);
-          
-          a = title(sprintf(' Flattened block Frame %s_block%d ',fn_name,block));
-          ylabel(' Row index')
-          set(a,'Interpreter','none' )
-          
-          for idx = 1:size(layer_rangebin,1)
-            hold on;
-            plot(mdata.layer_rangebin(idx,rline:rline_end))
-          end
-          
-          keyboard
-        end
-        
-        
-        %% Save meta-data
-        
-        tmp_block_data = [];
-        tmp_block_data.block = block;
-        
-        tmp_block_data.data = data2;
-        tmp_block_data.surf_index = mdata.surf_index(rline:rline_end);
-        tmp_block_data.GPS_time = mdata.GPS_time (rline:rline_end);
-        tmp_block_data.Latitude = mdata.Latitude (rline:rline_end);
-        tmp_block_data.Longitude = mdata.Longitude (rline:rline_end);
-        tmp_block_data.Elevation = mdata.Elevation (rline:rline_end);
-        tmp_block_data.Roll = mdata.Roll (rline:rline_end);
-        tmp_block_data.Pitch = mdata.Pitch (rline:rline_end);
-        tmp_block_data.Heading = mdata.Heading (rline:rline_end);
-        tmp_block_data.frame_overlap_flag = frame_overlap;
-        
-        tmp_block_data.norm_detrend_params = block_data.norm_detrend_params;
-        
-        tmp_block_data.fn_name = fn_name;
-        tmp_block_data.day_seg = day_seg;
-        tmp_block_data.filt_surface  = mdata.curr_surf_twtt(rline:rline_end); % filtered surface
-        tmp_block_data.unfiltered_surface = mdata.unfiltered_surface(rline:rline_end);
-        
-        tmp_block_data.raster = raster;
-        tmp_block_data.layer = mdata.layer_rangebin(:,rline:rline_end);
-        tmp_block_data.rline = frame_rline(rline);
-        tmp_block_data.rline_end = frame_rline(rline_end);
-        
-        tmp_block_data.offset_rounding = mdata.offset_rounding(:,rline:rline_end);
-        
-        tmp_block_data.block_size = block_data.block_size ;
-        tmp_block_data.block_overlap = block_data.block_overlap ;
-        tmp_block_data.top_gap = block_data.top_gap ;
-        tmp_block_data.bottom_pad = block_data.bottom_pad;
-        
-        
-        out_fn = fullfile(out_dir,'image',sprintf('image_%06d.mat',block));
-        fprintf('    Save %s\n', out_fn);
-        save(out_fn,'-struct','tmp_block_data');
-        
-        
-        
-        % Save image as .tiff
-        
-        out_fn = fullfile(out_dir,'image',sprintf('image_%06d.tiff',block));
-        fprintf('    Save %s\n', out_fn);
-        
-        t = Tiff(out_fn, 'w');
-        tagstruct.ImageLength = size(data2, 1);
-        tagstruct.ImageWidth = size(data2, 2);
-        tagstruct.Compression = Tiff.Compression.None;
-        tagstruct.SampleFormat = Tiff.SampleFormat.IEEEFP;
-        tagstruct.Photometric = Tiff.Photometric.MinIsBlack;
-        tagstruct.BitsPerSample = 32;
-        tagstruct.SamplesPerPixel = size(data2,3);
-        tagstruct.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
-        t.setTag(tagstruct);
-        t.write(data2);
-        t.close();
-        
-        
-        %% Save images as .png
-        
-        out_fn = fullfile(out_dir,'layer',sprintf('layer_%06d.png',block));
-        fprintf('    Save %s\n', out_fn);
-        imwrite(raster,out_fn);
-        
-        out_fn = fullfile(out_dir,'layer_bin',sprintf('layer_binary_%06d.png',block));
-        fprintf('    Save %s\n', out_fn);
-        imwrite(logical(raster),out_fn);
-        
-        out_fn = fullfile(out_dir,'figures',sprintf('image_fig_%06d.png',block));
-        
-        
-        %% Create and save echogram figure with layers plotted
-        
-        hdl2 = figure(1000);
-        curr_plot = imagesc(data2);colormap(1-gray);
-        
-        a = title(sprintf(' Flattened Frame %s_block%d ',fn_name,block));
-        ylabel(' Row index')
-        set(a,'Interpreter','none' )
-        
-        for idx = 1:size(mdata.layer_rangebin,1)
-          hold on;
-          plot(mdata.layer_rangebin(idx,rline:rline_end));
-        end
-        
-        saveas(curr_plot,out_fn)
-        close(hdl2)
-        
-        %          ============  End of save image of echo and layers   ==========
-        
-        
-        % Re-initialize frame_overlap and rline for next loop
-        frame_overlap = 0; % turn off frame overlap flag
-        rline = find(good_rline(rline_end+1:end),1)+rline_end - block_overlap*block_size;
-        
-        left_over = []; % re-initialize
-        
-      else
-        
-        left_over.data = flattened_Data(:,rline:end);
-        
-        left_over.layer = Layer(:,rline:end);
-        
-        left_over.GPS_time_left =  mdata.GPS_time(:,rline:end);
-        left_over.Latitude_left =  mdata.Latitude(:,rline:end);
-        left_over.Longitude_left = mdata.Longitude(:,rline:end);
-        left_over.Elevation_left = mdata.Elevation(:,rline:end);
-        left_over.Roll_left =     mdata.Roll(:,rline:end);
-        left_over.Pitch_left =    mdata.Pitch(:,rline:end);
-        left_over.Heading_left = mdata.Heading(:,rline:end);
-        
-        left_over.surf_index_left = mdata.surf_index(:,rline:end);
-        left_over.Surface_left   = mdata.curr_surf_twtt (:,rline:end);
-        left_over.offset_rounding_left = mdata.offset_rounding(:,rline:end);
-        left_over.unfiltered_surface_left = mdata.unfiltered_surface(:,rline:end);
-        
-        left_over.layer_rangebin_left = mdata.layer_rangebin(:, rline:end);
-        left_over.frame_rline_left = frame_rline(rline:end);
-        
-        rline = find(good_rline(rline_end+1:end),1)+rline_end; % This forces rline to be empty
-        break
-        
-      end
-      
-    end % End while
-    
-    
   end
-  status = true ;
+  
+  %% Block: Extract layers
+  % =======================================================================
+  layers_bin_bitmap = zeros(size(cat_data.Data),'uint8');
+  layers_bitmap = zeros(size(cat_data.Data),'uint16');
+  layers_segment_bitmap = zeros(size(cat_data.Data),'uint16');
+  layers_vector = nan(length(layers),Nx);
+  for idx = 1:length(layers)
+    twtt = interp1(layers(idx).gps_time,layers(idx).twtt,cat_data.GPS_time);
+    twtt_bin = zeros(size(twtt));
+    if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
+      for rline = 1:Nx
+        % time_flat: vector of twtt associated with each pixel for the
+        % particular column
+        time_flat = interp1(1:length(cat_data.Time),cat_data.Time,resample_field(:,rline),'linear','extrap');
+        twtt_bin(rline) = interp1(time_flat,1:length(time_flat),twtt(rline),'linear','extrap');
+      end
+    else
+      twtt_bin = interp1(cat_data.Time, 1:length(cat_data.Time), twtt);
+    end
+    twtt_bin = round(twtt_bin);
+    
+    Nt = size(cat_data.Data,1);
+    good_idxs = find(isfinite(twtt_bin) & twtt_bin >= 1 & twtt_bin <= Nt);
+    layers_bin_bitmap(twtt_bin(good_idxs) + Nt*(good_idxs-1)) = 1;
+    layers_bitmap(twtt_bin(good_idxs) + Nt*(good_idxs-1)) = idx;
+    for col = 1:Nx
+      if isfinite(twtt_bin(col)) && twtt_bin(col) >= 1 && twtt_bin(col) <= Nt
+        layers_segment_bitmap(twtt_bin(col):end,col) = idx;
+      end
+    end
+    layers_vector(idx,good_idxs) = twtt_bin(good_idxs);
+  end
+  
+  min_layer = interp_finite(min(layers_vector),0) - param.block_data.rows.t0_pad;
+  max_layer = interp_finite(max(layers_vector),0) + param.block_data.rows.t1_pad;
+  min_layer = min(min_layer);
+  max_layer = max(max_layer);
+  min_layer = min(Nt,max(1,min_layer));
+  max_layer = min(Nt,max(1,max_layer));
+  
+  layers_bin_bitmap = layers_bin_bitmap(min_layer:max_layer,:);
+  layers_bitmap = layers_bitmap(min_layer:max_layer,:);
+  layers_segment_bitmap = layers_segment_bitmap(min_layer:max_layer,:);
+  layers_vector = layers_vector - min_layer + 1;
+  cat_data.Data = cat_data.Data(min_layer:max_layer,:);
+  resample_field = resample_field(min_layer:max_layer,:);
+  
+  %% Block: Log scaling data
+  % =======================================================================
+  cat_data.Data = db(cat_data.Data);
+  
+  %% Block: Detrend
+  % =======================================================================
+  if isfield(param.block_data,'detrend') && ~isempty(param.block_data.detrend)
+    param.block_data.detrend.layer_top = interp_finite(surf_bin,1);
+    param.block_data.detrend.layer_bottom = nan(size(surf_bin));
+    cat_data.Data = echo_detrend(cat_data,param.block_data.detrend);
+  end
+  
+  %% Block: TBD (roll compensation, etc.)
+  % =======================================================================
+  
+  %% Block: Normalization
+  % =======================================================================
+  if isfield(param.block_data,'norm') && ~isempty(param.block_data.norm)
+    cat_data.Data = echo_norm(cat_data.Data,param.block_data.norm);
+  end
+  
+  %% Block: Save
+  % =======================================================================
+  if ~exist(out_fn_dir,'dir')
+    mkdir(out_fn_dir);
+  end
+  
+  if param.block_data.file.img_en
+    out_fn_name = sprintf('img_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    min_val = min(cat_data.Data(:));
+    max_val = max(cat_data.Data(:));
+    img_tmp = uint8((cat_data.Data-min_val)/(max_val-min_val)*255);
+    imwrite(uint8(img_tmp), out_fn);
+    clear img_tmp;
+  end
+  
+  if param.block_data.file.layer_bin_en
+    out_fn_name = sprintf('layer_bin_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    imwrite(uint8(layers_bin_bitmap), out_fn);
+  end
+  
+  if param.block_data.file.layer_mult_en
+    out_fn_name = sprintf('layer_mult_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    imwrite(uint8(layers_bitmap), out_fn);
+  end
+  
+  if param.block_data.file.layer_seg_en
+    out_fn_name = sprintf('layer_seg_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    imwrite(uint8(layers_segment_bitmap), out_fn);
+  end
+  
+  if 0
+    % Debug code to review images
+    % =====================================================================
+    out_fn_name = sprintf('img_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    imshow(out_fn);
+    
+    out_fn_name = sprintf('layer_bin_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    
+    out_fn_name = sprintf('layer_mult_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    
+    out_fn_name = sprintf('layer_seg_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+  end
+  
+  if ~param.block_data.file.mat_en
+    cat_data = rmfield(cat_data,'Data');
+  end
+  out_fn_name = sprintf('%s_%04d.mat',param.day_seg,block_idx);
+  out_fn = fullfile(out_fn_dir,out_fn_name);
+  cat_data.param_block_data = param;
+  cat_data.layers_vector = layers_vector;
+  fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+  ct_save(out_fn,'-struct','cat_data');
+  
 end
+status = true;

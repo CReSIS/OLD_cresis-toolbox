@@ -59,6 +59,11 @@ if ~isfield(param.update_surface_twtt_delta,'update_radiometric') ...
   param.update_surface_twtt_delta.update_radiometric = false;
 end
 
+if ~isfield(param.update_surface_twtt_delta,'update_Tsys') ...
+    || isempty(param.update_surface_twtt_delta.update_Tsys)
+  param.update_surface_twtt_delta.update_Tsys = true;
+end
+
 if ~isfield(param.update_surface_twtt_delta,'data_types') ...
     || isempty(param.update_surface_twtt_delta.data_types)
   warning('update_surface_twtt_delta.data_types not specified so no work to be done. Typically data_types should be cell array of strings with output data products to be updated. For example {''qlook'',''standard'',''CSARP_post/qlook''}.');
@@ -179,9 +184,11 @@ for frm_idx = 1:length(param.cmd.frms)
             mdata.(param_field).radar.wfs(wf).Tsys(rx_path) = 0;
           end
           
-          delta_offset_Tsys(img,wf_adc_pair) = param.radar.wfs(wf).Tsys(rx_path) ...
-            - mdata.(param_field).radar.wfs(wf).Tsys(rx_path);
-          delta_offset_Tsys_mask(img,wf_adc_pair) = true;
+          if param.update_surface_twtt_delta.update_Tsys
+            delta_offset_Tsys(img,wf_adc_pair) = param.radar.wfs(wf).Tsys(rx_path) ...
+              - mdata.(param_field).radar.wfs(wf).Tsys(rx_path);
+            delta_offset_Tsys_mask(img,wf_adc_pair) = true;
+          end
           
           % Tadc correction
           if ~isfield(param.radar.wfs(wf),'Tadc') ...
@@ -259,13 +266,15 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       delta_offset_t_ref = delta_offset_t_ref(first_idx);
       
-      first_idx = find(delta_offset_Tsys_mask,1);
-      delta_offset_Tsys(~delta_offset_Tsys_mask) = NaN;
-      if ~all(delta_offset_Tsys(delta_offset_Tsys_mask) == delta_offset_Tsys(first_idx))
-        delta_offset_Tsys
-        error('Different Tsys delta offsets for each waveform-adc-pair, cannot proceed: reprocess data.');
+      if param.update_surface_twtt_delta.update_Tsys
+        first_idx = find(delta_offset_Tsys_mask,1);
+        delta_offset_Tsys(~delta_offset_Tsys_mask) = NaN;
+        if ~all(delta_offset_Tsys(delta_offset_Tsys_mask) == delta_offset_Tsys(first_idx))
+          delta_offset_Tsys
+          error('Different Tsys delta offsets for each waveform-adc-pair, cannot proceed: reprocess data.');
+        end
+        delta_offset_Tsys = delta_offset_Tsys(first_idx);
       end
-      delta_offset_Tsys = delta_offset_Tsys(first_idx);
       
       first_idx = find(delta_offset_Tadc_mask,1);
       delta_offset_Tadc(~delta_offset_Tadc_mask) = NaN;
@@ -337,12 +346,16 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       
       %% Update Data File
-      if delta_offset_t_ref ~= 0 || delta_offset_Tsys ~= 0 ...
+      if delta_offset_t_ref ~= 0 ...
+          || (param.update_surface_twtt_delta.update_Tsys ...
+          && delta_offset_Tsys ~= 0) ...
           || delta_offset_Tadc ~= 0 || delta_offset_Tadc_adjust ~= 0 ...
           || (param.update_surface_twtt_delta.update_radiometric ...
           && (delta_offset_adc_gains_dB ~= 0 || delta_offset_system_dB ~= 0 || delta_offset_radiometric_corr_dB ~= 0))
         fprintf('  t_ref Offset  %g %s (%s)\n', delta_offset_t_ref, echo_fn, datestr(now,'HH:MM:SS'));
-        fprintf('  Tsys Offset %g %s (%s)\n', delta_offset_Tsys, echo_fn, datestr(now,'HH:MM:SS'));
+        if param.update_surface_twtt_delta.update_Tsys
+          fprintf('  Tsys Offset %g %s (%s)\n', delta_offset_Tsys, echo_fn, datestr(now,'HH:MM:SS'));
+        end
         fprintf('  Tadc Offset %g %s (%s)\n', delta_offset_Tadc, echo_fn, datestr(now,'HH:MM:SS'));
         fprintf('  Tadc_adjust Offset %g %s (%s)\n', delta_offset_Tadc_adjust, echo_fn, datestr(now,'HH:MM:SS'));
         if param.update_surface_twtt_delta.update_radiometric
@@ -360,7 +373,11 @@ for frm_idx = 1:length(param.cmd.frms)
         % Note that Tadc_adjust is opposite sign to Tsys
         %  - Tsys is subtracted away
         %  - Tadc_adjust is added on
-        delta_offset = delta_offset_Tsys - delta_offset_Tadc - delta_offset_Tadc_adjust - delta_offset_t_ref;
+        if param.update_surface_twtt_delta.update_Tsys
+          delta_offset = delta_offset_Tsys - delta_offset_Tadc - delta_offset_Tadc_adjust - delta_offset_t_ref;
+        else
+          delta_offset = -delta_offset_Tadc - delta_offset_Tadc_adjust - delta_offset_t_ref;
+        end
         
         mdata.Time = mdata.Time - delta_offset;
         if isfield(mdata,'Surface')

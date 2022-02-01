@@ -14,6 +14,7 @@
 run_all;
 
 param_override = [];
+param_override.frames_update.force_update = false;
 
 %% Automated Section
 % =========================================================================

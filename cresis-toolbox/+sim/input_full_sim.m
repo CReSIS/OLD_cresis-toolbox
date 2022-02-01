@@ -1,4 +1,4 @@
-
+hm;
 param=[];
 hdr=[];
 data = [];
@@ -15,6 +15,10 @@ param.sim.day_seg     = '20120330_04'; % '20181010_01';
 param.sim.radar_name  = 'snow';
 param.sim.season_name = '2013_Greenland_P3';
 param.sim.day_seg     = '20130327_02';
+
+% param.radar_name  = 'snow';
+% param.season_name = '2013_Greenland_P3';
+% param.day_seg     = '20130327_02';
 
 % param.sim.radar_name  = 'snow';
 % param.sim.season_name = '2016_Greenland_Polar6';
@@ -56,9 +60,9 @@ param.sim.imgs = {[1 1]};% ,[2,1] {[ones([7 1]),(1:7).'], [2*ones([7 1]),(1:7).'
 
 % param.radar.lever_arm_fh = ''; % disabled for rds
 
-physical_constants;
+c = physical_constants('c');
 
-[ param, hdr, frames, records, exec_good ] = flightline_extract(param);
+[ param, hdr, frames, records, exec_good ] = sim.flightline_extract(param);
 
 % flightline_extract;
 if ~exec_good; fprintf('flightline_extract executed incompletely\n'); return; end; %clear exec_good;
@@ -216,7 +220,7 @@ for img = 1:length(param.sim.imgs)
 %               ./ exp(1i*2*pi*43.75*freq_axis/hdr.Nt{img}(rec)));
 %           end
         else % NO DDC
-          data{wf,adc}(:,rec) = tmp{wf,adc}(:,rec);
+          data{wf,adc}(:,rec) = raw_data{wf,adc}(:,rec);
         end
         
       else %pulsed
@@ -259,9 +263,9 @@ xlabel('rlines');
 ylabel('fast-time, us');
 subplot(222)
 try
-%   plot(param.signal.wfs(1).time/1e-6,lp(data{1,1}(:,ceil(Nx/2))));
+  plot(param.signal.wfs(1).time/1e-6,lp(data{1,1}(:,ceil(Nx/2))));
 catch
-%   plot(param.signal.wfs(1).time/1e-6,lp(data(:,ceil(Nx/2))));
+  plot(param.signal.wfs(1).time/1e-6,lp(data(:,ceil(Nx/2))));
 end
 xlabel('fast-time, us');
 ylabel('center rline');
@@ -326,7 +330,7 @@ for compress_this=1
     sprintf('%s',param.sim.radar_name), ...
     sprintf('%s',param.season_name) );
   param.sim.out_fn_frames = fullfile(param.sim.out_fn_dir_frames, ...
-    sprintf('frames_%s_01.mat',param.day_seg(1:8)) );
+    sprintf('frames_%s.mat',param.day_seg) );
   fprintf('Saving frames %s (%s)\n', param.sim.out_fn_frames, datestr(now));
   if ~false_save_en; ct_save(param.sim.out_fn_frames, 'frames'); end;
   
@@ -338,8 +342,8 @@ for compress_this=1
     sprintf('records_%s.mat',param.day_seg) );
   fprintf('Saving records %s (%s)\n', param.sim.out_fn_records, datestr(now));
   if ~false_save_en; ct_save(param.sim.out_fn_records,'-struct', 'records');
-    fprintf('Creating auxiliary records files %s (%s)\n',param.sim.out_fn_records,datestr(now));
-    create_records_aux_files(param.sim.out_fn_records);end;
+    if 0; fprintf('Creating auxiliary records files %s (%s)\n',param.sim.out_fn_records,datestr(now));
+    create_records_aux_files(param.sim.out_fn_records);end; end;
   
   % PARAM
   param.sim.out_fn_dir_param = param.sim.out_fn_dir_raw_data;
@@ -354,6 +358,7 @@ for compress_this=1
 end; clear compress_this;
 %%
 
+return;
 
 % hdr.DDC_freq{img}(1:4)
 % time_NCO(1:4)

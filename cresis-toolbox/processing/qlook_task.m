@@ -116,11 +116,26 @@ output_recs_ps = output_recs_ps(output_recs_ps >= load_recs_ps(1));
 start_buffer_ps = (length(param.qlook.inc_B_filter)-1)/2*param.qlook.dec + (length(param.qlook.B_filter)-1)/2;
 stop_buffer_ps = start_buffer_ps;
 
-% If do Doppler spikes nulling, add extra buffers at the start and end to
-% avoid bounary artifact from fft and ifft transforms
+% If do Doppler spikes nulling, set the default parameters for the equivalent adaptive notch filter
+% at the end of data_pulse_compress.m. These parameters include the extra buffers at the start and 
+% end of the data blocks in terms of a factor of the data block size to avoid bounary artifact 
+% from fft and ifft transforms, and range bins to filt through, thresholds for Doppler noise and surface signals.
+% (see more detailed descriptions in data_pulse_compress.m)
 if isfield(param.radar.wfs,'DSN') && param.radar.wfs.DSN.en
-  start_buffer_ps = 10*start_buffer_ps;
-  stop_buffer_ps = 10*stop_buffer_ps;
+  if ~isfield(param.radar.wfs.DSN,'rbin_clusters') || isempty(param.radar.wfs.DSN.rbin_clusters)
+    param.radar.wfs.DSN.rbin_clusters = [1,inf];
+  end
+  if ~isfield(param.radar.wfs.DSN,'theshold') || isempty(param.radar.wfs.DSN.threshold)
+    param.radar.wfs.DSN.threshold = 10;
+  end
+  if ~isfield(param.radar.wfs.DSN,'surf_theshold') || isempty(param.radar.wfs.DSN.threshold)
+    param.radar.wfs.DSN.surf_threshold = 20;
+  end
+  if ~isfield(param.radar.wfs.DSN,'block_overlap_factor') || isempty(param.radar.wfs.DSN.block_overlap_factor)
+    param.radar.wfs.DSN.block_overlap_factor = 0.1;
+  end
+  start_buffer_ps = start_buffer_ps + round(param.radar.wfs.DSN.block_overlap_factor*param.qlook.block_size);
+  stop_buffer_ps = start_buffer_ps;
 end
 
 % Adjust start_buffer_ps in case at the beginning of the segment
@@ -222,9 +237,7 @@ for img = 1:length(param.load.imgs)
     nanmask = isnan(data{img});
     data{img}(nanmask) = 0;
     data{img} = fft(data{img},[],1);
-    for wf_adc = 1:size(param.load.imgs{img},1)
-      data{img} = data{img} .* exp(1j*2*pi*freq*relative_td);
-    end
+    data{img} = data{img} .* exp(1j*2*pi*freq*relative_td);
     data{img} = ifft(data{img},[],1);
     
     % Relative time delay to reference time delay in time bin units
@@ -257,9 +270,7 @@ for img = 1:length(param.load.imgs)
     nanmask = isnan(data{img});
     data{img}(nanmask) = 0;
     data{img} = fft(data{img},[],1);
-    for wf_adc = 1:size(param.load.imgs{img},1)
-      data{img} = data{img} .* exp(-1j*2*pi*freq*relative_td);
-    end
+    data{img} = data{img} .* exp(-1j*2*pi*freq*relative_td);
     data{img} = ifft(data{img},[],1);
     
     % Relative time delay to reference time delay in time bin units
@@ -315,6 +326,7 @@ if param.qlook.inc_dec >= 1
     % Remove elevation variations
     if param.load.motion_comp
       % Relative time delay to reference time delay in time bin units
+      dt = hdr.time{img}(2) - hdr.time{img}(1);
       relative_bins = round( relative_td / dt);
       % Add zero padding (NaNs)
       data{img} = [data{img}; nan(zero_pad,size(data{img},2))];

@@ -6,7 +6,7 @@ records = [];
 % gps = [];
 exec_good = 0;
 
-physical_constants;
+c = physical_constants('c');
 
 %% PARAMS
 fprintf('=====================================================================\n');
@@ -27,18 +27,28 @@ end
 if ~found_day_seg; fprintf('day_seg not found\n'); return; end;
 clear params found_day_seg;
 
-%% Frames, Records, GPS
-frames_fn = ct_filename_support(param_extracted,'','frames');
-fprintf('Loading frames %s (%s)\n', frames_fn, datestr(now));
-load( frames_fn );
+%% Frames, Records, GPS, Layer
+fprintf('Loading frames (%s)\n',  datestr(now));
+frames = frames_load( param_extracted );
 
-records_fn = ct_filename_support(param_extracted,'','records');
-fprintf('Loading records %s (%s)\n', records_fn, datestr(now));
-records    = load( records_fn );
+fprintf('Loading records (%s)\n', datestr(now));
+records = records_load( param_extracted );
 
-% gps_fn = ct_filename_support(param,'','gps',1);
+% gps_fn = ct_filename_support(param_extracted,'','gps',1);
 % fprintf('Loading gps %s (%s)\n', gps_fn, datestr(now));
 % gps    = load( gps_fn );
+
+fprintf('Loading layer (%s)\n', datestr(now));
+idx = 1;
+layer_params(idx).name = 'surface';
+if 0
+  layer_params(idx).source = 'echogram';
+  layer_params(idx).echogram_source = 'qlook';
+else
+  layer_params(idx).source = 'layerdata';
+end
+[layers, new_layer_params] = opsLoadLayers(param.sim,layer_params);
+
 
 if isfield(param.sim,'start_gps_time') && isfield(param.sim,'stop_gps_time')
   start_idx = find(records.gps_time>=param.sim.start_gps_time,1,'first');
@@ -46,9 +56,12 @@ if isfield(param.sim,'start_gps_time') && isfield(param.sim,'stop_gps_time')
 elseif isfield(param.sim,'frame_idx') % select frame
   start_idx   = frames.frame_idxs(param.sim.frame_idx);
   stop_idx    = frames.frame_idxs(param.sim.frame_idx+1);
-else  % just some default values
+elseif 0  % just some default values
   start_idx = 28501;
   stop_idx  = 29200;
+elseif 1
+  start_idx = 1;
+  stop_idx  = 747;
 end
 
 % Frames (THESE ARE TEMPORARY DEFAULT VALUES)
@@ -60,7 +73,7 @@ frames.quality = 1;
 % Records
 try % truncates records' structure (instead of read_records_aux_files)
   rec_len = length(records.gps_time);
-  records = structure_truncate(records,rec_len,start_idx,stop_idx,0);
+  records = struct_truncate(records,rec_len,start_idx,stop_idx,0);
 catch % fail-safe
   records.gps_time = records.gps_time(start_idx:stop_idx);
   records.lat = records.lat(start_idx:stop_idx);
@@ -69,7 +82,7 @@ catch % fail-safe
   records.roll = records.roll(start_idx:stop_idx);
   records.pitch = records.pitch(start_idx:stop_idx);
   records.heading = records.heading(start_idx:stop_idx);
-  records.surface = records.surface(start_idx:stop_idx);
+  %   records.surface = records.surface(start_idx:stop_idx);
   % records.offset = records.offset(start_idx:stop_idx);
   % records.raw.epri = records.raw.epri
   % records.raw.seconds = records.raw.seconds
@@ -127,6 +140,9 @@ param.gps.heading = param_extracted.hdr.records{1, 1}.heading;
 % Target
 param.target = [];
 
+% layer points in specified indices (start,stop)
+
+
 if ~isfield(param.target,'type')
   param.target.type = 'point'; % 'surface'
 end
@@ -136,19 +152,34 @@ switch param.target.type
     mid_idx = ceil(length(records.gps_time)/2);
     param.target.lat  = param_extracted.hdr.records{1, 1}.lat(mid_idx);
     param.target.lon  = param_extracted.hdr.records{1, 1}.lon(mid_idx);
-    if isnan(records.surface(mid_idx));
+    if isnan(records.elev(mid_idx));
       param.target.elev = 0;
-    else
+    elseif 0 % outdated
       param.target.elev = param_extracted.hdr.records{1, 1}.elev(mid_idx) - c*records.surface(mid_idx)/2;
+    elseif 0 % interpolate target(lat lon elev from layers) for gps_time from records
+      if 0
+        figure; hold on;
+        plot(records.gps_time,records.gps_time,'x');
+        plot(layers.gps_time,layers.gps_time,'o');
+      end
+      if 0 % !!!!!!!! plot lat lon for (records, param_extracter.hdr.records, layers)
+        figure; hold on;
+        plot(records.gps_time,records.gps_time,'x');
+        plot(layers.gps_time,layers.gps_time,'o');
+      end
+      param.target.elev = param_extracted.hdr.records{1, 1}.elev(mid_idx) - c*param_extracted.hdr.records{1, 1}.twtt(mid_idx)/2;
+    elseif 1 % temporary override
+      param.target.elev = 0;
     end
-  case 'surface'
+    
+  case 'layer'
     param.target.lat  = param_extracted.hdr.records{1, 1}.lat;
     param.target.lon  = param_extracted.hdr.records{1, 1}.lon;
     param.target.elev = param_extracted.hdr.records{1, 1}.elev - 664;%3e8*records.surface/2;
 end
 [param.target.x, param.target.y, param.target.z] = geodetic2ecef(wgs84Ellipsoid,param.target.lat,param.target.lon,param.target.elev);
 
-%% 
+%%
 
 Ntx = 1;
 Nrx = 1;
@@ -178,7 +209,7 @@ param.radar.prf           = param_extracted.radar.prf;
 param.radar.adc_bits      = param_extracted.radar.adc_bits;
 param.radar.Vpp_scale     = param_extracted.radar.Vpp_scale;
 param.radar.lever_arm_fh  = param_extracted.radar.lever_arm_fh;
-  
+
 % dt = 1/param.radar.fs;
 % pri = 1/param.radar.prf;
 
@@ -200,7 +231,7 @@ for wf_idx = 1:length(param.sim.wfs)
   wfs(wf).adc_gains_dB      = load_wfs(wf).adc_gains_dB;
   hdr.t0_raw{1} = hdr.t0_raw{1} - hdr.t0_raw{1}(1);
   wfs(wf).t0_raw            = hdr.t0_raw{1}(1); %load_wfs(wf).t0_raw;  %################### hdr.t0_raw{1}(1) ???
-  wfs(wf).t_ref             = hdr.t_ref; % load_wfs(wf).t_ref; %################### hdr.t_ref ???
+  wfs(wf).t_ref             = hdr.t_ref{1}(1); % load_wfs(wf).t_ref; %################### hdr.t_ref ???
   wfs(wf).Tadc_adjust       = load_wfs(wf).Tadc_adjust;
   wfs(wf).DDC_NCO_delay     = load_wfs(wf).DDC_NCO_delay;
   wfs(wf).prepulse_H        = load_wfs(wf).prepulse_H;
@@ -257,19 +288,19 @@ for wf_idx = 1:length(param.sim.wfs)
       fprintf('deramp: Custom time\n');
     end
     
-%     wfs(wf).signal = [];
-%     
-%     wfs(wf).ref_signal = []; % Nt x Ntx
-%     wfs(wf).ref_time = []; % Nt x 1 % Default is wfs(wf).time
-%     wfs(wf).ref_freq_signal = []; % Nt x Ntx
-%     wfs(wf).freq = []; %( [-wfs(wf).Nt+1:wfs(wf).Nt-1]*param.radar.fs/2/wfs(wf).Nt ).';
+    %     wfs(wf).signal = [];
+    %
+    %     wfs(wf).ref_signal = []; % Nt x Ntx
+    %     wfs(wf).ref_time = []; % Nt x 1 % Default is wfs(wf).time
+    %     wfs(wf).ref_freq_signal = []; % Nt x Ntx
+    %     wfs(wf).freq = []; %( [-wfs(wf).Nt+1:wfs(wf).Nt-1]*param.radar.fs/2/wfs(wf).Nt ).';
     
   elseif strcmpi(radar_type,'pulsed')
     wfs(wf).deramp = 0; % Default 0
     
     wfs(wf).time   = load_wfs(wf).time; % Nt x 1
     wfs(wf).signal = tukeywin_cont(wfs(wf).time/wfs(wf).Tpd-0.5,wfs(wf).tukey) * 0.5 .* exp(1i*pi*wfs(wf).chirp_rate*wfs(wf).time.^2);%  * repmat(wfs(wf).tx_weights,wfs(wf).Nt,1); % Nt x Ntx
-        
+    
     wfs(wf).ref_signal = conj(flip(wfs(wf).signal,1)); % Nt x Ntx
     wfs(wf).ref_time = wfs(wf).time; % Nt x 1 % Default is wfs(wf).time
     wfs(wf).ref_freq_signal = fft(wfs(wf).ref_signal/norm(wfs(wf).ref_signal),wfs(wf).Nt); % Nt x Ntx
@@ -279,14 +310,14 @@ for wf_idx = 1:length(param.sim.wfs)
   
   wfs(wf).Nt_raw = wfs(wf).Nt;
   
-%   wfs(wf).IF_filter_idx = []; % Nrx x Nx
-%   wfs(wf).NCO = []; % Nrx x Nx
-%   wfs(wf).DDC_filter_idx = []; % Nrx x Nx
-%   
-%   wfs(wf).dec = [];
-%   wfs(wf).Vpp_scale = param_extracted.radar.Vpp_scale;
-%   wfs(wf).adc_bits = param_extracted.radar.adc_bits;
-%   wfs(wf).type = [];
+  %   wfs(wf).IF_filter_idx = []; % Nrx x Nx
+  %   wfs(wf).NCO = []; % Nrx x Nx
+  %   wfs(wf).DDC_filter_idx = []; % Nrx x Nx
+  %
+  %   wfs(wf).dec = [];
+  %   wfs(wf).Vpp_scale = param_extracted.radar.Vpp_scale;
+  %   wfs(wf).adc_bits = param_extracted.radar.adc_bits;
+  %   wfs(wf).type = [];
   
 end
 

@@ -1,4 +1,5 @@
-
+%OM
+hm;
 physical_constants;
 
 % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
