@@ -776,7 +776,6 @@ param.array.bin_rng = [-4:4];
 param.array.line_rng = [-20:20];
 param.array.dbin = 1;
 param.array.dline = 11;
-param.array.freq_rng = 1;
 h_fig_baseline = figure(200); clf;
 h_plot_baseline = [];
 h_legend_baseline = {};
