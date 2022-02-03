@@ -81,7 +81,7 @@ classdef google_map
     % key: key is a string containing the user's Google API key (see info
     % above about obtaining a key)
     function obj = google_map(key)
-      obj.wms_obj = WebMapServer('http://maps.googleapis.com/maps/api');
+      obj.wms_obj = WebMapServer('https://maps.googleapis.com/maps/api');
       obj.key = key;
     end
     
@@ -173,7 +173,7 @@ classdef google_map
       % Request PNG map (PNG is the default format)
       % - Only the first six digits of precision for lon and lat are used
       %   by Google
-      url = sprintf('http://maps.googleapis.com/maps/api/staticmap?center=%0.6f,%0.6f&zoom=%d&scale=%d&size=%dx%d&maptype=satellite&key=%s', ...
+      url = sprintf('https://maps.googleapis.com/maps/api/staticmap?center=%0.6f,%0.6f&zoom=%d&scale=%d&size=%dx%d&maptype=satellite&key=%s', ...
         c_lat, c_lon, zoom, obj.scale, obj.w, obj.h, obj.key);
       A = obj.wms_obj.getMap(url);
     end

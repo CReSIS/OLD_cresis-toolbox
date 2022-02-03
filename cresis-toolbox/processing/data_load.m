@@ -7,6 +7,8 @@ function [hdr,data] = data_load(param,records,states)
 
 wfs = param.radar.wfs;
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 %% Preallocate data
 % ===================================================================
 total_rec = param.load.recs(end)-param.load.recs(1)+1;
@@ -757,8 +759,13 @@ if ~param.load.raw_data
       
       % Apply channel compensation, presum normalization, and constant
       % receiver gain compensation
-      chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-        .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+      if strcmpi(radar_type,'deramp')
+        chan_equal = 1;
+      else
+        chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+          .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+      end
+      
       if length(wfs(wf).system_dB) == 1
         % Only a single number is provided for system_dB so apply it to all
         % receiver paths

@@ -5,10 +5,11 @@ function ctrl_chain = qlook(param,param_override)
 % surface, and (optionally) stores the surface to a layer data destination
 % (default is layerData).
 %
-% param = struct with processing parameters
-% param_override = parameters in this struct will override parameters
-%         in param.  This struct must also contain the gRadar fields.
-%         Typically global gRadar; param_override = gRadar;
+% param: struct with processing parameters
+%
+% param_override: parameters in this struct will override parameters in
+% param.  This struct must also contain the gRadar fields. Typically global
+% gRadar; param_override = gRadar;
 %
 % Example:
 %  See run_qlook.m for how to run this function directly.

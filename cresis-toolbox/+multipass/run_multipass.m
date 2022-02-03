@@ -291,8 +291,8 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
   param.multipass.coregistration_time_shift = [];
   param.multipass.time_gate = [];
   
-  param.multipass.equalization = 10.^(zeros(1,30)) ...
-    .* exp(1i*([7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180*pi));
+%   param.multipass.equalization = 10.^(zeros(1,30)) ...
+%     .* exp(1i*([7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180*pi));
   
   param.multipass.debug_plots = {'debug','coherent'};
 end

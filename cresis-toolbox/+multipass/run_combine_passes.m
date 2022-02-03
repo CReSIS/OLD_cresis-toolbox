@@ -472,17 +472,36 @@ if strcmpi(example_str,'summit_2012_2014_allwf')
   start = struct('lat', 72.646,'lon', -37.898);
   stop = struct('lat', 72.791, 'lon', -38.461);
   input_type = 'sar';
-  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[],'param_override',[]);
   
   param_fn = 'rds_param_2014_Greenland_P3.xls';
+  pass_override = [];
+  tmp_param = read_param_xls(ct_filename_param(param_fn),'20140502_01');
+  for wf = 1:length(tmp_param.radar.wfs)
+    pass_override.radar.wfs(wf).chan_equal_dB = tmp_param.radar.wfs(wf).chan_equal_dB;
+    pass_override.radar.wfs(wf).chan_equal_deg = tmp_param.radar.wfs(wf).chan_equal_deg;
+    pass_override.radar.wfs(wf).Tsys = tmp_param.radar.wfs(wf).Tsys;
+  end
+  pass_override.radar.wfs(1).chan_equal_deg = pass_override.radar.wfs(1).chan_equal_deg + -94.9225; % wf 1 to 2 correction
+  pass_override.radar.wfs(1).Tsys = pass_override.radar.wfs(1).Tsys + 5.86577e-09; % wf 1 to 2 correction
+  pass_override.radar.wfs(3).chan_equal_deg = pass_override.radar.wfs(3).chan_equal_deg + 52.7387 + -98.5571; % wf 2 to 3 correction
+  pass_override.radar.wfs(3).Tsys = pass_override.radar.wfs(3).Tsys + 1.16604e-08; % wf 2 to 3 correction
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20140502_01','frms',41,'param_fn',param_fn, ...
-      'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
+    passes(end+1) = struct('day_seg','20140502_01','frms',41,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}},'param_override',pass_override);
   end
   
   param_fn = 'rds_param_2012_Greenland_P3.xls';
+  pass_override = [];
+  tmp_param = read_param_xls(ct_filename_param(param_fn),'20120330_03');
+  for wf = 1:length(tmp_param.radar.wfs)
+    pass_override.radar.wfs(wf).chan_equal_dB = tmp_param.radar.wfs(wf).chan_equal_dB;
+    pass_override.radar.wfs(wf).chan_equal_deg = tmp_param.radar.wfs(wf).chan_equal_deg;
+    pass_override.radar.wfs(wf).Tsys = tmp_param.radar.wfs(wf).Tsys;
+  end
+  pass_override.radar.wfs(1).chan_equal_deg = pass_override.radar.wfs(1).chan_equal_deg + 5.09989; % wf 1 to 2 correction
+  pass_override.radar.wfs(1).Tsys = pass_override.radar.wfs(1).Tsys -5.65956e-09; % wf 1 to 2 correction
   for adc = 2:16
-    passes(end+1) = struct('day_seg','20120330_03','frms',8,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
+    passes(end+1) = struct('day_seg','20120330_03','frms',8,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
   end
 end
 
@@ -512,20 +531,38 @@ if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
     pass_override.radar.wfs(wf).chan_equal_deg = tmp_param.radar.wfs(wf).chan_equal_deg;
     pass_override.radar.wfs(wf).Tsys = tmp_param.radar.wfs(wf).Tsys;
   end
-  pass_override.radar.wfs(3).chan_equal_deg = pass_override.radar.wfs(3).chan_equal_deg + (54-78.174); % wf 2 to 3 correction
-  pass_override.radar.wfs(3).Tsys = pass_override.radar.wfs(3).Tsys - 11.37e-9; % wf 2 to 3 correction
+  pass_override.radar.wfs(1).chan_equal_deg = pass_override.radar.wfs(1).chan_equal_deg + -94.9225; % wf 1 to 2 correction
+  pass_override.radar.wfs(1).Tsys = pass_override.radar.wfs(1).Tsys + 5.86577e-09; % wf 1 to 2 correction
+  pass_override.radar.wfs(3).chan_equal_deg = pass_override.radar.wfs(3).chan_equal_deg + 52.7387 + -98.5571; % wf 2 to 3 correction
+  pass_override.radar.wfs(3).Tsys = pass_override.radar.wfs(3).Tsys + 1.16604e-08; % wf 2 to 3 correction
   for adc = 2:16
     passes(end+1) = struct('day_seg','20140410_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}},'param_override',pass_override);
   end
   
   param_fn = 'rds_param_2011_Greenland_P3.xls';
   pass_override = [];
+  tmp_param = read_param_xls(ct_filename_param(param_fn),'20110426_11');
+  for wf = 1:length(tmp_param.radar.wfs)
+    pass_override.radar.wfs(wf).chan_equal_dB = tmp_param.radar.wfs(wf).chan_equal_dB;
+    pass_override.radar.wfs(wf).chan_equal_deg = tmp_param.radar.wfs(wf).chan_equal_deg;
+    pass_override.radar.wfs(wf).Tsys = tmp_param.radar.wfs(wf).Tsys;
+  end
+  pass_override.radar.wfs(1).chan_equal_deg = pass_override.radar.wfs(1).chan_equal_deg + -26.8951 + 47.4778; % wf 1 to 2 correction
+  pass_override.radar.wfs(1).Tsys = pass_override.radar.wfs(1).Tsys - 5.8045e-09; % wf 1 to 2 correction
   for adc = 2:16
     passes(end+1) = struct('day_seg','20110426_11','frms',5,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
   end
   
   param_fn = 'rds_param_2012_Greenland_P3.xls';
   pass_override = [];
+  tmp_param = read_param_xls(ct_filename_param(param_fn),'20120411_02');
+  for wf = 1:length(tmp_param.radar.wfs)
+    pass_override.radar.wfs(wf).chan_equal_dB = tmp_param.radar.wfs(wf).chan_equal_dB;
+    pass_override.radar.wfs(wf).chan_equal_deg = tmp_param.radar.wfs(wf).chan_equal_deg;
+    pass_override.radar.wfs(wf).Tsys = tmp_param.radar.wfs(wf).Tsys;
+  end
+  pass_override.radar.wfs(1).chan_equal_deg = pass_override.radar.wfs(1).chan_equal_deg + 5.09989; % wf 1 to 2 correction
+  pass_override.radar.wfs(1).Tsys = pass_override.radar.wfs(1).Tsys -5.65956e-09; % wf 1 to 2 correction
   for adc = 2:16
     passes(end+1) = struct('day_seg','20120411_02','frms',[9 10],'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}},'param_override',pass_override);
   end
@@ -536,12 +573,12 @@ if strcmpi(example_str,'egig_2011_2012_2014_2018_allwf')
   %   passes(end+1) = struct('day_seg','20170506_01','frms',57,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
   % end
   
-  param_fn = 'rds_param_2018_Greenland_P3.xls';
-  pass_override = [];
-  for adc = [1:4,6:16]
-    passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
-      'in_path','','imgs',{{[1 adc],[3 adc], [5 adc]}},'param_override',pass_override);
-  end
+%   param_fn = 'rds_param_2018_Greenland_P3.xls';
+%   pass_override = [];
+%   for adc = [1:4,6:16]
+%     passes(end+1) = struct('day_seg','20180501_01','frms',[52],'param_fn',param_fn, ...
+%       'in_path','','imgs',{{[1 adc],[3 adc], [5 adc]}},'param_override',pass_override);
+%   end
   % Combining left and right beams could present a problem due to them
   % having common phase centers so disabling the right transmit beam data
   %for adc = [1:4,6:16]

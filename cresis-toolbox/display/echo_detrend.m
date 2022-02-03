@@ -199,6 +199,9 @@ switch param.method
       else
         error('mdata should be an echogram struct with a "Time" field since layer_bottom is specific in two way travel time and needs to be converted to range bins.');
       end
+    else
+      % layer is in range bins
+      param.layer_bottom = round(interp_finite(param.layer_bottom,1));
     end
     if all(isnan(param.layer_top))
       param.layer_top(:) = 1;
@@ -209,6 +212,9 @@ switch param.method
       else
         error('mdata should be an echogram struct with a "Time" field since layer_top is specific in two way travel time and needs to be converted to range bins.');
       end
+    else
+      % layer is in range bins
+      param.layer_top = round(interp_finite(param.layer_top,1));
     end
     
     mask = false(size(data));

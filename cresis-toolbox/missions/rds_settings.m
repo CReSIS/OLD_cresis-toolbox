@@ -134,6 +134,7 @@ params = ct_set_params(params,'cmd.frms',[1:5],'day_seg','20140401_03');
 % -------------------------------------------------------------------------
 % 2014 Greenland P3
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140325_04');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140502_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140506_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20140512_01');
 
@@ -204,7 +205,7 @@ params = ct_set_params(params,'cmd.frms',[1:5],'day_seg','20140401_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190406_02');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190406_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190409_01');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190409_02'); % START HERE
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190409_02');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190409_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190410_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190410_02');
@@ -222,13 +223,15 @@ params = ct_set_params(params,'cmd.frms',[1:5],'day_seg','20140401_03');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190505_02');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190506_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190506_02');
-% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190507_01'); % START HERE
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190507_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190508_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190512_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190512_02');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190513_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190514_01');
 % params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190515_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190516_01');
+% params = ct_set_params(params,['cmd.' cmd_method],1,'day_seg','20190516_02');
 
 % -------------------------------------------------------------------------
 % 2019 Antarctica Ground
@@ -1282,4 +1285,5 @@ if isfield(param_override,'array') && isfield(param_override.array,'out_path')
       params(param_idx).array.dline = 1;
     end
   end
+end
 end
