@@ -1,19 +1,18 @@
-function [data,metadata] = load_sar_data(param)
-% [data,metadata] = load_sar_data(param)
+function [data,metadata] = sar_load(param)
+% [data,metadata] = sar_load(param)
 %
 % Loads and concatenates sar data from a single frame. Currently requires
 % all data to be in the same directory. Returns data, position, and header
 % information associated with the sar data.
 %
-% param.load_sar_data: parameter structure controlling how data are loaded.
+% param.sar_load: parameter structure controlling how data are loaded.
 % See input arguments section for details
 %
 % Author: John Paden, Logan Smith
 %
-% See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
-% array_proc.m, array_task.m, array_combine_task.m
-%
-% Also used in: run_load_sar_data.m
+% See also: run_master.m, master.m, run_array.m, array.m, run_sar_equal.m,
+% run_sar_load.m, sar_equal.m, sar_load.m, array_proc.m, array_task.m,
+% array_combine_task.m
 
 %% Check input arguments
 % =========================================================================
@@ -25,69 +24,72 @@ if ~isfield(param.sar,'sub_aperture_steering') || isempty(param.sar.sub_aperture
   param.sar.sub_aperture_steering = [0];
 end
 
-%% Input: load_sar_data param
-% combine_channels: sum wf-adc pairs together in each image
-if ~isfield(param.load_sar_data,'combine_channels') || isempty(param.load_sar_data.combine_channels)
-  param.load_sar_data.combine_channels = false;
+%% Input: sar_load param
+% combine_channels: Logical scaler. Sum wf-adc pairs together coherently in
+% each image to form a single image.
+if ~isfield(param.sar_load,'combine_channels') || isempty(param.sar_load.combine_channels)
+  param.sar_load.combine_channels = false;
 end
 
-% combine_imgs: combine images together
-if ~isfield(param.load_sar_data,'combine_imgs') || isempty(param.load_sar_data.combine_imgs)
-  param.load_sar_data.combine_imgs = false;
+% combine_imgs: Logical scaler. Combine images together in fast-time
+% (requires wf_comb to be set). Often used to combine low gain and high
+% gain images and short and long pulse duration images.
+if ~isfield(param.sar_load,'combine_imgs') || isempty(param.sar_load.combine_imgs)
+  param.sar_load.combine_imgs = false;
 end
 
 % debug_level
-if ~isfield(param.load_sar_data,'debug_level') || isempty(param.load_sar_data.debug_level)
-  param.load_sar_data.debug_level = 1;
+if ~isfield(param.sar_load,'debug_level') || isempty(param.sar_load.debug_level)
+  param.sar_load.debug_level = 1;
 end
 
 % detrend: structure controlling detrending. Arguments are passed into
 % local_detrend.m. Detrend is disabled by default (detrend.cmd == 0).
 % Detrending only runs if combine_channels == true and incoherent == true.
-if ~isfield(param.load_sar_data,'detrend') || isempty(param.load_sar_data.detrend)
-  param.load_sar_data.detrend.cmd = [];
+if ~isfield(param.sar_load,'detrend') || isempty(param.sar_load.detrend)
+  param.sar_load.detrend.cmd = [];
 end
-if ~isfield(param.load_sar_data.detrend,'B_noise') || isempty(param.load_sar_data.detrend.B_noise)
-  param.load_sar_data.detrend.B_noise = [100 200];
+if ~isfield(param.sar_load.detrend,'B_noise') || isempty(param.sar_load.detrend.B_noise)
+  param.sar_load.detrend.B_noise = [100 200];
 end
-if ~isfield(param.load_sar_data.detrend,'B_sig') || isempty(param.load_sar_data.detrend.B_sig)
-  param.load_sar_data.detrend.B_sig = [10 20];
+if ~isfield(param.sar_load.detrend,'B_sig') || isempty(param.sar_load.detrend.B_sig)
+  param.sar_load.detrend.B_sig = [10 20];
 end
-if ~isfield(param.load_sar_data.detrend,'cmd') || isempty(param.load_sar_data.detrend.cmd)
-  param.load_sar_data.detrend.cmd = 0;
+if ~isfield(param.sar_load.detrend,'cmd') || isempty(param.sar_load.detrend.cmd)
+  param.sar_load.detrend.cmd = 0;
 end
-if ~isfield(param.load_sar_data.detrend,'minVal') || isempty(param.load_sar_data.detrend.minVal)
-  param.load_sar_data.detrend.minVal = -inf;
+if ~isfield(param.sar_load.detrend,'minVal') || isempty(param.sar_load.detrend.minVal)
+  param.sar_load.detrend.minVal = -inf;
 end
 
 % fn: Data directory. Default is "sar" which loads from "CSARP_sar".
-if ~isfield(param.load_sar_data,'in_path') || isempty(param.load_sar_data.in_path)
-  param.load_sar_data.in_path = 'sar';
+if ~isfield(param.sar_load,'in_path') || isempty(param.sar_load.in_path)
+  param.sar_load.in_path = 'sar';
 end
 
 % frm: Data frames to load
-if isfield(param.load_sar_data,'frm')
-  warning('Legacy input field param.load_sar_data.frm is ignored and is now called param.load_sar_data.frms since load_sar_data.m now supports loading multiple frames at once.');
+if isfield(param.sar_load,'frm')
+  warning('Legacy input field param.sar_load.frm is ignored and is now called param.sar_load.frms since sar_load.m now supports loading multiple frames at once.');
 end
-if ~isfield(param.load_sar_data,'frms') || isempty(param.load_sar_data.frms)
-  warning('The param.load_sar_data.frms field must be set to an integer array indicating which frames to load. Defaulting to param.load_sar_data.frms = 1.');
-  param.load_sar_data.frms = 1;
+if ~isfield(param.sar_load,'frms') || isempty(param.sar_load.frms)
+  warning('The param.sar_load.frms field must be set to an integer array indicating which frames to load. Defaulting to param.sar_load.frms = 1.');
+  param.sar_load.frms = 1;
 end
 % chunk: two element vector specifying the start and stop chunk to load
 % (minimum value is 1 and maximum value is the number of chunks in the
 % frame). If the stop chunk is specified, then the stop chunk is set to the
 % number of chunks. The default is to load all chunks which is [1 inf]. All
-% chunks for a single frame in param.load_sar_data.frms is {[1 inf]}.
-if ~isfield(param.load_sar_data,'chunk') || isempty(param.load_sar_data.chunk)
-  param.load_sar_data.chunk = {};
-elseif isnumeric(param.load_sar_data.chunk) && length(param.load_sar_data.chunk) == 2
+% chunks for a single frame in param.sar_load.frms is {[1 inf]}.
+if ~isfield(param.sar_load,'chunk') || isempty(param.sar_load.chunk)
+  param.sar_load.chunk = {};
+elseif isnumeric(param.sar_load.chunk) && length(param.sar_load.chunk) == 2
   % Legacy: support old single frame format
-  param.load_sar_data.chunk = {param.load_sar_data.chunk};
+  param.sar_load.chunk = {param.sar_load.chunk};
 end
-for frm_idx = 1:length(param.load_sar_data.frms)
-  if length(param.load_sar_data.chunk) < frm_idx || isempty(param.load_sar_data.chunk{frm_idx})
+for frm_idx = 1:length(param.sar_load.frms)
+  if length(param.sar_load.chunk) < frm_idx || isempty(param.sar_load.chunk{frm_idx})
     % Load all chunks if chunk range is not specified for a frame
-    param.load_sar_data.chunk{frm_idx} = [1 inf];
+    param.sar_load.chunk{frm_idx} = [1 inf];
   end
 end
 
@@ -95,26 +97,26 @@ end
 % waveform-adc pair list where N is the number of wf-adc pairs to load.
 % Default is {[1 1]} which loads one image and this image is pulled from
 % waveform = 1, adc = 1.
-if ~isfield(param.load_sar_data,'imgs') || isempty(param.load_sar_data.imgs)
-  param.load_sar_data.imgs = {[1 1]};
+if ~isfield(param.sar_load,'imgs') || isempty(param.sar_load.imgs)
+  param.sar_load.imgs = {[1 1]};
 end
 
 % incoherent: logical scalar, default is false, if true, the data will be
 % power detected on load with abs()^2. Incoherent only runs if
 % combine_channels == true.
-if ~isfield(param.load_sar_data,'incoherent') || isempty(param.load_sar_data.incoherent)
-  param.load_sar_data.incoherent = false;
+if ~isfield(param.sar_load,'incoherent') || isempty(param.sar_load.incoherent)
+  param.sar_load.incoherent = false;
 end
 
 % sar_type: 'fk' or 'tdbp'. Default is 'fk'.
-if ~isfield(param.load_sar_data,'sar_type') || isempty(param.load_sar_data.sar_type)
-  param.load_sar_data.sar_type = 'fk';
+if ~isfield(param.sar_load,'sar_type') || isempty(param.sar_load.sar_type)
+  param.sar_load.sar_type = 'fk';
 end
 
 % subap: list of subapertures to load (array of integers, default is all
 % subapertures specified in param.sar.sub_aperture_steering)
-if ~isfield(param.load_sar_data,'subap') || isempty(param.load_sar_data.subap)
-  param.load_sar_data.subap = 1:length(param.sar.sub_aperture_steering);
+if ~isfield(param.sar_load,'subap') || isempty(param.sar_load.subap)
+  param.sar_load.subap = 1:length(param.sar.sub_aperture_steering);
 end
 
 physical_constants;
@@ -123,27 +125,27 @@ physical_constants;
 % =========================================================================
 
 % The base path for all the data
-base_path = ct_filename_out(param,param.load_sar_data.in_path,'');
+base_path = ct_filename_out(param,param.sar_load.in_path,'');
 
 % Initialize memory for outputs
-data     = cell(length(param.load_sar_data.imgs),1);
+data     = cell(length(param.sar_load.imgs),1);
 metadata = [];
 metadata.lat = [];
 
-for subap_idx = 1:length(param.load_sar_data.subap)
-  subap = param.load_sar_data.subap(subap_idx);
+for subap_idx = 1:length(param.sar_load.subap)
+  subap = param.sar_load.subap(subap_idx);
 
   %% Frames: Load frames of SAR data
   cur_rline = 0;
-  for frm_idx = 1:length(param.load_sar_data.frms)
-    frm = param.load_sar_data.frms(frm_idx);
+  for frm_idx = 1:length(param.sar_load.frms)
+    frm = param.sar_load.frms(frm_idx);
     
     in_path = fullfile(base_path, ...
-      sprintf('%s_data_%03d_%02d_01',param.load_sar_data.sar_type,frm,subap));
+      sprintf('%s_data_%03d_%02d_01',param.sar_load.sar_type,frm,subap));
     
     %% Determine which chunks are available for this subaperture
     img = 1;
-    wf_adc_list = param.load_sar_data.imgs{img};
+    wf_adc_list = param.sar_load.imgs{img};
     wf_adc = 1;
     wf = wf_adc_list(wf_adc,1);
     adc = wf_adc_list(wf_adc,2);
@@ -156,8 +158,8 @@ for subap_idx = 1:length(param.load_sar_data.subap)
     if isempty(valid_chks)
       error('No valid sar chunks/blocks exist for the requested data.');
     end
-    param.load_sar_data.chunk{frm_idx}(param.load_sar_data.chunk{frm_idx}==inf) = max(valid_chks);
-    chks_to_load = param.load_sar_data.chunk{frm_idx}(1):param.load_sar_data.chunk{frm_idx}(end);
+    param.sar_load.chunk{frm_idx}(param.sar_load.chunk{frm_idx}==inf) = max(valid_chks);
+    chks_to_load = param.sar_load.chunk{frm_idx}(1):param.sar_load.chunk{frm_idx}(end);
     
     % Remove chunks that do not exist from chunks_to_load list
     [valid_chks,keep_idxs] = intersect(chks_to_load, valid_chks);
@@ -172,7 +174,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
     %% Subapertures: Load chunks (blocks) of SAR data for frame
     for chunk = chks_to_load
       
-      if param.load_sar_data.debug_level >= 1
+      if param.sar_load.debug_level >= 1
         fprintf('Loading chunk %d (%s)\n', chunk, datestr(now,'HH:MM:SS'));
       end
       
@@ -180,8 +182,8 @@ for subap_idx = 1:length(param.load_sar_data.subap)
       % Load data
       
       tx = 1;
-      for img = 1:length(param.load_sar_data.imgs)
-        wf_adc_list = param.load_sar_data.imgs{img};
+      for img = 1:length(param.sar_load.imgs)
+        wf_adc_list = param.sar_load.imgs{img};
         
         % -------------------------------------------------------------------
         % Load data
@@ -190,7 +192,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           adc = wf_adc_list(wf_adc,2);
           
           sar_fn = fullfile(in_path,sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f.mat',wf,adc,chunk));
-          if param.load_sar_data.debug_level >= 2
+          if param.sar_load.debug_level >= 2
             fprintf(' %s (%s)\n', sar_fn, datestr(now,'HH:MM:SS'));
           end
           sar_data = load(sar_fn);
@@ -199,7 +201,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           % legacy SAR data format since current format does not have
           % overlap)
           if img == 1 && wf_adc == 1
-            if frm_idx == 1 && chunk == param.load_sar_data.chunk{frm_idx}(1)
+            if frm_idx == 1 && chunk == param.sar_load.chunk{frm_idx}(1)
               new_idxs = 1:length(sar_data.fcs.gps_time);
             else
               % 1e-6 added to avoid rounding errors... this is a hack
@@ -221,7 +223,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           end
           
           if subap_idx == 1
-            if frm_idx == 1 && chunk == param.load_sar_data.chunk{frm_idx}(1)
+            if frm_idx == 1 && chunk == param.sar_load.chunk{frm_idx}(1)
               fcs{img}{wf_adc} = sar_data.fcs;
               
             else
@@ -251,11 +253,11 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           end
           
           Nt = size(sar_data.fk_data,1);
-          if ~param.load_sar_data.combine_channels
+          if ~param.sar_load.combine_channels
             if subap_idx == 1 && wf_adc == 1
               % Allocate memory in a special way when loading 3D data
               data{img}(size(sar_data.fk_data,1), ...
-                size(data{img},2)+length(new_idxs),size(wf_adc_list,1),length(param.load_sar_data.subap)) = single(0);
+                size(data{img},2)+length(new_idxs),size(wf_adc_list,1),length(param.sar_load.subap)) = single(0);
             end
             data{img}(:,cur_rline + (1:length(new_idxs)),wf_adc,subap_idx) = sar_data.fk_data(:,new_idxs);
           else
@@ -270,8 +272,8 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           
         end
         
-        if param.load_sar_data.combine_channels
-          if param.load_sar_data.incoherent
+        if param.sar_load.combine_channels
+          if param.sar_load.incoherent
             data{img} = [data{img} abs(sar_data_data).^2];
           else
             data{img} = [data{img} sar_data_data];
@@ -302,15 +304,15 @@ metadata.wfs = sar_data.wfs;
 metadata.param_records = sar_data.param_records;
 metadata.param_sar = sar_data.param_sar;
 
-if param.load_sar_data.combine_channels && param.load_sar_data.combine_imgs
+if param.sar_load.combine_channels && param.sar_load.combine_imgs
   
 end
 
-if param.load_sar_data.combine_channels && param.load_sar_data.incoherent ...
-    && param.load_sar_data.detrend.cmd
+if param.sar_load.combine_channels && param.sar_load.incoherent ...
+    && param.sar_load.detrend.cmd
   % Detrend data
-  detrend = param.load_sar_data.detrend;
-  if param.load_sar_data.combine_imgs
+  detrend = param.sar_load.detrend;
+  if param.sar_load.combine_imgs
     data = local_detrend(data, detrend.B_noise, ...
       detrend.B_sig, detrend.cmd, detrend.minVal);
   else
