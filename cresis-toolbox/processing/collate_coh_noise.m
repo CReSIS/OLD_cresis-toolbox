@@ -87,8 +87,10 @@ if isfield(param.collate_coh_noise,'dft_corr_length')
 end
 
 if ~isfield(param.collate_coh_noise,'dft_corr_time')
-  param.collate_coh_noise.dft_corr_time = [];
-  for img = param.collate_coh_noise.imgs
+  param.collate_coh_noise.dft_corr_time = {};
+end
+for img = param.collate_coh_noise.imgs
+  if length(param.collate_coh_noise.dft_corr_time) < img
     param.collate_coh_noise.dft_corr_time{img} = inf;
   end
 end
@@ -255,7 +257,6 @@ for img = param.collate_coh_noise.imgs
       Nx = length(noise.gps_time);
       recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
       
-%       Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time(img));
       Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time{img});
       if Nx_dft<1
         Nx_dft = 1;
@@ -287,7 +288,7 @@ for img = param.collate_coh_noise.imgs
         cn_after = zeros(Nx,Nt);
       end
       time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
-      Tpd = param.radar.wfs(wf).Tpd; %param.collate_coh_noise.threshold_eval;
+      Tpd = param.radar.wfs(wf).Tpd;
       for bin = start_bin:stop_bin
         bin_idx = bin-start_bin+1;
         if ~mod(bin_idx-1,10^floor(log10(Nt)-1))
@@ -415,7 +416,6 @@ for img = param.collate_coh_noise.imgs
           %   threshold = orig_threshold;
           %   cmd_str = param.collate_coh_noise.threshold_eval{img}; % Fill in string with new threshold_eval command
           %   eval(cmd_str);
-          noise_dft = dft_noise; % THIS IS A HACK
           eval(cmd_str);
         end
       end
@@ -585,7 +585,7 @@ for img = param.collate_coh_noise.imgs
       end
       
       % Enter debug mode
-%       keyboard
+      % keyboard
     end
     
     %% Create the simplified output

@@ -46,15 +46,6 @@ if strcmpi(param.array.surf_layer.source, 'surf_sar')
 else
   surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
 end
-%
-% if strcmpi(param.array.surf_layer.source, 'surfData')
-%   surf_dir = ct_filename_out(param,'','surfData_sar');
-%   fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
-%   fn = fullfile(surf_dir,fn_name);
-%   surf_layer = tomo.surfdata(fn,param);
-% else
-%   surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
-% end
 
 %% Process
 % =========================================================================
