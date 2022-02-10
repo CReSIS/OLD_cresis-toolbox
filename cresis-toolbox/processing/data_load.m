@@ -144,14 +144,14 @@ for state_idx = 1:length(states)
     wf = 1;
     img = 1;
     data = raw_data_file.raw_data;
-    hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
-    hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};
-    hdr.nyquist_zone_signal{img}  = raw_data_file.hdr.nyquist_zone_signal{img};
-    hdr.DDC_dec{img}              = raw_data_file.hdr.DDC_dec{img};
-    hdr.DDC_freq{img}             = raw_data_file.hdr.DDC_freq{img};
-    hdr.Nt{img}                   = raw_data_file.hdr.Nt{img};
-    hdr.t0_raw{img}               = raw_data_file.hdr.t0_raw{img};
-    hdr.t_ref{img}                = raw_data_file.hdr.t_ref{img};
+%     hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
+%     hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};
+%     hdr.nyquist_zone_signal{img}  = raw_data_file.hdr.nyquist_zone_signal{img};
+%     hdr.DDC_dec{img}              = raw_data_file.hdr.DDC_dec{img};
+%     hdr.DDC_freq{img}             = raw_data_file.hdr.DDC_freq{img};
+%     hdr.Nt{img}                   = raw_data_file.hdr.Nt{img};
+%     hdr.t0_raw{img}               = raw_data_file.hdr.t0_raw{img};
+%     hdr.t_ref{img}                = raw_data_file.hdr.t_ref{img};
     
     rec = total_rec+1;
     
