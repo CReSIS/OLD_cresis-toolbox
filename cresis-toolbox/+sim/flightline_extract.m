@@ -1,4 +1,12 @@
-function [ param, frames, records, exec_good ] = flightline_extract(param)
+function [param, frames, records, exec_good] = flightline_extract(param)
+
+% [param, frames, records, exec_good] = flightline_extract(param)
+%
+% Function to extract or simulate a flightline to use with full simulator
+%
+% Author: John Paden, Hara Madhav Talasila
+%
+% See also sim.input_full_sim, run_load_data (example 7)
 
 frames = [];
 records = [];
@@ -31,12 +39,12 @@ clear params found_day_seg param_idx;
 %% Load frames
 
 try
-  fprintf('Loading frames (%s)',  datestr(now));
+  fprintf('(%s) Loading frames',  datestr(now));
   frames = frames_load( param );
 catch ME
-  fprintf(' -- Failed (%s)\n',  datestr(now)); return;
+  fprintf('\t-- Failed (%s)\n',  datestr(now)); return;
 end
-fprintf(' -- Done (%s)\n',  datestr(now));
+fprintf('\t-- Loaded (%s)\n',  datestr(now));
 
 % override default variables in frames
 frames.frame_idxs = 1;
@@ -47,12 +55,12 @@ frames.quality = 1;
 %% Load records
 
 try
-  fprintf('Loading records (%s)', datestr(now));
+  fprintf('(%s) Loading records', datestr(now));
   records = records_load( param );
 catch ME
-  fprintf(' -- Failed (%s)\n',  datestr(now)); return;
+  fprintf('\t-- Failed (%s)\n',  datestr(now)); return;
 end
-fprintf(' -- Done (%s)\n',  datestr(now));
+fprintf('\t-- Loaded (%s)\n',  datestr(now));
 
 % assign start and stop indices of records to use in simulation
 if isfield(param.sim,'start_gps_time') && isfield(param.sim,'stop_gps_time')
@@ -100,7 +108,7 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   
   %% For Northward flightline
   % get along_track from trajectory without leverarm
-  [along_track,~,~,~] = geodetic_to_along_track(records.lat,records.lon,records.elev); % no 'spacing'
+  [along_track,~,~,~] = geodetic_to_along_track(records.lat, records.lon, records.elev); % no 'spacing'
   dx = median(diff(along_track));
   
   % Calculate unit vector towards North: geodetic (a, b) or ECEF (A, B)
@@ -109,12 +117,12 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   a.lon   =records.lon(1);
   a.elev  =records.elev(1);
   A       = nan(3,1);
-  [A(1), A(2), A(3)] = geodeticD2ecef(a.lat,a.lon,a.elev,WGS84.ellipsoid);
+  [A(1), A(2), A(3)] = geodeticD2ecef(a.lat, a.lon, a.elev, WGS84.ellipsoid);
   % B is ~1 meter North of A
   b     = a;
   b.lat = a.lat + 1/111111; % ~111111 meter per degree
   B     = nan(3,1);
-  [B(1), B(2), B(3)] = geodeticD2ecef(b.lat,b.lon,b.elev,WGS84.ellipsoid);
+  [B(1), B(2), B(3)] = geodeticD2ecef(b.lat, b.lon, b.elev, WGS84.ellipsoid);
   north_unit_vec = (B-A);
   north_unit_vec = north_unit_vec./norm(north_unit_vec);
   
@@ -144,6 +152,9 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   param.gps = rec;
   clear along_track dx a A b B north_unit_vec traj_ecef rec
   
+  % Overwrite this to records file
+  records = merge_structs(records, param.gps);
+  
 else
   
   %% For Reference flightline
@@ -159,7 +170,7 @@ else
   
 end
 
-fprintf('Flightline -- Done (%s)\n',  datestr(now));
+fprintf('(%s) Flightline \t-- Done\n',  datestr(now));
 
 %% Target(s) location
 
@@ -185,7 +196,7 @@ end
 
 [param.target.x, param.target.y, param.target.z] = geodeticD2ecef(param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid);
 
-fprintf('Target -- Done (%s)\n',  datestr(now));
+fprintf('(%s) Target \t\t-- Done\n',  datestr(now));
 
 %% Signal
 
@@ -228,7 +239,7 @@ param.load.imgs = param.sim.imgs;
 
 param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 
-fprintf('Waveforms -- Done (%s)\n',  datestr(now));
+fprintf('(%s) Waveforms \t-- Done\n',  datestr(now));
 
 %% Closing
 

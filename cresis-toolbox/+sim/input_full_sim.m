@@ -1,7 +1,14 @@
-try hm; end;
+% Script sim.input_full_sim
+%
+% Generates simulated data from an extracted flightline
+% Save simulated raw_data, params, records, frames 
+%
+% Authors: John Paden, Hara Madhav Talasila
+%
+% See also sim.flightline_extract, run_load_data (example 7)
 
 param=[];
-data = [];
+raw_data = [];
 frames = [];
 records = [];
 
@@ -56,7 +63,7 @@ if ~exec_good;
   fprintf('flightline_extract executed incompletely\n'); 
   return; 
 else
-  fprintf('Flightline extracted (%s)\n',  datestr(now));
+  fprintf('(%s) Flightline extracted\n',  datestr(now));
   fprintf('=====================================================================\n');
 end
 
@@ -64,9 +71,9 @@ clear exec_good;
 
 %% Simulator
 
-c = physical_constants('c');
+[c, WGS84] = physical_constants('c', 'WGS84');
 debug_plot_en  = 0;
-data = [];
+raw_data = [];
 
 Nx = length(param.gps.elev); % rec_len
 wfs = param.radar.wfs;
@@ -87,6 +94,10 @@ for img = 1:length(param.sim.imgs)
       'tx_weights', param.radar.wfs(wf).tx_weights, 'lever_arm_fh', param.radar.lever_arm_fh);
     [gps,lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
     
+    [gps.x, gps.y, gps.z] = geodeticD2ecef(gps.lat, gps.lon, gps.elev, WGS84.ellipsoid);
+    param.traj = gps;
+    
+    
     time_raw    = wfs(wf).time_raw;
     Tpd         = wfs(wf).Tpd;
     f0          = wfs(wf).f0;
@@ -96,7 +107,7 @@ for img = 1:length(param.sim.imgs)
     fs          = param.radar.fs;
     
     % point target for now
-    range = sqrt( (param.gps.x - param.target.x).^2 + (param.gps.y - param.target.y).^2 + (param.gps.z - param.target.z).^2 );
+    range = sqrt( (param.traj.x - param.target.x).^2 + (param.traj.y - param.target.y).^2 + (param.traj.z - param.target.z).^2 );
     twtt = 2*range/c;
     
     Nt = wfs(wf).Nt_raw;
@@ -105,15 +116,17 @@ for img = 1:length(param.sim.imgs)
       
       td    = twtt(rec);
       fb    = chirp_rate*td;
-      time  = time_raw - td;
+      time  = time_raw - td; % ################
       
       if strcmpi(radar_type,'deramp') % deramp
         
-        data{wf,adc}(:,rec) = tukeywin_cont(time/Tpd-0.5,rx_tukey) .* cos(2*pi*f0*td + pi*chirp_rate*(2*time_raw*td - td^2)); % Nt x Nrx;
+        raw_data{wf,adc}(:,rec) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
+          .* cos(2*pi*f0*td + pi*chirp_rate*(2*time_raw*td - td^2)); % Nt x Nrx;
         
       else % pulsed
         
-        data{img}(:,rec,wf_adc) = tukeywin_cont(time/Tpd-0.5,rx_tukey) * 0.5 .* exp(-1i*2*pi*f0*td + 1i*pi*chirp_rate*time.^2); % Nt x Nrx;
+        raw_data{img}(:,rec,wf_adc) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
+          * 0.5 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
         
       end
       
@@ -160,7 +173,6 @@ for img = 1:length(param.sim.imgs)
   for wf_adc = 1:size(param.sim.imgs{img},1)
     wf = param.sim.imgs{img}(wf_adc,1);
     adc = param.sim.imgs{img}(wf_adc,2);
-    raw_data = data;
     param.sim.out_fn_raw_data = fullfile(param.sim.out_fn_dir_raw_data, ...
       sprintf('data_wfs_%02d_adc_%02d.mat',wf,adc) );
     fprintf('Saving raw_data %s (%s)\n', param.sim.out_fn_raw_data, datestr(now));
@@ -184,55 +196,67 @@ else
   fprintf('=====================================================================\n');
 end;
 
-%% PLOTS
+%% FIGURES (work best for single target case)
 
-fig_h = figure(123);clf(123);
-subplot(221)
-% try
-imagesc(1:Nx,param.radar.wfs(1).time/1e-6,lp(data{1}));
-% catch
-%   imagesc(1:Nx,param.radar.wfs(1).time/1e-6,lp(data));
-% end
-title(param.sim.season_name,'Interpreter', 'none');
-% hold on;
-% plot(param.target.elev*2/3e8/1e-6,'x','LineWidth',2);
-xlabel('rlines');
-ylabel('fast-time, us');
-subplot(222)
-try
-  plot(param.radar.wfs(1).time/1e-6,lp(data{1,1}(:,ceil(Nx/2))));
-catch
-  %   plot(param.radar.wfs(1).time/1e-6,lp(data(:,ceil(Nx/2))));
+wf = 1;
+t_ref = param.radar.wfs(wf).time_raw;
+raw_data = raw_data{1};
+tmp = 20*log10(abs(raw_data)) ;
+y = 1:Nx;
+
+call_sign = 'Simulated Data';
+
+for compressing_this=1 %continue;
+  
+  fig_title = sprintf('%s_%s',mfilename, call_sign);
+  fig_h = figure('Name',fig_title);
+  
+  subplot(121);
+  imagesc(y, t_ref/1e-6, tmp-max(tmp(:)) ,[-30,0] );
+  cb = colorbar; cb.Label.String = 'Relative Power, dB';
+  grid on; hold on; axis tight;
+  plot(y, twtt/1e-6, '--', 'Color', 'g');
+  [td_closest, idx_closest] = min(twtt);
+  plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+  xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+  title('PhaseHistory Magnitude');
+  
+  subplot(122);
+  imagesc(y, t_ref/1e-6, angle(raw_data) );
+  cb = colorbar; cb.Label.String = 'Radians';
+  grid on; hold on; axis tight;
+  plot(y, twtt/1e-6, '--', 'Color', 'g');
+  xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+  title('PhaseHistory Phase');
+  
+  try
+    sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+  end
+  set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+  set(fig_h, 'Position', get(0, 'Screensize'));
+  %   print(gcf, '-dpng', fig_title, '-r300');
+  
+  % Frequency check
+  fig_title = 'Frequency check';
+  fig_h = figure('Name', fig_title);
+  hold on;
+  
+  f0    = param.radar.wfs(wf).f0;
+  f1    = param.radar.wfs(wf).f1;
+  fs    = param.radar.fs;
+  IF_nz = [0:3];
+  IF_cutoffs = [0 : 0.5 : 2]' * fs ; % Hz
+  
+  for idx = 1:length(IF_cutoffs)-1
+    rectangle('Position',[IF_cutoffs(idx)/1e6 0 fs/2e6 1.5],'EdgeColor','k');
+  end
+  rectangle('Position',[f0/1e6 0 (f1-f0)/1e6 1],'EdgeColor','r','FaceColor', 'g');
+  xticks( round(sort( [IF_cutoffs; f0; f1] ./1e6 ),2) );
+  yticks([1 1.5]);
+  grid on; axis tight;
+  ylim([0 2]);
+
+  xlabel('Frequency, MHz'); ylabel('Frequency bands');
+  title('4 Nyquist zones and passband');
+
 end
-xlabel('fast-time, us');
-ylabel('center rline');
-title(param.sim.day_seg,'Interpreter', 'none');
-axis tight;
-subplot(223)
-plot(1:Nx,range,'x');
-xlabel('rlines');
-ylabel('range, m');
-axis tight;
-subplot(224)
-plot(1:Nx,twtt/1e-6,'x');
-xlabel('rlines');
-ylabel('twtt, us');
-axis tight;
-
-% figure(369);
-% plot(1:Nx,twtt/1e-6);
-% xlabel('rlines');
-% ylabel('twtt, us');
-% axis tight;
-
-% fig_title = sprintf('%s %s',param.sim.season_name, param.sim.day_seg);
-% print(fig_h, '-dpng', fig_title, '-r300');
-% saveas(fig_h,fig_title);
-
-% figure(124);clf(124);
-% imagesc(1:Nx,param.radar.wfs.time/1e-6,lp(data_test{1,1}));
-% hold on;
-% plot(param.target.elev*2/3e8/1e-6,'x','LineWidth',2);
-% xlabel('rlines');
-% ylabel('fast-time, us');
-
