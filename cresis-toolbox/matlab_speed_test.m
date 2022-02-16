@@ -4,6 +4,18 @@ if 1
   fprintf('date_time\t%s\n', datestr(now,'yyyymmdd_HHMMSS'));
   A = ver('Matlab');
   fprintf('version\t%s\n', A.Release);
+  if ~isempty(which('detect_os'))
+    [OS, OSVersion] = detect_os;
+    fprintf('OS\t%s\t%s\n', OS, mat2str_generic(OSVersion));
+  else
+    if ispc
+      fprintf('OS\t%s\t%s\n', 'Windows', '');
+    elseif isunix
+      fprintf('OS\t%s\t%s\n', 'Linux', '');
+    elseif ismac
+      fprintf('OS\t%s\t%s\n', 'Mac', '');
+    end
+  end
   
   %% FFT speed test
   start_time = tic;
