@@ -124,7 +124,7 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   B     = nan(3,1);
   [B(1), B(2), B(3)] = geodeticD2ecef(b.lat, b.lon, b.elev, WGS84.ellipsoid);
   north_unit_vec = (B-A);
-  north_unit_vec = north_unit_vec./norm(north_unit_vec);
+  north_unit_vec = north_unit_vec./norm(north_unit_vec); % vecnorm
   
   % Crete Northward way-points
   traj_ecef = bsxfun(@plus, A, bsxfun(@times, north_unit_vec, dx * (0:rec_len-1)) );
@@ -140,20 +140,49 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   rec.heading   = zeros(1,rec_len); % North
   rec.gps_time  = records.gps_time;
   
-  if 0 % check records vs rec
+  if 1
+    % check records vs rec
     figure;
     plot(records.lon, records.lat, 'x');
     hold on;
     plot(rec.lon, rec.lat, 'o');
     xlabel('Longitude'); ylabel('Latitude');
     grid on; legend({'records','rec'});
+    
+    % check 3d plot
+    figure;
+    plot3(rec.x, rec.y, rec.z); hold on;
+    grid on;
+    
+    % check northward unit vector
+    figure;
+    traj_ecef_diff = diff(traj_ecef,[],2); % Point2Point vectors
+    traj_ecef_diff = traj_ecef_diff ./vecnorm(traj_ecef_diff); % P2P unit vectors
+    test_unit_vec   = traj_ecef_diff - north_unit_vec;
+    imagesc(test_unit_vec); colorbar;
+    title('error should be reasonable (1e-10)');
+    yticks([1, 2, 3]);
+    yticklabels({'x', 'y', 'z'});
+    ylabel('p2p vs north unitvector error');
+    
+  end
+  
+  % ENU
+  if 0
+    P = [rec.x(1); rec.y(1); rec.z(1)];
+    P = traj_ecef(:,1);
+    % https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_ECEF_to_ENU
+    % if subscript(r) is origin or center of earth (ECEF)
+    Rot_Mat_ECEF2ENU = [0 1 0; 0 0 1; 1 0 0];
+    P_enu = Rot_Mat_ECEF2ENU * P;
   end
   
   param.gps = rec;
-  clear along_track dx a A b B north_unit_vec traj_ecef rec
   
   % Overwrite this to records file
   records = merge_structs(records, param.gps);
+  
+  clear along_track dx a A b B north_unit_vec traj_ecef rec
   
 else
   
@@ -181,21 +210,76 @@ if ~isfield(param.sim,'target') || ~isfield(param.sim.target,'type') ...
   param.target.type = 'point'; % 'surface' %'layer'
 end
 
+% For simple target position method:
+%
+% 1. Compute along-track vector (geodetic_to_along_track)
+%
+% 2. Find ECEF of trajectory
+%
+% 3. For each point in the trajectory, find the XYZ unit vectors in the
+% flight coordinate system.
+%
+% 4. Note that for each target, we have defined x,y,z position which is in flight
+% coordinate system.
+%
+% 5. For each target, find the closest in along-track trajectory position
+% to that target. [~,idx] = min(abs(target.x - traj.x));
+%
+% 6. Use XYZ FCS of this closest trajectory position to place the target.
+% Convert target's coordinates to ECEF.
+
+% Simulator:
+% Operate in ECEF coordinates and just cycle through each target and each
+% position computing ranges using Pythagorean's theorem
+
 switch param.target.type
   case 'point'
-    mid_idx = ceil(rec_len/2);
-    param.target.lat  = param.gps.lat(mid_idx);
-    param.target.lon  = param.gps.lon(mid_idx);
-    if isnan(param.gps.elev(mid_idx))
-      param.target.elev = 0;
-    elseif 1 % temporary override
-      param.target.elev = 0;
+    mid_idx = floor(rec_len/2);
+    
+    if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
+      % M is midpoint of northward track and MT is an orthogonal through 
+      % the target (T). T is 500 meters from M towards earth's center
+      M = [param.gps.x(mid_idx); param.gps.y(mid_idx); param.gps.z(mid_idx)];
+      M_unit = M./norm(M);
+      T = M - M_unit * 500;
+      param.target.x  = T(1);
+      param.target.y  = T(2);
+      param.target.z  = T(3);
+      [param.target.lat, param.target.lon, param.target.elev] = ecef2geodeticD(param.target.x, param.target.y, param.target.z, WGS84.ellipsoid);
+      
+    else
+      % target is at same lat lon as mid_idx but at zero elevation
+      param.target.lat  = param.gps.lat(mid_idx);
+      param.target.lon  = param.gps.lon(mid_idx);
+      if isnan(param.gps.elev(mid_idx))
+        param.target.elev = 0;
+      elseif 1 % temporary override
+        param.target.elev = 0;
+      end
+      [param.target.x, param.target.y, param.target.z] = geodeticD2ecef(param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid);
+      
     end
-    clear mid_idx
+    
 end
 
-[param.target.x, param.target.y, param.target.z] = geodeticD2ecef(param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid);
+if 1
+  % check 3d plot
+  figure;
+  plot3(param.gps.x, param.gps.y, param.gps.z, '.-'); hold on;
+  grid on;
+  plot3(param.target.x, param.target.y, param.target.z,'o');
+  
+  T = [param.target.x; param.target.y; param.target.z];
+  M = [param.gps.x(mid_idx); param.gps.y(mid_idx); param.gps.z(mid_idx)];
+  A = [param.gps.x(1); param.gps.y(1); param.gps.z(1)];
+  B = [param.gps.x(end); param.gps.y(end); param.gps.z(end)];
+  pos_vect(T, A );
+  pos_vect(T, M );
+  pos_vect(T, B );
+  
+end
 
+clear mid_idx T M A B M_unit
 fprintf('(%s) Target \t\t-- Done\n',  datestr(now));
 
 %% Signal

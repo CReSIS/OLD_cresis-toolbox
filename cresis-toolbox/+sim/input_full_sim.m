@@ -1,20 +1,21 @@
 % Script sim.input_full_sim
 %
 % Generates simulated data from an extracted flightline
-% Save simulated raw_data, params, records, frames 
+% Save simulated raw_data, params, records, frames
 %
 % Authors: John Paden, Hara Madhav Talasila
 %
 % See also sim.flightline_extract, run_load_data (example 7)
 
 param=[];
-raw_data = [];
+data = [];
 frames = [];
 records = [];
 
 %% INPUTS to sim.flightline_extract.m
 % =========================================================================
 % REQUIRED
+% Images to sim/load  {[ones([7 1]),(1:7).'], [2*ones([7 1]),(1:7).'], [3*ones([7 1]),(1:7).']};
 
 % param.sim.radar_name  = 'snow';
 % param.sim.season_name = '2012_Greenland_P3'; %'2018_Antarctica_DC8';
@@ -36,12 +37,17 @@ records = [];
 % param.sim.season_name = '2018_Antarctica_DC8';
 % param.sim.day_seg     = '20181010_01';
 
-param.sim.radar_name  = 'rds';
-param.sim.season_name = '2014_Greenland_P3';
-param.sim.day_seg     = '20140325_05';
+% param.sim.radar_name  = 'rds';
+% param.sim.season_name = '2014_Greenland_P3';
+% param.sim.day_seg     = '20140325_05';
+% param.sim.imgs        = {[1 5]};
+% param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 
-% Images to sim/load
-param.sim.imgs = {[1 2]};% ,[2,1] {[ones([7 1]),(1:7).'], [2*ones([7 1]),(1:7).'], [3*ones([7 1]),(1:7).']};
+param.sim.radar_name  = 'rds';
+param.sim.season_name = '2018_Greenland_P3';
+param.sim.day_seg     = '20180429_01';
+param.sim.imgs        = {[1 9]};
+param.sim.imgs        = {[1 9], [3 9], [5 9]};
 
 % =========================================================================
 % Optional
@@ -59,9 +65,9 @@ fprintf('=====================================================================\n
 
 [ param, frames, records, exec_good ] = sim.flightline_extract(param);
 
-if ~exec_good; 
-  fprintf('flightline_extract executed incompletely\n'); 
-  return; 
+if ~exec_good;
+  fprintf('flightline_extract executed incompletely\n');
+  return;
 else
   fprintf('(%s) Flightline extracted\n',  datestr(now));
   fprintf('=====================================================================\n');
@@ -80,7 +86,7 @@ wfs = param.radar.wfs;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.sim.radar_name);
 
-% Calculate data matrix cell(s)
+% Calculate raw_data matrix cell(s)
 for img = 1:length(param.sim.imgs)
   for wf_adc = 1:size(param.sim.imgs{img},1)
     
@@ -95,8 +101,11 @@ for img = 1:length(param.sim.imgs)
     [gps,lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
     
     [gps.x, gps.y, gps.z] = geodeticD2ecef(gps.lat, gps.lon, gps.elev, WGS84.ellipsoid);
-    param.traj = gps;
     
+    if 0
+      % override sim trajectory with gps from extracted flightline
+      gps = param.gps;
+    end
     
     time_raw    = wfs(wf).time_raw;
     Tpd         = wfs(wf).Tpd;
@@ -107,7 +116,7 @@ for img = 1:length(param.sim.imgs)
     fs          = param.radar.fs;
     
     % point target for now
-    range = sqrt( (param.traj.x - param.target.x).^2 + (param.traj.y - param.target.y).^2 + (param.traj.z - param.target.z).^2 );
+    range = sqrt( (gps.x - param.target.x).^2 + (gps.y - param.target.y).^2 + (gps.z - param.target.z).^2 );
     twtt = 2*range/c;
     
     Nt = wfs(wf).Nt_raw;
@@ -132,12 +141,16 @@ for img = 1:length(param.sim.imgs)
       
     end %% for rec
     
+    param.traj{img,wf_adc}      = gps;
+    param.sim.range{img,wf_adc} = range;
+    param.sim.twtt{img,wf_adc}  = twtt;
+    
   end %% for wf_adc
 end %% for img
 
-param.sim.range = range;
-param.sim.twtt  = twtt;
 
+% records file version
+param.records.file.version_before_FullSim = param.records.file.version;
 param.records.file.version = 1000;
 
 %% Output_Files
@@ -169,17 +182,10 @@ param.sim.out_fn_dir_raw_data = fullfile(gRadar.ct_tmp_path,'sim3D', ...
   sprintf('%s',param.sim.radar_name), ...
   sprintf('%s',param.season_name), ...
   sprintf('%s',param.day_seg(1:8)) );
-for img = 1:length(param.sim.imgs)
-  for wf_adc = 1:size(param.sim.imgs{img},1)
-    wf = param.sim.imgs{img}(wf_adc,1);
-    adc = param.sim.imgs{img}(wf_adc,2);
-    param.sim.out_fn_raw_data = fullfile(param.sim.out_fn_dir_raw_data, ...
-      sprintf('data_wfs_%02d_adc_%02d.mat',wf,adc) );
-    fprintf('Saving raw_data %s (%s)\n', param.sim.out_fn_raw_data, datestr(now));
-    if ~false_save_en; ct_save(param.sim.out_fn_raw_data, 'raw_data');end; 
-    % 'hdr', 'dt', 't0', 'IF_filter_idx', 'NCO', 'DDC_filter_idx', 'dec'
-  end
-end
+param.sim.out_fn_raw_data = fullfile(param.sim.out_fn_dir_raw_data, ...
+  sprintf('data_%s.mat', param.day_seg) );
+fprintf('Saving raw_data %s (%s)\n', param.sim.out_fn_raw_data, datestr(now));
+if ~false_save_en; ct_save(param.sim.out_fn_raw_data, 'raw_data');end;
 
 % PARAM
 param.sim.out_fn_dir_param = param.sim.out_fn_dir_raw_data;
@@ -189,74 +195,84 @@ param.fn = param.sim.out_fn_param;
 fprintf('Saving param %s (%s)\n', param.sim.out_fn_param, datestr(now));
 if ~false_save_en; ct_save(param.fn, 'param');end;
 
-if false_save_en; 
+if false_save_en
   fprintf('===== FALSE_SAVE_EN: none of the above files are written =====\n');
 else
   fprintf('Files saved (%s)\n',  datestr(now));
   fprintf('=====================================================================\n');
-end;
+end
 
 %% FIGURES (work best for single target case)
 
-wf = 1;
-t_ref = param.radar.wfs(wf).time_raw;
-raw_data = raw_data{1};
-tmp = 20*log10(abs(raw_data)) ;
-y = 1:Nx;
-
-call_sign = 'Simulated Data';
-
 for compressing_this=1 %continue;
   
-  fig_title = sprintf('%s_%s',mfilename, call_sign);
-  fig_h = figure('Name',fig_title);
+  for img = 1:length(param.sim.imgs)
+    for wf_adc = 1:size(param.sim.imgs{img},1)
+      wf = param.sim.imgs{img}(wf_adc,1);
+      adc = param.sim.imgs{img}(wf_adc,2);
+      
+      data = raw_data{img}(:,:,wf_adc);
+      
+      t_ref = param.radar.wfs(wf).time_raw;
+      tmp = 20*log10(abs(data)) ;
+      x = 1:Nx;
+      [td_closest, idx_closest] = min(twtt);
+      
+      call_sign = sprintf('Simulated Data wfs_%02d_adc_%02d',wf,adc);
+      fig_title = sprintf('%s_%s',mfilename, call_sign);
+      fig_h = figure('Name',fig_title);
+      
+      subplot(121);
+      imagesc(x, t_ref/1e-6, tmp-max(tmp(:)) ,[-30,0] );
+      cb = colorbar; cb.Label.String = 'Relative Power, dB';
+      grid on; hold on; axis tight;
+      plot(x, twtt/1e-6, '--', 'Color', 'g');
+      plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+      xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+      title('PhaseHistory Magnitude');
+      
+      subplot(122);
+      imagesc(x, t_ref/1e-6, angle(data) );
+      cb = colorbar; cb.Label.String = 'Radians';
+      grid on; hold on; axis tight;
+      plot(x, twtt/1e-6, '--', 'Color', 'g');
+      plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+      xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+      title('PhaseHistory Phase');
+      
+      try
+        sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+      end
+      set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+      set(fig_h, 'Position', get(0, 'Screensize'));
+      %   print(gcf, '-dpng', fig_title, '-r300');
+      
+      if 0
+        % Frequency check
+        fig_title = sprintf('Frequency check wfs_%02d_adc_%02d',wf,adc);
+        fig_h = figure('Name', fig_title);
+        hold on;
+        
+        f0    = param.radar.wfs(wf).f0;
+        f1    = param.radar.wfs(wf).f1;
+        fs    = param.radar.fs;
+        IF_nz = [0:3];
+        IF_cutoffs = [0 : 0.5 : 2]' * fs ; % Hz
+        
+        for idx = 1:length(IF_cutoffs)-1
+          rectangle('Position',[IF_cutoffs(idx)/1e6 0 fs/2e6 1.5],'EdgeColor','k');
+        end
+        rectangle('Position',[f0/1e6 0 (f1-f0)/1e6 1],'EdgeColor','r','FaceColor', 'g');
+        xticks( round(sort( [IF_cutoffs; f0; f1] ./1e6 ),2) );
+        yticks([1 1.5]);
+        grid on; axis tight;
+        ylim([0 2]);
+        
+        xlabel('Frequency, MHz'); ylabel('Frequency bands');
+        title('4 Nyquist zones and passband');
+      end
+      
+    end %% for wf_adc
+  end %% for img
   
-  subplot(121);
-  imagesc(y, t_ref/1e-6, tmp-max(tmp(:)) ,[-30,0] );
-  cb = colorbar; cb.Label.String = 'Relative Power, dB';
-  grid on; hold on; axis tight;
-  plot(y, twtt/1e-6, '--', 'Color', 'g');
-  [td_closest, idx_closest] = min(twtt);
-  plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
-  xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
-  title('PhaseHistory Magnitude');
-  
-  subplot(122);
-  imagesc(y, t_ref/1e-6, angle(raw_data) );
-  cb = colorbar; cb.Label.String = 'Radians';
-  grid on; hold on; axis tight;
-  plot(y, twtt/1e-6, '--', 'Color', 'g');
-  xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
-  title('PhaseHistory Phase');
-  
-  try
-    sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
-  end
-  set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
-  set(fig_h, 'Position', get(0, 'Screensize'));
-  %   print(gcf, '-dpng', fig_title, '-r300');
-  
-  % Frequency check
-  fig_title = 'Frequency check';
-  fig_h = figure('Name', fig_title);
-  hold on;
-  
-  f0    = param.radar.wfs(wf).f0;
-  f1    = param.radar.wfs(wf).f1;
-  fs    = param.radar.fs;
-  IF_nz = [0:3];
-  IF_cutoffs = [0 : 0.5 : 2]' * fs ; % Hz
-  
-  for idx = 1:length(IF_cutoffs)-1
-    rectangle('Position',[IF_cutoffs(idx)/1e6 0 fs/2e6 1.5],'EdgeColor','k');
-  end
-  rectangle('Position',[f0/1e6 0 (f1-f0)/1e6 1],'EdgeColor','r','FaceColor', 'g');
-  xticks( round(sort( [IF_cutoffs; f0; f1] ./1e6 ),2) );
-  yticks([1 1.5]);
-  grid on; axis tight;
-  ylim([0 2]);
-
-  xlabel('Frequency, MHz'); ylabel('Frequency bands');
-  title('4 Nyquist zones and passband');
-
 end
