@@ -20,10 +20,10 @@ else
 end
 
 if obj.map_toolbox
-  wms_maps = {'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic  Map';'arctic:Blank Stereographic Map';'antarctic:Blank Stereographic Map';'arctic:Google Map';'antarctic:Google Map';'Connect to OPS'};
+  wms_maps = {'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic Map';'arctic:Blank Stereographic Map';'antarctic:Blank Stereographic Map';'arctic:Google Map';'antarctic:Google Map';'Connect to OPS'};
 else
   %error('Mapping toolbox is not available. Mapping toolbox must be available for projections and/or WMS service. Blank Geodetic Maps not supported yet.')
-  wms_maps = {'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic  Map'};
+  wms_maps = {'arctic:Blank Geodetic Map';'antarctic:Blank Geodetic Map'};
 end
 
 %% Load tracks files
