@@ -1,4 +1,4 @@
-function [param, records, frames, exec_good] = flightline_extract(param)
+function [param, records, records2, frames, exec_good] = flightline_extract(param)
 
 % [param, frames, records, exec_good] = flightline_extract(param)
 %
@@ -119,7 +119,18 @@ end
 
 param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 
-clear wf wfs;
+figure;
+for wf = 1:length(wfs)
+  tmp = param.radar.wfs(wf).time_raw;
+  plot(tmp/1e-6, wf*ones(size(tmp)), '.'); hold on;
+end
+grid on;
+xlabel('raw time, us');
+ylabel('wf');
+yticks(1:length(wfs));
+ylim([0 length(wfs)+1]);
+
+clear wf wfs tmp;
 
 fprintf('(%s) Waveforms \t\t-- Done\n',  datestr(now));
 
@@ -150,37 +161,11 @@ clear Ntx Nrx idx;
 
 fprintf('(%s) Signal \t\t\t-- Done\n',  datestr(now));
 
-%% Create records for phase center trajectory
 
-% Create reference trajectory (rx_path == 0, tx_weights = [])
-% tx_weights = []  or param.radar.wfs(wf).tx_weights doesn not matter
-% because they will be set to ones if rx_path == 0;
-trajectory_param = struct('gps_source',records.gps_source, ...
-  'season_name',param.season_name,'radar_name',param.radar_name, ...
-  'rx_path', 0, ...
-  'tx_weights', [], ... 
-  'lever_arm_fh', param.radar.lever_arm_fh);
-[records2, lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
-
-if 1
-  figure; 
-  plot(records.lon, records.lat, 'x'); hold on;
-  plot(records2.lon, records2.lat, 'o'); 
-end
-
-records = records2; % overwrite gps_antenna with radar phase center
-records.lever_arm_val = lever_arm_val;
-
-clear trajectory_param records2
-
-fprintf('(%s) Reference Trajectory \t-- Done\n',  datestr(now));
 
 %%  Trajectory and Attitude (GPS+IMU)
 % Creates param.gps
 % Overwrites records traj with a northward traj if enabled
-
-param.gps = [];
-param.gps_source = records.gps_source; % can be used for leverarm
 
 if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   
@@ -256,9 +241,11 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
     P_enu = Rot_Mat_ECEF2ENU * P;
   end
   
+  param.gps = [];
   param.gps = rec;
-  
-  % Overwrite this to records file
+%   param.gps_source = records.gps_source; % can be used for leverarm
+
+  % Overwrite simulated rajectory to records file
   records = merge_structs(records, param.gps);
   
   clear along_track dx a A b B north_unit_vec traj_ecef rec
@@ -282,6 +269,30 @@ else
   
 end
 
+%% Create phase center trajectory
+
+% Create reference trajectory (rx_path == 0, tx_weights = [])
+% tx_weights = []  or param.radar.wfs(wf).tx_weights doesn not matter
+% because they will be set to ones if rx_path == 0;
+trajectory_param = struct('gps_source',records.gps_source, ...
+  'season_name',param.season_name,'radar_name',param.radar_name, ...
+  'rx_path', 0, ...
+  'tx_weights', [], ... 
+  'lever_arm_fh', param.radar.lever_arm_fh);
+[records2, lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
+
+[records2.x, records2.y, records2.z] = geodeticD2ecef(records2.lat, records2.lon, records2.elev, WGS84.ellipsoid);
+
+if 1
+  figure; 
+  plot(records.lon, records.lat, 'x'); hold on;
+  plot(records2.lon, records2.lat, 'o'); 
+end
+
+clear trajectory_param
+
+fprintf('(%s) Reference Trajectory \t-- Done\n',  datestr(now));
+
 %% Target(s) location
 
 % using records structure for ease. Same geodetic, ecef as param.gps
@@ -303,7 +314,7 @@ switch param.target.type
       % 1. Compute along-track vector (geodetic_to_along_track)
       %
       [altra.along_track, altra.lat, altra.lon, altra.elev] = ...
-        geodetic_to_along_track(records.lat, records.lon, records.elev);
+        geodetic_to_along_track(records2.lat, records2.lon, records2.elev);
       
       % 2. Find ECEF of trajectory
       %
@@ -369,8 +380,8 @@ switch param.target.type
       % y = horizontal offset from C (zero is directly under flightpath)
       % z = vertical offset from C (height)
       
-      A = [records.x(1); records.y(1); records.z(1)];
-      B = [records.x(end); records.y(end); records.z(end)];
+      A = [records2.x(1); records2.y(1); records2.z(1)];
+      B = [records2.x(end); records2.y(end); records2.z(end)];
       Lsar = norm(B-A);
       
       % support user input
@@ -395,12 +406,12 @@ switch param.target.type
       if 1
         % check 3d plot for FCS XYZ
         figure;
-        plot3(records.x, records.y, records.z, '.'); hold on;
-        plot3(records.x(1), records.y(1), records.z(1), 'x','Color','r');
+        plot3(records2.x, records2.y, records2.z, '.'); hold on;
+        plot3(records2.x(1), records2.y(1), records2.z(1), 'x','Color','r');
         grid on;
-        unit_vect([records.x; records.y; records.z], X, 50);
-        unit_vect([records.x; records.y; records.z], Y, 50);
-        unit_vect([records.x; records.y; records.z], Z, 50);
+        unit_vect([records2.x; records2.y; records2.z], X, 50);
+        unit_vect([records2.x; records2.y; records2.z], Y, 50);
+        unit_vect([records2.x; records2.y; records2.z], Z, 50);
         pos_vect(T, A );
         pos_vect(T, C );
         pos_vect(T, B );
@@ -409,7 +420,7 @@ switch param.target.type
         zlabel('z ECEF');
         
         figure;
-        test_range = vecnorm([records.x; records.y; records.z]-T);
+        test_range = vecnorm([records2.x; records2.y; records2.z]-T);
         plot(test_range,'x');
       end
       
@@ -419,7 +430,7 @@ switch param.target.type
       % M is midpoint of northward track and MT is towards the target (T).
       % T is 500 meters from M towards earth's center
       mid_idx = floor(rec_len/2);
-      M = [records.x(mid_idx); records.y(mid_idx); records.z(mid_idx)];
+      M = [records2.x(mid_idx); records2.y(mid_idx); records2.z(mid_idx)];
       M_unit = M./norm(M);
       T = M - M_unit * 500;
       param.target.x  = T(1);
@@ -430,13 +441,13 @@ switch param.target.type
       if 1
         % check 3d plot
         figure;
-        plot3(records.x, records.y, records.z, '.-'); hold on;
+        plot3(records2.x, records2.y, records2.z, '.-'); hold on;
         plot3(param.target.x, param.target.y, param.target.z,'o');
         grid on;
         T = [param.target.x; param.target.y; param.target.z];
-        M = [records.x(mid_idx); records.y(mid_idx); records.z(mid_idx)];
-        A = [records.x(1); records.y(1); records.z(1)];
-        B = [records.x(end); records.y(end); records.z(end)];
+        M = [records2.x(mid_idx); records2.y(mid_idx); records2.z(mid_idx)];
+        A = [records2.x(1); records2.y(1); records2.z(1)];
+        B = [records2.x(end); records2.y(end); records2.z(end)];
         pos_vect(T, A );
         pos_vect(T, M );
         pos_vect(T, B );
@@ -446,9 +457,9 @@ switch param.target.type
     elseif 0
       % target is at same lat lon as mid_idx but at zero elevation
       mid_idx = floor(rec_len/2);
-      param.target.lat  = records.lat(mid_idx);
-      param.target.lon  = records.lon(mid_idx);
-      if isnan(records.elev(mid_idx))
+      param.target.lat  = records2.lat(mid_idx);
+      param.target.lon  = records2.lon(mid_idx);
+      if isnan(records2.elev(mid_idx))
         param.target.elev = 0;
       elseif 1 % temporary override
         param.target.elev = 0;

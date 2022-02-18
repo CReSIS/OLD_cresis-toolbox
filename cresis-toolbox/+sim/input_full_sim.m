@@ -7,7 +7,7 @@
 %
 % See also sim.flightline_extract, run_load_data (example 7)
 
-try; hara; end;
+try; hm; end;
 
 param=[];
 data = [];
@@ -72,7 +72,7 @@ fprintf('=====================================================================\n
 
 %% flightline_extract
 
-[ param, records, frames, exec_good ] = sim.flightline_extract(param);
+[ param, records, records2, frames, exec_good ] = sim.flightline_extract(param);
 
 if ~exec_good;
   fprintf('flightline_extract executed incompletely\n');
@@ -97,7 +97,7 @@ wfs = param.radar.wfs;
 
 if 1
   figure(369);
-  plot(param.gps.lon, param.gps.lat, '.', 'LineWidth', 2);
+  plot(records2.lon, records2.lat, '.', 'LineWidth', 2);
   hold on; grid on;
   xlabel('Longitude, Degrees');
   ylabel('Latitude, Degrees');
@@ -124,13 +124,20 @@ for img = 1:length(param.sim.imgs)
     
     [gps.x, gps.y, gps.z] = geodeticD2ecef(gps.lat, gps.lon, gps.elev, WGS84.ellipsoid);
     
-    if 0
+    if 1
       sum(abs(records.x - gps.x))
       sum(abs(records.y - gps.y))
       sum(abs(records.z - gps.z))
       sum(abs(records.lat - gps.lat))
       sum(abs(records.lon - gps.lon))
       sum(abs(records.elev - gps.elev))
+      
+      sum(abs(records2.x - gps.x))
+      sum(abs(records2.y - gps.y))
+      sum(abs(records2.z - gps.z))
+      sum(abs(records2.lat - gps.lat))
+      sum(abs(records2.lon - gps.lon))
+      sum(abs(records2.elev - gps.elev))
     end
     
     if 0
