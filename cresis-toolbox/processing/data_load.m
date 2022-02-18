@@ -141,8 +141,8 @@ for state_idx = 1:length(states)
   elseif param.records.file.version == 1000
     % for the full simulator
     raw_data_file = load(param.sim.out_fn_raw_data); % has raw_data and param
-    wf = 1;
-    img = 1;
+%     wf = 1;
+%     img = 1;
     data = raw_data_file.raw_data;
 %     hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
 %     hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};

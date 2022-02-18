@@ -7,6 +7,8 @@
 %
 % See also sim.flightline_extract, run_load_data (example 7)
 
+try; hara; end;
+
 param=[];
 data = [];
 frames = [];
@@ -44,10 +46,17 @@ records = [];
 % param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 
 param.sim.radar_name  = 'rds';
-param.sim.season_name = '2018_Greenland_P3';
-param.sim.day_seg     = '20180429_01';
-param.sim.imgs        = {[1 9]};
-param.sim.imgs        = {[1 9], [3 9], [5 9]};
+param.sim.season_name = '2014_Greenland_P3';
+param.sim.day_seg     = '20140410_01';
+% param.sim.frame_idx   = 57;
+param.sim.imgs        = {[1 5]};
+param.sim.imgs        = {[1 5], [2 5] , [3 5]};
+
+% param.sim.radar_name  = 'rds';
+% param.sim.season_name = '2018_Greenland_P3';
+% param.sim.day_seg     = '20180429_01';
+% param.sim.imgs        = {[1 9]};
+% param.sim.imgs        = {[1 9], [3 9], [5 9]};
 
 % =========================================================================
 % Optional
@@ -63,13 +72,13 @@ fprintf('=====================================================================\n
 
 %% flightline_extract
 
-[ param, frames, records, exec_good ] = sim.flightline_extract(param);
+[ param, records, frames, exec_good ] = sim.flightline_extract(param);
 
 if ~exec_good;
   fprintf('flightline_extract executed incompletely\n');
   return;
 else
-  fprintf('(%s) Flightline extracted\n',  datestr(now));
+  fprintf('(%s) FullSim Flightline EXTRACTED\n',  datestr(now));
   fprintf('=====================================================================\n');
 end
 
@@ -86,6 +95,18 @@ wfs = param.radar.wfs;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.sim.radar_name);
 
+if 1
+  figure(369);
+  plot(param.gps.lon, param.gps.lat, '.', 'LineWidth', 2);
+  hold on; grid on;
+  xlabel('Longitude, Degrees');
+  ylabel('Latitude, Degrees');
+  leg_str= {'Reference'};
+  legend(leg_str);
+  title('Trajectories');
+  line_markers = ['x', 'd', 'h'];
+end
+
 % Calculate raw_data matrix cell(s)
 for img = 1:length(param.sim.imgs)
   for wf_adc = 1:size(param.sim.imgs{img},1)
@@ -97,14 +118,31 @@ for img = 1:length(param.sim.imgs)
     trajectory_param = struct('gps_source',records.gps_source, ...
       'season_name',param.season_name,'radar_name',param.radar_name, ...
       'rx_path', param.radar.wfs(wf).rx_paths(adc), ...
-      'tx_weights', param.radar.wfs(wf).tx_weights, 'lever_arm_fh', param.radar.lever_arm_fh);
+      'tx_weights', param.radar.wfs(wf).tx_weights, ...
+      'lever_arm_fh', param.radar.lever_arm_fh);
     [gps,lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
     
     [gps.x, gps.y, gps.z] = geodeticD2ecef(gps.lat, gps.lon, gps.elev, WGS84.ellipsoid);
     
     if 0
+      sum(abs(records.x - gps.x))
+      sum(abs(records.y - gps.y))
+      sum(abs(records.z - gps.z))
+      sum(abs(records.lat - gps.lat))
+      sum(abs(records.lon - gps.lon))
+      sum(abs(records.elev - gps.elev))
+    end
+    
+    if 0
       % override sim trajectory with gps from extracted flightline
       gps = param.gps;
+    end
+    
+    if 1
+      figure(369);
+      plot(gps.lon, gps.lat, line_markers(wf), 'LineWidth', img);
+      leg_str = [leg_str {sprintf('wfs %02d adc %02d',wf,adc)}];
+      legend(leg_str);
     end
     
     time_raw    = wfs(wf).time_raw;
@@ -147,11 +185,6 @@ for img = 1:length(param.sim.imgs)
     
   end %% for wf_adc
 end %% for img
-
-
-% records file version
-param.records.file.version_before_FullSim = param.records.file.version;
-param.records.file.version = 1000;
 
 %% Output_Files
 

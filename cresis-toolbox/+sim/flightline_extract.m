@@ -1,4 +1,4 @@
-function [param, frames, records, exec_good] = flightline_extract(param)
+function [param, records, frames, exec_good] = flightline_extract(param)
 
 % [param, frames, records, exec_good] = flightline_extract(param)
 %
@@ -36,31 +36,25 @@ if ~found_day_seg; fprintf('day_seg not found\n'); return; end;
 
 clear params found_day_seg param_idx;
 
-%% Load frames
-
-try
-  fprintf('(%s) Loading frames',  datestr(now));
-  frames = frames_load( param );
-catch ME
-  fprintf('\t-- Failed (%s)\n',  datestr(now)); return;
-end
-fprintf('\t-- Loaded (%s)\n',  datestr(now));
-
-% override default variables in frames
-frames.frame_idxs = 1;
-frames.nyquist_zone = NaN; %1
-frames.proc_mode = 0;
-frames.quality = 1;
-
-%% Load records
+%% Load records, frames
 
 try
   fprintf('(%s) Loading records', datestr(now));
   records = records_load( param );
 catch ME
-  fprintf('\t-- Failed (%s)\n',  datestr(now)); return;
+  fprintf('\t\t-- Failed (%s)\n',  datestr(now)); return;
 end
-fprintf('\t-- Loaded (%s)\n',  datestr(now));
+fprintf('\t\t-- Loaded (%s)\n',  datestr(now));
+
+try
+  fprintf('(%s) Loading frames',  datestr(now));
+  frames = frames_load( param );
+catch ME
+  fprintf('\t\t-- Failed (%s)\n',  datestr(now)); return;
+end
+fprintf('\t\t-- Loaded (%s)\n',  datestr(now));
+
+%% Setup records, frames
 
 % assign start and stop indices of records to use in simulation
 if isfield(param.sim,'start_gps_time') && isfield(param.sim,'stop_gps_time')
@@ -93,13 +87,97 @@ if rec_len~=length(records.gps_time)
   return;
 end
 
-% To use while loading simulated data
-param.load_data.recs = [start_idx stop_idx];
-param.load_data.imgs = param.sim.imgs;
+% override default variables in frames
+frames.frame_idxs = 1;
+frames.nyquist_zone = NaN; %1
+frames.proc_mode = 0;
+frames.quality = 1;
 
-clear start_idx stop_idx;
+fprintf('(%s) Setup records, frames \t-- Done\n',  datestr(now));
+
+%% Waveforms
+
+param.load.imgs = param.sim.imgs;
+[wfs,~] = data_load_wfs(param,records);
+
+% overrides for each waveform
+for wf = 1:length(wfs)
+  
+  if 0 % Set deramp flag
+    [output_dir,radar_type,radar_name] = ct_output_dir(param.sim.radar_name);
+    if strcmpi(radar_type,'deramp')
+      wfs.deramp(wfs) = 1; % Default 0
+    elseif strcmpi(radar_type,'pulsed')
+      wfs.deramp(wf) = 0; % Default 0
+    end
+  end
+  
+  % Assign param.radar.wfs(wf).tx_weights = ones to use in simulator
+  wfs(wf).tx_weights = ones(size(wfs(wf).tx_weights));
+  
+end
+
+param.radar.wfs = merge_structs(param.radar.wfs,wfs);
+
+clear wf wfs;
+
+fprintf('(%s) Waveforms \t\t-- Done\n',  datestr(now));
+
+%% Signal % not used for now
+
+param.signal = [];
+
+Ntx = 1;
+for idx = 1:Ntx
+  param.signal.tx(Ntx).gain           = 1; %[]; % Nt x N_elev x N_azi
+  param.signal.tx(Ntx).freq           = 1; %[]; % Nt x 1
+  param.signal.tx(Ntx).elev_angle     = 1; %[]; % N_elev x 1
+  param.signal.tx(Ntx).azimuth_angle  = 1; %[]; % N_azi x 1
+end
+
+Nrx = 1;
+for idx = 1:Nrx
+  param.signal.rx(Nrx).gain           = 1; %[]; % Nt x N_elev x N_azi
+  param.signal.rx(Nrx).freq           = 1; %[]; % Nt x 1
+  param.signal.rx(Nrx).elev_angle     = 1; %[]; % N_elev x 1
+  param.signal.rx(Nrx).azimuth_angle  = 1; %[]; % N_azi x 1
+end
+
+param.sim.Ntx = Ntx;
+param.sim.Nrx = Nrx;
+
+clear Ntx Nrx idx;
+
+fprintf('(%s) Signal \t\t\t-- Done\n',  datestr(now));
+
+%% Create records for phase center trajectory
+
+% Create reference trajectory (rx_path == 0, tx_weights = [])
+% tx_weights = []  or param.radar.wfs(wf).tx_weights doesn not matter
+% because they will be set to ones if rx_path == 0;
+trajectory_param = struct('gps_source',records.gps_source, ...
+  'season_name',param.season_name,'radar_name',param.radar_name, ...
+  'rx_path', 0, ...
+  'tx_weights', [], ... 
+  'lever_arm_fh', param.radar.lever_arm_fh);
+[records2, lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
+
+if 1
+  figure; 
+  plot(records.lon, records.lat, 'x'); hold on;
+  plot(records2.lon, records2.lat, 'o'); 
+end
+
+records = records2; % overwrite gps_antenna with radar phase center
+records.lever_arm_val = lever_arm_val;
+
+clear trajectory_param records2
+
+fprintf('(%s) Reference Trajectory \t-- Done\n',  datestr(now));
 
 %%  Trajectory and Attitude (GPS+IMU)
+% Creates param.gps
+% Overwrites records traj with a northward traj if enabled
 
 param.gps = [];
 param.gps_source = records.gps_source; % can be used for leverarm
@@ -165,6 +243,7 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
     yticklabels({'x', 'y', 'z'});
     ylabel('p2p vs north unitvector error');
     
+    clear traj_ecef_diff test_unit_vec
   end
   
   % ENU
@@ -184,6 +263,8 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   
   clear along_track dx a A b B north_unit_vec traj_ecef rec
   
+  fprintf('(%s) Flightline Northward \t-- Done\n',  datestr(now));
+  
 else
   
   %% For Reference flightline
@@ -197,11 +278,13 @@ else
   param.gps.gps_time  = records.gps_time;
   [param.gps.x, param.gps.y, param.gps.z] = geodeticD2ecef(param.gps.lat, param.gps.lon, param.gps.elev, WGS84.ellipsoid);
   
+  fprintf('(%s) Flightline RefTraj \t-- Done\n',  datestr(now));
+  
 end
 
-fprintf('(%s) Flightline \t-- Done\n',  datestr(now));
-
 %% Target(s) location
+
+% using records structure for ease. Same geodetic, ecef as param.gps
 
 param.target = [];
 
@@ -210,36 +293,133 @@ if ~isfield(param.sim,'target') || ~isfield(param.sim.target,'type') ...
   param.target.type = 'point'; % 'surface' %'layer'
 end
 
-% For simple target position method:
-%
-% 1. Compute along-track vector (geodetic_to_along_track)
-%
-% 2. Find ECEF of trajectory
-%
-% 3. For each point in the trajectory, find the XYZ unit vectors in the
-% flight coordinate system.
-%
-% 4. Note that for each target, we have defined x,y,z position which is in flight
-% coordinate system.
-%
-% 5. For each target, find the closest in along-track trajectory position
-% to that target. [~,idx] = min(abs(target.x - traj.x));
-%
-% 6. Use XYZ FCS of this closest trajectory position to place the target.
-% Convert target's coordinates to ECEF.
-
-% Simulator:
-% Operate in ECEF coordinates and just cycle through each target and each
-% position computing ranges using Pythagorean's theorem
-
 switch param.target.type
   case 'point'
-    mid_idx = floor(rec_len/2);
-    
+        
     if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
-      % M is midpoint of northward track and MT is an orthogonal through 
-      % the target (T). T is 500 meters from M towards earth's center
-      M = [param.gps.x(mid_idx); param.gps.y(mid_idx); param.gps.z(mid_idx)];
+      % For simple target position method:
+      %
+      altra = [];
+      % 1. Compute along-track vector (geodetic_to_along_track)
+      %
+      [altra.along_track, altra.lat, altra.lon, altra.elev] = ...
+        geodetic_to_along_track(records.lat, records.lon, records.elev);
+      
+      % 2. Find ECEF of trajectory
+      %
+      [altra.x, altra.y, altra.z] = geodeticD2ecef(altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
+      
+      % 3. For each point in the trajectory, find the XYZ unit vectors in the
+      % flight coordinate system.
+      %
+      % X, Y, Z are 3x(rec_len) matrices of (rec_len) unit vectors
+      X = [];
+      U = [];
+      N = [];
+      Z = [];
+      Y = [];
+      
+      % X is along track
+      X = [diff(altra.x); diff(altra.y); diff(altra.z)]; % 3x(rec_len-1)
+      X = X./vecnorm(X);
+      % extend last unit vector to the last point % 3x(rec_len)
+      X = [X, X(:,end)]; 
+      
+      
+      % U is up vector
+      [U(1,:), U(2,:), U(3,:)] = enu2ecef( 0, 0, 1, altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
+      U = U - [altra.x; altra.y; altra.z];
+      U = U./vecnorm(U); 
+      
+      % N is normal to the plane with X, U and Zenith
+      N = cross(X, U, 1);
+      N = N./vecnorm(N);
+      
+      % Z is Zenith
+      Z = cross(N, X);
+      Z = Z./vecnorm(Z);
+      
+      % Y is left ==> X Y Z are right-handed coord system
+      Y = cross(Z, X);
+      figure; plot(vecnorm(Y),'x'); hold on;
+      Y = Y./vecnorm(Y);
+      plot(vecnorm(Y),'o');
+      
+      altra.X = X;
+      altra.Y = Y;
+      altra.Z = Z;
+        
+      % 4. Note that for each target, we have defined x,y,z position which is in flight
+      % coordinate system.
+      %
+      % 5. For each target, find the closest in along-track trajectory position
+      % to that target. [~,idx] = min(abs(target.x - traj.x));
+      %
+      % 6. Use XYZ FCS of this closest trajectory position to place the target.
+      % Convert target's coordinates to ECEF.
+      
+      % Simulator:
+      % Operate in ECEF coordinates and just cycle through each target and each
+      % position computing ranges using Pythagorean's theorem
+      
+      % A to B is the flightline
+      % C is a point on flightline closest to Target T
+      % T is defined using x,y,z wrt A
+      % x = alongtrack distance from A to C
+      % y = horizontal offset from C (zero is directly under flightpath)
+      % z = vertical offset from C (height)
+      
+      A = [records.x(1); records.y(1); records.z(1)];
+      B = [records.x(end); records.y(end); records.z(end)];
+      Lsar = norm(B-A);
+      
+      % support user input
+      x = Lsar/2;  % for any distance <Lsar
+      y = 0; % positive(left to flighline) negative(left to flightline)
+      z = -500; % positive(above flightline) negative(below flightline)
+      z = -base2dec('KU', 36); % about 5 us TWTT for 750 meter
+      
+      idx_C = find(altra.along_track >= x, 1);
+      C = [altra.x(idx_C); altra.y(idx_C); altra.z(idx_C)];
+      
+      T = C ...
+        + 0 * altra.X(:,idx_C) ... % zero x offset from C
+        + y * altra.Y(:,idx_C) ... % y offset from C
+        + z * altra.Z(:,idx_C) ; % z offset from C
+
+      param.target.x  = T(1);
+      param.target.y  = T(2);
+      param.target.z  = T(3);
+      [param.target.lat, param.target.lon, param.target.elev] = ecef2geodeticD(param.target.x, param.target.y, param.target.z, WGS84.ellipsoid);
+            
+      if 1
+        % check 3d plot for FCS XYZ
+        figure;
+        plot3(records.x, records.y, records.z, '.'); hold on;
+        plot3(records.x(1), records.y(1), records.z(1), 'x','Color','r');
+        grid on;
+        unit_vect([records.x; records.y; records.z], X, 50);
+        unit_vect([records.x; records.y; records.z], Y, 50);
+        unit_vect([records.x; records.y; records.z], Z, 50);
+        pos_vect(T, A );
+        pos_vect(T, C );
+        pos_vect(T, B );
+        xlabel('x ECEF');
+        ylabel('y ECEF');
+        zlabel('z ECEF');
+        
+        figure;
+        test_range = vecnorm([records.x; records.y; records.z]-T);
+        plot(test_range,'x');
+      end
+      
+      clear altra X U N Z Y A B Lsar x y z idx_C C T
+      
+    elseif 0
+      % M is midpoint of northward track and MT is towards the target (T).
+      % T is 500 meters from M towards earth's center
+      mid_idx = floor(rec_len/2);
+      M = [records.x(mid_idx); records.y(mid_idx); records.z(mid_idx)];
       M_unit = M./norm(M);
       T = M - M_unit * 500;
       param.target.x  = T(1);
@@ -247,87 +427,52 @@ switch param.target.type
       param.target.z  = T(3);
       [param.target.lat, param.target.lon, param.target.elev] = ecef2geodeticD(param.target.x, param.target.y, param.target.z, WGS84.ellipsoid);
       
-    else
+      if 1
+        % check 3d plot
+        figure;
+        plot3(records.x, records.y, records.z, '.-'); hold on;
+        plot3(param.target.x, param.target.y, param.target.z,'o');
+        grid on;
+        T = [param.target.x; param.target.y; param.target.z];
+        M = [records.x(mid_idx); records.y(mid_idx); records.z(mid_idx)];
+        A = [records.x(1); records.y(1); records.z(1)];
+        B = [records.x(end); records.y(end); records.z(end)];
+        pos_vect(T, A );
+        pos_vect(T, M );
+        pos_vect(T, B );
+      end
+      clear mid_idx T M A B M_unit
+      
+    elseif 0
       % target is at same lat lon as mid_idx but at zero elevation
-      param.target.lat  = param.gps.lat(mid_idx);
-      param.target.lon  = param.gps.lon(mid_idx);
-      if isnan(param.gps.elev(mid_idx))
+      mid_idx = floor(rec_len/2);
+      param.target.lat  = records.lat(mid_idx);
+      param.target.lon  = records.lon(mid_idx);
+      if isnan(records.elev(mid_idx))
         param.target.elev = 0;
       elseif 1 % temporary override
         param.target.elev = 0;
       end
       [param.target.x, param.target.y, param.target.z] = geodeticD2ecef(param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid);
+      clear mid_idx
       
     end
     
-end
+end % switch param.target.type
 
-if 1
-  % check 3d plot
-  figure;
-  plot3(param.gps.x, param.gps.y, param.gps.z, '.-'); hold on;
-  grid on;
-  plot3(param.target.x, param.target.y, param.target.z,'o');
-  
-  T = [param.target.x; param.target.y; param.target.z];
-  M = [param.gps.x(mid_idx); param.gps.y(mid_idx); param.gps.z(mid_idx)];
-  A = [param.gps.x(1); param.gps.y(1); param.gps.z(1)];
-  B = [param.gps.x(end); param.gps.y(end); param.gps.z(end)];
-  pos_vect(T, A );
-  pos_vect(T, M );
-  pos_vect(T, B );
-  
-end
-
-clear mid_idx T M A B M_unit
-fprintf('(%s) Target \t\t-- Done\n',  datestr(now));
-
-%% Signal
-
-param.signal = [];
-
-Ntx = 1;
-for idx = 1:Ntx
-  param.signal.tx(Ntx).gain           = 1; %[]; % Nt x N_elev x N_azi
-  param.signal.tx(Ntx).freq           = 1; %[]; % Nt x 1
-  param.signal.tx(Ntx).elev_angle     = 1; %[]; % N_elev x 1
-  param.signal.tx(Ntx).azimuth_angle  = 1; %[]; % N_azi x 1
-end
-
-Nrx = 1;
-for idx = 1:Nrx
-  param.signal.rx(Nrx).gain           = 1; %[]; % Nt x N_elev x N_azi
-  param.signal.rx(Nrx).freq           = 1; %[]; % Nt x 1
-  param.signal.rx(Nrx).elev_angle     = 1; %[]; % N_elev x 1
-  param.signal.rx(Nrx).azimuth_angle  = 1; %[]; % N_azi x 1
-end
-
-param.sim.Ntx = Ntx;
-param.sim.Nrx = Nrx;
-
-%% Waveforms
-
-param.load.imgs = param.sim.imgs;
-[wfs,~] = data_load_wfs(param,records);
-
-% overrides for each waveform
-% for wf = 1:length(wfs)
-%   [output_dir,radar_type,radar_name] = ct_output_dir(param.sim.radar_name);
-%   if strcmpi(radar_type,'deramp')
-%     wfs.deramp(wfs) = 1; % Default 0
-%   elseif strcmpi(radar_type,'pulsed')
-%     wfs.deramp(wf) = 0; % Default 0
-%   end
-%   wfs(wf).Nt_raw = wfs(wf).Nt;
-% end
-
-param.radar.wfs = merge_structs(param.radar.wfs,wfs);
-
-fprintf('(%s) Waveforms \t-- Done\n',  datestr(now));
+fprintf('(%s) Target \t\t\t-- Done\n',  datestr(now));
 
 %% Closing
 
 param.season_name = sprintf('%ssim',param.season_name);
+
+% records file version
+param.records.file.version_before_FullSim = param.records.file.version;
+param.records.file.version = 1000;
+
+% To use while loading simulated data
+param.load_data.recs = [start_idx stop_idx];
+param.load_data.imgs = param.sim.imgs;
 
 exec_good = 1;
 

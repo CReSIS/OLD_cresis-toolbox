@@ -20,7 +20,7 @@ function [along_track,lat_filt,lon_filt,elev_filt] = geodetic_to_along_track(lat
 % See also: geodetic_to_along_track.m, get_equal_alongtrack_spacing_idxs.m
 
 % Load WGS84 ellipsoid
-physical_constants;
+physical_constants('WGS84');
 
 if isstruct(lat) && isfield(lat,'Latitude')
   elev = lat.Elevation;
@@ -63,7 +63,6 @@ else
   %   even points during averaging
   decim_idxs = get_equal_alongtrack_spacing_idxs( ...
     struct('lat',lat,'lon',lon,'elev',elev),spacing/2);
-  physical_constants;
   [ecef(1,:),ecef(2,:),ecef(3,:)] = geodetic2ecef(lat/180*pi,lon/180*pi,elev,WGS84.ellipsoid);
   if length(decim_idxs) < 2
     decim_idxs = [1 length(lat)];

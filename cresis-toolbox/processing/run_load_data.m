@@ -698,7 +698,7 @@ elseif run_example == 7
   %% Setup loading parameters for example 7
   %  - Examines data from the full simulator (sim.input_full_sim)
   % =======================================================================
-  try; hara; end;
+  try; hm; end;
   
   [c, WGS84] = physical_constants('c', 'WGS84');
   
@@ -706,7 +706,8 @@ elseif run_example == 7
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
-  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
+%   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
   
   load(param_fn);
   
@@ -717,6 +718,7 @@ elseif run_example == 7
   [hdr, loaded_data] = load_data(param);
   
   %% FullSim Span through all images
+  
   for img = 1:length(param.load_data.imgs) % support only one for now
     for wf_adc = 1:size(param.load_data.imgs{img},1)
       wf = param.load_data.imgs{img}(wf_adc,1);
@@ -788,6 +790,28 @@ elseif run_example == 7
       %% FullSim data checks
       
       data    = loaded_data{img}(:,:,wf_adc);
+      
+      if 1
+        
+        oversample = 32;
+        NOS = oversample * size(data,1);
+        % To reduce steps in time(data max in each rline) vs expected TWTT
+        data    = interpft(data, NOS, 1); % Oversample in fast-time
+        
+        figure; plot(time, ones(size(time)),'s'); hold on
+        dt    = ( time(2)-time(1) ) /oversample;
+        time  = time(1) + dt * (0:NOS-1)';
+        plot(time, ones(size(time)),'.-');
+        
+        figure; plot(freq, ones(size(freq)),'s'); hold on
+        df    = ( freq(2)-freq(1) ) /oversample;
+        freq  = freq(1) + ... % or hdr.param_load_data.radar.wfs(wf).fc
+          ifftshift( -floor(NOS/2)*df : df : floor((NOS-1)/2)*df ).';
+        freqs = fftshift(freq);
+        plot(freq, ones(size(freq)),'.-');
+        
+      end
+      
       tmp     = 20*log10(abs(data));
       fdata   = fftshift(fft(data));
       ftmp    = 20*log10(abs(fdata));
@@ -871,45 +895,17 @@ elseif run_example == 7
         
       end % for compressing_this % FullSim Freq Domain
       
-      for compressing_this = 1  %continue; % FullSim TD FD windows
-        
-        call_sign = sprintf('FullSim TD FD windows wfs_%02d_adc_%02d',wf,adc);
-        fig_title = sprintf('%s_%s',mfilename, call_sign);
-        fig_h = figure('Name',fig_title);
-        subplot(121);
-        plot(time/1e-6, tmp(:,twtt_min_idx) ); hold on;
-        plot(twtt_min/1e-6, tmp(tmp_max_idx(twtt_min_idx), twtt_min_idx) , 's','LineWidth',2);
-        xlabel('Fast-time, us');
-        ylabel('Magnitude, dB');
-        legend('rline','expected');
-        grid on;
-        title('At closest range');
-        subplot(122);
-        plot(freqs/1e6, ftmp(:,twtt_min_idx) ); hold on;
-        xlabel('Freq, MHz');
-        ylabel('Magnitude, dB');
-        grid on;
-        title('At closest range');
-        try
-          sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
-        end
-        set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
-        set(fig_h, 'Position', get(0, 'Screensize'));
-        %     print(gcf, '-dpng', fig_title, '-r300');
-        
-      end % for compressing_this % FullSim TD FD windows
-      
       for compressing_this = 1  %continue; % FullSim Time Phase checks
         
         call_sign = sprintf('FullSim Time Phase checks wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
         fig_h = figure('Name',fig_title);
         subplot(311);
-        plot(x, twtt/1e-6); hold on;
-        plot(x, time(data_max_idx)/1e-6)
+        plot(x, time(data_max_idx)/1e-6, '.-'); hold on;
+        plot(x, twtt/1e-6, 's')
         xlabel('Along-track position, rlines');
         ylabel('Fast-time, us');
-        legend('TWTT', 'fast-time(max(data))');
+        legend('fast-time(max(data))', 'TWTT');
         grid on; axis tight;
         title('Time checks');
         subplot(312);
@@ -937,33 +933,76 @@ elseif run_example == 7
         
       end % for compressing_this % FullSim Time Phase checks
       
-      %%
-      %   keyboard;
-      %   close all;
-      %   %% qlook
-      %
-      %   param_override = [];
-      %   param_override.qlook.imgs = param.load_data.imgs;
-      %   param_override.qlook.img_comb = [];
-      %
-      %   dbstop if error;
-      %   param_override.cluster.type = 'debug';
-      %
-      %   global gRadar;
-      %   if exist('param_override','var')
-      %     param_override = merge_structs(gRadar,param_override);
-      %   else
-      %     param_override = gRadar;
-      %   end
-      %
-      %   % Process the segment
-      %   ctrl_chain = {};
-      %   ctrl_chain{end+1} = qlook(param,param_override);
-      %   cluster_print_chain(ctrl_chain);
-      %   [chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
+      for compressing_this = 1  %continue; % FullSim TD FD windows
+        
+        if ~exist('fig_h_windows', 'var')
+          call_sign = sprintf('FullSim TD FD windows');
+          fig_title = sprintf('%s_%s',mfilename, call_sign);
+          fig_h_windows = figure('Name',fig_title);
+          leg_str_TD = {};
+          leg_str_FD = {};
+        else
+          figure( fig_h_windows );
+        end
+        subplot(121);
+        plot(time/1e-6, tmp(:,twtt_min_idx) ); hold on;
+        plot(twtt_min/1e-6, tmp(tmp_max_idx(twtt_min_idx), twtt_min_idx) , 's','LineWidth',2);
+        xlabel('Fast-time, us');
+        ylabel('Magnitude, dB');
+        leg_str_TD = [leg_str_TD {sprintf('[%02d %02d] rline',wf,adc) sprintf('[%02d %02d] expected',wf,adc)} ];
+        legend(leg_str_TD);
+        grid on;
+        title('At closest range');
+        subplot(122);
+        plot(freqs/1e6, ftmp(:,twtt_min_idx) ); hold on;
+        xlabel('Freq, MHz');
+        ylabel('Magnitude, dB');
+        leg_str_FD = [leg_str_FD {sprintf('[%02d %02d]',wf,adc)} ];
+        legend(leg_str_FD);
+        grid on;
+        title('At closest range');
+        try
+          sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+        end
+        set(findobj(fig_h_windows,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+        set(fig_h_windows, 'Position', get(0, 'Screensize'));
+        %     print(gcf, '-dpng', fig_title, '-r300');
+        
+      end % for compressing_this % FullSim TD FD windows
       
     end % for wf_adc
   end % for img
+  
+  %%
+  
+  return;
+  keyboard;
+  close all;
+  %% qlook
+  
+  param_override = [];
+  param_override.qlook.imgs = param.load_data.imgs;
+  param_override.qlook.img_comb = [];
+  
+  dbstop if error;
+  param_override.cluster.type = 'debug';
+  
+  global gRadar;
+  if exist('param_override','var')
+    param_override = merge_structs(gRadar,param_override);
+  else
+    param_override = gRadar;
+  end
+  
+  % Process the segment
+  ctrl_chain = {};
+  ctrl_chain{end+1} = qlook(param,param_override);
+  cluster_print_chain(ctrl_chain);
+  [chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
+  
+  
+  figure;
+  imagesc(Latitude, Time/1e-6, lp(Data)); colorbar
   
 end %% for run_example
 
