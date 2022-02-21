@@ -697,8 +697,9 @@ elseif run_example == 7
   % =======================================================================
   %% Setup loading parameters for example 7
   %  - Examines data from the full simulator (sim.input_full_sim)
+  %  - Plots work best for point targets
   % =======================================================================
-  try; hm; end;
+  try; hara; end;
   
   [c, WGS84] = physical_constants('c', 'WGS84');
   
@@ -728,11 +729,6 @@ elseif run_example == 7
       
       % Expected values for traj, range, twtt, time axis
       traj = hdr.records{img};
-      
-      if 0
-        % override trajectory with gps from param
-        traj = param.traj{img,wf_adc};
-      end
       
       [traj.x, traj.y, traj.z] = geodeticD2ecef(traj.lat,traj.lon,traj.elev, WGS84.ellipsoid);
       
@@ -798,17 +794,17 @@ elseif run_example == 7
         % To reduce steps in time(data max in each rline) vs expected TWTT
         data    = interpft(data, NOS, 1); % Oversample in fast-time
         
-        figure; plot(time, ones(size(time)),'s'); hold on
+        % figure; plot(time, ones(size(time)),'s'); hold on
         dt    = ( time(2)-time(1) ) /oversample;
         time  = time(1) + dt * (0:NOS-1)';
-        plot(time, ones(size(time)),'.-');
+        % plot(time, ones(size(time)),'.-');
         
-        figure; plot(freq, ones(size(freq)),'s'); hold on
+        % figure; plot(freq, ones(size(freq)),'s'); hold on
         df    = ( freq(2)-freq(1) ) /oversample;
         freq  = freq(1) + ... % or hdr.param_load_data.radar.wfs(wf).fc
           ifftshift( -floor(NOS/2)*df : df : floor((NOS-1)/2)*df ).';
         freqs = fftshift(freq);
-        plot(freq, ones(size(freq)),'.-');
+        % plot(freq, ones(size(freq)),'.-');
         
       end
       
@@ -972,37 +968,6 @@ elseif run_example == 7
       
     end % for wf_adc
   end % for img
-  
-  %%
-  
-  return;
-  keyboard;
-  close all;
-  %% qlook
-  
-  param_override = [];
-  param_override.qlook.imgs = param.load_data.imgs;
-  param_override.qlook.img_comb = [];
-  
-  dbstop if error;
-  param_override.cluster.type = 'debug';
-  
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-  % Process the segment
-  ctrl_chain = {};
-  ctrl_chain{end+1} = qlook(param,param_override);
-  cluster_print_chain(ctrl_chain);
-  [chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
-  
-  
-  figure;
-  imagesc(Latitude, Time/1e-6, lp(Data)); colorbar
-  
+
 end %% for run_example
 

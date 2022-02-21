@@ -63,7 +63,7 @@ param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 
 % Northward flight instead of actual trajectory
 param.sim.north_along_track_en = 1;
-
+param.sim.debug_plots_en = 0;
 % =========================================================================
 
 fprintf('=====================================================================\n');
@@ -95,7 +95,7 @@ wfs = param.radar.wfs;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.sim.radar_name);
 
-if 1
+if param.sim.debug_plots_en
   figure(369);
   plot(records2.lon, records2.lat, '.', 'LineWidth', 2);
   hold on; grid on;
@@ -124,28 +124,7 @@ for img = 1:length(param.sim.imgs)
     
     [gps.x, gps.y, gps.z] = geodeticD2ecef(gps.lat, gps.lon, gps.elev, WGS84.ellipsoid);
     
-    if 1
-      sum(abs(records.x - gps.x))
-      sum(abs(records.y - gps.y))
-      sum(abs(records.z - gps.z))
-      sum(abs(records.lat - gps.lat))
-      sum(abs(records.lon - gps.lon))
-      sum(abs(records.elev - gps.elev))
-      
-      sum(abs(records2.x - gps.x))
-      sum(abs(records2.y - gps.y))
-      sum(abs(records2.z - gps.z))
-      sum(abs(records2.lat - gps.lat))
-      sum(abs(records2.lon - gps.lon))
-      sum(abs(records2.elev - gps.elev))
-    end
-    
-    if 0
-      % override sim trajectory with gps from extracted flightline
-      gps = param.gps;
-    end
-    
-    if 1
+    if param.sim.debug_plots_en
       figure(369);
       plot(gps.lon, gps.lat, line_markers(wf), 'LineWidth', img);
       leg_str = [leg_str {sprintf('wfs %02d adc %02d',wf,adc)}];
@@ -204,9 +183,7 @@ param.sim.out_fn_dir_records = fullfile(gRadar.support_path,'records', ...
 param.sim.out_fn_records = fullfile(param.sim.out_fn_dir_records, ...
   sprintf('records_%s.mat',param.day_seg) );
 fprintf('Saving records %s (%s)\n', param.sim.out_fn_records, datestr(now));
-if ~false_save_en; ct_save(param.sim.out_fn_records,'-struct', 'records');
-  if 0; fprintf('Creating auxiliary records files %s (%s)\n',param.sim.out_fn_records,datestr(now));
-    create_records_aux_files(param.sim.out_fn_records);end; end;
+if ~false_save_en; ct_save(param.sim.out_fn_records,'-struct', 'records'); end;
 
 % FRAMES
 param.sim.out_fn_dir_frames = fullfile(gRadar.support_path,'frames', ...
@@ -244,6 +221,12 @@ end
 
 %% FIGURES (work best for single target case)
 
+if strcmpi(param.target.type, 'point')
+  point_target = 0;
+else
+  point_target = 0;
+end
+
 for compressing_this=1 %continue;
   
   for img = 1:length(param.sim.imgs)
@@ -256,7 +239,9 @@ for compressing_this=1 %continue;
       t_ref = param.radar.wfs(wf).time_raw;
       tmp = 20*log10(abs(data)) ;
       x = 1:Nx;
-      [td_closest, idx_closest] = min(twtt);
+      if point_target
+        [td_closest, idx_closest] = min(twtt);
+      end
       
       call_sign = sprintf('Simulated Data wfs_%02d_adc_%02d',wf,adc);
       fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -266,8 +251,10 @@ for compressing_this=1 %continue;
       imagesc(x, t_ref/1e-6, tmp-max(tmp(:)) ,[-30,0] );
       cb = colorbar; cb.Label.String = 'Relative Power, dB';
       grid on; hold on; axis tight;
-      plot(x, twtt/1e-6, '--', 'Color', 'g');
-      plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+      if point_target
+        plot(x, twtt/1e-6, '--', 'Color', 'g');
+        plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+      end
       xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
       title('PhaseHistory Magnitude');
       
@@ -275,8 +262,10 @@ for compressing_this=1 %continue;
       imagesc(x, t_ref/1e-6, angle(data) );
       cb = colorbar; cb.Label.String = 'Radians';
       grid on; hold on; axis tight;
-      plot(x, twtt/1e-6, '--', 'Color', 'g');
-      plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+      if point_target
+        plot(x, twtt/1e-6, '--', 'Color', 'g');
+        plot(idx_closest, twtt(idx_closest)/1e-6, 's','LineWidth',2);
+      end
       xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
       title('PhaseHistory Phase');
       
@@ -287,7 +276,7 @@ for compressing_this=1 %continue;
       set(fig_h, 'Position', get(0, 'Screensize'));
       %   print(gcf, '-dpng', fig_title, '-r300');
       
-      if 0
+      if param.sim.debug_plots_en
         % Frequency check
         fig_title = sprintf('Frequency check wfs_%02d_adc_%02d',wf,adc);
         fig_h = figure('Name', fig_title);

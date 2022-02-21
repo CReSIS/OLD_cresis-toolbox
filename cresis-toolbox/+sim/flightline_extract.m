@@ -119,16 +119,18 @@ end
 
 param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 
-figure;
-for wf = 1:length(wfs)
-  tmp = param.radar.wfs(wf).time_raw;
-  plot(tmp/1e-6, wf*ones(size(tmp)), '.'); hold on;
+if param.sim.debug_plots_en
+  figure;
+  for wf = 1:length(wfs)
+    tmp = param.radar.wfs(wf).time_raw;
+    plot(tmp/1e-6, wf*ones(size(tmp)), '.'); hold on;
+  end
+  grid on;
+  xlabel('raw time, us');
+  ylabel('wf');
+  yticks(1:length(wfs));
+  ylim([0 length(wfs)+1]);
 end
-grid on;
-xlabel('raw time, us');
-ylabel('wf');
-yticks(1:length(wfs));
-ylim([0 length(wfs)+1]);
 
 clear wf wfs tmp;
 
@@ -160,8 +162,6 @@ param.sim.Nrx = Nrx;
 clear Ntx Nrx idx;
 
 fprintf('(%s) Signal \t\t\t-- Done\n',  datestr(now));
-
-
 
 %%  Trajectory and Attitude (GPS+IMU)
 % Creates param.gps
@@ -203,7 +203,7 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   rec.heading   = zeros(1,rec_len); % North
   rec.gps_time  = records.gps_time;
   
-  if 1
+  if param.sim.debug_plots_en
     % check records vs rec
     figure;
     plot(records.lon, records.lat, 'x');
@@ -231,19 +231,7 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
     clear traj_ecef_diff test_unit_vec
   end
   
-  % ENU
-  if 0
-    P = [rec.x(1); rec.y(1); rec.z(1)];
-    P = traj_ecef(:,1);
-    % https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_ECEF_to_ENU
-    % if subscript(r) is origin or center of earth (ECEF)
-    Rot_Mat_ECEF2ENU = [0 1 0; 0 0 1; 1 0 0];
-    P_enu = Rot_Mat_ECEF2ENU * P;
-  end
-  
-  param.gps = [];
   param.gps = rec;
-%   param.gps_source = records.gps_source; % can be used for leverarm
 
   % Overwrite simulated rajectory to records file
   records = merge_structs(records, param.gps);
@@ -283,7 +271,7 @@ trajectory_param = struct('gps_source',records.gps_source, ...
 
 [records2.x, records2.y, records2.z] = geodeticD2ecef(records2.lat, records2.lon, records2.elev, WGS84.ellipsoid);
 
-if 1
+if param.sim.debug_plots_en
   figure; 
   plot(records.lon, records.lat, 'x'); hold on;
   plot(records2.lon, records2.lat, 'o'); 
@@ -388,7 +376,8 @@ switch param.target.type
       x = Lsar/2;  % for any distance <Lsar
       y = 0; % positive(left to flighline) negative(left to flightline)
       z = -500; % positive(above flightline) negative(below flightline)
-      z = -base2dec('KU', 36); % about 5 us TWTT for 750 meter
+      z = -base2dec('KU', 36); % about  5 us TWTT for 750 meter
+      z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
       
       idx_C = find(altra.along_track >= x, 1);
       C = [altra.x(idx_C); altra.y(idx_C); altra.z(idx_C)];
@@ -403,7 +392,7 @@ switch param.target.type
       param.target.z  = T(3);
       [param.target.lat, param.target.lon, param.target.elev] = ecef2geodeticD(param.target.x, param.target.y, param.target.z, WGS84.ellipsoid);
             
-      if 1
+      if param.sim.debug_plots_en
         % check 3d plot for FCS XYZ
         figure;
         plot3(records2.x, records2.y, records2.z, '.'); hold on;
@@ -438,7 +427,7 @@ switch param.target.type
       param.target.z  = T(3);
       [param.target.lat, param.target.lon, param.target.elev] = ecef2geodeticD(param.target.x, param.target.y, param.target.z, WGS84.ellipsoid);
       
-      if 1
+      if param.sim.debug_plots_en
         % check 3d plot
         figure;
         plot3(records2.x, records2.y, records2.z, '.-'); hold on;
