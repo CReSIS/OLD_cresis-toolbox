@@ -1,11 +1,11 @@
-% script sim.run_sar
+% script sim.run_array
 %
-% Script for running sar.m on FullSim (usually just used for debugging).
+% Script for running array.m on FullSim(usually just used for debugging).
 %
 % Authors: John Paden, Hara Madhav Talasila
 %
-% See also: run_master.m, master.m, run_sar.m, sar.m, sar_task.m,
-%   sar_coord_task.m
+% See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
+% array_proc.m, array_task.m, array_combine_task.m
 
 try; hm; end;
 
@@ -24,18 +24,11 @@ load(param_fn);
 
 %  Overrides
 param_override = [];
-param_override.sar.imgs           = param.sim.imgs;
-param_override.sar.surf_filt_dist = 10; % default 3000m
-param_override.sar.chunk_len      = 100; % default 2500m
-param.sar.wf_adc_pair_task_group_method = 'board'; % default 'img'
-% default 'img' causes error  in DDC in data_pulse_compress because if the
-% simulation uses more than 1 image, then the second image in simulation
-% is loaded as img=1 while wf=2 which gives incorrect values for
-% wfs(wf).Nt_raw for data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc)
+param_override.array.imgs           = param.sim.imgs;
+% param_override.sar.surf_filt_dist = 10; % default 3000m
+param_override.array.chunk_len      = 100; % default 2500m
 
-param_override.sar.start_eps = 1; % for now
-% for later: follow John's email
-
+param_override.sar.imgs             = param.sim.imgs;
 
 % dbstop if error;
 % param_override.cluster.type = 'torque';
@@ -56,12 +49,12 @@ else
 end
 
 if 0 %% ##################################### RUN and then LOAD
-  %% Run SAR
+  %% Run ARRAY
   % =====================================================================
   
   % Process the segment
   ctrl_chain = {};
-  ctrl_chain{end+1} = sar(param,param_override);
+  ctrl_chain{end+1} = array(param,param_override);
   cluster_print_chain(ctrl_chain);
   [chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
   
@@ -70,59 +63,85 @@ if 0 %% ##################################### RUN and then LOAD
   ctrl_chain = cluster_run(ctrl_chain);
   
 else
-  %% Load SAR data
+  %% Load ARRAY data
   % =====================================================================
   
-  param.sar_load.imgs = param_override.sar.imgs;
+  if isfield(param.sim,'frame_idx')
+    frm = param.sim.frm;
+  else
+    frm = 1;
+  end
   
-  [data, hdr] = sar_load(param);
+  out_dir = ct_filename_out(param, 'standard');
   
-  call_sign = sprintf('FullSim SAR Data %s', param.day_seg);
-  fig_title = sprintf('%s_%s',mfilename, call_sign);
-  fig_h = figure('Name',fig_title);
+  relative_pow_en = 0; % #############################
+  YLim_min = 0;
+  YLim_max = 0;
+  h_axes = 0;
+  N_imgs = length(param_override.array.imgs); %length(param.sim.imgs);
   
-  relative_pow_en = 0;  % #############################
-  YLim_min = Inf;
-  YLim_max = -Inf;
-  P_min = Inf;
-  P_max = -Inf;
-  h_axes = [];
-  h_cb = [];
-  N_imgs = length(param.sar_load.imgs);
-  
-  for img = 1:N_imgs % support only one for now
-    for wf_adc = 1:size(param.load_data.imgs{img},1)
+  for idx = 1:N_imgs+1
+    img = idx-1;
+    
+    if img == 0 % Combined image
+      out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+      full = load(out_fn);
+      
+      YLim_min = min([YLim_min; full.Time], [], 'all');
+      YLim_max = max([YLim_max; full.Time], [], 'all');
+      x = 1:length(full.GPS_time);
+      tmp = 20*log10(abs(full.Data));
+      
+      call_sign = sprintf('FullSim Array Data %s', param.day_seg);
+      fig_title = sprintf('%s_%s',mfilename, call_sign);
+      fig_h = figure('Name',fig_title);
+      
+      h_axes(idx) = subplot(1, N_imgs+1, idx);
+      if relative_pow_en
+        tmp = tmp-max(tmp(:));
+        imagesc(x, full.Time/1e-6, tmp, [-30,0] );
+        cb = colorbar; cb.Label.String = 'Relative Power, dB';
+      else
+        imagesc(x, full.Time/1e-6, tmp);
+        cb = colorbar; cb.Label.String = 'Power, dB';
+      end
+      grid on; hold on; axis tight;
+      % plot(x, full.Surface/1e-6, 'x', 'Color', 'g');
+      xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+      title('Combined');
+      
+    else % individual images
+      wf_adc = 1;
       wf = param.load_data.imgs{img}(wf_adc,1);
       adc = param.load_data.imgs{img}(wf_adc,2);
       
-      YLim_min = min([YLim_min; hdr.wfs(wf).time], [], 'all');
-      YLim_max = max([YLim_max; hdr.wfs(wf).time], [], 'all');
-      x = 1:length(hdr.lat);
-      tmp = 20*log10(abs(data{img}));
+      out_fn = fullfile(out_dir, sprintf('Data_img_%02d_%s_%03d.mat', img, param.day_seg, frm));
+      indi{img} = load(out_fn);
       
-      h_axes(img) = subplot(1, N_imgs, img);
+      YLim_min = min([YLim_min; indi{img}.Time], [], 'all');
+      YLim_max = max([YLim_max; indi{img}.Time], [], 'all');
+      x = 1:length(indi{img}.GPS_time);
+      tmp = 20*log10(abs(indi{img}.Data));
+      
+      h_axes(idx) = subplot(1, N_imgs+1, idx);
       if relative_pow_en
         tmp = tmp-max(tmp(:));
-        imagesc(x, hdr.wfs(wf).time/1e-6, tmp, [-30,0] );
+        imagesc(x, indi{img}.Time/1e-6, tmp, [-30,0] );
         cb = colorbar; cb.Label.String = 'Relative Power, dB';
       else
-        imagesc(x, hdr.wfs(wf).time/1e-6, tmp);
+        imagesc(x, indi{img}.Time/1e-6, tmp);
         cb = colorbar; cb.Label.String = 'Power, dB';
-        P_min = min( [P_min; min(tmp(:))] );
-        P_max = max( [P_max; max(tmp(:))] );
       end
       grid on; hold on; axis tight;
       % plot(x, indi{img}.Surface/1e-6, 'x', 'Color', 'g');
       xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
       title(sprintf('[wf %02d adc %02d]',wf,adc));
     end
+    
   end
   
   linkaxes(h_axes); zoom on;
   set(h_axes, 'YLim', [YLim_min YLim_max]/1e-6);
-  if ~relative_pow_en
-    set(h_axes, 'CLim', [P_min P_max]);
-  end
   try
     sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
   end
