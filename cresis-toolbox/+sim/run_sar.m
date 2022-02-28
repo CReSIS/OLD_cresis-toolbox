@@ -73,6 +73,8 @@ else
   %% Load SAR data
   % =====================================================================
   
+  [c, WGS84] = physical_constants('c', 'WGS84');
+  
   param.sar_load.imgs = param_override.sar.imgs;
   
   [data, hdr] = sar_load(param);
@@ -82,6 +84,19 @@ else
   fig_h = figure('Name',fig_title);
   
   relative_pow_en = 0;  % #############################
+  
+  if strcmpi(param.target.type, 'point')
+    point_target_marker_en = 1;
+  else
+    point_target_marker_en = 0;
+  end
+  
+  if point_target_marker_en && param.sim.north_along_track_en
+    lat_plot_en = 1;
+  else
+    lat_plot_en = 0;
+  end
+  
   YLim_min = Inf;
   YLim_max = -Inf;
   P_min = Inf;
@@ -97,8 +112,12 @@ else
       
       YLim_min = min([YLim_min; hdr.wfs(wf).time], [], 'all');
       YLim_max = max([YLim_max; hdr.wfs(wf).time], [], 'all');
-      x = 1:length(hdr.lat);
       tmp = 20*log10(abs(data{img}));
+      if lat_plot_en
+        x = hdr.fcs{img}{wf_adc}.lat;
+      else
+        x = 1:length(hdr.fcs{img}{wf_adc}.lat);
+      end
       
       h_axes(img) = subplot(1, N_imgs, img);
       if relative_pow_en
@@ -112,9 +131,30 @@ else
         P_max = max( [P_max; max(tmp(:))] );
       end
       grid on; hold on; axis tight;
-      % plot(x, indi{img}.Surface/1e-6, 'x', 'Color', 'g');
-      xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+      if lat_plot_en
+        xlabel('Latitude');
+      else
+        xlabel('Along-track position, rlines');
+      end
+      ylabel('Fast-time, us');
       title(sprintf('[wf %02d adc %02d]',wf,adc));
+      
+      if point_target_marker_en
+        e_lon = abs(hdr.fcs{img}{wf_adc}.lon - param.target.lon);
+        e_lat = abs(hdr.fcs{img}{wf_adc}.lat - param.target.lat);
+        [dev_lon, idx_lon] = min(e_lon);
+        [dev_lat, idx_lat] = min(e_lat);
+        % e_lon, dev_lon, idx_lon are not relevant for northward flightpath
+        % use idx_lat for marker plots
+        range_est = distance_geodetic(hdr.fcs{img}{wf_adc}.lat(idx_lat), ...
+          hdr.fcs{img}{wf_adc}.lon(idx_lat), hdr.fcs{img}{wf_adc}.elev(idx_lat), ...
+          param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid) ;
+        TWTT_est = range_est * 2/c;
+        plot(hdr.fcs{img}{wf_adc}.lat(idx_lat),TWTT_est/1e-6,'kx');
+        plot(param.target.lat, TWTT_est/1e-6,'ko');
+        legend({'Loaded', 'Simulated'});
+      end
+      
     end
   end
   

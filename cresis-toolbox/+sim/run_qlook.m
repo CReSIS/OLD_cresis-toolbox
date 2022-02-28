@@ -64,6 +64,8 @@ else
   %% Load Qlook data
   % =====================================================================
   
+  [c, WGS84] = physical_constants('c', 'WGS84');
+  
   if isfield(param.sim,'frame_idx')
     frm = param.sim.frm;
   else
@@ -73,6 +75,19 @@ else
   out_dir = ct_filename_out(param, 'qlook');
   
   relative_pow_en = 0; % #############################
+  
+  if strcmpi(param.target.type, 'point')
+    point_target_marker_en = 1;
+  else
+    point_target_marker_en = 0;
+  end
+  
+  if point_target_marker_en && param.sim.north_along_track_en
+    lat_plot_en = 1;
+  else
+    lat_plot_en = 0;
+  end
+  
   YLim_min = 0;
   YLim_max = 0;
   h_axes = 0;
@@ -87,8 +102,12 @@ else
       
       YLim_min = min([YLim_min; full.Time], [], 'all');
       YLim_max = max([YLim_max; full.Time], [], 'all');
-      x = 1:length(full.GPS_time);
       tmp = 20*log10(abs(full.Data));
+      if lat_plot_en
+        x = full.Latitude;
+      else
+        x = 1:length(full.Latitude);
+      end
       
       call_sign = sprintf('FullSim Qlook Data %s', param.day_seg);
       fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -104,9 +123,28 @@ else
         cb = colorbar; cb.Label.String = 'Power, dB';
       end
       grid on; hold on; axis tight;
-      % plot(x, full.Surface/1e-6, 'x', 'Color', 'g');
-      xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+      if lat_plot_en
+        xlabel('Latitude');
+      else
+        xlabel('Along-track position, rlines');
+      end
+      ylabel('Fast-time, us');
       title('Combined');
+      
+      if point_target_marker_en
+        e_lon = abs(full.Longitude - param.target.lon);
+        e_lat = abs(full.Latitude - param.target.lat);
+        [dev_lon, idx_lon] = min(e_lon);
+        [dev_lat, idx_lat] = min(e_lat);
+        % e_lon, dev_lon, idx_lon are not relevant for northward flightpath
+        % use idx_lat for marker plots
+        range_est = distance_geodetic(full.Latitude(idx_lat), ...
+          full.Longitude(idx_lat), full.Elevation(idx_lat), ...
+          param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid) ;
+        TWTT_est = range_est * 2/c;
+        plot(full.Latitude(idx_lat),TWTT_est/1e-6,'kx');
+        plot(param.target.lat, TWTT_est/1e-6,'ko');
+      end
       
     else % individual images
       wf_adc = 1;
@@ -118,7 +156,11 @@ else
       
       YLim_min = min([YLim_min; indi{img}.Time], [], 'all');
       YLim_max = max([YLim_max; indi{img}.Time], [], 'all');
-      x = 1:length(indi{img}.GPS_time);
+      if lat_plot_en
+        x = indi{img}.Latitude;
+      else
+        x = 1:length(indi{img}.Latitude);
+      end
       tmp = 20*log10(abs(indi{img}.Data));
       
       h_axes(idx) = subplot(1, N_imgs+1, idx);
@@ -131,9 +173,30 @@ else
         cb = colorbar; cb.Label.String = 'Power, dB';
       end
       grid on; hold on; axis tight;
-      % plot(x, indi{img}.Surface/1e-6, 'x', 'Color', 'g');
-      xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
+      if lat_plot_en
+        xlabel('Latitude');
+      else
+        xlabel('Along-track position, rlines');
+      end
+      ylabel('Fast-time, us');
       title(sprintf('[wf %02d adc %02d]',wf,adc));
+      
+      if point_target_marker_en
+        e_lon = abs(indi{img}.Longitude - param.target.lon);
+        e_lat = abs(indi{img}.Latitude - param.target.lat);
+        [dev_lon, idx_lon] = min(e_lon);
+        [dev_lat, idx_lat] = min(e_lat);
+        % e_lon, dev_lon, idx_lon are not relevant for northward flightpath
+        % use idx_lat for marker plots
+        range_est = distance_geodetic(indi{img}.Latitude(idx_lat), ...
+          indi{img}.Longitude(idx_lat), indi{img}.Elevation(idx_lat), ...
+          param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid) ;
+        TWTT_est = range_est * 2/c;
+        plot(indi{img}.Latitude(idx_lat),TWTT_est/1e-6,'kx');
+        plot(param.target.lat, TWTT_est/1e-6,'ko');
+        legend({'Loaded', 'Simulated'});
+      end
+      
     end
     
   end

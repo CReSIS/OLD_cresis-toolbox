@@ -74,7 +74,7 @@ fprintf('=====================================================================\n
 
 [ param, records, records2, frames, exec_good ] = sim.flightline_extract(param);
 
-if ~exec_good;
+if ~exec_good
   fprintf('flightline_extract executed incompletely\n');
   return;
 else

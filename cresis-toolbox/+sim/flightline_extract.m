@@ -340,9 +340,17 @@ switch param.target.type
       
       % Y is left ==> X Y Z are right-handed coord system
       Y = cross(Z, X);
-      figure; plot(vecnorm(Y),'x'); hold on;
+      
+      if param.sim.debug_plots_en
+        figure;
+        plot(vecnorm(Y),'x'); hold on;
+      end
+      
       Y = Y./vecnorm(Y);
-      plot(vecnorm(Y),'o');
+      
+      if param.sim.debug_plots_en
+        plot(vecnorm(Y),'o');
+      end
       
       altra.X = X;
       altra.Y = Y;
@@ -478,5 +486,49 @@ exec_good = 1;
 
 return;
 
+
+end
+
+% extra functions used here but not in cresis-toolbox/utility/
+%% pos_vect
+
+function pos_vect(A,varargin)
+
+% function pos_vect(A,varargin)
+% pos_vect(A) draws a line from origin to A
+% pos_vect(A,varargin) draws a line from A to B
+% plots distance near the midpoint
+% Author: Hara Madhav Talasila
+
+if nargin==1
+  line([0;A(1)], [0;A(2)], [0;A(3)],'LineStyle','-','LineWidth',1,'Color',[152,251,152]/256);
+  p2p_dist = norm(A);
+  midP = A/2;
+elseif nargin==2
+  B = varargin{1};
+  line([A(1);B(1)], [A(2);B(2)], [A(3);B(3)],'LineStyle','-','LineWidth',1,'Color',[152,251,152]/256);
+  p2p_dist = norm(A-B);
+  midP = (A+B)/2;
+end
+
+text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
+
+end
+
+%% unit_vect
+
+function unit_vect(A, cap, dist)
+
+% function unit_vect(A, cap, dist)
+% unit_vect(A, cap, dist) draws a line from A to B
+% B here is at a distance,'dist', in 'cap' direction from A
+% Useful to visualize continuous local coordinate system
+% Author: Hara Madhav Talasila
+
+B = A + cap*dist;
+
+for idx = 1:size(A,2)
+  line([A(1,idx);B(1,idx)], [A(2,idx);B(2,idx)], [A(3,idx);B(3,idx)],'LineStyle','-.','LineWidth',0.5,'Color',[152,251,152]/256);
+end
 
 end

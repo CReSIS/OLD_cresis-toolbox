@@ -2,9 +2,9 @@
 %
 % Several examples of using load_data
 %
-% Author: John Paden
+% Author: John Paden, Hara Madhav Talasila
 %
-% See also load_data, pulse_compress
+% See also load_data, pulse_compress, sim.input_full_sim
 
 run_example = 7;
 clear data;
