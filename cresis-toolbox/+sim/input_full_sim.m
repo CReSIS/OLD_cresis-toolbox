@@ -61,9 +61,42 @@ param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 % =========================================================================
 % Optional
 
-% Northward flight instead of actual trajectory
-param.sim.north_along_track_en = 1;
+% Target offset
+% x: for any distance <Lsar from the begining of flightpath
+% y: positive(left to flighline) negative(left to flightline)
+% z: positive(above flightline) negative(below flightline)
+%
+% param.target.offsets.x = []; % usually Lsar/2 or [0,Lsar]
+% param.target.offsets.y = []; % usually [0] or +ve/-ve value
+% param.target.offsets.z = []; % usually -ve
+
+
+if 0
+  % Northward flight instead of actual trajectory
+  % single target in the center
+  param.sim.north_along_track_en = 1;
+  
+  param.target.offsets.x = @(Lsar) 500;  % for any distance <Lsar
+  param.target.offsets.x = @(Lsar) Lsar/2; % middle of flighpath
+  param.target.offsets.y = 0;
+  param.target.offsets.z = -500;
+  param.target.offsets.z = -base2dec('KU', 36); % about  5 us TWTT for 750 meter
+  param.target.offsets.z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
+  
+  
+elseif 1
+  % Northward flight instead of actual trajectory
+  % multiple targets in the center rline
+  param.sim.north_along_track_en = 1;
+  param.target.offsets.x = @(Lsar) [Lsar/2; Lsar/2];  % for any distance <Lsar
+  param.target.offsets.y = [0; 0];
+  param.target.offsets.z = -base2dec({'KU';'157'}, 36);
+  % about 5 us TWTT for 750 meter, 9.89 us TWTT for 1483 meter
+  
+end
+
 param.sim.debug_plots_en = 0;
+
 % =========================================================================
 
 fprintf('=====================================================================\n');
@@ -140,34 +173,58 @@ for img = 1:length(param.sim.imgs)
     fs          = param.radar.fs;
     
     % point target for now
-    range = sqrt( (gps.x - param.target.x).^2 + (gps.y - param.target.y).^2 + (gps.z - param.target.z).^2 );
+    % range = sqrt( (gps.x - param.target.x).^2 + (gps.y - param.target.y).^2 + (gps.z - param.target.z).^2 );
+    range = sqrt( ...
+      + ( bsxfun(@minus, gps.x, param.target.x') ).^2 ...
+      + ( bsxfun(@minus, gps.y, param.target.y') ).^2 ...
+      + ( bsxfun(@minus, gps.z, param.target.z') ).^2 );
+    
     twtt = 2*range/c;
     
     Nt = wfs(wf).Nt_raw;
     
-    for rec = 1:Nx
+    if 0 % old simulator
       
-      td    = twtt(rec);
-      fb    = chirp_rate*td;
-      time  = time_raw - td; % ################
+      for rec = 1:Nx
+        td    = twtt(rec);
+        fb    = chirp_rate*td;
+        time  = time_raw - td; % ################
+        
+        if strcmpi(radar_type,'deramp') % deramp
+          raw_data{wf,adc}(:,rec) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
+            .* cos(2*pi*f0*td + pi*chirp_rate*(2*time_raw*td - td^2)); % Nt x Nrx;
+        else % pulsed
+          raw_data{img}(:,rec,wf_adc) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
+            * 0.5 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
+        end
+      end %% for rec
       
-      if strcmpi(radar_type,'deramp') % deramp
-        
-        raw_data{wf,adc}(:,rec) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
-          .* cos(2*pi*f0*td + pi*chirp_rate*(2*time_raw*td - td^2)); % Nt x Nrx;
-        
-      else % pulsed
-        
-        raw_data{img}(:,rec,wf_adc) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
-          * 0.5 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
-        
-      end
+    else % vectorized
       
-    end %% for rec
+      raw_data{img}(:,:,wf_adc) = zeros(Nt,Nx);
+      
+      for tgt = 1:size(range,1)
+        td    = twtt(tgt,:);
+        fb    = chirp_rate*td;
+        time  = time_raw - td; % ################
+        
+        if strcmpi(radar_type,'deramp') % deramp
+        else % pulsed
+          raw_data{img}(:,:,wf_adc) = raw_data{img}(:,:,wf_adc) + tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
+            * 0.5 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
+        end
+      end % for tgt
+      
+    end % % old or new simulator
     
     param.traj{img,wf_adc}      = gps;
     param.sim.range{img,wf_adc} = range;
     param.sim.twtt{img,wf_adc}  = twtt;
+    
+    if strcmpi(radar_type,'deramp') % deramp
+    else % pulsed
+      raw_data{img}(:,:,wf_adc) = raw_data{img}(:,:,wf_adc) ./ 10.^(wfs(wf).system_dB/20);  % Nt x Nrx
+    end
     
   end %% for wf_adc
 end %% for img
@@ -222,7 +279,7 @@ end
 %% FIGURES (work best for single target case)
 
 if strcmpi(param.target.type, 'point')
-  point_target = 0;
+  point_target = 1;
 else
   point_target = 0;
 end

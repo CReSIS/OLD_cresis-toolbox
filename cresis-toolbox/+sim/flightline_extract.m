@@ -10,9 +10,14 @@ function [param, records, records2, frames, exec_good] = flightline_extract(para
 
 frames = [];
 records = [];
+records2 = []; % only for crosschecking
 exec_good = 0;
 
-[WGS84] = physical_constants('WGS84');
+[c, WGS84] = physical_constants('c', 'WGS84');
+
+%% Check params
+
+
 
 %% Load params
 
@@ -114,6 +119,11 @@ for wf = 1:length(wfs)
   
   % Assign param.radar.wfs(wf).tx_weights = ones to use in simulator
   wfs(wf).tx_weights = ones(size(wfs(wf).tx_weights));
+  if wfs(wf).system_dB == 0
+    % 10*log10(Pt*Gt*Gr*lambda_c^2 / (8*pi)^2 * Z0)
+    lambda_c = c * 2 / (wfs(wf).f0+wfs(wf).f1) ;
+    wfs(wf).system_dB = 10*log10( 7000*1*1* lambda_c^2 / (8*pi)^2 * 50);
+  end
   
 end
 
@@ -232,7 +242,7 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   end
   
   param.gps = rec;
-
+  
   % Overwrite simulated rajectory to records file
   records = merge_structs(records, param.gps);
   
@@ -255,6 +265,8 @@ else
   
   fprintf('(%s) Flightline RefTraj \t-- Done\n',  datestr(now));
   
+  param.sim.north_along_track_en = 0;
+  
 end
 
 %% Create phase center trajectory
@@ -265,113 +277,118 @@ end
 trajectory_param = struct('gps_source',records.gps_source, ...
   'season_name',param.season_name,'radar_name',param.radar_name, ...
   'rx_path', 0, ...
-  'tx_weights', [], ... 
+  'tx_weights', [], ...
   'lever_arm_fh', param.radar.lever_arm_fh);
 [records2, lever_arm_val] = trajectory_with_leverarm(records,trajectory_param);
 
 [records2.x, records2.y, records2.z] = geodeticD2ecef(records2.lat, records2.lon, records2.elev, WGS84.ellipsoid);
 
 if param.sim.debug_plots_en
-  figure; 
+  figure;
   plot(records.lon, records.lat, 'x'); hold on;
-  plot(records2.lon, records2.lat, 'o'); 
+  plot(records2.lon, records2.lat, 'o');
 end
 
 clear trajectory_param
 
 fprintf('(%s) Reference Trajectory \t-- Done\n',  datestr(now));
 
+%% Create local FCS (Flight Coordinate System)
+
+altra = [];
+% 1. Compute along-track vector (geodetic_to_along_track)
+[altra.along_track, altra.lat, altra.lon, altra.elev] = ...
+  geodetic_to_along_track(records2.lat, records2.lon, records2.elev);
+
+% 2. Find ECEF of trajectory
+[altra.x, altra.y, altra.z] = geodeticD2ecef(altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
+
+% 3. For each point in the trajectory, find the XYZ unit vectors in the
+% flight coordinate system.
+% X, Y, Z are 3x(rec_len) matrices of (rec_len) unit vectors
+X = [];
+U = [];
+N = [];
+Z = [];
+Y = [];
+
+% X is along track
+X = [diff(altra.x); diff(altra.y); diff(altra.z)]; % 3x(rec_len-1)
+X = X./vecnorm(X);
+% extend last unit vector to the last point % 3x(rec_len)
+X = [X, X(:,end)];
+
+% U is up vector
+[U(1,:), U(2,:), U(3,:)] = enu2ecef( 0, 0, 1, altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
+U = U - [altra.x; altra.y; altra.z];
+U = U./vecnorm(U);
+
+% N is normal to the plane with X, U and Zenith
+N = cross(X, U, 1);
+N = N./vecnorm(N);
+
+% Z is Zenith
+Z = cross(N, X);
+Z = Z./vecnorm(Z);
+
+% Y is left ==> X Y Z are right-handed coord system
+Y = cross(Z, X);
+
+if param.sim.debug_plots_en
+  figure;
+  plot(vecnorm(Y),'x'); hold on;
+end
+
+Y = Y./vecnorm(Y);
+
+if param.sim.debug_plots_en
+  plot(vecnorm(Y),'o');
+end
+
+altra.X = X;
+altra.Y = Y;
+altra.Z = Z;
+
+% 4. Note that for each target, we have defined x,y,z position which is in flight
+% coordinate system.
+%
+% 5. For each target, find the closest in along-track trajectory position
+% to that target. [~,idx] = min(abs(target.x - traj.x));
+%
+% 6. Use XYZ FCS of this closest trajectory position to place the target.
+% Convert target's coordinates to ECEF.
+
+% Simulator:
+% Operate in ECEF coordinates and just cycle through each target and each
+% position computing ranges using Pythagorean's theorem
+
+clear X U N Z Y
+
 %% Target(s) location
 
 % using records structure for ease. Same geodetic, ecef as param.gps
 
-param.target = [];
+% param.target = [];
 
-if ~isfield(param.sim,'target') || ~isfield(param.sim.target,'type') ...
-    || strcmpi(param.sim.target.type, 'point')
+if ~isfield(param,'target') || ~isfield(param.target,'type') ...
+    || strcmpi(param.target.type, 'point')
   param.target.type = 'point'; % 'surface' %'layer'
 end
 
+if isfield(param.target,'offsets') && isfield(param.target.offsets,'z') ...
+    && length(param.target.offsets.z)>1
+  param.target.type = 'points';
+end
+
 switch param.target.type
-  case 'point'
-        
+  case {'point', 'points'}
+    
     if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
       % For simple target position method:
-      %
-      altra = [];
-      % 1. Compute along-track vector (geodetic_to_along_track)
-      %
-      [altra.along_track, altra.lat, altra.lon, altra.elev] = ...
-        geodetic_to_along_track(records2.lat, records2.lon, records2.elev);
-      
-      % 2. Find ECEF of trajectory
-      %
-      [altra.x, altra.y, altra.z] = geodeticD2ecef(altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
-      
-      % 3. For each point in the trajectory, find the XYZ unit vectors in the
-      % flight coordinate system.
-      %
-      % X, Y, Z are 3x(rec_len) matrices of (rec_len) unit vectors
-      X = [];
-      U = [];
-      N = [];
-      Z = [];
-      Y = [];
-      
-      % X is along track
-      X = [diff(altra.x); diff(altra.y); diff(altra.z)]; % 3x(rec_len-1)
-      X = X./vecnorm(X);
-      % extend last unit vector to the last point % 3x(rec_len)
-      X = [X, X(:,end)]; 
-      
-      
-      % U is up vector
-      [U(1,:), U(2,:), U(3,:)] = enu2ecef( 0, 0, 1, altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
-      U = U - [altra.x; altra.y; altra.z];
-      U = U./vecnorm(U); 
-      
-      % N is normal to the plane with X, U and Zenith
-      N = cross(X, U, 1);
-      N = N./vecnorm(N);
-      
-      % Z is Zenith
-      Z = cross(N, X);
-      Z = Z./vecnorm(Z);
-      
-      % Y is left ==> X Y Z are right-handed coord system
-      Y = cross(Z, X);
-      
-      if param.sim.debug_plots_en
-        figure;
-        plot(vecnorm(Y),'x'); hold on;
-      end
-      
-      Y = Y./vecnorm(Y);
-      
-      if param.sim.debug_plots_en
-        plot(vecnorm(Y),'o');
-      end
-      
-      altra.X = X;
-      altra.Y = Y;
-      altra.Z = Z;
-        
-      % 4. Note that for each target, we have defined x,y,z position which is in flight
-      % coordinate system.
-      %
-      % 5. For each target, find the closest in along-track trajectory position
-      % to that target. [~,idx] = min(abs(target.x - traj.x));
-      %
-      % 6. Use XYZ FCS of this closest trajectory position to place the target.
-      % Convert target's coordinates to ECEF.
-      
-      % Simulator:
-      % Operate in ECEF coordinates and just cycle through each target and each
-      % position computing ranges using Pythagorean's theorem
       
       % A to B is the flightline
-      % C is a point on flightline closest to Target T
-      % T is defined using x,y,z wrt A
+      % C is a point on flightline (preferably closest to T)
+      % T is Target defined using x,y,z wrt A
       % x = alongtrack distance from A to C
       % y = horizontal offset from C (zero is directly under flightpath)
       % z = vertical offset from C (height)
@@ -380,35 +397,57 @@ switch param.target.type
       B = [records2.x(end); records2.y(end); records2.z(end)];
       Lsar = norm(B-A);
       
-      % support user input
-      x = Lsar/2;  % for any distance <Lsar
-      y = 0; % positive(left to flighline) negative(left to flightline)
-      z = -500; % positive(above flightline) negative(below flightline)
-      z = -base2dec('KU', 36); % about  5 us TWTT for 750 meter
-      z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
+      % Check and adjust/override user input
+      if isfield(param.target, 'offsets') && isfield(param.target.offsets, 'x') ...
+          && ~isempty(param.target.offsets.x)
+        x = param.target.offsets.x(Lsar);
+      else
+        x = Lsar/2;
+      end
+      % x = (x<=Lsar && x>=0)*x + (x>Lsar)*Lsar/2; % usual case
+      param.target.offsets.x = x;
       
-      idx_C = find(altra.along_track >= x, 1);
+      if isfield(param.target, 'offsets') && isfield(param.target.offsets, 'y') ...
+          && ~isempty(param.target.offsets.y)
+        y = param.target.offsets.y;
+      else
+        y = 0;
+      end
+      param.target.offsets.y = y;
+      
+      if isfield(param.target, 'offsets') && isfield(param.target.offsets, 'z') ...
+          && ~isempty(param.target.offsets.z)
+        z = param.target.offsets.z;
+      else
+        z = -500;
+      end
+      param.target.offsets.z = z;
+      
+      % idx_C = find(altra.along_track >= x, 1); % x offset from A
+      idx_C = cell2mat( find_multiple( altra.along_track, '>=', x, 1, 'first') ); % x offset from A
       C = [altra.x(idx_C); altra.y(idx_C); altra.z(idx_C)];
       
       T = C ...
-        + 0 * altra.X(:,idx_C) ... % zero x offset from C
-        + y * altra.Y(:,idx_C) ... % y offset from C
-        + z * altra.Z(:,idx_C) ; % z offset from C
-
-      param.target.x  = T(1);
-      param.target.y  = T(2);
-      param.target.z  = T(3);
+        + bsxfun(@times, altra.X(:,idx_C), x') *0 ... % zero x offset from C
+        + bsxfun(@times, altra.Y(:,idx_C), y') ... % y offset from C
+        + bsxfun(@times, altra.Z(:,idx_C), z'); % z offset from C
+      
+      param.target.x  = T(1,:);
+      param.target.y  = T(2,:);
+      param.target.z  = T(3,:);
       [param.target.lat, param.target.lon, param.target.elev] = ecef2geodeticD(param.target.x, param.target.y, param.target.z, WGS84.ellipsoid);
-            
+      
       if param.sim.debug_plots_en
         % check 3d plot for FCS XYZ
         figure;
         plot3(records2.x, records2.y, records2.z, '.'); hold on;
         plot3(records2.x(1), records2.y(1), records2.z(1), 'x','Color','r');
         grid on;
-        unit_vect([records2.x; records2.y; records2.z], X, 50);
-        unit_vect([records2.x; records2.y; records2.z], Y, 50);
-        unit_vect([records2.x; records2.y; records2.z], Z, 50);
+        if 0
+          unit_vect([records2.x; records2.y; records2.z], altra.X, 50);
+          unit_vect([records2.x; records2.y; records2.z], altra.Y, 50);
+          unit_vect([records2.x; records2.y; records2.z], altra.Z, 50);
+        end
         pos_vect(T, A );
         pos_vect(T, C );
         pos_vect(T, B );
@@ -421,7 +460,7 @@ switch param.target.type
         plot(test_range,'x');
       end
       
-      clear altra X U N Z Y A B Lsar x y z idx_C C T
+      clear altra A B Lsar x y z idx_C C T %  X U N Z Y
       
     elseif 0
       % M is midpoint of northward track and MT is towards the target (T).
@@ -466,6 +505,11 @@ switch param.target.type
       
     end
     
+  case 'scene'
+    % use scene_gen
+    
+    
+    
 end % switch param.target.type
 
 fprintf('(%s) Target \t\t\t-- Done\n',  datestr(now));
@@ -500,19 +544,22 @@ function pos_vect(A,varargin)
 % plots distance near the midpoint
 % Author: Hara Madhav Talasila
 
-if nargin==1
-  line([0;A(1)], [0;A(2)], [0;A(3)],'LineStyle','-','LineWidth',1,'Color',[152,251,152]/256);
-  p2p_dist = norm(A);
-  midP = A/2;
-elseif nargin==2
-  B = varargin{1};
-  line([A(1);B(1)], [A(2);B(2)], [A(3);B(3)],'LineStyle','-','LineWidth',1,'Color',[152,251,152]/256);
-  p2p_dist = norm(A-B);
-  midP = (A+B)/2;
+for idx = 1: size(A,2)
+  
+  if nargin==1
+    line([0;A(1,idx)], [0;A(2,idx)], [0;A(3,idx)],'LineStyle','-','LineWidth',1,'Color',[152,251,152]/256);
+    p2p_dist = norm(A(:,idx));
+    midP = A(:,idx)/2;
+  elseif nargin==2
+    B = varargin{1};
+    line([A(1,idx);B(1)], [A(2,idx);B(2)], [A(3,idx);B(3)],'LineStyle','-','LineWidth',1,'Color',[152,251,152]/256);
+    p2p_dist = norm(A(:,idx)-B);
+    midP = (A(:,idx)+B)/2;
+  end
+  
+  text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
+  
 end
-
-text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
-
 end
 
 %% unit_vect

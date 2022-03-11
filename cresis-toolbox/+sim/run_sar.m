@@ -82,10 +82,11 @@ else
   call_sign = sprintf('FullSim SAR Data %s', param.day_seg);
   fig_title = sprintf('%s_%s',mfilename, call_sign);
   fig_h = figure('Name',fig_title);
+  fig_h_slice = figure('Name',fig_title);
   
   relative_pow_en = 0;  % #############################
   
-  if strcmpi(param.target.type, 'point')
+  if any( strcmpi(param.target.type, {'point', 'points'}) )
     point_target_marker_en = 1;
   else
     point_target_marker_en = 0;
@@ -119,6 +120,7 @@ else
         x = 1:length(hdr.fcs{img}{wf_adc}.lat);
       end
       
+      figure(fig_h);
       h_axes(img) = subplot(1, N_imgs, img);
       if relative_pow_en
         tmp = tmp-max(tmp(:));
@@ -140,10 +142,10 @@ else
       title(sprintf('[wf %02d adc %02d]',wf,adc));
       
       if point_target_marker_en
-        e_lon = abs(hdr.fcs{img}{wf_adc}.lon - param.target.lon);
-        e_lat = abs(hdr.fcs{img}{wf_adc}.lat - param.target.lat);
-        [dev_lon, idx_lon] = min(e_lon);
-        [dev_lat, idx_lat] = min(e_lat);
+        e_lon = abs(bsxfun(@minus, hdr.fcs{img}{wf_adc}.lon, param.target.lon'));
+        e_lat = abs(bsxfun(@minus, hdr.fcs{img}{wf_adc}.lat, param.target.lat'));
+        [dev_lon, idx_lon] = min(e_lon,[],2);
+        [dev_lat, idx_lat] = min(e_lat,[],2);
         % e_lon, dev_lon, idx_lon are not relevant for northward flightpath
         % use idx_lat for marker plots
         range_est = distance_geodetic(hdr.fcs{img}{wf_adc}.lat(idx_lat), ...

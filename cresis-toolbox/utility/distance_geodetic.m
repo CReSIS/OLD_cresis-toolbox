@@ -45,9 +45,9 @@ switch nargin
     elll = varargin{7};
 end
 
-[A(1), A(2), A(3)] = geodeticD2ecef(lat1, lon1, elev1, elll);
-[B(1), B(2), B(3)] = geodeticD2ecef(lat2, lon2, elev2, elll);
+[A(1,:), A(2,:), A(3,:)] = geodeticD2ecef(lat1, lon1, elev1, elll);
+[B(1,:), B(2,:), B(3,:)] = geodeticD2ecef(lat2, lon2, elev2, elll);
 
-d_final = norm(A-B);
+d_final = vecnorm(A-B);
 
 end % EOF
