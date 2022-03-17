@@ -84,15 +84,24 @@ if 0
   param.target.offsets.z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
   
   
-elseif 1
+elseif 0
   % Northward flight instead of actual trajectory
   % multiple targets in the center rline
   param.sim.north_along_track_en = 1;
   param.target.offsets.x = @(Lsar) [Lsar/2; Lsar/2];  % for any distance <Lsar
   param.target.offsets.y = [0; 0];
-  param.target.offsets.z = -base2dec({'KU';'157'}, 36);
+  param.target.offsets.z = -base2dec({'KU';'157';'17A'}, 36);
   % about 5 us TWTT for 750 meter, 9.89 us TWTT for 1483 meter
-  
+
+elseif 1
+  % Northward flight instead of actual trajectory
+  % multiple targets in the center rline
+  param.sim.north_along_track_en = 1;
+  param.target.offsets.x = @(Lsar) Lsar .* ones(3,3,3) .* [1/4 1/2 3/4] ;  % 3 rlines along the way % repmat( ([1/4; 1/2; 3/4]*[1 1 1])' , [1,1,3] )
+  param.target.offsets.y = permute( ones(3,3,3) .* [-100 0 50], [3,1,2] ); % 50m right, center and left
+  param.target.offsets.z = ones(3,3,3) .* -base2dec({'HM';'TA';'17A'}, 36); 
+  % TWTT us for meter: about 5 us 634 m, 6.17 us 1054 m, 10.4 us 1558 m
+
 end
 
 param.sim.debug_plots_en = 0;
@@ -221,10 +230,36 @@ for img = 1:length(param.sim.imgs)
     param.sim.range{img,wf_adc} = range;
     param.sim.twtt{img,wf_adc}  = twtt;
     
+    % radiometric_corr_dB
     if strcmpi(radar_type,'deramp') % deramp
     else % pulsed
-      raw_data{img}(:,:,wf_adc) = raw_data{img}(:,:,wf_adc) ./ 10.^(wfs(wf).system_dB/20);  % Nt x Nrx
+      raw_data{img}(:,:,wf_adc) = raw_data{img}(:,:,wf_adc) * 1; %./ 10.^(wfs(wf).system_dB/20);  % Nt x Nrx
     end
+    
+    % Do the reverse of what happens to ~raw_data in data_load
+    % Apply channel compensation, presum normalization, and constant
+    % receiver gain compensation
+    if strcmpi(radar_type,'deramp')
+      chan_equal = 1;
+    else
+      chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+        .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+    end
+    
+    if length(wfs(wf).system_dB) == 1
+      % Only a single number is provided for system_dB so apply it to all
+      % receiver paths
+      mult_factor = single(wfs(wf).quantization_to_V(adc) ...
+        / (10.^(wfs(wf).adc_gains_dB(adc)/20) * chan_equal ...
+        * 10.^(wfs(wf).system_dB/20)));
+    else
+      % A number is provided for each receiver path for system_dB
+      mult_factor = single(wfs(wf).quantization_to_V(adc) ...
+        / (10.^(wfs(wf).adc_gains_dB(adc)/20) * chan_equal ...
+        * 10.^(wfs(wf).system_dB(param.radar.wfs(wf).rx_paths(adc))/20)));
+    end
+      
+    raw_data{img}(:,:,wf_adc) = 1/mult_factor * raw_data{img}(:,:,wf_adc);
     
   end %% for wf_adc
 end %% for img

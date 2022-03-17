@@ -125,6 +125,9 @@ for wf = 1:length(wfs)
     wfs(wf).system_dB = 10*log10( 7000*1*1* lambda_c^2 / (8*pi)^2 * 50);
   end
   
+  % override because we load simulated data direcly in data_load.m
+  wfs(wf).system_dB = 0;
+  
 end
 
 param.radar.wfs = merge_structs(param.radar.wfs,wfs);
@@ -295,74 +298,7 @@ fprintf('(%s) Reference Trajectory \t-- Done\n',  datestr(now));
 
 %% Create local FCS (Flight Coordinate System)
 
-altra = [];
-% 1. Compute along-track vector (geodetic_to_along_track)
-[altra.along_track, altra.lat, altra.lon, altra.elev] = ...
-  geodetic_to_along_track(records2.lat, records2.lon, records2.elev);
-
-% 2. Find ECEF of trajectory
-[altra.x, altra.y, altra.z] = geodeticD2ecef(altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
-
-% 3. For each point in the trajectory, find the XYZ unit vectors in the
-% flight coordinate system.
-% X, Y, Z are 3x(rec_len) matrices of (rec_len) unit vectors
-X = [];
-U = [];
-N = [];
-Z = [];
-Y = [];
-
-% X is along track
-X = [diff(altra.x); diff(altra.y); diff(altra.z)]; % 3x(rec_len-1)
-X = X./vecnorm(X);
-% extend last unit vector to the last point % 3x(rec_len)
-X = [X, X(:,end)];
-
-% U is up vector
-[U(1,:), U(2,:), U(3,:)] = enu2ecef( 0, 0, 1, altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
-U = U - [altra.x; altra.y; altra.z];
-U = U./vecnorm(U);
-
-% N is normal to the plane with X, U and Zenith
-N = cross(X, U, 1);
-N = N./vecnorm(N);
-
-% Z is Zenith
-Z = cross(N, X);
-Z = Z./vecnorm(Z);
-
-% Y is left ==> X Y Z are right-handed coord system
-Y = cross(Z, X);
-
-if param.sim.debug_plots_en
-  figure;
-  plot(vecnorm(Y),'x'); hold on;
-end
-
-Y = Y./vecnorm(Y);
-
-if param.sim.debug_plots_en
-  plot(vecnorm(Y),'o');
-end
-
-altra.X = X;
-altra.Y = Y;
-altra.Z = Z;
-
-% 4. Note that for each target, we have defined x,y,z position which is in flight
-% coordinate system.
-%
-% 5. For each target, find the closest in along-track trajectory position
-% to that target. [~,idx] = min(abs(target.x - traj.x));
-%
-% 6. Use XYZ FCS of this closest trajectory position to place the target.
-% Convert target's coordinates to ECEF.
-
-% Simulator:
-% Operate in ECEF coordinates and just cycle through each target and each
-% position computing ranges using Pythagorean's theorem
-
-clear X U N Z Y
+altra = fcs_local(records2);
 
 %% Target(s) location
 
@@ -401,6 +337,7 @@ switch param.target.type
       if isfield(param.target, 'offsets') && isfield(param.target.offsets, 'x') ...
           && ~isempty(param.target.offsets.x)
         x = param.target.offsets.x(Lsar);
+        x = x(:);
       else
         x = Lsar/2;
       end
@@ -410,6 +347,7 @@ switch param.target.type
       if isfield(param.target, 'offsets') && isfield(param.target.offsets, 'y') ...
           && ~isempty(param.target.offsets.y)
         y = param.target.offsets.y;
+        y = y(:);
       else
         y = 0;
       end
@@ -418,6 +356,7 @@ switch param.target.type
       if isfield(param.target, 'offsets') && isfield(param.target.offsets, 'z') ...
           && ~isempty(param.target.offsets.z)
         z = param.target.offsets.z;
+        z = z(:);
       else
         z = -500;
       end
@@ -557,6 +496,7 @@ for idx = 1: size(A,2)
     midP = (A(:,idx)+B)/2;
   end
   
+  plot3(A(1,idx), A(2,idx), A(3,idx), 'o','LineWidth',2,'Color','b');
   text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
   
 end

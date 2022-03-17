@@ -1,4 +1,6 @@
-% script sim.run_sar
+function run_sar(varargin)
+
+% function sim.run_sar
 %
 % Script for running sar.m on FullSim (usually just used for debugging).
 %
@@ -7,7 +9,12 @@
 % See also: run_master.m, master.m, run_sar.m, sar.m, sar_task.m,
 %   sar_coord_task.m
 
-try; hm; end;
+switch nargin
+  case 1
+  run_en = varargin{1};
+  otherwise
+  run_en = 0;
+end
 
 %% User Setup
 % =====================================================================
@@ -55,7 +62,7 @@ else
   param_override = gRadar;
 end
 
-if 0 %% ##################################### RUN and then LOAD
+if run_en %% ##################################### RUN and then LOAD
   %% Run SAR
   % =====================================================================
   
@@ -116,8 +123,10 @@ else
       tmp = 20*log10(abs(data{img}));
       if lat_plot_en
         x = hdr.fcs{img}{wf_adc}.lat;
+        x = hdr.lat;
       else
         x = 1:length(hdr.fcs{img}{wf_adc}.lat);
+        x = 1:length(hdr.lat);
       end
       
       figure(fig_h);

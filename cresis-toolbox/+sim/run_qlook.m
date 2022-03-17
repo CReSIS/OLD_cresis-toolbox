@@ -1,4 +1,6 @@
-% script sim.run_qlook
+function run_qlook(varargin)
+
+% function sim.run_qlook
 %
 % Script for running qlook.m on FullSim (usually just used for debugging).
 %
@@ -7,7 +9,12 @@
 % See also: run_master.m, master.m, run_qlook.m, qlook.m,
 %   qlook_task.m
 
-try; hm; end;
+switch nargin
+  case 1
+  run_en = varargin{1};
+  otherwise
+  run_en = 0;
+end
 
 %% User Setup
 % =====================================================================
@@ -46,7 +53,7 @@ else
   param_override = gRadar;
 end
 
-if 0 %% ##################################### RUN and then LOAD
+if run_en %% ##################################### RUN and then LOAD
   %% Run Qlook
   % =====================================================================
   
@@ -76,7 +83,7 @@ else
   
   relative_pow_en = 0; % #############################
   
-  if strcmpi(param.target.type, 'point')
+  if any( strcmpi(param.target.type, {'point', 'points'}) )
     point_target_marker_en = 1;
   else
     point_target_marker_en = 0;
@@ -132,10 +139,10 @@ else
       title('Combined');
       
       if point_target_marker_en
-        e_lon = abs(full.Longitude - param.target.lon);
-        e_lat = abs(full.Latitude - param.target.lat);
-        [dev_lon, idx_lon] = min(e_lon);
-        [dev_lat, idx_lat] = min(e_lat);
+        e_lon = abs(bsxfun(@minus, full.Longitude, param.target.lon'));
+        e_lat = abs(bsxfun(@minus, full.Latitude, param.target.lat'));
+        [dev_lon, idx_lon] = min(e_lon,[],2);
+        [dev_lat, idx_lat] = min(e_lat,[],2);
         % e_lon, dev_lon, idx_lon are not relevant for northward flightpath
         % use idx_lat for marker plots
         range_est = distance_geodetic(full.Latitude(idx_lat), ...
@@ -182,10 +189,10 @@ else
       title(sprintf('[wf %02d adc %02d]',wf,adc));
       
       if point_target_marker_en
-        e_lon = abs(indi{img}.Longitude - param.target.lon);
-        e_lat = abs(indi{img}.Latitude - param.target.lat);
-        [dev_lon, idx_lon] = min(e_lon);
-        [dev_lat, idx_lat] = min(e_lat);
+        e_lon = abs(bsxfun(@minus, indi{img}.Longitude, param.target.lon'));
+        e_lat = abs(bsxfun(@minus, indi{img}.Latitude, param.target.lat'));
+        [dev_lon, idx_lon] = min(e_lon,[],2);
+        [dev_lat, idx_lat] = min(e_lat,[],2);
         % e_lon, dev_lon, idx_lon are not relevant for northward flightpath
         % use idx_lat for marker plots
         range_est = distance_geodetic(indi{img}.Latitude(idx_lat), ...
