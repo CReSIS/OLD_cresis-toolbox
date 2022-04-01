@@ -41,8 +41,11 @@ arctic_proj.TiePoints.ImagePoints.Col=reshape([0.5],[1  1]);
 arctic_proj.TiePoints.WorldPoints.X=reshape([-693482.9938],[1  1]);
 arctic_proj.TiePoints.WorldPoints.Y=reshape([-774973.5364],[1  1]);
 arctic_proj.PixelScale=reshape([90  90   1],[3  1]);
-arctic_proj.SpatialRef = maprasterref('XLimWorld',reshape([-693482.9938      897717.0062],[1  2]),'YLimWorld',reshape([-3439603.5364      -774973.5364],[1  2]),...
-  'RasterSize',reshape([29607  17680],[1  2]),'RasterInterpretation','cells','ColumnsStartFrom','north','RowsStartFrom','west');
+if ~isempty(which('maprasterref'))
+  % Check for the existance of mapping toolbox function maprasterref
+  arctic_proj.SpatialRef = maprasterref('XLimWorld',reshape([-693482.9938      897717.0062],[1  2]),'YLimWorld',reshape([-3439603.5364      -774973.5364],[1  2]),...
+    'RasterSize',reshape([29607  17680],[1  2]),'RasterInterpretation','cells','ColumnsStartFrom','north','RowsStartFrom','west');
+end
 arctic_proj.RefMatrix=reshape([0               90     -693527.9938              -90                0     -774928.5364],[3  2]);
 arctic_proj.BoundingBox=reshape([-693482.99377      897717.00623     -3439603.5364      -774973.5364],[2  2]);
 arctic_proj.CornerCoords.X=reshape([-693482.9938      897717.0062      897717.0062     -693482.9938],[1  4]);
@@ -135,8 +138,11 @@ antarctic_proj.TiePoints.ImagePoints.Col=reshape([0.5],[1  1]);
 antarctic_proj.TiePoints.WorldPoints.X=reshape([-2668274.9891],[1  1]);
 antarctic_proj.TiePoints.WorldPoints.Y=reshape([2362334.97],[1  1]);
 antarctic_proj.PixelScale=reshape([240           240             0],[3  1]);
-antarctic_proj.SpatialRef = maprasterref('XLimWorld',reshape([-2668274.9891      2813805.0226],[1  2]),'YLimWorld',reshape([-2294625.04        2362334.97],[1  2]),...
-  'RasterSize',reshape([19404  22842],[1  2]),'RasterInterpretation','cells','ColumnsStartFrom','north','RowsStartFrom','west');
+if ~isempty(which('maprasterref'))
+  % Check for the existance of mapping toolbox function maprasterref
+  antarctic_proj.SpatialRef = maprasterref('XLimWorld',reshape([-2668274.9891      2813805.0226],[1  2]),'YLimWorld',reshape([-2294625.04        2362334.97],[1  2]),...
+    'RasterSize',reshape([19404  22842],[1  2]),'RasterInterpretation','cells','ColumnsStartFrom','north','RowsStartFrom','west');
+end
 antarctic_proj.RefMatrix=reshape([0      240.00000052     -2668394.9891     -240.00000052                 0        2362454.97],[3  2]);
 antarctic_proj.BoundingBox=reshape([-2668274.9891      2813805.0226       -2294625.04        2362334.97],[2  2]);
 antarctic_proj.CornerCoords.X=reshape([-2668274.9891      2813805.0226      2813805.0226     -2668274.9891],[1  4]);
