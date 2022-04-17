@@ -144,8 +144,8 @@ if ~isempty(param.tomo_collate.tomo_params)
     lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
     tomo_layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
   end
-  tomo_top_bin = uint32(round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),tomo_layers(1).twtt_ref))));
-  tomo_bottom_bin = uint32(round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),tomo_layers(2).twtt_ref))));
+  tomo_top_bin = uint32(round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),tomo_layers(1).twtt_ref),-inf)));
+  tomo_bottom_bin = uint32(round(interp_finite(interp1(mdata.Time,1:length(mdata.Time),tomo_layers(2).twtt_ref),inf)));
 end
 
 %% Interpolate Bottom, mdata.twtt from twtt to bins
@@ -850,11 +850,55 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       end
     end
     
+    if param.tomo_collate.suppress_surf_flag
+      repulsion_val = -1e6;
+      Bpval = param.tomo_collate.suppress_surf_peak_val;
+      surf_window = param.tomo_collate.suppress_surf_window;
+      %     Bpval = 30;
+      %     surf_window = 110;
+      
+      indexes = 0:surf_window-1;
+      indexes = indexes(:);
+      suppress_trend = Bpval*0.5*(1 - ((indexes./surf_window) - ((surf_window - indexes)./surf_window)));
+      suppress_trend = suppress_trend(:);
+      
+      for rline = 1:Nx
+        slice = squeeze(data(:,:,rline));
+        twtt_rline = twtt_bin(:,rline);
+        ice_mask_rline = ice_mask(:,rline);
+        for doa_idx = 1:Nsv
+          slice_line = slice(:,doa_idx);
+          surf_bin = twtt_rline(doa_idx);
+          data(1:surf_bin - 1,doa_idx,rline) = repulsion_val; % Suppress everything above the surface (and including?)
+          surf_row_indexes = surf_bin +indexes;
+          if surf_row_indexes(end) > Nt
+            mask = surf_row_indexes <= Nt;
+            trunc_indexes = surf_row_indexes(mask);
+            trunc_suppress_trend = suppress_trend(mask);
+            data(trunc_indexes(:),doa_idx,rline) = data(trunc_indexes(:),doa_idx,rline) - trunc_suppress_trend;
+          else
+            data(surf_row_indexes(:),doa_idx,rline) = data(surf_row_indexes(:),doa_idx,rline) - suppress_trend;
+          end
+          if ~ice_mask_rline(doa_idx)
+            data(surf_bin+1:end,doa_idx,rline) = repulsion_val;
+          end
+        end
+      end
+      
+    end
+    
+    if 0 
+      rline = 2295;
+      figure(32);clf;imagesc(1:Nsv,mdata.Time,squeeze(data(:,:,rline)));hold on
+      caxis([0 30])
+      plot(1:Nsv,mdata.twtt(:,rline),'Color',[1 1 1],'Marker','x','MarkerSize',8)
+    end
+    
     dr = dt*c/2;
     at_slope = single([diff(mdata.Elevation / dr) 0]);
     
-    H = interp_finite(Surface)*c/2;
-    T = interp_finite(Bottom)*c/2/sqrt(er_ice);
+    H = interp_finite(Surface,500)*c/2;
+    T = interp_finite(Bottom,1000)*c/2/sqrt(er_ice);
     R = 1./cos(theta) * H + 1./cos(theta_ice) * T;
     ct_slope = single([zeros(1,Nx); diff(R)/dr]+[diff(R)/dr; zeros(1,Nx)]);
     ct_slope(2:end-1,:) = ct_slope(2:end-1,:)/2;
@@ -872,6 +916,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       bounds(bounds>Nt) = Nt;
       bounds = bounds - 1;
     end
+    
+    % if no ice match to surface
     
     if 0
       %% TRW-S: Test Code (stop here)
