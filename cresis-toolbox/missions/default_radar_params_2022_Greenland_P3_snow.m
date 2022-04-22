@@ -202,6 +202,8 @@ arena.ctu.out.bit_group(idx).pri = [1 1 0];
 
 arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2e-6+param.wfs(wf).Tpd+2.5e-6' '2/param.prf'};
 
+arena.daq.udp_packet_headers = false; % False except for 20220412
+
 param.config.arena = arena;
 
 %% Command worksheet

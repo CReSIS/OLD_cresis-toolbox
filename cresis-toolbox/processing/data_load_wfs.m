@@ -388,6 +388,11 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).gain_dir = '';
   end
+  if isfield(param.radar.wfs(wf),'nz_complex') && ~isempty(param.radar.wfs(wf).nz_complex)
+    wfs(wf).nz_complex   = param.radar.wfs(wf).nz_complex;
+  else
+    wfs(wf).nz_complex   = false;
+  end
   if isfield(param.radar.wfs(wf),'nz_trim') && ~isempty(param.radar.wfs(wf).nz_trim)
     wfs(wf).nz_trim   = param.radar.wfs(wf).nz_trim;
   else
