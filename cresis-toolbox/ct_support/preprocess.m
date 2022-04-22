@@ -128,7 +128,7 @@ for config_idx = 1:numel(param.config.default)
   dparam.argsin{1}.config.date_str = cparam.config.date_str;
   
   if strcmpi(cparam.config.daq_type,'arena')
-    fns = get_filenames(fullfile(cparam.config.base_dir,cparam.config.board_folder_names),'','','.dat', ...
+    fns = get_filenames(fullfile(cparam.config.base_dir,cparam.config.config_folder_names),'','','.dat', ...
       struct('recursive',true,'regexp','[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'));
     num_fns = length(fns);
     

@@ -1,10 +1,10 @@
 % script run_all_create_track_files
 % run_all_create_track_files
 %
-% Creates a season layer file containing the lat, lon. The imb.picker loads
-% this file when plotting flightlines without OPS. Loading all the
-% individual CSARP_layerData files would be slow so this helps speed up the
-% loading.
+% Creates season track file(s) containing the lat, lon, and other
+% information. The imb.picker loads these file when plotting flightlines
+% without OPS. Loading all the individual CSARP_layer files would be
+% slow so using these track files helps speed imb.picker loading.
 %
 % Output filenames are of the form:
 % .../csarp_support/tracks/tracks_SYSTEM_SEASONNAME.mat

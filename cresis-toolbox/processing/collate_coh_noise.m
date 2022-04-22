@@ -85,11 +85,14 @@ end
 if isfield(param.collate_coh_noise,'dft_corr_length')
   error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time and specify an entry for each image to be processed.');
 end
+
 if ~isfield(param.collate_coh_noise,'dft_corr_time')
-  param.collate_coh_noise.dft_corr_time = [];
+  param.collate_coh_noise.dft_corr_time = {};
 end
 for img = param.collate_coh_noise.imgs
-  param.collate_coh_noise.dft_corr_time(img) = inf;
+  if length(param.collate_coh_noise.dft_corr_time) < img
+    param.collate_coh_noise.dft_corr_time{img} = inf;
+  end
 end
 
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
@@ -254,7 +257,7 @@ for img = param.collate_coh_noise.imgs
       Nx = length(noise.gps_time);
       recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
       
-      Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time(img));
+      Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time{img});
       if Nx_dft<1
         Nx_dft = 1;
       end
@@ -582,7 +585,7 @@ for img = param.collate_coh_noise.imgs
       end
       
       % Enter debug mode
-      keyboard
+      % keyboard
     end
     
     %% Create the simplified output

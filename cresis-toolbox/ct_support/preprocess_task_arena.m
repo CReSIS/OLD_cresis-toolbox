@@ -71,7 +71,8 @@ for config_idx = 1:length(configs)
   last_bytes_len = int32(0);
   num_expected = int32(-1);
   pkt_counter = int32(-1);
-  if strcmpi(configs(config_idx).radar_name,'KUSnow')
+  if strcmpi(configs(config_idx).radar_name,'KUSnow') ...
+      || strcmpi(configs(config_idx).radar_name,'SnowRadar2')
     radar_header_type = snow_radar_header_type;
     min_num_expected = int32(0);
     max_num_expected = int32(configs(config_idx).max_num_bins);
@@ -253,6 +254,7 @@ for config_idx = 1:length(configs)
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
             'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
             'last_bytes','last_bytes_len','num_expected','pkt_counter');
+          
         elseif strcmpi(configs(config_idx).radar_name,'ku0002') 
           offset = hdr{1}.frame_sync;
           mode_latch = hdr{1}.mode;
@@ -265,8 +267,10 @@ for config_idx = 1:length(configs)
           
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
             'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
-            'last_bytes','last_bytes_len','num_expected','pkt_counter');          
-        elseif strcmpi(configs(config_idx).radar_name,'KUSnow')
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
+          
+        elseif strcmpi(configs(config_idx).radar_name,'KUSnow') ...
+          || strcmpi(configs(config_idx).radar_name,'SnowRadar2')
           offset = mod(hdr(1,:),2^32);
           mode_latch = mod(hdr(3,:),2^8);
           subchannel = mod(bitshift(hdr(3,:),-8),2^8);
@@ -437,6 +441,24 @@ for config_idx = 1:length(configs)
     board_idx = board_idx_wfs(wf_idx);
     mode_latch = mode_wfs(wf_idx);
     subchannel = subchannel_wfs(wf_idx);
+    if strcmpi(param.season_name,'2022_Greenland_P3')
+      % Delete This After AITT 2022 done
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq = 10e9/1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth = 15e9/1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.sampFreq = 2400; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints = 240e-6*configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6; % TEMP FIX
+      configs(config_idx).dac{1}.delay = 0; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha = 15e9/240e-6;
+      for tx = 1:length(oparams{end}.radar.wfs(wf).tx_paths)
+        tx_idx = oparams{end}.radar.wfs(wf).tx_paths(tx);
+        if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
+          configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale = 1;
+        else
+          scale(tx) = 0;
+        end
+      end
+    end
+    
     fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq*1e6;
     BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth*1e6;
     if strcmpi(configs(config_idx).radar_name,'ku0002')
