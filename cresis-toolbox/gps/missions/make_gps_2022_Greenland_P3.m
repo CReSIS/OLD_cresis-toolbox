@@ -35,8 +35,8 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 %% <== CHOOSE WHICH GPS SOURCE TO PROCESS
-% gps_source_to_use = 'arena';
-gps_source_to_use = 'cresis';
+gps_source_to_use = 'arena';
+% gps_source_to_use = 'cresis';
 
 if strcmpi(gps_source_to_use,'arena')
   %% ARENA GPS SOURCE
@@ -56,6 +56,19 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_params{file_idx} = struct('time_reference','utc');
   
   year = 2022; month = 4; day = 19;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  date_str{file_idx} = '20220412';
+  file_type{file_idx} = 'arena';
+  params{file_idx} = struct('year',year,'time_reference','utc');
+  gps_source{file_idx} = 'arena-field';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
+  
+  year = 2022; month = 4; day = 22;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);

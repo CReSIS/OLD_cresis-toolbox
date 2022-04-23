@@ -217,19 +217,21 @@ default.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
 default.records.frames.mode = 1;
 
 %% Quick Look worksheet
+default.qlook.imgs = {[1 1],[1 2],[1 3],[1 4],[1 5],[1 6],[2 1],[2 2],[2 3],[2 4],[2 5],[2 6]};
+% default.qlook.imgs = {[1*ones(6,1),(1:6).'; 2*ones(6,1),(1:6).']};
 default.qlook.out_path = '';
-default.qlook.block_size = 5000;
+default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
-default.qlook.dec = 20;
-default.qlook.inc_dec = 10;
+default.qlook.dec = 2;
+default.qlook.inc_dec = 5;
 default.qlook.surf.en = 1;
-default.qlook.surf.method = 'fixed';
-default.qlook.surf.fixed_value = 0;
+default.qlook.surf.profile = 'SNOW_AWI';
 
 %% SAR worksheet
+default.sar.imgs = default.qlook.imgs;
 default.sar.out_path = '';
 default.sar.frm_types = {0,[0 1],0,0,-1};
-default.sar.chunk_len = 5000;
+default.sar.chunk_len = 2000;
 default.sar.chunk_overlap = 10;
 default.sar.frm_overlap = 0;
 default.sar.coh_noise_removal = 0;
@@ -249,12 +251,13 @@ default.sar.mocomp.type = 2;
 default.sar.mocomp.filter = {@butter  [2]  [0.1000]};
 default.sar.mocomp.uniform_en = 1;
 default.sar.sar_type = 'fk';
-default.sar.sigma_x = 2.5;
+default.sar.sigma_x = 0.5;
 default.sar.sub_aperture_steering = 0;
 default.sar.st_wind = @hanning;
-default.sar.start_eps = 3.15;
+default.sar.start_eps = 1.53;
 
 %% Array worksheet
+default.sar.imgs = default.qlook.imgs;
 default.array.in_path = '';
 default.array.array_path = '';
 default.array.out_path = '';
@@ -301,7 +304,7 @@ default.post.ops.location = 'arctic';
 
 %% Analysis worksheet
 default.analysis.block_size = 5000;
-default.analysis.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
+default.analysis.imgs = {[1*ones(6,1),(1:6).'; 2*ones(6,1),(1:6).']};
 cmd_idx = 0;
 cmd_idx = cmd_idx + 1;
 default.analysis.cmd{cmd_idx}.method = 'statistics';
