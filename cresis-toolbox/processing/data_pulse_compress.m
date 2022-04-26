@@ -872,26 +872,40 @@ for img = 1:length(param.load.imgs)
               
               cn.df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
               
-              % nz: Nyquist zone containing signal spectrum (just renaming
-              %   variable for convenience). The assumption is that the
-              %   signal does not cross nyquist zones.
-              cn.nz = double(hdr.nyquist_zone_hw{img}(rec));
-              
-              % f_nz0: Lowest frequency in terms of ADC input frequency of the
-              %   nyquist zone which contains the signal
-              cn.f_nz0 = wfs(wf).fs_raw * floor(cn.nz/2);
-              
-              cn.freq_raw =  cn.f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
-                + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
-              cn.freq_raw_valid = cn.freq_raw;
-              
-              cn.conjugate_bins = ~(cn.freq_raw_valid >= cn.nz*wfs(wf).fs_raw/2 ...
-                & cn.freq_raw_valid <= (1+cn.nz)*wfs(wf).fs_raw/2);
-              
-              if mod(cn.nz,2)
-                cn.freq_raw_valid(cn.conjugate_bins) = cn.nz*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+              if wfs(wf).nz_complex
+                % The signal can cross nyquist zones because it is complex.
+                % Currently the code assumes that the signal is represented
+                % in complex baseband in the first nyquist zone.
+                cn.nz = 0;
+                
+                cn.freq_raw =  hdr.DDC_freq{img}(rec) ...
+                  + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).';
+                cn.freq_raw_valid = cn.freq_raw;
+                
+                cn.conjugate_bins = false(size(cn.freq_raw_valid));
+                
               else
-                cn.freq_raw_valid(cn.conjugate_bins) = (cn.nz+1)*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+                % nz: Nyquist zone containing signal spectrum (just renaming
+                %   variable for convenience). The assumption is that the
+                %   signal does not cross nyquist zones.
+                cn.nz = double(hdr.nyquist_zone_hw{img}(rec));
+                
+                % f_nz0: Lowest frequency in terms of ADC input frequency of the
+                %   nyquist zone which contains the signal
+                cn.f_nz0 = wfs(wf).fs_raw * floor(cn.nz/2);
+                
+                cn.freq_raw =  cn.f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
+                  + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
+                cn.freq_raw_valid = cn.freq_raw;
+                
+                cn.conjugate_bins = ~(cn.freq_raw_valid >= cn.nz*wfs(wf).fs_raw/2 ...
+                  & cn.freq_raw_valid <= (1+cn.nz)*wfs(wf).fs_raw/2);
+                
+                if mod(cn.nz,2)
+                  cn.freq_raw_valid(cn.conjugate_bins) = cn.nz*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+                else
+                  cn.freq_raw_valid(cn.conjugate_bins) = (cn.nz+1)*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+                end
               end
               
               cn.freq_raw_valid = cn.df_raw*round(cn.freq_raw_valid/cn.df_raw);

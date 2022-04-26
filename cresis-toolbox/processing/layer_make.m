@@ -1,8 +1,18 @@
 function layer_make(param,param_override)
 % layer_make(param,param_override)
 %
-% Makes layer files for the imb.picker.m program. This should be run from
-% run_layer_make.m (that script sets up all the control variables).
+% The layer_make function performs one of three actions depending on the
+% "update_mode" field:
+% * It can be used to make layer files when they do not exist
+% * It can be used to blank out layer information in layer files
+% * It can be used to update GPS information in layer files (e.g. if the
+% records file is updated with new GPS information with records_update.m)
+%
+% The layer files are used by the imb.picker.m program as well as the data
+% processing.
+%
+% This function should be run from run_layer_make.m (that script sets up
+% all the control variables).
 %
 % Author: John Paden
 %
