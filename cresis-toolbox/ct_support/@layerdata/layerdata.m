@@ -253,11 +253,13 @@ classdef layerdata < handle
       end
     end
     
-    %% check: check that layers are loaded for a particular frame
-    function check(obj,frm)
-      if length(obj.layer) < frm || isempty(obj.layer{frm})
-        % Load layer file
-        obj.load(frm);
+    %% check: check that layers are loaded for a particular set of frames
+    function check(obj,frms)
+      for frm = frms(:).'
+        if length(obj.layer) < frm || isempty(obj.layer{frm})
+          % Load layer file
+          obj.load(frm);
+        end
       end
     end
     
@@ -265,17 +267,13 @@ classdef layerdata < handle
     function check_all(obj)
       obj.check_records();
       obj.check_layer_organizer();
-      for frm = 1:length(obj.frames.frame_idxs)
-        obj.check(frm);
-      end
+      obj.check(1:length(obj.frames.frame_idxs));
     end
     
     %% check: check that layers are loaded for all frames
     function check_all_frames(obj)
       obj.check_frames();
-      for frm = 1:length(obj.frames.frame_idxs)
-        obj.check(frm);
-      end
+      obj.check(1:length(obj.frames.frame_idxs));
     end
     
     %% check_layer_organizer: check that layer organizer is loaded
@@ -1241,6 +1239,7 @@ classdef layerdata < handle
     %% update_gps: update gps for a frame
     function update_gps(obj,frms)
       obj.check_records();
+      obj.check(frms);
 
       for frm = frms(:).'
         if strcmp(obj.sample_spacing_method,'records')
