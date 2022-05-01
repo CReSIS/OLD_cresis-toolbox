@@ -19,7 +19,7 @@ function [varargout] = physical_constants(varargin)
 % 
 % Authors: John Paden, Hara Madhav Talasila
 %
-% See Also: physical_constants.m, proj_load_standard.m
+% See Also: physical_constants.m, proj_load_standard.m, project_locations.m
 
 %% Physical Constants
 % =========================================================================
