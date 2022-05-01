@@ -540,7 +540,6 @@ end
 %  .heading
 %  .gps_time
 %  .gps_source
-records.surface = NaN*zeros(size(records.lat));
 records.relative_filename = [];
 records.relative_rec_num = [];
 records.offset = [];

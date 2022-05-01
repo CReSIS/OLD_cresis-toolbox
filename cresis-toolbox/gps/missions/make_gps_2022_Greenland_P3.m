@@ -35,20 +35,46 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 %% <== CHOOSE WHICH GPS SOURCE TO PROCESS
-gps_source_to_use = 'arena';
-% gps_source_to_use = 'CReSIS';
+% gps_source_to_use = 'arena';
+gps_source_to_use = 'cresis';
 
 if strcmpi(gps_source_to_use,'arena')
   %% ARENA GPS SOURCE
   % =======================================================================
   
-  year = 2022; month = 4; day = 12;
+%   year = 2022; month = 4; day = 12;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = '20220412';
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',year,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+  
+  year = 2022; month = 4; day = 19;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   date_str{file_idx} = '20220412';
   file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2022,'time_reference','utc');
+  params{file_idx} = struct('year',year,'time_reference','utc');
+  gps_source{file_idx} = 'arena-field';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = struct('time_reference','utc');
+  
+  year = 2022; month = 4; day = 22;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  date_str{file_idx} = '20220412';
+  file_type{file_idx} = 'arena';
+  params{file_idx} = struct('year',year,'time_reference','utc');
   gps_source{file_idx} = 'arena-field';
   sync_flag{file_idx} = 1;
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
@@ -58,26 +84,52 @@ if strcmpi(gps_source_to_use,'arena')
 elseif strcmpi(gps_source_to_use,'cresis')
   %% CReSIS GPS SOURCE
   % =======================================================================
-  
-  % IMU worked fine
-  year = 2022; month = 4; day = 12;
+
+%   % IMU worked fine
+%   year = 2022; month = 4; day = 12;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','.OUT');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'applanix';
+%   params{file_idx} = struct('time_reference','gps','year',year,'month',month,'day',day);
+%   gps_source{file_idx} = 'cresis-field20220421';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+
+%   % IMU worked fine
+%   year = 2022; month = 4; day = 19;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','.OUT');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'applanix';
+%   params{file_idx} = struct('time_reference','gps','year',year,'month',month,'day',day);
+%   gps_source{file_idx} = 'cresis-field20220421';
+%   sync_flag{file_idx} = 0;
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+
+%   % IMU worked fine
+  year = 2022; month = 4; day = 22;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'GNSS_IMU','T01.txt')};
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','.OUT');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
-    'elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3','f4',...
-    'f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 34;
-  gps_source{file_idx} = 'bas-final20200306';
+  file_type{file_idx} = 'applanix';
+  params{file_idx} = struct('time_reference','gps','year',year,'month',month,'day',day);
+  gps_source{file_idx} = 'cresis-field20220421';
+  sync_flag{file_idx} = 0;
+  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   sync_flag{file_idx} = 1;
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   sync_file_type{file_idx} = 'arena';
   sync_params{file_idx} = struct('time_reference','utc');
-  
+
 end
 
 %% gps_make
@@ -113,6 +165,21 @@ for idx = 1:length(file_type)
     end
   end
   
+  if ~isempty(regexpi(out_fn,'20220419'))
+    % Fix bad radar time 
+    warning('Fixing bad radar_time: %s', out_fn);
+    gps = load(out_fn);
+    
+    if gps.radar_time(1) == 0
+      gps.radar_time = gps.radar_time(2:end);
+      gps.sync_elev = gps.sync_elev(2:end);
+      gps.sync_gps_time = gps.sync_gps_time(2:end);
+      gps.sync_lat = gps.sync_lat(2:end);
+      gps.sync_lon = gps.sync_lon(2:end);
+    end
+    save(out_fn,'-append','-struct','gps','radar_time','sync_elev','sync_gps_time','sync_lat','sync_lon');
+  end
+
   if ~isempty(regexpi(out_fn,'201910XX'))
     % Fake GPS for testing
     warning('Faking GPS data: %s', out_fn);

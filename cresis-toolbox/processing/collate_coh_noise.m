@@ -78,6 +78,7 @@ enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots))
 enable_threshold_plot = any(strcmp('threshold_plot',param.collate_coh_noise.debug_plots));
 enable_cn_plot = any(strcmp('cn_plot',param.collate_coh_noise.debug_plots));
 enable_reuse_files = any(strcmp('reuse',param.collate_coh_noise.debug_plots));
+enable_debug_plot = any(strcmp('debug',param.collate_coh_noise.debug_plots));
 if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
@@ -584,8 +585,10 @@ for img = param.collate_coh_noise.imgs
         figure(h_fig(h_fig_idx));
       end
       
-      % Enter debug mode
-      % keyboard
+      if enable_debug_plot
+        % Enter debug mode
+        keyboard
+      end
     end
     
     %% Create the simplified output

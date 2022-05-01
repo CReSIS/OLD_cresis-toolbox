@@ -23,17 +23,31 @@
 % User Settings
 % =================================================================
 % geotiff_fn = 'C:\GIS_data\greenland\Landsat-7\mzl7geo_90m_lzw.tif';
-geotiff_fn = 'C:\GIS_data\arctic\NaturalEarth_Data\Arctic_NaturalEarth.tif';
+% geotiff_fn = 'C:\GIS_data\arctic\NaturalEarth_Data\Arctic_NaturalEarth.tif';
 % geotiff_fn = '/scratch/GIS_data/greenland/Landsat-7/mzl7geo_90m_lzw.tif'; % For Land Ice
+% geotiff_fn = '/scratch/GIS_data/greenland/Landsat-7/Greenland_natural_90m.tif'; % For Land Ice
+geotiff_fn = '/scratch/GIS_data/arctic/Landsat-7/arctic_natural_90m.tif'; % For Land Ice
+% geotiff_fn = '/scratch/GIS_data/arctic/ArcticDEM/arcticdem_mosaic_500m_v3.0.tif'; % For Land Ice
 % geotiff_fn = '/scratch/GIS_data/arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif'; % For Sea Ice
 
-gps_input_type = 'file_mcords'; % file_accum, or serial
-%serial_dev = '/dev/ttyUSB0';
-%serial_dev = '/dev/ttyUSB1';
-% You may have to run from bash shell: "chmod a+rwx /dev/ttyS0" as root
-serial_dev = '/dev/ttyS0';
-gps_input_fn_dir = 'E:\';
+dem_fn = '/scratch/GIS_data/arctic/ArcticDEM/arcticdem_mosaic_500m_v3.0.tif';
+[dem_RGB, dem_R, ~] = geotiffread(dem_fn);
+dem_proj = geotiffinfo(dem_fn);
+dem_x_axis = dem_R(3,1) + dem_R(2,1)*(1:size(dem_RGB,2));
+dem_y_axis = dem_R(3,2) + dem_R(1,2)*(1:size(dem_RGB,1));
+
+gps_input_type = 'serial'; % file_mcords, file_accum, or serial
+
+% You may have to run from bash shell: "sudo chmod a+rwx /dev/ttyS0" as root
+serial_dev = '/dev/ttyUSB0';
+% serial_dev = '/dev/ttyUSB1';
+% serial_dev = '/dev/ttyS0';
+BAUD_RATE = 115200;
+
+gps_input_fn_dir = '/tmp/';
 gps_input_fn_start = 'GPS';
+% gps_input_fn_dir = 'E:\';
+% gps_input_fn_start = 'GPS';
 % gps_input_fn_dir = '\\172.18.1.33\accum\';
 % gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
 gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
@@ -41,12 +55,12 @@ gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
                            % cause program to crash
 
 % For OIB, get kmz file from John Sonntag, then unzip the kmz file and use the "doc.kml" that is inside
-kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
-% kml_fn = ''; % Set this to empty if the file is not available
+% kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
+kml_fn = '/scratch/metadata/2022_Greenland_P3/flight_plans/Eureka_flight_coords_04_22_2022_GT2L.kml'; % Set this to empty if the file is not available
 kml_mission_name = '';
 
 enable_gps_record = false;
-gps_fn_dir = '/scratch/metadata/2015_Greenland_LC130/';
+gps_fn_dir = '/scratch/metadata/2022_Greenland_P3/';
 
 
 [year,month,day] = datevec(now);
@@ -59,7 +73,8 @@ if isempty(kml_fn)
   kml_lon = [];
   kml_lat = [];
 else
-  if 0
+  if 1
+    % Simple KML file
     xDoc = xmlread(kml_fn);
     document = read_xml(xDoc);
     pos = textscan(document.kml{1}.Document{1}.Placemark{1}.LineString{1}.coordinates{1}.text{1}.node_val, ...
@@ -67,6 +82,7 @@ else
     kml_lon = pos{1};
     kml_lat = pos{2};
   else
+    % KML file with many named lines in it (allows for selecting one of the lines)
     kml_pos = kml_read_shapefile(kml_fn);
     if isempty(kml_mission_name)
       for idx=1:length(kml_pos)
@@ -95,7 +111,7 @@ if strcmpi(gps_input_type,'serial')
   global flight_tracker_serial_dev;
   if isempty(flight_tracker_serial_dev)
     fprintf('Getting serial device %s handle\n', serial_dev);
-    flight_tracker_serial_dev = serial(serial_dev);
+    flight_tracker_serial_dev = serial(serial_dev,'BaudRate',BAUD_RATE);
   end
   
   if ~strcmpi(get(flight_tracker_serial_dev,'Status'),'open')
@@ -114,7 +130,7 @@ if strcmpi(gps_input_type,'serial')
 end
 
 fprintf('Plotting geotiff\n');
-[proj,fig_h] = plot_geotiff(geotiff_fn, kml_lat, kml_lon, 1,'r');
+[proj,fig_h] = geotiff_plot(geotiff_fn, kml_lat, kml_lon, 1,'r');
 haxes = get(fig_h,'Children');
 
 if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
@@ -350,8 +366,11 @@ try
       day_start = datenum(year,month,day,0,0,0);
       utc_sod = (utc_time - day_start)*86400;
       
-      title(sprintf('UTC %02d:%02d:%05.2f, %.2f SOD, %.0f m/%.0f ft',hour,minute,sec, ...
-        utc_sod, elev, elev*100/2.54/12));
+      [dem_x,dem_y] = projfwd(dem_proj,lat,lon);
+      dem_elev = interp2(dem_x_axis,dem_y_axis,dem_RGB,dem_x,dem_y);
+
+      title(sprintf('UTC %02d:%02d:%05.2f, %.2f SOD, %.0f m/%.0f ft, %.0f m/%.0f ft',hour,minute,sec, ...
+        utc_sod, elev, elev*100/2.54/12, elev-dem_elev, (elev-dem_elev)*100/2.54/12));
       
       if isempty(lat)
         lat = NaN;

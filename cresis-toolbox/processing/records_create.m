@@ -37,6 +37,18 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
+% param.records.arena: structure controlling records creation of
+% arena-based digital systems
+if ~isfield(param.records,'arena')
+  param.records.arena = [];
+end
+
+% param.records.arena.total_presums: override total_presums value that is
+% normally read in from the config.xml file
+if ~isfield(param.records.arena,'total_presums')
+  param.records.arena.total_presums = [];
+end
+
 % boards: List of subdirectories containing the files for each board (a
 % board is a data stream stored to disk and often contains the data stream
 % from multiple ADCs)
@@ -337,12 +349,16 @@ if any(param.records.file.version == [9 10 103 412])
 
     %% Correct EPRI/Arena: Find EPRI jumps and mask out
     % =====================================================================
-%     jump_idxs = find( abs(diff(double(epri_pris))/configs.total_presums - 1) > 0.1);
-    jump_idxs = find( abs(diff(double(epri_pris))/configs.adc{board_idx}.presums - 1) > 0.1);
+    if isempty(param.records.arena.total_presums)
+      total_presums = configs.total_presums;
+    else
+      total_presums = param.records.arena.total_presums;
+    end
+    jump_idxs = find( abs(diff(double(epri_pris))/total_presums - 1) > 0.1);
     
     bad_mask = zeros(size(epri_pris));
     for jump_idx = jump_idxs
-      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/configs.total_presums - 1;
+      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/total_presums - 1;
       fprintf('jump_idx: %d, jump: %d\n', jump_idx, jump);
       fprintf('epri_pris: %d to %d\n', epri_pris(jump_idx), epri_pris(jump_idx+1));
       if jump < -0.1
