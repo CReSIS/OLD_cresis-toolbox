@@ -77,18 +77,5 @@ altra.Z = Z;
 altra.U = U;
 altra.N = N;
 
-% 4. Note that for each target, we have defined x,y,z position which is in flight
-% coordinate system.
-%
-% 5. For each target, find the closest in along-track trajectory position
-% to that target. [~,idx] = min(abs(target.x - traj.x));
-%
-% 6. Use XYZ FCS of this closest trajectory position to place the target.
-% Convert target's coordinates to ECEF.
-
-% Simulator:
-% Operate in ECEF coordinates and just cycle through each target and each
-% position computing ranges using Pythagorean's theorem
-
 clear X U N Z Y
 

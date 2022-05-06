@@ -109,7 +109,7 @@ else
       
       YLim_min = min([YLim_min; full.Time], [], 'all');
       YLim_max = max([YLim_max; full.Time], [], 'all');
-      tmp = 20*log10(abs(full.Data));
+      tmp = 10*log10(abs(full.Data));
       if lat_plot_en
         x = full.Latitude;
       else
@@ -138,6 +138,7 @@ else
       ylabel('Fast-time, us');
       title('Combined');
       
+      leg_str = [];
       if point_target_marker_en
         e_lon = abs(bsxfun(@minus, full.Longitude, param.target.lon'));
         e_lat = abs(bsxfun(@minus, full.Latitude, param.target.lat'));
@@ -151,7 +152,15 @@ else
         TWTT_est = range_est * 2/c;
         plot(full.Latitude(idx_lat),TWTT_est/1e-6,'kx');
         plot(param.target.lat, TWTT_est/1e-6,'ko');
+        leg_str = [leg_str {'Processed', 'Simulated'} ];
       end
+      
+      % Column max
+      [col_max, col_max_idxs] = max(tmp);
+      plot(x, full.Time(col_max_idxs)/1e-6,'r.');
+      leg_str = [leg_str {'Col Max'} ];
+      
+      legend(leg_str);
       
     else % individual images
       wf_adc = 1;
@@ -168,7 +177,7 @@ else
       else
         x = 1:length(indi{img}.Latitude);
       end
-      tmp = 20*log10(abs(indi{img}.Data));
+      tmp = 10*log10(abs(indi{img}.Data));
       
       h_axes(idx) = subplot(1, N_imgs+1, idx);
       if relative_pow_en
@@ -188,6 +197,7 @@ else
       ylabel('Fast-time, us');
       title(sprintf('[wf %02d adc %02d]',wf,adc));
       
+      leg_str = [];
       if point_target_marker_en
         e_lon = abs(bsxfun(@minus, indi{img}.Longitude, param.target.lon'));
         e_lat = abs(bsxfun(@minus, indi{img}.Latitude, param.target.lat'));
@@ -199,10 +209,17 @@ else
           indi{img}.Longitude(idx_lat), indi{img}.Elevation(idx_lat), ...
           param.target.lat, param.target.lon, param.target.elev, WGS84.ellipsoid) ;
         TWTT_est = range_est * 2/c;
-        plot(indi{img}.Latitude(idx_lat),TWTT_est/1e-6,'kx');
+        plot(indi{img}.Latitude(idx_lat), TWTT_est/1e-6,'kx');
         plot(param.target.lat, TWTT_est/1e-6,'ko');
-        legend({'Loaded', 'Simulated'});
+        leg_str = [leg_str {'Processed', 'Simulated'} ];
       end
+      
+      % Column max
+      [col_max, col_max_idxs] = max(tmp);
+      plot(x, indi{img}.Time(col_max_idxs)/1e-6,'r.');
+      leg_str = [leg_str {'Col Max'} ];
+      
+      legend(leg_str);
       
     end
     

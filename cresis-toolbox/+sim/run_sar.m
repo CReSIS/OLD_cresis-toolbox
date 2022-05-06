@@ -32,9 +32,10 @@ load(param_fn);
 %  Overrides
 param_override = [];
 param_override.sar.imgs           = param.sim.imgs;
+param_override.sar.sigma_x        = 5; %2*param.sar.sigma_x;
 param_override.sar.surf_filt_dist = 10; % default 3000m
 param_override.sar.chunk_len      = 100; % default 2500m
-param.sar.wf_adc_pair_task_group_method = 'board'; % default 'img'
+param_override.sar.wf_adc_pair_task_group_method = 'board'; % default 'img'
 % default 'img' causes error  in DDC in data_pulse_compress because if the
 % simulation uses more than 1 image, then the second image in simulation
 % is loaded as img=1 while wf=2 which gives incorrect values for
@@ -110,8 +111,20 @@ else
   P_min = Inf;
   P_max = -Inf;
   h_axes = [];
+  h_axes_slice = [];
   h_cb = [];
   N_imgs = length(param.sar_load.imgs);
+  
+  % choose slice index other than global max
+  if 1
+    slice_idx_override = 0;
+  else
+    slice_idx_override = 1;
+    slice_idx_row_override = [n n n];
+    slice_idx_col_override = [n n n];
+  end
+  leg_str_slice_row = [];
+  leg_str_slice_col = [];
   
   for img = 1:N_imgs % support only one for now
     for wf_adc = 1:size(param.load_data.imgs{img},1)
@@ -150,6 +163,7 @@ else
       ylabel('Fast-time, us');
       title(sprintf('[wf %02d adc %02d]',wf,adc));
       
+      leg_str = [];
       if point_target_marker_en
         e_lon = abs(bsxfun(@minus, hdr.fcs{img}{wf_adc}.lon, param.target.lon'));
         e_lat = abs(bsxfun(@minus, hdr.fcs{img}{wf_adc}.lat, param.target.lat'));
@@ -163,12 +177,85 @@ else
         TWTT_est = range_est * 2/c;
         plot(hdr.fcs{img}{wf_adc}.lat(idx_lat),TWTT_est/1e-6,'kx');
         plot(param.target.lat, TWTT_est/1e-6,'ko');
-        legend({'Loaded', 'Simulated'});
+        leg_str = [leg_str {'Processed', 'Simulated'} ];
       end
+      
+      % Global max
+      [g_max, g_max_idxs] = max(tmp(:));
+      [g_max_row, g_max_col] = ind2sub(size(tmp), g_max_idxs);
+      plot(x(g_max_col), hdr.wfs(wf).time(g_max_row)/1e-6,'rs');
+      leg_str = [leg_str {sprintf('Max %.2f',g_max)} ];
+      
+      legend(leg_str);
+      
+      % Slices
+      if slice_idx_override
+        slice_idx_row = slice_idx_row_override(img);
+        slice_idx_col = slice_idx_col_override(img);
+      else
+        slice_idx_row = g_max_row;
+        slice_idx_col = g_max_col;
+      end
+      leg_str_slice_row = [leg_str_slice_row {sprintf('%d (%d-%d) %d', img, wf, adc, slice_idx_row)} ];
+      leg_str_slice_col = [leg_str_slice_col {sprintf('%d (%d-%d) %d', img, wf, adc, slice_idx_col)} ];
+      
+      figure(fig_h_slice);
+      % slow_time (along track) slice
+      h_axes_slice(1) = subplot(221);
+      plot(x, tmp(slice_idx_row,:) );
+      grid on; hold on; axis tight;
+      if lat_plot_en
+        xlabel('Latitude');
+      else
+        xlabel('Along-track position, rlines');
+      end
+      ylabel('Magnitude, dB');
+      legend(leg_str_slice_row);
+      title('Slice slow-time / along-track [ img (wf-adc) col idx ]');
+      
+      
+      h_axes_slice(3) = subplot(223);
+      plot(x, angle(data{img}(slice_idx_row,:)) );
+      grid on; hold on; axis tight;
+      if lat_plot_en
+        xlabel('Latitude');
+      else
+        xlabel('Along-track position, rlines');
+      end
+      ylabel('Phase, radians');
+      legend(leg_str_slice_row);
+      
+      % fast_time (rline) slice
+      h_axes_slice(2) = subplot(222);
+      plot(hdr.wfs(wf).time/1e-6, tmp(:,slice_idx_col) );
+      grid on; hold on; axis tight;
+      xlabel('Fast-time, us');
+      ylabel('Magnitude, dB');
+      title(sprintf('[wf %02d adc %02d]',wf,adc));
+      legend(leg_str_slice_col);
+      title('Slice fast-time / rline [ img (wf-adc) col idx ]');
+
+      h_axes_slice(4) = subplot(224);
+      plot(hdr.wfs(wf).time/1e-6, angle(data{img}(:,slice_idx_col)) );
+      grid on; hold on; axis tight;
+      xlabel('Fast-time, us');
+      ylabel('Phase, radians');
+      legend(leg_str_slice_col);
       
     end
   end
   
+  figure(fig_h_slice);
+  linkaxes(h_axes_slice([1,3]),'x'); zoom on;
+  linkaxes(h_axes_slice([2,4]),'x'); zoom on;
+  try
+    sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+  end
+  set(findobj(fig_h_slice,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+  set(fig_h_slice, 'Position', get(0, 'Screensize'));
+  %   print(gcf, '-dpng', fig_title, '-r300');
+  
+  figure(fig_h);
   linkaxes(h_axes); zoom on;
   set(h_axes, 'YLim', [YLim_min YLim_max]/1e-6);
   if ~relative_pow_en

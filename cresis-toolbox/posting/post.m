@@ -147,6 +147,10 @@ if ~isfield(param.post, 'surface_source')
   param.post.surface_source = struct('name', 'surface', 'source', 'layerData', 'existence_check', false);
 end
 
+%tmp_hack
+if ~isfield(param.post, 'bottom_source')
+  param.post.bottom_source = struct('name', 'bottom', 'source', 'layerData', 'existence_check', false);
+end
 
 %% Loading layer data
 % =========================================================================
@@ -161,6 +165,8 @@ if param.post.layers_en
   out_layers = layerdata(param, fullfile(post_path,'CSARP_layer'));
 end
 surface_layer = {opsLoadLayers(tmp_param, param.post.surface_source)};
+%tmp_hack
+bottom_layer = {opsLoadLayers(tmp_param, param.post.bottom_source)};
 
 layers_to_post = {};
 for layer = layers
@@ -261,6 +267,8 @@ for frm_idx = 1:length(param.cmd.frms)
   end
   
   surface_lay = opsInterpLayersToMasterGPSTime(lay,surface_layer,param.post.ops.gaps_dist);
+  %tmp_hack
+  bottom_lay = opsInterpLayersToMasterGPSTime(lay,bottom_layer,param.post.ops.gaps_dist);
   
   lay.Surface = surface_lay.layerData{1}.value{2}.data;
   if length(lay.layerData) >= 1
@@ -268,6 +276,8 @@ for frm_idx = 1:length(param.cmd.frms)
   else
     lay.Bottom = NaN*zeros(size(lay.Surface));
   end
+  %tmp_hack
+  lay.Bottom = bottom_lay.layerData{1}.value{2}.data;
   
   if param.post.maps_en || param.post.echo_en
     image_dir = fullfile(post_path,'images',param.day_seg);

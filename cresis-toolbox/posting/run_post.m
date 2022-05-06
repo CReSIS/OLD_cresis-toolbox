@@ -10,13 +10,16 @@
 %% User Settings
 param_override = [];
 
-params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
-% params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
+% params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2019_Greenland_P3.xls'));
 
 % Example to run a specific segment and frame by overriding parameter spreadsheet values
-% params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20181015_04');
-% params = ct_set_params(params,'cmd.frms',6);
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20190405_02');
+params = ct_set_params(params,'cmd.frms',15);
+
+param_override.post.data_dirs = {'standard'};
+
 
 %% Automated Section
 % =====================================================================
@@ -38,9 +41,10 @@ for param_idx = 1:length(params)
   post(param,param_override);
 end
 
+return;
 %% Create season-wide concatenated and browse files (CSV and KML)
 % =====================================================================
-concatenate_csv_kml = false;
+concatenate_csv_kml = 0;
 for param_idx = 1:length(params)
   param = params(param_idx);
   cmd = param.cmd;

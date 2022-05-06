@@ -319,7 +319,7 @@ end
 switch param.target.type
   case {'point', 'points'}
     
-    if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
+    if 1 
       % For simple target position method:
       
       % A to B is the flightline
@@ -394,9 +394,11 @@ switch param.target.type
         ylabel('y ECEF');
         zlabel('z ECEF');
         
-        figure;
-        test_range = vecnorm([records2.x; records2.y; records2.z]-T);
-        plot(test_range,'x');
+        if size(T,2) == 1
+          figure;
+          test_range = vecnorm([records2.x; records2.y; records2.z]-T);
+          plot(test_range,'x');
+        end
       end
       
       clear altra A B Lsar x y z idx_C C T %  X U N Z Y
@@ -497,7 +499,7 @@ for idx = 1: size(A,2)
   end
   
   plot3(A(1,idx), A(2,idx), A(3,idx), 'o','LineWidth',2,'Color','b');
-  text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
+%   text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
   
 end
 end

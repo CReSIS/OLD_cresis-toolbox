@@ -140,6 +140,7 @@ else
       ylabel('Fast-time, us');
       title('Combined');
       
+      leg_str = [];
       if point_target_marker_en
         e_lon = abs(bsxfun(@minus, full.Longitude, param.target.lon'));
         e_lat = abs(bsxfun(@minus, full.Latitude, param.target.lat'));
@@ -153,7 +154,16 @@ else
         TWTT_est = range_est * 2/c;
         plot(full.Latitude(idx_lat),TWTT_est/1e-6,'kx');
         plot(param.target.lat, TWTT_est/1e-6,'ko');
+        leg_str = [leg_str {'Processed', 'Simulated'} ];
       end
+      
+      % Global max
+      [g_max, g_max_idxs] = max(tmp(:));
+      [g_max_row, g_max_col] = ind2sub(size(tmp), g_max_idxs);
+      plot(x(g_max_col), full.Time(g_max_row)/1e-6,'rs');
+      leg_str = [leg_str {sprintf('Max %.2f',g_max)} ];
+      
+      legend(leg_str);
       
     else % individual images
       wf_adc = 1;
@@ -190,6 +200,7 @@ else
       ylabel('Fast-time, us');
       title(sprintf('[wf %02d adc %02d]',wf,adc));
       
+      leg_str = [];
       if point_target_marker_en
         e_lon = abs(bsxfun(@minus, indi{img}.Longitude, param.target.lon'));
         e_lat = abs(bsxfun(@minus, indi{img}.Latitude, param.target.lat'));
@@ -203,9 +214,16 @@ else
         TWTT_est = range_est * 2/c;
         plot(indi{img}.Latitude(idx_lat),TWTT_est/1e-6,'kx');
         plot(param.target.lat, TWTT_est/1e-6,'ko');
-        legend({'Loaded', 'Simulated'});
+        leg_str = [leg_str {'Processed', 'Simulated'} ];
       end
       
+      % Global max
+      [g_max, g_max_idxs] = max(tmp(:));
+      [g_max_row, g_max_col] = ind2sub(size(tmp), g_max_idxs);
+      plot(x(g_max_col), indi{img}.Time(g_max_row)/1e-6,'rs');
+      leg_str = [leg_str {sprintf('Max %.2f',g_max)} ];
+      
+      legend(leg_str);
     end
     
   end

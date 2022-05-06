@@ -7,7 +7,7 @@
 %
 % See also sim.flightline_extract, run_load_data (example 7)
 
-try; hm; end;
+try; hara; end;
 
 param=[];
 data = [];
@@ -51,6 +51,8 @@ param.sim.day_seg     = '20140410_01';
 % param.sim.frame_idx   = 57;
 param.sim.imgs        = {[1 5]};
 param.sim.imgs        = {[1 5], [2 5] , [3 5]};
+% param.sim.imgs        = {[ones(3,1), (4:6).'], [2*ones(3,1), (4:6).'] , [3*ones(3,1), (4:6).']};
+param.sim.imgs        = {[ones(3,1), (4:6).']};
 
 % param.sim.radar_name  = 'rds';
 % param.sim.season_name = '2018_Greenland_P3';
@@ -71,7 +73,7 @@ param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 % param.target.offsets.z = []; % usually -ve
 
 
-if 0
+if 1
   % Northward flight instead of actual trajectory
   % single target in the center
   param.sim.north_along_track_en = 1;
@@ -81,7 +83,7 @@ if 0
   param.target.offsets.y = 0;
   param.target.offsets.z = -500;
   param.target.offsets.z = -base2dec('KU', 36); % about  5 us TWTT for 750 meter
-  param.target.offsets.z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
+%   param.target.offsets.z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
   
   
 elseif 0
@@ -104,7 +106,7 @@ elseif 1
 
 end
 
-param.sim.debug_plots_en = 0;
+param.sim.debug_plots_en = 1;
 
 % =========================================================================
 
@@ -191,40 +193,20 @@ for img = 1:length(param.sim.imgs)
     twtt = 2*range/c;
     
     Nt = wfs(wf).Nt_raw;
+    raw_data{img}(:,:,wf_adc) = zeros(Nt,Nx);
     
-    if 0 % old simulator
+    for tgt = 1:size(range,1)
+      td    = twtt(tgt,:);
+      fb    = chirp_rate*td;
+      time  = time_raw - td; % ################
       
-      for rec = 1:Nx
-        td    = twtt(rec);
-        fb    = chirp_rate*td;
-        time  = time_raw - td; % ################
-        
-        if strcmpi(radar_type,'deramp') % deramp
-          raw_data{wf,adc}(:,rec) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
-            .* cos(2*pi*f0*td + pi*chirp_rate*(2*time_raw*td - td^2)); % Nt x Nrx;
-        else % pulsed
-          raw_data{img}(:,rec,wf_adc) = tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
-            * 0.5 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
-        end
-      end %% for rec
-      
-    else % vectorized
-      
-      raw_data{img}(:,:,wf_adc) = zeros(Nt,Nx);
-      
-      for tgt = 1:size(range,1)
-        td    = twtt(tgt,:);
-        fb    = chirp_rate*td;
-        time  = time_raw - td; % ################
-        
-        if strcmpi(radar_type,'deramp') % deramp
-        else % pulsed
-          raw_data{img}(:,:,wf_adc) = raw_data{img}(:,:,wf_adc) + tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
-            * 0.5 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
-        end
-      end % for tgt
-      
-    end % % old or new simulator
+      if strcmpi(radar_type,'deramp') % deramp
+      else % pulsed
+        raw_data{img}(:,:,wf_adc) = raw_data{img}(:,:,wf_adc) + tukeywin_cont(time/Tpd-0.5,rx_tukey) ...
+          * 1 .* exp(1i*(2*pi*f0*time + pi*chirp_rate*time.^2 )); % Nt x Nrx;
+      end
+    end % for tgt
+    
     
     param.traj{img,wf_adc}      = gps;
     param.sim.range{img,wf_adc} = range;
@@ -397,3 +379,116 @@ for compressing_this=1 %continue;
   end %% for img
   
 end
+
+return;
+%% sanity checks
+
+leg_str = [];
+leg_str_diff = [];
+leg_str_ref = [];
+marker_char = [ '.' 'o' 's' '>' '<' '+' 'd' ];
+
+pc = [];
+pc_rel_ref = [];
+pc_rel_ref_dist = [];
+pc_to_target = [];
+pc_to_target_dist = [];
+pc_to_target_phase_delay = [];
+diff_phase = [];
+
+param.gps_source = records.gps_source;
+
+for img = 1:length(param.sim.imgs)
+  for wf_adc = 1:size(param.sim.imgs{img},1)
+    wf = param.sim.imgs{img}(wf_adc,1);
+    adc = param.sim.imgs{img}(wf_adc,2);
+    
+    leg_str = [leg_str {sprintf('[%d-%d]', wf, adc)} ];
+    % param.radar.wfs(wf).rx_paths(adc)
+    pc{img}(:,wf_adc) = [+1; -1; -1] .* lever_arm(param, [], param.radar.wfs(wf).rx_paths(adc) );
+    
+  end
+end
+
+for img = 1:length(param.sim.imgs)
+  for wf_adc = 1:size(param.sim.imgs{img},1)
+    wf = param.sim.imgs{img}(wf_adc,1);
+    adc = param.sim.imgs{img}(wf_adc,2);
+    
+    ref_wf_adc = 2; %%%%%%%%%%#########<<<<<<< just an idx,  not adc
+    lambda = c / fc;
+    lambda = c ./ [f0; fc; f1]; % to check phases at begining, center and end of phase ramp
+    
+    target = [ 0; 0; param.target.offsets.z ]; %%%%%%%%%%
+    
+    pc_rel_ref{img}(:,wf_adc) = pc{img}(:,wf_adc) - pc{img}(:,ref_wf_adc) ;
+    pc_rel_ref_dist{img}(wf_adc) = vecnorm(pc_rel_ref{img}(:,wf_adc));
+        
+    pc_to_target{img}(:,wf_adc) = target - pc_rel_ref{img}(:,wf_adc);
+    pc_to_target_dist{img}(wf_adc) = vecnorm(pc_to_target{img}(:,wf_adc));
+    
+    % each col corresponds to a wf_adc for each row of [fo fc f1]
+    pc_to_target_phase_delay{img}(:,wf_adc) = 2*2*pi./lambda * pc_to_target_dist{img}(wf_adc);
+    
+  end
+  
+  % each col corresponds to a wf_adc for each row of [fo fc f1]
+  pc_diff_phase{img} = pc_to_target_phase_delay{img} - pc_to_target_phase_delay{img}(:,ref_wf_adc);
+  
+  expected_beat_freq = (f1-f0)/Tpd * 2*(diff(pc_to_target_dist{img})) / c;
+  dt = 1/param.radar.fs;
+  expected_phase_delay =  2*pi * expected_beat_freq .* (t_ref - dt +Tpd);
+  
+   %figure;
+   % plot( t_ref, 2*2*pi * (f1-f0)/c * (pc_to_target_dist{1}(1)-pc_to_target_dist{1}(2)) * t_ref/Tpd)
+end
+
+for img = 1:length(param.sim.imgs)
+  ttt = raw_data{img}(:,idx_closest,:);
+  ttt = squeeze(ttt);
+  figure;
+  
+  for wf_adc = 1:size(param.sim.imgs{img},1)
+    wf = param.sim.imgs{img}(wf_adc,1);
+    adc = param.sim.imgs{img}(wf_adc,2);
+    
+    subplot(221);
+    hold on;
+    plot(t_ref/1e-6, 20*log10( abs(ttt(:,wf_adc)) ), [marker_char(wf_adc) '-'] );
+    legend(leg_str{1:wf_adc});
+    
+    subplot(222);
+    hold on;
+    plot(t_ref/1e-6, angle( ttt(:,wf_adc) ), [marker_char(wf_adc) '-'] );
+    legend(leg_str{1:wf_adc});
+    
+    subplot(223);
+    if wf_adc>1
+      hold on;
+      plot(t_ref/1e-6, unwrap( angle(ttt(:,wf_adc)) - angle(ttt(:,wf_adc-1)) ), [marker_char(wf_adc) '-'] );
+      leg_str_diff = [ leg_str_diff {sprintf('%s - %s',leg_str{wf_adc}, leg_str{wf_adc-1}) } ];
+      legend( leg_str_diff );
+    end
+    
+    
+    subplot(224);    
+    if ref_wf_adc <= size(param.sim.imgs{img},1)
+      hold on;
+      plot(t_ref/1e-6, unwrap( angle(ttt(:,wf_adc)) - angle(ttt(:,ref_wf_adc)) ), [marker_char(wf_adc) '-'] );
+      leg_str_ref = [ leg_str_ref { sprintf('%s - %s', leg_str{wf_adc}, leg_str{ref_wf_adc}) } ];
+      legend( leg_str_ref );
+    end
+    
+  end
+end
+
+subplot(223)
+plot(t_ref/1e-6, expected_phase_delay, 's', 'Color', 'g');
+leg_str_diff = [ leg_str_diff {'expected'} ];
+legend( leg_str_diff );
+
+subplot(224)
+plot(t_ref/1e-6, expected_phase_delay, 's', 'Color', 'g');
+leg_str_ref = [ leg_str_ref {'expected'} ];
+legend( leg_str_ref );
+
