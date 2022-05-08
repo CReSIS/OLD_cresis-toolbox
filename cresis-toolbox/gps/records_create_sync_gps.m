@@ -162,6 +162,11 @@ else
 end
 
 %% Synchronize times to get positions and absolute time
+% NOTE: Extrapolation outside the time frame that the GPS data were
+% collected is not allowed as it results in bad data, so the linear
+% interpolation is set to NaN for extrapolation. Rather than rely on
+% extrapolation, modify the make_gps_SEASON_NAME.m function to extend the
+% GPS records as needed.
 my_struct.lat = double(interp1(gps.gps_time,gps.lat,radar_gps_time,'spline',NaN));
 my_struct.lon = double(gps_interp1(gps.gps_time,gps.lon/180*pi,radar_gps_time,'spline',NaN))*180/pi;
 my_struct.elev = double(interp1(gps.gps_time,gps.elev,radar_gps_time,'spline',NaN));
