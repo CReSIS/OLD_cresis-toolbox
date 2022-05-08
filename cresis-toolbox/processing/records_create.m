@@ -94,7 +94,7 @@ if ~isfield(param.records,'presum_mode') || isempty(param.records.presum_mode)
     % to be sent and discarded (not used for presumming)
     param.records.presum_mode = 1;
   elseif any(param.records.file.version == [407 408])
-    error('The param.records.presum_mode must be specified. Set to 0 if not using the 8-channel 1 GSPS DDS by Ledford/Leuschen. Set to 1 if it was used.');;
+    error('The param.records.presum_mode must be specified. If using the new waveform generator (Arena-based), this field should be 0. If using the old waveform generator, this field should be set to 1. The old waveform generator is an 8-channel 1 GSPS DDS by Ledford/Leuschen (not Arena-based).');
   else
     param.records.presum_mode = 0;
   end
@@ -112,10 +112,15 @@ if ~isfield(param.records.gps,'utc_time_halved') || isempty(param.records.gps.ut
   end
 end
 
+% records.frames: structure that controls the frame generation after the
+% records file is created.
 if ~isfield(param.records,'frames') || isempty(param.records.frames)
   param.records.frames = [];
 end
 
+% records.frames.mode: 0, 1, or 2. Default is 0. 0: do nothing with frames,
+% 1: autogenerate frames if they do not exist and then manually edit the
+% frames, 2: autogenerate the frames
 if ~isfield(param.records.frames,'mode') || isempty(param.records.frames.mode)
   param.records.frames.mode = 0;
 end
@@ -493,13 +498,13 @@ records_create_sync;
 
 %% Create frames
 % param.records.frames.mode == 0: Do nothing
-if param.records.frames.mode == 1
+if param.records.frames.mode == 1 % Autogenerate if needed and then manually edit
   frames_fn = ct_filename_support(param,'','frames');
   if ~exist(frames_fn,'file')
     frames_autogenerate(param,param_override);
   end
   obj = frames_create(param,param_override);
-elseif param.records.frames.mode >= 2
+elseif param.records.frames.mode >= 2 % Autogenerate the frames file
   frames_autogenerate(param,param_override);
 end
 

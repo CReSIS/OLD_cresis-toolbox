@@ -283,17 +283,18 @@ if ~(~ismcc && isdeployed)
   %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
   pidx = 7; % profile index
-  profile(pidx).path_override             = 'C:\tmp\scripts\matlab\';
-  profile(pidx).path                      = 'C:\tmp\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\tmp\scripts\ct_params\';
+  base_dir = 'S:\Scratch\';
+  profile(pidx).path_override             = fullfile(base_dir,'scripts','matlab');
+  profile(pidx).path                      = fullfile(base_dir,'scripts','cresis-toolbox','cresis-toolbox');
+  profile(pidx).param_path                = fullfile(base_dir,'scripts','ct_params');
   
-  profile(pidx).tmp_file_path             = 'F:\ct_user_tmp\';
+  profile(pidx).tmp_file_path             = fullfile(base_dir,'scripts','ct_user_tmp');
   
-  profile(pidx).data_path                 = 'D:\';
-  profile(pidx).data_support_path         = 'F:\metadata\';
-  profile(pidx).support_path              = 'F:\csarp_support\';
-  profile(pidx).out_path                  = 'F:\';
-  profile(pidx).gis_path                  = 'C:\tmp\GIS_data\';
+  profile(pidx).data_path                 = fullfile(base_dir,'scripts');
+  profile(pidx).data_support_path         = fullfile(base_dir,'scripts','metadata');
+  profile(pidx).support_path              = fullfile(base_dir,'scripts','csarp_support');
+  profile(pidx).out_path                  = fullfile(base_dir,'scripts');
+  profile(pidx).gis_path                  = fullfile(base_dir,'scripts','GIS_data');
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
