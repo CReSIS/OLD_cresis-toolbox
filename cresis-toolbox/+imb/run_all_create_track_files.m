@@ -1,10 +1,10 @@
 % script run_all_create_track_files
 % run_all_create_track_files
 %
-% Creates a season layer file containing the lat, lon. The imb.picker loads
-% this file when plotting flightlines without OPS. Loading all the
-% individual CSARP_layerData files would be slow so this helps speed up the
-% loading.
+% Creates season track file(s) containing the lat, lon, and other
+% information. The imb.picker loads these file when plotting flightlines
+% without OPS. Loading all the individual CSARP_layer files would be
+% slow so using these track files helps speed imb.picker loading.
 %
 % Output filenames are of the form:
 % .../csarp_support/tracks/tracks_SYSTEM_SEASONNAME.mat
@@ -53,7 +53,7 @@ if 1
   % layer_params(2).layerdata_source = 'CSARP_post/layerData';
   layer_params(2).existence_check = false;
 else
-  % HACK!!!
+  % Debug: Enable to use non-standard layer data
   keyboard
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
@@ -113,7 +113,7 @@ for param_idx = 1:length(param_fns)
     params = ct_set_params(params,'cmd.generic',1);
     params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else
-    % HACK!!!
+    % Debug: Enable to run only particular segments
     keyboard
     params = ct_set_params(params,'cmd.generic',0);
     params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');

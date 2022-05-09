@@ -1,5 +1,5 @@
-function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,interp_method,ref_col)
-% [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,interp_method,ref_col)
+function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,interp_method,ref_col,trim_nan_en)
+% [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,interp_method,ref_col,trim_nan_en)
 %
 % Shifts columns up/down in echogram using interpolation in order to
 % flatten one or more 1D layers in the data or to flatten a 2D slope field.
@@ -35,10 +35,11 @@ function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,
 % INPUTS:
 %
 % mdata: echogram structure from an echogram file (e.g. returned from
-% echo_load) or a data matrix. If a data matrix, then resample_field must be
-% a numeric matrix.
+% echo_load) or a data matrix. If a data matrix, then resample_field must
+% be a numeric matrix.
 %
-% resample_field: input resample field; several types are supported:
+% resample_field: input resample field information; several types are
+% supported:
 %
 %  opsLoadLayers struct array or empty matrix: an array of opsLoadLayers to
 %  layers that will be flattened. When an empty matrix, default layer is
@@ -48,18 +49,23 @@ function [data,resample_field] = echo_flatten(mdata,resample_field,inverse_flag,
 %  filepath) Should have a 'resample_field' field containing layer_bins to
 %  flatten. If an empty string, then set to "slope" for CSARP_slope.
 % 
-%  numeric array: double, assumed to be layer_bins.
+%  numeric array: double, assumed to be layer_bins (one indexed so valid
+%  range is from 1 to Nt)
 %
-% interp_method: string containing 'circ', 'linear' or 'sinc' (default is
-% 'linear'). interpft is not recommended unless the data are Nyquist
-% sampled (usually this means 2x interpolation in the fast-time before
-% power detection occurs).
+% interp_method: string containing 'circular_convolution', 'linear' or
+% 'sinc'. The default is 'linear'. sinc is not recommended unless
+% the data are Nyquist sampled. Note that power detection doubles the
+% required sampling rate; for example 30 MHz data must be sampled at 60 MHz
+% before power detection occurs.
 %
 % inverse_flag: logical scalar, default is false. If true, the shift will be
 % inverted (undoes the flattening operation).
 %
 % ref_col: scalar positive integer indicating the column to use as a
 % reference
+%
+% trim_nan: logical scalar. Default is true. Removes NaN at the start and
+% end of the record.
 %
 % OUTPUTS:
 %
@@ -120,10 +126,15 @@ if ~exist('ref_col','var') || isempty(ref_col)
   ref_col = 1;
 end
 
+if ~exist('trim_nan_en','var') || isempty(trim_nan_en)
+  trim_nan_en = true;
+end
+
 if isnumeric(mdata)
   mdata = struct('Data',mdata);
+else
+  param = echo_param(mdata);
 end
-param = echo_param(mdata);
 
 Nx = size(mdata.Data, 2);
 
@@ -141,7 +152,7 @@ if isstruct(resample_field)
   
   % Load layers
   ops_param = param;
-  ops_param.cmd.frms = [param.load.frm(1)-1 param.load.frm param.load.frm(end)+1];
+  ops_param.cmd.frms = [param.load.frm(1)-1 : param.load.frm(end)+1];
   layers = opsLoadLayers(ops_param, resample_field);
   
   % Interpolate layers onto mdata.GPS_time and convert from twtt to
@@ -228,4 +239,25 @@ elseif strcmpi(interp_method,'sinc')
   error('interp_method = sinc not supported.');
 else
   error('resample_field must be a struct or numeric matrix.');
+end
+
+%% Trim NaN from start/end of record
+
+if trim_nan_en
+  start_bin = nan(1,Nx);
+  stop_bin = nan(1,Nx);
+  for rline = 1:Nx
+    start_bin_tmp = find(~isnan(data(:,rline)),1);
+    if ~isempty(start_bin_tmp)
+      start_bin(rline) = start_bin_tmp;
+    end
+    stop_bin_tmp = find(~isnan(data(:,rline)),1,'last');
+    if ~isempty(stop_bin_tmp)
+      stop_bin(rline) = stop_bin_tmp;
+    end
+  end
+  start_bin = min(start_bin);
+  stop_bin = max(stop_bin);
+  data = data(start_bin:stop_bin,:);
+  resample_field = resample_field(start_bin:stop_bin,:);
 end

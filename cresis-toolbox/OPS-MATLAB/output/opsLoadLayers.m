@@ -62,8 +62,11 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %
 %  .lidar_source: string containing 'atm', 'awi', or 'dtu' if using lidar source
 %
-%  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
-%  is "surface"
+%  .name: string containing the layer name (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
+%  is "surface". Leave empty if using regular expression.
+%
+%  .regexp: string containing a regular expression, all layers matching the
+%  regular expression will be loaded. Default is empty/not defined.
 %
 %  .source: string
 %    'custom': Custom layer source similar to opsCopyLayers
@@ -117,6 +120,10 @@ while layer_idx <= length(layer_params)
       warning('No name specified for layer %d, defaulting to use layer "surface.', layer_idx);
       layer_params(layer_idx).name = 'surface';
     else
+      if ~isfield(layer_params,'layerdata_source') || isempty(layer_params(layer_idx).layerdata_source)
+        % Default is layerData
+        layer_params(layer_idx).layerdata_source = 'layer';
+      end
       tmp_layers = layerdata(param, layer_params(layer_idx).layerdata_source);
       layer_names = tmp_layers.get_layer_names(layer_params(layer_idx).regexp);
     end
@@ -324,11 +331,9 @@ if ~isempty(lidar_layer_idx)
         [xi,dist] = dsearchn(lidar_pnts,T,[records_x.' records_y.']);
       elseif 1
         % Second slowest method (69 sec)
-        tic
         dt = delaunayTriangulation(lidar_pnts);
         [xi,dist] = nearestNeighbor(dt, [records_x.' records_y.']);
         clear dt;
-        toc
       elseif 0
         % Fastest method but requires toolbox (29 sec)
         [xi,dist] = knnsearch(lidar_pnts,[records_x.' records_y.']);

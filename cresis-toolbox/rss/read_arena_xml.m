@@ -96,7 +96,11 @@ configs.radar_name = radar_name;
 
 % 1. Get the name of the CTU
 % 1a. Get the CTU
-expression = xpath.compile('//subSystem[starts-with(@type,"arenactu")]');
+if strcmpi(configs.radar_name,'ku0002')
+  expression = xpath.compile('//subSystem[starts-with(@type,"arena3xx")]');
+else
+  expression = xpath.compile('//subSystem[starts-with(@type,"arenactu")]');
+end
 ctu = expression.evaluate(doc,XPathConstants.NODESET);
 
 % 1b. Get the name
@@ -774,7 +778,11 @@ end
 %% CTU DIGITAL IO
 % =========================================================================
 % Get all the CTUs
-expression = xpath.compile('//subSystem[starts-with(@type,"ctu")]');
+if strcmpi(configs.radar_name,'ku0002')
+  expression = xpath.compile('//subSystem[starts-with(@type,"dac-ad9129_0032")]');
+else
+  expression = xpath.compile('//subSystem[starts-with(@type,"ctu")]');
+end
 ctuList = expression.evaluate(doc,XPathConstants.NODESET);
 
 % 1. Get the name of the CTU
@@ -943,7 +951,7 @@ for dac_idx = 1:dacList.getLength
   dac_cfg = nodeList.item(0);
   
   % Find the longest possible record size
-  if strcmpi(config_type,'dac-ad9129_0012')
+  if strcmpi(config_type,'dac-ad9129_0012') || strcmpi(config_type,'dac-ad9129_0032')
     % TOHFSounder
     
     % Get each subchannel
@@ -990,7 +998,7 @@ for dac_idx = 1:dacList.getLength
       dac_wf_cfg = nodeList.item(0);
       
       % Read DAC waveform parameters
-      if strcmpi(config_type,'dac-ad9129_0012_waveform')
+      if strcmpi(config_type,'dac-ad9129_0012_waveform') || strcmpi(config_type,'dac-ad9129_0032_waveform')
         % TOHFSounder
         
         expression = xpath.compile('name');

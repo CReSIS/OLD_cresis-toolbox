@@ -210,9 +210,14 @@ else
   for file_idx = 1:length(fns)
     frames_fn = fns{file_idx};
 
-    frames = frames_load(frames_fn);
-    first_gps_time(file_idx) = frames.gps_time(1);
-    last_gps_time(file_idx) = frames.gps_time(end);
+    try
+      % Continue to run even if a frames file fails to load
+      frames = frames_load(frames_fn);
+      first_gps_time(file_idx) = frames.gps_time(1);
+      last_gps_time(file_idx) = frames.gps_time(end);
+    catch ME
+      warning(ME.getReport)
+    end
   end
   
   start_file_idx = find(start.gps_time >= first_gps_time,1,'last');

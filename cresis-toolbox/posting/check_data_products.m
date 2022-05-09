@@ -251,7 +251,7 @@ for param_idx = 1:length(params)
                 delete(fn);
               end
             else
-              if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'layerData')
+              if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'layer')
                 if strcmp(outputs{output_idx},'CSARP_out')
                   fns2 = get_filenames(fn,'','','');
                   fn = fns2{1};

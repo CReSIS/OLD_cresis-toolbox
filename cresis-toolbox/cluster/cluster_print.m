@@ -17,16 +17,22 @@ function [in,out] = cluster_print(ctrl,ids,print_mode,ids_type)
 %   ids input argument. 0 for ids containing task ID and 1 for
 %   containing cluster side IDs (e.g. torque job ID). Default is 0.
 %
-% Author: John Paden
-%
 % ts = cluster_print(1,1:500,2); % Prints table
 % print_struct(ts,1) % Prints a tab-delimited array for spreadsheets
 %
-% See also: cluster_chain_stage, cluster_cleanup, cluster_compile
-%   cluster_exec_job, cluster_get_batch, cluster_get_batch_list,
-%   cluster_hold, cluster_job, cluster_new_batch, cluster_new_task,
-%   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
-%   cluster_update_batch, cluster_update_task
+% Author: John Paden
+%
+% See also: cluster_chain_stage.m, cluster_cleanup.m, cluster_compile.m,
+% cluster_cpu_affinity.m, cluster_error_mask.m, cluster_exec_task.m,
+% cluster_file_success.m, cluster_get_batch_list.m, cluster_get_batch.m,
+% cluster_get_chain_list.m, cluster_hold.m, cluster_job_check.m,
+% cluster_job.m, cluster_job.sh, cluster_load_chain.m, cluster_new_batch.m,
+% cluster_new_task.m, cluster_print_chain.m, cluster_print.m,
+% cluster_reset.m, cluster_run.m, cluster_save_chain.m,
+% cluster_save_dparam.m, cluster_save_sparam.m, cluster_set_chain.m,
+% cluster_set_dparam.m, cluster_set_sparam.m, cluster_stop.m,
+% cluster_submit_batch.m, cluster_submit_job.m, cluster_update_batch.m,
+% cluster_update_task.m
 
 if ~exist('print_mode','var') || isempty(print_mode)
   print_mode = 1;
@@ -255,7 +261,17 @@ if print_mode == 1
     end
     
     %% Print stdout and stderr files if available
-    if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
+    if strcmpi(ctrl.cluster.type,'matlab')
+      fprintf('\n\nSTDOUT ======================================================================\n');
+      try
+        if ~isfield(ctrl.cluster,'jm')
+          ctrl.cluster.jm = parcluster;
+        end
+        fprintf('%s\n', ctrl.cluster.jm.findJob('ID',job_id).Tasks.Diary);
+      catch ME
+        fprintf('Failed to retrieve\n');
+      end
+    elseif any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
       retry = 0;
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
       while exist(fn,'file')

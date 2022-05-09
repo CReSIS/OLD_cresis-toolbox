@@ -1,5 +1,5 @@
-function [mdata,fn_echo] = echo_load(param,echogram_source,frms,img)
-% [mdata,fn_echo] = echo_load(param,echogram_source,frms,img)
+function [mdata,echo_fn] = echo_load(param,echogram_source,frms,img)
+% [mdata,echo_fn] = echo_load(param,echogram_source,frms,img)
 %
 % The trend of the data is estimated using various methods and this trend
 % is removed from the data.
@@ -19,7 +19,7 @@ function [mdata,fn_echo] = echo_load(param,echogram_source,frms,img)
 % OUTPUTS:
 %
 % mdata: echogram structure
-% fn_echo: string containing the filename loaded
+% echo_fn: string containing the filename loaded
 %
 % Examples:
 %
@@ -38,8 +38,8 @@ function [mdata,fn_echo] = echo_load(param,echogram_source,frms,img)
 
 if ischar(param)
   % param is a filename (second and third arguments are ignored)
-  fn_echo = param;
-  mdata = load_L1B(fn_echo);
+  echo_fn = param;
+  mdata = load_L1B(echo_fn);
   return;
   
 elseif isstruct(param)
@@ -67,15 +67,16 @@ elseif isstruct(param)
   for frm_idx = 1:length(frms)
     if img == 0
       % Combined file
-      fn_echo{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_%s_%03d.mat',param.day_seg,frms(frm_idx)));
+      echo_fn{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_%s_%03d.mat',param.day_seg,frms(frm_idx)));
     else
       % Image "_img_II" file
-      fn_echo{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_img_%02d_%s_%03d.mat',img, param.day_seg,param.cmd.frms(frm_idx)));
+      echo_fn{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_img_%02d_%s_%03d.mat',img, param.day_seg,param.cmd.frms(frm_idx)));
     end
   end
   
 elseif iscell(param)
   % param is a cell array of filenames (second and third arguments are ignored)
+  echo_fn = param;
   
 else
   error('Invalid type for param.');
@@ -83,6 +84,6 @@ else
 end
 
 mdata = [];
-for frm_idx = 1:length(fn_echo)
-  mdata = echo_concatenate(mdata, fn_echo{frm_idx});
+for frm_idx = 1:length(echo_fn)
+  mdata = echo_concatenate(mdata, echo_fn{frm_idx});
 end

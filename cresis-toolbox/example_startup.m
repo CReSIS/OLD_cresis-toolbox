@@ -73,9 +73,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
-
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
   
   %% Profile Linux/Mac (PROFILE 2)
   % ----------------------------------------------------------------------
@@ -107,9 +108,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause            = 0.2;
   profile(pidx).cluster.stat_pause              = 2;
   profile(pidx).cluster.file_check_pause        = 4;
-
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
   
   %% KU Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
@@ -145,17 +147,18 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 16e9 / 8;
   % profile(pidx).cluster.mem_to_ppn            = 0.9 * 256e9 / 24;
   profile(pidx).cluster.max_ppn               = 4;
-  profile(pidx).cluster.max_mem_per_job       = 15e9;
-  profile(pidx).cluster.max_mem_mode          = 'debug';
+  profile(pidx).cluster.max_mem_per_job       = 16e9;
+  profile(pidx).cluster.mem_mult_mode          = 'debug';
   %profile(pidx).cluster.qsub_submit_arguments = '-m n -q high -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
   %profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
   %profile(pidx).cluster.cpu_time_mult         = 2;
   %profile(pidx).cluster.mem_mult              = 2;
   %profile(pidx).cluster.ppn_fixed             = 4;
 
-  % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
-
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
+  
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
   pidx = 4; % profile index
@@ -188,10 +191,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_ppn               = 6;
   profile(pidx).cluster.job_complete_pause    = 5;
   profile(pidx).cluster.max_mem_per_job       = 126e9;
-  profile(pidx).cluster.max_mem_mode          = 'debug';
+  profile(pidx).cluster.mem_mult_mode          = 'debug';
 
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -223,8 +226,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
 
-  % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
   
   %% IU Profile Linux (PROFILE 6)
   % ----------------------------------------------------------------------
@@ -246,48 +249,52 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
-  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'slurm';
+  %profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
-  %profile(pidx).cluster.type                  = 'debug';
+  profile(pidx).cluster.type                  = 'debug';
   if 0
     profile(pidx).cluster.ssh_hostname          = 'karst.uits.iu.edu';
     profile(pidx).cluster.mem_to_ppn            = 0.9 * 32e9 / 16;
     profile(pidx).cluster.max_ppn               = 8;
     profile(pidx).cluster.max_mem_per_job       = 30e9;
-    profile(pidx).cluster.max_mem_mode          = 'debug';
+    profile(pidx).cluster.mem_mult_mode          = 'debug';
   else
     profile(pidx).cluster.mem_to_ppn            = 0.9 * 256e9 / 24;
     profile(pidx).cluster.max_ppn               = 12;
     profile(pidx).cluster.max_mem_per_job       = 250e9;
-    profile(pidx).cluster.max_mem_mode          = 'debug';
+    profile(pidx).cluster.mem_mult_mode          = 'auto';
   end
-  profile(pidx).cluster.max_jobs_active       = 128;
+  profile(pidx).cluster.max_jobs_active       = 512;
   profile(pidx).cluster.max_time_per_job      = 4*86400;
-  profile(pidx).cluster.desired_time_per_job  = 8*3600;
+  profile(pidx).cluster.desired_time_per_job  = 2*3600;
   profile(pidx).cluster.max_retries           = 2;
   profile(pidx).cluster.submit_pause          = 1;
   profile(pidx).cluster.stat_pause            = 10;
   profile(pidx).cluster.file_check_pause      = 0;
 
-  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:slate,pmem=%m,walltime=%t';
+  profile(pidx).cluster.slurm_submit_arguments = '-N 1 -n 1 --cpus-per-task=%p --mem=%m --time=%t';
+  %profile(pidx).cluster.slurm_submit_arguments = '-p debug -N 1 -n 1 --cpus-per-task=%p --mem=%m --time=%t';
 
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
   
   %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
   pidx = 7; % profile index
-  profile(pidx).path_override             = 'C:\tmp\scripts\matlab\';
-  profile(pidx).path                      = 'C:\tmp\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\tmp\scripts\ct_params\';
+  base_dir = 'S:\Scratch\';
+  profile(pidx).path_override             = fullfile(base_dir,'scripts','matlab');
+  profile(pidx).path                      = fullfile(base_dir,'scripts','cresis-toolbox','cresis-toolbox');
+  profile(pidx).param_path                = fullfile(base_dir,'scripts','ct_params');
   
-  profile(pidx).tmp_file_path             = 'F:\ct_user_tmp\';
+  profile(pidx).tmp_file_path             = fullfile(base_dir,'scripts','ct_user_tmp');
   
-  profile(pidx).data_path                 = 'D:\';
-  profile(pidx).data_support_path         = 'F:\metadata\';
-  profile(pidx).support_path              = 'F:\csarp_support\';
-  profile(pidx).out_path                  = 'F:\';
-  profile(pidx).gis_path                  = 'C:\tmp\GIS_data\';
+  profile(pidx).data_path                 = fullfile(base_dir,'scripts');
+  profile(pidx).data_support_path         = fullfile(base_dir,'scripts','metadata');
+  profile(pidx).support_path              = fullfile(base_dir,'scripts','csarp_support');
+  profile(pidx).out_path                  = fullfile(base_dir,'scripts');
+  profile(pidx).gis_path                  = fullfile(base_dir,'scripts','GIS_data');
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
@@ -301,8 +308,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
 
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
   
   %% AWI Profile Field Linux (PROFILE 8)
   % ----------------------------------------------------------------------
@@ -336,11 +344,12 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 64e9 / 8;
   profile(pidx).cluster.max_ppn               = 4;
   profile(pidx).cluster.max_mem_per_job       = 62e9;
-  profile(pidx).cluster.max_mem_mode          = 'debug';
+  profile(pidx).cluster.mem_mult_mode          = 'debug';
 
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
-
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
+  
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
@@ -376,13 +385,14 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.mem_to_ppn              = 0.9 * 64e9 / 36;
   profile(pidx).cluster.max_ppn                 = 18;
   profile(pidx).cluster.max_mem_per_job         = 62e9;
-  profile(pidx).cluster.max_mem_mode            = 'debug';
+  profile(pidx).cluster.mem_mult_mode            = 'debug';
 
   profile(pidx).cluster.mcc                     = 'system_eval';
 
-  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
-
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/';
+  profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
+  
+  
   %% Startup code (Automated Section)
   % =====================================================================
   

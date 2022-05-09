@@ -237,9 +237,7 @@ for img = 1:length(param.load.imgs)
     nanmask = isnan(data{img});
     data{img}(nanmask) = 0;
     data{img} = fft(data{img},[],1);
-    for wf_adc = 1:size(param.load.imgs{img},1)
-      data{img} = data{img} .* exp(1j*2*pi*freq*relative_td);
-    end
+    data{img} = data{img} .* exp(1j*2*pi*freq*relative_td);
     data{img} = ifft(data{img},[],1);
     
     % Relative time delay to reference time delay in time bin units
@@ -272,9 +270,7 @@ for img = 1:length(param.load.imgs)
     nanmask = isnan(data{img});
     data{img}(nanmask) = 0;
     data{img} = fft(data{img},[],1);
-    for wf_adc = 1:size(param.load.imgs{img},1)
-      data{img} = data{img} .* exp(-1j*2*pi*freq*relative_td);
-    end
+    data{img} = data{img} .* exp(-1j*2*pi*freq*relative_td);
     data{img} = ifft(data{img},[],1);
     
     % Relative time delay to reference time delay in time bin units
@@ -330,6 +326,7 @@ if param.qlook.inc_dec >= 1
     % Remove elevation variations
     if param.load.motion_comp
       % Relative time delay to reference time delay in time bin units
+      dt = hdr.time{img}(2) - hdr.time{img}(1);
       relative_bins = round( relative_td / dt);
       % Add zero padding (NaNs)
       data{img} = [data{img}; nan(zero_pad,size(data{img},2))];

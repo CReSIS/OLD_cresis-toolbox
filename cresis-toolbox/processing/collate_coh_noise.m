@@ -40,9 +40,23 @@ if ~isnumeric(param.collate_coh_noise.imgs)
   error('param.collate_coh_noise.imgs must be a numeric integer array with indices into param.analysis.imgs. Default is 1:length(param.analysis.imgs).');
 end
 
+% cmd_idx: which command index to pull values from param.analysis.cmd{cmd_idx}
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
 end
+
+% debug_max_size: maximum size allowed for .fig files to be saved in
+% cn_plot mode. .jpg files will always be saved.
+if ~isfield(param.(mfilename),'debug_max_size') || isempty(param.(mfilename).debug_max_size)
+  param.(mfilename).debug_max_size = 0;
+end
+
+% debug_out_dir: the output directory for the debug plots and text files,
+% default is to place in ct_tmp under the name of the present m-file
+if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
+  param.(mfilename).debug_out_dir = mfilename;
+end
+debug_out_dir = param.(mfilename).debug_out_dir;
 
 % debug_plots: cell array of strings that enable functionality, the
 % possible strings are {'cn_plot','reuse','threshold_plot','visible'}. The
@@ -64,29 +78,22 @@ enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots))
 enable_threshold_plot = any(strcmp('threshold_plot',param.collate_coh_noise.debug_plots));
 enable_cn_plot = any(strcmp('cn_plot',param.collate_coh_noise.debug_plots));
 enable_reuse_files = any(strcmp('reuse',param.collate_coh_noise.debug_plots));
+enable_debug_plot = any(strcmp('debug',param.collate_coh_noise.debug_plots));
 if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
-end
-
-if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
-  param.(mfilename).debug_out_dir = mfilename;
-end
-debug_out_dir = param.(mfilename).debug_out_dir;
-
-% debug_max_size: maximum size allowed for .fig files to be saved in
-% cn_plot mode. .jpg files will always be saved.
-if ~isfield(param.(mfilename),'debug_max_size') || isempty(param.(mfilename).debug_max_size)
-  param.(mfilename).debug_max_size = 0;
 end
 
 if isfield(param.collate_coh_noise,'dft_corr_length')
   error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time and specify an entry for each image to be processed.');
 end
+
 if ~isfield(param.collate_coh_noise,'dft_corr_time')
-  param.collate_coh_noise.dft_corr_time = [];
+  param.collate_coh_noise.dft_corr_time = {};
 end
 for img = param.collate_coh_noise.imgs
-  param.collate_coh_noise.dft_corr_time(img) = inf;
+  if length(param.collate_coh_noise.dft_corr_time) < img
+    param.collate_coh_noise.dft_corr_time{img} = inf;
+  end
 end
 
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
@@ -151,6 +158,11 @@ if ~isfield(param.collate_coh_noise,'threshold_ylims') || isempty(param.collate_
   param.collate_coh_noise.threshold_ylims = [];
 end
 
+% wf_adcs: list of wf-adc pairs to use from the wf-adc pair lists in
+% param.analysis.imgs. This is a cell array where each cell corresponds to
+% the image with the same index so that different wf-adc pairs can be
+% pulled from each image. If left empty, then all wf-adc pairs are
+% processed for all images.
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
 end
@@ -164,7 +176,7 @@ end
 
 for img = param.collate_coh_noise.imgs
   
-  if isempty(param.collate_coh_noise.wf_adcs)
+  if isempty(param.collate_coh_noise.wf_adcs) || length(param.collate_coh_noise.wf_adcs) < img
     wf_adcs = 1:size(param.analysis.imgs{img},1);
   else
     wf_adcs = param.collate_coh_noise.wf_adcs{img};
@@ -246,7 +258,7 @@ for img = param.collate_coh_noise.imgs
       Nx = length(noise.gps_time);
       recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
       
-      Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time(img));
+      Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time{img});
       if Nx_dft<1
         Nx_dft = 1;
       end
@@ -565,7 +577,7 @@ for img = param.collate_coh_noise.imgs
     
     if enable_visible_plot
       % frm_id
-      fprintf('\nDebug breakpoint:\n  frm_id is a useful variable that maps the block to the frame that the block occurs in.\n\n');
+      fprintf('\nDebug breakpoint:\n  The variable "frm_id" maps the "Block" to the frame that the block occurs in. The fast-time axis is stored in the "time" variable. \n\n');
       [~,frm_id] = get_frame_id(param,noise.gps_time);
 
       % Bring plots to front
@@ -573,8 +585,10 @@ for img = param.collate_coh_noise.imgs
         figure(h_fig(h_fig_idx));
       end
       
-      % Enter debug mode
-      keyboard
+      if enable_debug_plot
+        % Enter debug mode
+        keyboard
+      end
     end
     
     %% Create the simplified output

@@ -58,6 +58,7 @@ classdef layerdata < handle
   methods (Access = private)
     
     %% create: create layer file
+    % NOTE: just creates the file structure, but does not save it
     function create(obj,frm)
       obj.check_records();
 
@@ -172,12 +173,10 @@ classdef layerdata < handle
       % Ensure frames are loaded
       obj.check_frames();
       
-      % Create reference trajectory (rx_path == 0, tx_weights = []). Update
-      % the records field with this information.
-      trajectory_param = struct('gps_source',obj.records.gps_source, ...
-        'season_name',obj.param.season_name,'radar_name',obj.param.radar_name,'rx_path', 0, ...
-        'tx_weights', [], 'lever_arm_fh', obj.param.radar.lever_arm_fh);
-      obj.records = trajectory_with_leverarm(obj.records,trajectory_param);
+      % Load/create-if-needed reference trajectory
+      obj.records = records_reference_trajectory_load(obj.param,obj.records);
+      obj.param.records.gps.time_offset = obj.records.param_records.records.gps.time_offset;
+      obj.param.radar.lever_arm_fh = obj.records.param_records.radar.lever_arm_fh;
       
       obj.records.along_track = geodetic_to_along_track(obj.records.lat,obj.records.lon);
       
@@ -254,11 +253,13 @@ classdef layerdata < handle
       end
     end
     
-    %% check: check that layers are loaded for a particular frame
-    function check(obj,frm)
-      if length(obj.layer) < frm || isempty(obj.layer{frm})
-        % Load layer file
-        obj.load(frm);
+    %% check: check that layers are loaded for a particular set of frames
+    function check(obj,frms)
+      for frm = frms(:).'
+        if length(obj.layer) < frm || isempty(obj.layer{frm})
+          % Load layer file
+          obj.load(frm);
+        end
       end
     end
     
@@ -266,17 +267,13 @@ classdef layerdata < handle
     function check_all(obj)
       obj.check_records();
       obj.check_layer_organizer();
-      for frm = 1:length(obj.frames.frame_idxs)
-        obj.check(frm);
-      end
+      obj.check(1:length(obj.frames.frame_idxs));
     end
     
     %% check: check that layers are loaded for all frames
     function check_all_frames(obj)
       obj.check_frames();
-      for frm = 1:length(obj.frames.frame_idxs)
-        obj.check(frm);
-      end
+      obj.check(1:length(obj.frames.frame_idxs));
     end
     
     %% check_layer_organizer: check that layer organizer is loaded
@@ -998,7 +995,7 @@ classdef layerdata < handle
       if ischar(id)
         % name passed in rather than id
         match_idx = find(strcmpi(id,obj.layer_organizer.lyr_name));
-        if isempty(id)
+        if isempty(match_idx)
           error('Layer does not exist in layer organizer. Run insert_layers() first.');
         end
         id = obj.layer_organizer.lyr_id(match_idx);
@@ -1242,6 +1239,7 @@ classdef layerdata < handle
     %% update_gps: update gps for a frame
     function update_gps(obj,frms)
       obj.check_records();
+      obj.check(frms);
 
       for frm = frms(:).'
         if strcmp(obj.sample_spacing_method,'records')
@@ -1255,7 +1253,7 @@ classdef layerdata < handle
           obj.layer{frm}.lat = obj.records.lat(recs);
           obj.layer{frm}.lon = obj.records.lon(recs);
         else
-          if frm < length(obj.frame_idxs)
+          if frm < length(obj.frames.frame_idxs)
             frm_mask = find(obj.along_track >= obj.records.along_track(obj.frames.frame_idxs(frm)) ...
               & obj.along_track < obj.records.along_track(obj.frames.frame_idxs(frm+1)));
           else
@@ -1370,12 +1368,17 @@ classdef layerdata < handle
       else
         master.Elevation = mdata.Elevation;
       end
-      if 1
-        % New Method: since layer data files are continuously sampled and
-        % include NaN to represent gaps, simple interpolation works fine.
-          layers(lay_idx).twtt_ref = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'spline');
-          layers(lay_idx).quality = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
-          layers(lay_idx).type = interp1(master.GPS_time, layers(lay_idx).gps_time, layers(lay_idx).twtt, 'nearest');
+      if 0
+        % New Method: if opsLoadLayers is updated to always return
+        % uniformly sampled data where NaN are used to represent gaps in
+        % the layers (rather than just not including any points), simple
+        % interpolation works fine. Currently opsLoadLayers for source ops,
+        % does not do this... so "Old Method" must be used.
+        for lay_idx = length(layers)
+          layers(lay_idx).twtt_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).twtt, master.GPS_time, 'spline');
+          layers(lay_idx).quality_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).quality, master.GPS_time, 'nearest');
+          layers(lay_idx).type_ref = interp1(layers(lay_idx).gps_time, layers(lay_idx).type, master.GPS_time, 'nearest');
+        end
       else
         % Old Method: this is necessary for layer data loaded from OPS
         % where gaps are represented by no data points in those spots.
@@ -1406,7 +1409,7 @@ classdef layerdata < handle
     % varargin: strings containing layer names
     %
     % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_standard/20140512_01/Data_20140512_01_018.mat';
-    % mdata = load(fn);
+    % mdata = load_L1B(fn);
     % [surface,bottom] = layerdata.load_layers(mdata,'','surface','bottom');
     % [layer_list{1:N}] = layerdata.load_layers(mdata,'',layer_names{1:N});
     function varargout = load_layers(mdata,layerdata_source,varargin)
@@ -1421,6 +1424,68 @@ classdef layerdata < handle
       end
       delete(layers);
     end
+    
+    %% profile: define layerdata opsLoadLayers profiles
+    % layer_params = profile(layer_profile)
+    %
+    % This function converts profile strings into standard opsLoadLayers
+    % layer_params structures.
+    %
+    % Inputs:
+    % =====================================================================
+    %
+    % layer_profile: Structure or string. If string, then should contain
+    % the name of a layer parameter profile to load into the output
+    % layer_params. If structure then layer_params is set equal to
+    % layer_profile and nothing else is done.
+    %
+    % Outputs:
+    % =====================================================================
+    %
+    % layer_params: layer parameter structure of which layers to load and how
+    % 
+    % Example:
+    % 
+    % layer_params = profile('rds_ops_layer');
+    function layer_params = profile(layer_profile)
+      if isempty(layer_profile)
+        layer_params = [];
+      elseif isstruct(layer_profile)
+        layer_params = layer_profile;
+      elseif ischar(layer_profile)
+        
+        if strcmpi(layer_profile, 'accum_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface'});
+          
+        elseif strcmpi(layer_profile, 'accum_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface'});
+          
+        elseif strcmpi(layer_profile, 'rds_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface'});
+          
+        elseif strcmpi(layer_profile, 'rds_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface'});
+          
+        elseif strcmpi(layer_profile, 'rds_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface', 'bottom'});
+          
+        elseif strcmpi(layer_profile, 'rds_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface', 'bottom'});
+          
+        elseif strcmpi(layer_profile, 'snow_ops_layers')
+          layer_params = struct('source', 'ops', 'name',{'surface'});
+          
+        elseif strcmpi(layer_profile, 'snow_layers')
+          layer_params = struct('source', 'layerdata', 'name', {'surface'});
+          
+        else
+          error('Profile string specified does not exist.');
+        end
+      else
+        error('Invalid type for layer_profile which must be empty, a layer profile string, or layer_params structure.');
+      end
+    end
+  
     
     % Functions for editing layerdata properties or merging two separate
     % layerdata directories

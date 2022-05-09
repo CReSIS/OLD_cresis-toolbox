@@ -91,13 +91,13 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_quality;
+obj.tool.list{end+1} = imb.picktool_viterbi;
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click: Nothing
-% Left click and drag: Sets all points contains in draw to the currently
-%   selected quality level
+% Left click: Enters a manual point based on parameters
+%   Find max in range (specify range line/bin extent to search)
+% Left click and drag: Runs tomo.viterbi algorithm on selected data.
 % Right click: Set cursor point
-% Right click and drag: Nothing
+% Right click and drag: Delete all points in range
 % Scroll: Zooms in/out
 % Ctrl + any click: Select layer
 % Ctrl + any click and drag: Zoom
@@ -120,18 +120,6 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_browse;
-addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click: Open A-scope window
-% Left click and drag: Nothing
-% Right click: Set cursor point
-% Right click and drag: Nothing
-% Scroll: Zooms in/out
-% Ctrl + any click: Select layer
-% Ctrl + any click and drag: Zoom
-% Any double click: Nothing
-% Ctrl + double click: Zoom reset
-
 obj.tool.list{end+1} = imb.picktool_copy([],obj);
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click and drag: Copy source layers to the selected layers
@@ -144,18 +132,45 @@ addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool.list{end+1} = imb.picktool_viterbi;
+obj.tool.list{end+1} = imb.picktool_quality;
 addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
-% Left click: Enters a manual point based on parameters
-%   Find max in range (specify range line/bin extent to search)
-% Left click and drag: Runs tomo.viterbi algorithm on selected data.
+% Left click: Nothing
+% Left click and drag: Sets all points contains in draw to the currently
+%   selected quality level
 % Right click: Set cursor point
-% Right click and drag: Delete all points in range
+% Right click and drag: Nothing
 % Scroll: Zooms in/out
 % Ctrl + any click: Select layer
 % Ctrl + any click and drag: Zoom
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
+
+obj.tool.list{end+1} = imb.picktool_stat;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click: Nothing
+% Left click and drag: Sets all points contains in draw to the currently
+%   selected quality level
+% Right click: Set cursor point
+% Right click and drag: Nothing
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
+
+obj.tool.list{end+1} = imb.picktool_browse;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click: Open A-scope window
+% Left click and drag: Nothing
+% Right click: Set cursor point
+% Right click and drag: Nothing
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
 
 % obj.tool.list{end+1} = imb.picktool_landmark;
 % Left click: Create landmark point

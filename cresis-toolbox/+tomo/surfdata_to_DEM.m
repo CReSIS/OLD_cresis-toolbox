@@ -94,6 +94,25 @@ if ~isfield(param.dem,'enforce_below_top') || isempty(param.dem.enforce_below_to
   param.dem.enforce_below_top = true;
 end
 
+if ~isfield(param.dem,'ice_mask') || isempty(param.dem.ice_mask)
+  param.dem.ice_mask = [];
+end
+
+if ~isfield(param.dem,'ice_mask_flag') || isempty(param.dem.ice_mask_flag)
+  param.dem.ice_mask_flag = false;
+end
+
+if ~isfield(param.dem,'array_manifold_mask_flag') || isempty(param.dem.array_manifold_mask_flag)
+  param.dem.array_manifold_mask_flag = false;
+end
+
+if param.dem.array_manifold_mask_flag
+  param.dem.array_manifold_mask_flag = true;
+  if isempty(param.dem.ice_mask)
+    error('User must specify an ice mask surface to derive the array manifold mask')
+  end
+end    
+
 surface_names = param.dem.surface_names;
 figure_dots_per_km = param.dem.figure_dots_per_km;
 
@@ -114,7 +133,7 @@ for frm_idx = 1:length(param.cmd.frms)
   surfdata_fn = fullfile(ct_filename_out(param,param.dem.surfdata_source),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   data_fn = fullfile(ct_filename_out(param,param.dem.input_dir_name),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
-  %% Load surfData, echogram, steering vector calibration
+  %% Load surfdata, echogram, steering vector calibration and handle error conditions
   
   % Load surface data (usually top and bottom)
   fprintf('  %s\n', surfdata_fn);
@@ -127,6 +146,25 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Find the index to the ice top
   ice_top_idx = sd.get_index(param.dem.ice_top);
+  
+  if ~isempty(find(strcmp(param.dem.ice_mask,{sd.surf.name}))) && param.dem.ice_mask_flag
+    ice_mask_idx = sd.get_index(param.dem.ice_mask);
+    ice_mask = sd.surf(ice_mask_idx).y; 
+    array_manifold_mask = ice_mask;
+    array_manifold_mask = cumsum(array_manifold_mask,1,'reverse') >= 1 | cumsum(array_manifold_mask,1,'forward') >= 1;
+  else
+    ice_mask_idx =[];
+    ice_mask = [];
+    array_manifold_mask = [];
+  end
+  
+  if isempty(ice_mask) && param.dem.array_manifold_mask_en
+    error('No valid ice mask found in surfdata file')
+  end
+  
+  if isempty(ice_mask) && param.dem.ice_mask
+    error('No valid ice mask found in surfdata file')
+  end
   
   % Load the echogram
   fprintf('  %s\n', data_fn);
@@ -319,7 +357,9 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Create a constrained delaunay triangulization that forces edges
     % along the boundary (concave_hull) of our swath
+    sd.surf(quality_idx).y(:) = 1;
     good_mask = isfinite(points.x) & isfinite(points.y) & isfinite(points.elev) & sd.surf(quality_idx).y(DOA_trim+1:end-DOA_trim,:);
+    
     if 0
       % This method only handles a single object/region
       row = find(good_mask,1);
@@ -385,6 +425,7 @@ for frm_idx = 1:length(param.cmd.frms)
         pnts(1,:) = points.x(good_idxs);
         pnts(2,:) = points.y(good_idxs);
         pnts(3,:) = points.elev(good_idxs);
+        ice_mask_pnts = ice_mask(good_idxs);
         gps_time = repmat(mdata.GPS_time,size(good_mask,1),1);
         gps_time = gps_time(good_idxs);
         
@@ -546,6 +587,28 @@ for frm_idx = 1:length(param.cmd.frms)
       F = TriScatteredInterp(dt,pnts(3,:).');
       warning on;
       DEM = F(xmesh,ymesh);
+      
+      if param.dem.ice_mask_flag
+        ice_mask_pnts = ice_mask(good_idxs);
+        ice_mask_eval = double(ice_mask_pnts);        
+        Fi = TriScatteredInterp(dt,ice_mask_eval(:),'nearest');
+        ice_mask_dem = Fi(xmesh,ymesh);
+        ice_mask_dem = logical(round(ice_mask_dem));
+        
+%         ICE_MASK = Fi(xmesh,ymesh);
+%         ICE_MASK = logical(round(ICE_MASK));
+        
+        if param.dem.array_manifold_mask_flag
+          array_manifold_mask_pnts = array_manifold_mask(good_idxs);
+          array_manifold_mask_eval = double(array_manifold_mask_pnts);
+          Fa = TriScatteredInterp(dt,array_manifold_mask_eval(:),'nearest');
+          array_manifold_mask_dem =  Fa(xmesh,ymesh);
+          array_manifold_mask_dem = logical(round(array_manifold_mask_dem));
+%           ARRAY_MANIFOLD_MASK = Fa(xmesh,ymesh);
+%           ARRAY_MANIFOLD_MASK = logical(round(ARRAY_MANIFOLD_MASK));
+        end       
+      end
+      
       if 0
         % Debug
         figure;imagesc(DEM)
@@ -560,6 +623,8 @@ for frm_idx = 1:length(param.cmd.frms)
         img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
         img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
+        doa_ax_trim = sd.surf(surface_idx).x(DOA_trim + 1:end-DOA_trim,:);
+        ice_mask_trim = ice_mask(DOA_trim+1:end-DOA_trim,:);
       else
         % DOA method: 3D points are the estmated DOAs, which are usually
         % different for each range-line.
@@ -580,14 +645,29 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       warning off;
       F = TriScatteredInterp(dt,img_3D(good_idxs));
+      F2 = TriScatteredInterp(dt,doa_ax_trim(good_idxs));
       warning on;
       IMG_3D = F(xmesh,ymesh);
+      DOA_GRID = F2(xmesh,ymesh);
       
       % Use inpolygon to find bad interpolation points and set to NaN
       idxs_to_check = find(~isnan(DEM));
       bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
       DEM(idxs_to_check(bad_mask)) = NaN;
       IMG_3D(idxs_to_check(bad_mask)) = NaN;
+      DOA_GRID(idxs_to_check(bad_mask))=NaN;
+      if param.dem.ice_mask_flag
+        nan_mask = idxs_to_check(bad_mask);
+        ICE_MASK = ice_mask_dem;
+        ICE_MASK(nan_mask) = true;
+%         ICE_MASK(~nan_mask) = ice_mask_dem;
+%         ICE_MASK(idxs_to_check(bad_mask)) = NaN;
+        if param.dem.array_manifold_mask_flag
+          ARRAY_MANIFOLD_MASK = array_manifold_mask_dem;
+          ARRAY_MANIFOLD_MASK(nan_mask) = true;
+%           ARRAY_MANIFOLD_MASK(idxs_to_check(bad_mask)) = NaN;
+        end
+      end
     end
     
     %% Create DEM scatter plot over geotiff
@@ -608,7 +688,56 @@ for frm_idx = 1:length(param.cmd.frms)
       good_mask = isfinite(points.elev);
       scatter(points.x(good_mask)/1e3,points.y(good_mask)/1e3,[],points.elev(good_mask),'Marker','.');
     else
-      imagesc(xaxis/1e3,yaxis/1e3,DEM,'parent',h_axes,'alphadata',~isnan(DEM));
+      % DEBUG ONLY CODE FOR PLOTTING TGRS ERROR MAPS
+      if 0
+%         dat = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_tgrs2021_evd_20140506_01_lut_error_maps/20140401_03/20140401_03_042_top_lut.mat');
+        dat = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nominal_tgrs2021_error_maps/20140401_03/20140401_03_042_top_lut.mat');
+        dem1 = nan(size(DEM));
+        dem1(~ARRAY_MANIFOLD_MASK) = DEM(~ARRAY_MANIFOLD_MASK);
+        mask1 = nan(size(DEM));
+       
+        dem2 = nan(size(dat.ARRAY_MANIFOLD_MASK));
+        dem2(~dat.ARRAY_MANIFOLD_MASK) = dat.DEM(~dat.ARRAY_MANIFOLD_MASK);
+        nanmask = dem2==32767;
+        dem2(nanmask) = nan;
+        
+        error_map = dem1 - dem2;
+        imagesc(xaxis/1e3,yaxis/1e3,error_map,'parent',h_axes,'alphadata',~isnan(error_map));
+        % Plot flightline
+        [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
+          mdata.param_array.array_proc.fcs.origin(1,:), ...
+          mdata.param_array.array_proc.fcs.origin(2,:), ...
+          mdata.param_array.array_proc.fcs.origin(3,:),WGS84.ellipsoid);
+        fline.lat = fline.lat*180/pi;
+        fline.lon = fline.lon*180/pi;
+        [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);
+        hplot = plot(fline.x/1e3,fline.y/1e3,'k');
+        
+        % Colorbar, labels, and legends
+        hcolor = colorbar;
+        set(get(hcolor,'YLabel'),'String','Elevation (WGS-84,m)');
+        xlabel('X (km)');
+        ylabel('Y (km)');
+        legend(hplot,'Flight line');
+        
+        axis(axis_equal(h_axes, fline.x,fline.y));
+        h_fig_dem.Position = [50 50 800 600];
+        set(h_fig_dem,'PaperPositionMode','auto');
+        %
+        % Clip and decimate the geotiff because it is usually very large
+        clip_and_resample_image(h_img,gca,10);
+        title(sprintf('DEM %s_%03d %s',param.day_seg,frm,surface_names{surface_names_idx}),'interpreter','none');
+        
+        % Save output
+        out_fn_name = sprintf('%s_%03d_%s',param.day_seg,frm,'error');
+        out_fn = [fullfile(out_dir,out_fn_name),'.fig'];
+        fprintf('  %s\n', out_fn);
+        saveas(h_fig_dem,out_fn);
+        keyboard
+        
+      else
+        imagesc(xaxis/1e3,yaxis/1e3,DEM,'parent',h_axes,'alphadata',~isnan(DEM));
+      end
     end
     
     % Plot flightline
@@ -845,7 +974,18 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       file_version = '1';
     end
-    save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version');
+
+    dem_savefields = {'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','IMG_3D','points','boundary','param_surfdata','file_version'};
+    
+    if param.dem.ice_mask_flag
+      dem_savefields = [dem_savefields {'ICE_MASK'}];
+    end
+    
+    if param.dem.array_manifold_mask_flag
+      dem_savefields = [dem_savefields {'ARRAY_MANIFOLD_MASK','DOA_GRID'}];
+    end
+
+    ct_save(mat_fn, dem_savefields{:});
 
   end
   try; delete(h_fig_dem); end;

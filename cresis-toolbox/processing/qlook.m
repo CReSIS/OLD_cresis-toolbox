@@ -5,10 +5,11 @@ function ctrl_chain = qlook(param,param_override)
 % surface, and (optionally) stores the surface to a layer data destination
 % (default is layerData).
 %
-% param = struct with processing parameters
-% param_override = parameters in this struct will override parameters
-%         in param.  This struct must also contain the gRadar fields.
-%         Typically global gRadar; param_override = gRadar;
+% param: struct with processing parameters
+%
+% param_override: parameters in this struct will override parameters in
+% param.  This struct must also contain the gRadar fields. Typically global
+% gRadar; param_override = gRadar;
 %
 % Example:
 %  See run_qlook.m for how to run this function directly.
@@ -97,6 +98,8 @@ if ~isempty(param.qlook.img_comb) && length(param.qlook.img_comb) ~= 3*(length(p
   error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
 end
 
+param = img_combine_input_check(param,'qlook');
+
 % Incoherent decimation (inc_dec, inc_B_filter) input check
 % Setting inc_dec = 0: returns coherent data
 % Setting inc_dec = 1: returns power detected data with no decimation
@@ -183,13 +186,18 @@ records = records_load(param);
 out_fn_dir = ct_filename_out(param, param.qlook.out_path);
 tmp_out_fn_dir_dir = ct_filename_out(param, param.qlook.out_path,'qlook_tmp');
 
+%% Collect waveform information into one structure
+%  - This is used to break the frame up into chunks
+% =====================================================================
+[wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.qlook.imgs})),records);
+param.radar.wfs = merge_structs(param.radar.wfs,wfs);
+
 %% Setup cluster
 % =====================================================================
 ctrl = cluster_new_batch(param);
 cluster_compile({'qlook_task.m','qlook_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
-[wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.qlook.imgs})),records);
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
   for img = 1:length(param.qlook.imgs)
     wf = abs(param.qlook.imgs{img}(1,1));
@@ -200,6 +208,11 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.qlook.imgs));
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
+
+elseif strcmpi(radar_name,'snow9')
+  total_num_sam = 45000 * ones(size(param.qlook.imgs));
   cpu_time_mult = 8e-8;
   mem_mult = 64;
   
