@@ -1198,7 +1198,7 @@ if any(param.config.file.version == [403 404 407 408])
       
       % DDC mode and frequency
       if isfield(settings(set_idx), 'DDC_Ctrl')
-        oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
+        oparams{end}.radar.wfs(wf).DDC_dec = 2^(1+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
         oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
       else
         oparams{end}.radar.wfs(wf).DDC_dec = 1;
