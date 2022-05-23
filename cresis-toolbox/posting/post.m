@@ -45,6 +45,10 @@ end
 if ~isfield(param.post,'csv_en') || isempty(param.post.csv_en)
   param.post.csv_en = 0;
 end
+if param.post.concat_en
+  warning('post.csv_en must be true when post.concat_en is true since concatenation uses the CSV files. Setting post.csv_en to true.');
+  param.post.csv_en = 1;
+end
 
 if ~isfield(param.post,'data_dirs') || isempty(param.post.data_dirs)
   % Cell array of data files to post. The first is the master and will be
@@ -645,33 +649,49 @@ if param.post.concat_en
   csv_dir = fullfile(post_path,'csv',param.day_seg);
   kml_base_dir = fullfile(post_path,'kml');
   
-  [csv_dir_path csv_dir_name] = fileparts(csv_dir);
-  out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
-  concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
+  if ~exist(csv_dir,'dir')
+    warning('No csv files to concatenate.');
+  else
+    [csv_dir_path csv_dir_name] = fileparts(csv_dir);
+    out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
+    concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
+  end
   
-  % Create KML browse files for each segment
-  % Extract day_seg from filename
-  in_fn = out_fn;
-  [in_fn_dir in_fn_name] = fileparts(in_fn);
-  kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
-  day_seg = in_fn_name(6:end);
-  kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
+  if ~exist(kml_base_dir,'dir')
+    warning('No kml files to concatenate.');
+  else
+    % Create KML browse files for each segment
+    % Extract day_seg from filename
+    in_fn = out_fn;
+    [in_fn_dir in_fn_name] = fileparts(in_fn);
+    kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
+    day_seg = in_fn_name(6:end);
+    kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
+  end
   
   % Repeat for csv_good and kml_good
   csv_dir = fullfile(post_path,'csv_good',param.day_seg);
   kml_base_dir = fullfile(post_path,'kml_good');
   
-  [csv_dir_path csv_dir_name] = fileparts(csv_dir);
-  out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
-  concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
+  if ~exist(csv_dir,'dir')
+    warning('No csv files to concatenate.');
+  else
+    [csv_dir_path csv_dir_name] = fileparts(csv_dir);
+    out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
+    concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
+  end
   
-  % Create KML browse files for each segment
-  % Extract day_seg from filename
-  in_fn = out_fn;
-  [in_fn_dir in_fn_name] = fileparts(in_fn);
-  kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
-  day_seg = in_fn_name(6:end);
-  kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
+  if ~exist(kml_base_dir,'dir')
+    warning('No kml files to concatenate.');
+  else
+    % Create KML browse files for each segment
+    % Extract day_seg from filename
+    in_fn = out_fn;
+    [in_fn_dir in_fn_name] = fileparts(in_fn);
+    kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
+    day_seg = in_fn_name(6:end);
+    kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
+  end
 end
 
 % =======================================================================

@@ -191,6 +191,13 @@ if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
       if ~isempty(regexp(error_file_str,'PBS: job killed: walltime'))
         error_mask = bitor(error_mask,walltime_exceeded_error);
       end
+      % slurmstepd: error: *** JOB 15269436 ON prod-0105 CANCELLED AT 2022-05-15T23:32:22 DUE TO TIME LIMIT ***
+      if ~isempty(regexp(error_file_str,'CANCELLED'))
+        error_mask = bitor(error_mask,cluster_killed_error);
+      end
+      if ~isempty(regexp(error_file_str,'DUE TO TIME LIMIT'))
+        error_mask = bitor(error_mask,walltime_exceeded_error);
+      end
     end
   end
 end
@@ -238,7 +245,13 @@ end
 
 if isfield(out,'errorstruct')
   if ~isempty(out.errorstruct)
-    error_mask = bitor(error_mask,errorstruct_contains_error);
+    if regexp(out.errorstruct.message,'Out of memory')
+      % Warning: Out of memory. Type "help memory" for your options.
+      error_mask = bitor(error_mask,max_mem_exceeded_error);
+      error_mask = bitor(error_mask,matlab_task_out_of_memory);
+    else
+      error_mask = bitor(error_mask,errorstruct_contains_error);
+    end
   end
 else
   error_mask = bitor(error_mask,errorstruct_exist_error);
@@ -326,7 +339,8 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('    Task memory requested %.1f*%.1f = %.1f GB\n', ctrl.mem(task_id)/1e9, ctrl.cluster.mem_mult, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
     fprintf('    Job''s last executed task id %d\n', last_task_id);
   end
-  if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
+  if bitand(ctrl.error_mask(task_id),matlab_task_out_of_memory) ...
+    || bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
     fprintf('  Task max memory exceeded.\n');
     if ~isempty(regexpi(ctrl.cluster.mem_mult_mode,'debug'))
       ctrl.cluster.mem_mult_mode
@@ -337,13 +351,13 @@ if update_mode && ctrl.error_mask(task_id)
       fprintf('  2. Run job locally by running cluster_exec_task(ctrl,task_id);\n');
       fprintf('     Be sure to run ctrl.error_mask(task_id) = 0 after successfully\n');
       fprintf('     running task.\n');
-      fprintf('  3. Set ctrl.cluster.mem_mult_mode = ''auto'';\n');
+      fprintf('  3. Set ctrl.cluster.mem_mult_mode = ''auto''; to automatically increase the memory requested.\n');
       fprintf('After making changes, run dbcont to continue.\n');
       keyboard
     end
     if ~isempty(regexpi(ctrl.cluster.mem_mult_mode,'auto'))
-      fprintf('    Automatically doubling memory request for this task.\n');
-      ctrl.mem(task_id) = max_mem*1.5/ctrl.cluster.mem_mult;
+      fprintf('    Automatically 1.5x the memory request for this task.\n');
+      ctrl.mem(task_id) = max(max_mem/ctrl.cluster.mem_mult,ctrl.mem(task_id))*1.5;
     end
   end
   if bitand(ctrl.error_mask(task_id),insufficient_mcr_space)
@@ -360,6 +374,8 @@ if update_mode && ctrl.error_mask(task_id)
   end
   if bitand(ctrl.error_mask(task_id),walltime_exceeded_error)
     fprintf('  Cluster killed this job due to wall time. This means the job requested too little cpu time. cluster.cpu_time_mult should be increased.\n');
+    fprintf('    Automatically doubling wall time request for this task.\n');
+    ctrl.cpu_time(task_id) = ctrl.cpu_time(task_id)*2/ctrl.cluster.cpu_time_mult;
   end
   if bitand(ctrl.error_mask(task_id),file_success_error)
     fprintf('  File success check failed (missing files)\n');
