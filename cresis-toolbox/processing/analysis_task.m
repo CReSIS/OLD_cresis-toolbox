@@ -521,6 +521,7 @@ for img = 1:length(store_param.load.imgs)
         roll = [];
         pitch = [];
         heading = [];
+        along_track = [];
         bad_rec = [];
         DDC_dec = [];
         raw_or_DDC = [];
@@ -649,14 +650,25 @@ for img = 1:length(store_param.load.imgs)
           end
           
           %% Coh Noise: Concatenate Info
+          tmp_along_track = geodetic_to_along_track(hdr.records{img,wf_adc}.lat(rlines),hdr.records{img,wf_adc}.lon(rlines));
           coh_ave_samples(:,rline0_idx) = sum(good_samples,2);
-          if cmd.threshold_coh_ave == 1
-            coh_ave(:,rline0_idx) = nansum(data(:,rlines) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          if ~cmd.distance_weight || tmp_along_track(end) < 10
+            % Too short, all good_sample measurements equal weight
+            sum_weight = good_samples;
+            sum_weight = bsxfun(@times,sum_weight,1./sum(sum_weight,2));
           else
-            coh_ave(:,rline0_idx) = nansum( nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+            sum_weight = diff(tmp_along_track);
+            sum_weight = [sum_weight(1) sum_weight];
+            sum_weight = bsxfun(@times,good_samples,sum_weight);
+            sum_weight = bsxfun(@times,sum_weight,1./sum(sum_weight,2));
+          end
+          if cmd.threshold_coh_ave == 1
+            coh_ave(:,rline0_idx) = nansum(data(:,rlines) .* sum_weight,2);
+          else
+            coh_ave(:,rline0_idx) = nansum(nan_fir_dec(data(:,rlines),ones(1,cmd.threshold_coh_ave)/cmd.threshold_coh_ave,1, [], [], [], [], 2) .* sum_weight,2);
           end
           if cmd.mag_en
-            coh_ave_mag(:,rline0_idx) = nansum(abs(data(:,rlines)) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+            coh_ave_mag(:,rline0_idx) = nansum(abs(data(:,rlines)) .* sum_weight,2);
           else
             coh_ave_mag = [];
           end          
@@ -683,6 +695,7 @@ for img = 1:length(store_param.load.imgs)
           roll(rline0_idx) = mean(hdr.records{img,wf_adc}.roll(rlines));
           pitch(rline0_idx) = mean(hdr.records{img,wf_adc}.pitch(rlines));
           heading(rline0_idx) = mean(hdr.records{img,wf_adc}.heading(rlines));
+          along_track(rline0_idx) = tmp_along_track(end);
           
           bad_rec(rline0_idx) = mean(hdr.bad_rec{1}(rlines));
           tmp_DDC_dec = unique(hdr.DDC_dec{1}(rlines));
@@ -721,7 +734,7 @@ for img = 1:length(store_param.load.imgs)
         end
         file_type = 'analysis_noise_tmp';
         ct_save(out_fn, 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_type','file_version', 'bad_rec', 'DDC_dec', 'DDC_freq_min', 'DDC_freq_max', 'raw_or_DDC');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'along_track', 'param_analysis', 'param_records','nyquist_zone','file_type','file_version', 'bad_rec', 'DDC_dec', 'DDC_freq_min', 'DDC_freq_max', 'raw_or_DDC');
       end
       
     elseif strcmpi(cmd.method,{'waveform'})

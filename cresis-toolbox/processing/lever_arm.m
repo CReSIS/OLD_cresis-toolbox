@@ -216,6 +216,15 @@ if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && any(strcmpi(gps
   gps.z = 0; % Forward GPS antenna
 end
 
+if (any(strcmpi(param.season_name,{'2022_Greenland_Ground'})) && any(strcmpi(gps_source,{'arena','cresis'})))
+  % GPS antenna is mounted almost on the radar antenna phase center
+  % Need to update exactly what the vertical offset is.
+
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
   % ===========================================================================
   % All antenna positions measurements are relative to GPS antenna
@@ -874,6 +883,33 @@ if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && strcmpi(radar_n
     LArx = [-gps.x; -gps.y; -gps.z];
     LAtx = [-gps.x; -gps.y; -gps.z];
   end
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (any(strcmpi(param.season_name,{'2022_Greenland_Ground'})) && strcmpi(radar_name,'accum'))
+
+  % Accumulation antenna
+  LArx = [];
+  LArx(1,:)   = ( 0*0.0254 ) - gps.x; % m
+  LArx(2,:)   = ( 0*0.0254 ) - gps.y; % m
+  LArx(3,:)   = ( 0*0.0254 ) - gps.z; % m
+  
+  LArx = mean(LArx,2); % Combine all elements into a single element
+  
+  LAtx = [];
+  LAtx(1,:)   = ( 0*0.0254 ) - gps.x; % m
+  LAtx(2,:)   = ( 0*0.0254 ) - gps.y; % m
+  LAtx(3,:)   = ( 0*0.0254 ) - gps.z; % m
+  
+  LAtx = mean(LAtx,2); % Combine all elements into a single element
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;
