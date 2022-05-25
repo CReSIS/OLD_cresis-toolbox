@@ -8,6 +8,7 @@ function [status,message] = opsCreatePath(sys,param)
 %   sys: (string) sys name ('rds','accum','snow',...)
 %   param: structure with fields
 %     geometry.coordinates = double array of format ([lon lat])
+%     properties.segment_resolution = double (simplify resolution of segment linestring)
 %     properties.location = string ('arctic' or 'antarctic')
 %     properties.season = string
 %     properties.radar = string
@@ -32,6 +33,11 @@ function [status,message] = opsCreatePath(sys,param)
 % SET SEASON_GROUP DEFAULTS
 if ~isfield(param.properties,'season_group')
   param.properties.season_group = 'cresis_private';
+end
+
+% SET SEGMENT_RESOLUTION DEFAULT to full resolution
+if ~isfield(param.properties,'segment_resolution')
+  param.properties.segment_resolution = 0;
 end
 
 % CONSTRUCT THE JSON STRUCTURE
