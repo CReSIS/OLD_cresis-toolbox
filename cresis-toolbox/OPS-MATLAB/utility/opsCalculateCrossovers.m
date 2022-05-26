@@ -31,6 +31,11 @@ catch ME
     jsonStr = savejson('',jsonStruct,'FloatFormat','%d','NaN','null');
 end
 
+if ~isinteger(segments(1))
+  disp 'No crossovers to calculate';
+  return
+end
+
 % SEND THE COMMAND TO THE SERVER
 opsCmd;
 if gOps.profileCmd
