@@ -14,7 +14,7 @@ param_override = [];
 param = [];
 passes = [];
 
-example_str = 'Ryder_line1_2011_2013_2015_2019';
+example_str = '79N_line1_2010_2014_2017_2018_2019_Extend';
 
 if strcmpi(example_str,'Thwaites_201902_201912_202001')
   %% Thwaites Line 1 20190201_01, 20191225_01, 20200127_01
@@ -61,7 +61,7 @@ if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019')
   param_fn = 'rds_param_2014_Greenland_P3.xls';
   day_seg = '20140505_01';
   frms = 17:19; % was 17:18, new 17:19
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
   param_fn = 'rds_param_2015_Greenland_C130.xls';
   day_seg = '20150505_02';
@@ -84,12 +84,80 @@ if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019')
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
+
+if strcmpi(example_str,'Petermann_line1_2011_2014_2015_2017_2018_2019_Extend')
+  %% Petermann Line 1 2011, 2014, 2015, 2017, 2018, 2019 Extend
+  pass_name = sprintf('Petermann_line1_2011_2014_2015_2017_2018_2019_Extend');
+  dist_min = 5000;
+  master_pass_idx = 1;
+  start = struct('lat',80.398,'lon',-59.464); 
+  stop = struct('lat',81.100,'lon',-61.800);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2011_Greenland_P3.xls';
+  day_seg = '20110507_02';
+  frms = 9:11;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  day_seg = '20140505_01';
+  frms = 17:19;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2015_Greenland_C130.xls';
+  day_seg = '20150505_02';
+  frms = 16:18;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2017_Greenland_P3.xls';
+  day_seg = '20170331_01';
+  frms = 16:17;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Greenland_P3.xls';
+  day_seg = '20180405_01';
+  frms = 15:17;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2019_Greenland_P3.xls';
+  day_seg = '20190417_01';
+  frms = 14:16;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+end
+
 if strcmpi(example_str,'Petermann_line2_2013_2014_2017')
   %% Petermann Line 2 2013, 2014, 2017
-  pass_name = sprintf('Petermann_line2_2013_2014_2017');
+  pass_name = sprintf('Petermann_line2_2013_2014_2017_Extend');
   dist_min = 500;
   master_pass_idx = 1;
   start = struct('lat',80.517191,'lon',-59.844969); %original
+  stop = struct('lat',81.031,'lon',-61.672);
+
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  param_fn = 'rds_param_2013_Greenland_P3.xls';
+  day_seg = '20130420_02';
+  frms = 4:5; % was 4:5, new 3:6
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  day_seg = '20140512_01';
+  frms = 16:17; %was 16:17, new 16:18
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2017_Greenland_P3.xls';
+  day_seg = '20170331_01';
+  frms = 22:23; % was 22:23, new 22:24
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post\standard');
+end
+
+if strcmpi(example_str,'Petermann_line2_2013_2014_2017_Extend')
+  %% Petermann Line 2 2013, 2014, 2017 Extend
+  pass_name = sprintf('Petermann_line2_2013_2014_2017_Extend');
+  dist_min = 500;
+  master_pass_idx = 1;
+  start = struct('lat',80.410,'lon',-59.240);
   stop = struct('lat',81.031,'lon',-61.672);
 
   input_type = 'echo';
@@ -168,6 +236,42 @@ if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014_2017')
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post\standard');
 end
 
+if strcmpi(example_str,'Petermann_line4_2010_2011_2013_2014_2017_Extend')
+  %% Petermann Line 4 2010, 2011, 2013, 2014, 2017 Extend
+  pass_name = sprintf('Petermann_line4_2010_2011_2013_2014_2017_Extend');
+  dist_min = 500;
+  master_pass_idx = 1;
+  start = struct('lat',80.443,'lon',-59.020);
+  stop = struct('lat',81.100,'lon',-61.686);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2010_Greenland_DC8.xls';
+  day_seg = '20100324_01';
+  frms = 25:27;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2011_Greenland_P3.xls';
+  day_seg = '20110507_02';
+  frms = 13:15;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2013_Greenland_P3.xls';
+  day_seg = '20130420_02';
+  frms = 7:8;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  day_seg = '20140512_01';
+  frms = 13:15; % was 13:14, new 13:15
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  
+  param_fn = 'rds_param_2017_Greenland_P3.xls';
+  day_seg = '20170331_01';
+  frms = 13:14;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post\standard');
+end
+
 if strcmpi(example_str,'Petermann_oblique_2014_2015_2017_2018')
   %% Petermann Oblique 2014, 2017, 2018
   pass_name = sprintf('Petermann_oblique_2014_2015_2017_2018');
@@ -199,13 +303,13 @@ if strcmpi(example_str,'Petermann_oblique_2014_2015_2017_2018')
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
-if strcmpi(example_str,'79N_line1_2010_2014_2016_2018')
-  %% 79N Line 1 2010, 2014, 2016, 2018
-  pass_name = sprintf('79N_line1_2010_2014_2016_2018');
+if strcmpi(example_str,'79N_line1_2010_2014_2017_2018_2019')
+  %% 79N Line 1 2010, 2014, 2016, 2018, 2019
+  pass_name = sprintf('79N_line1_2010_2014_2017_2018_2019');
   dist_min = 16000;
-  master_pass_idx = 2;
-  start = struct('lat',79.346109,'lon',-22.575643);
-  stop = struct('lat',79.559002,'lon',-19.329911);
+  master_pass_idx = 3;
+  start = struct('lat',79.37,'lon',-22.36);
+  stop = struct('lat',79.70,'lon',-19.20);
   input_type = 'echo';
   passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
   
@@ -219,15 +323,66 @@ if strcmpi(example_str,'79N_line1_2010_2014_2016_2018')
   frms = 43:44;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-  param_fn = 'rds_param_2016_Greenland_P3.xls';
-  day_seg = '20160509_10';
-  frms = 1;
+%   param_fn = 'rds_param_2016_Greenland_P3.xls';
+%   day_seg = '20160509_10';
+%   frms = 1;
+%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2017_Greenland_P3.xls';
+  day_seg = '20170403_02';
+  frms = 7:9;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
   param_fn = 'rds_param_2018_Greenland_P3.xls';
   day_seg = '20180418_05';
   frms = 1:2;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2019_Greenland_P3.xls';
+  day_seg = '20190405_02';
+  frms = 2:3;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+end
+
+if strcmpi(example_str,'79N_line1_2010_2014_2017_2018_2019_Extend')
+  %% 79N Line 1 2010, 2014, 2016, 2018, 2019 Extend
+  pass_name = sprintf('79N_line1_2010_2014_2017_2018_2019_Extend');
+  dist_min = 20000;
+  master_pass_idx = 3;
+  start = struct('lat',79.283,'lon',-23.096);
+  stop = struct('lat',79.70,'lon',-19.074);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2010_Greenland_P3.xls';
+  day_seg = '20100525_04';
+  frms = 11:13;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  day_seg = '20140429_01';
+  frms = 42:44;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+%   param_fn = 'rds_param_2016_Greenland_P3.xls';
+%   day_seg = '20160509_10';
+%   frms = 1;
+%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2017_Greenland_P3.xls';
+  day_seg = '20170403_02';
+  frms = 7:9;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Greenland_P3.xls';
+  day_seg = '20180418_05';
+  frms = 1:2;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2019_Greenland_P3.xls';
+  day_seg = '20190405_02';
+  frms = 2:4;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
 if strcmpi(example_str,'79N_Cross1_2012_2017_2018_2019')
@@ -265,9 +420,9 @@ end
 if strcmpi(example_str,'Ryder_line1_2011_2013_2015_2019')
   %% Ryder line1 2011,2013,2015,2019
   % master line must be 2 for best alignment (terminus is still problem)
-  pass_name = sprintf('Ryder_line1_2011_2013_2015_2019');
+  pass_name = sprintf('Ryder_line1_2011_2013_2015_2019'); 
   dist_min = 16000;
-  master_pass_idx = 3; % Use 2015 since it runs parallel to glacier
+  master_pass_idx = 3; % Use 2015 since it runs parallel to glacier was 3
   start = struct('lat',81.420,'lon',-50.278);
   stop = struct('lat',81.835,'lon',-51.104);
   input_type = 'echo';
@@ -307,7 +462,7 @@ if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')
   param_fn = 'rds_param_2011_Greenland_P3.xls';
   day_seg = '20110509_01';
   frms = 16;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
   
   param_fn = 'rds_param_2013_Greenland_P3.xls';
   day_seg = '20130426_01';
@@ -325,25 +480,25 @@ if strcmpi(example_str,'Steensby_line1_2011_2013_2015_2019')
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 end
 
-if strcmpi(example_str,'Humboldt_line1_2012_2013_2014_2017')
+if strcmpi(example_str,'Humboldt_line1_2012_2014_2017')
   %% Humboldt line1 2012,2013,2014,2017
-  pass_name = sprintf('Humboldt_line1_2012_2013_2014_2017');
+  pass_name = sprintf('Humboldt_line1_2012_2014_2017');
   dist_min = 16000;
-  master_pass_idx = 1;
-  start = struct('lat',79.801630,'lon',-64.155016);
-  stop = struct('lat',79.798388,'lon',-64.752165);
+  master_pass_idx = 3;
+  start = struct('lat',79.800,'lon',-64.000);
+  stop = struct('lat',79.806,'lon',-64.986);
   input_type = 'echo';
   passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
   
   param_fn = 'rds_param_2012_Greenland_P3.xls';
   day_seg = '20120511_01';
-  frms = 39;
+  frms = 39:40;
   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-  param_fn = 'rds_param_2013_Greenland_P3.xls';
-  day_seg = '20130420_01';
-  frms = 35;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+%   param_fn = 'rds_param_2013_Greenland_P3.xls';
+%   day_seg = '20130420_01';
+%   frms = 35:36;
+%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
   param_fn = 'rds_param_2014_Greenland_P3.xls';
   day_seg = '20140520_03';
@@ -389,12 +544,201 @@ if strcmpi(example_str,'ZI_line1_2010_2014_2016_2017_2018_2019')
   param_fn = 'rds_param_2018_Greenland_P3.xls';
   day_seg = '20180418_04';
   frms = 18:19;
-  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
   
-%   param_fn = 'rds_param_2019_Greenland_P3.xls';
-%   day_seg = '20190405_01';
-%   frms = 22:23;
-%   passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+  param_fn = 'rds_param_2019_Greenland_P3.xls';
+  day_seg = '20190405_01';
+  frms = 22:23;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+end
+
+if strcmpi(example_str,'PIG_Line1_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line1_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.052,'lon',-99.115);
+  stop = struct('lat',-75.006,'lon',-99.831);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 14;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 9:10;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 12:13;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+end
+
+if strcmpi(example_str,'PIG_Line2_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line2_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.173,'lon',-98.265);
+  stop = struct('lat',-74.962,'lon',-101.347);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 21:22;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 16:17;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 19:20;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+end
+
+if strcmpi(example_str,'PIG_Line3_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line3_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.272,'lon',-97.667);
+  stop = struct('lat',-75.121,'lon',-100.172);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 28:29;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 23:24;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 26:27;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+end
+
+if strcmpi(example_str,'PIG_Line4_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line4_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.312,'lon',-97.888);
+  stop = struct('lat',-75.134,'lon',-100.667);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 34:35;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 29:30;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 32:33;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+end
+
+if strcmpi(example_str,'PIG_Line5_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line5_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.351,'lon',-98.115);
+  stop = struct('lat',-75.176,'lon',-100.777);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 16:17;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 11:12;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 14:15;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+end
+
+if strcmpi(example_str,'PIG_Line6_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line6_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.383,'lon',-99.056);
+  stop = struct('lat',-75.305,'lon',-100.161);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 30;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 25;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 28;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+end
+
+if strcmpi(example_str,'PIG_Line7_2014_2016_2018')
+  %% PIG line1 2014, 2016, 2018
+  pass_name = sprintf('PIG_Line7_2014_2016_2018');
+  dist_min = 16000;
+  master_pass_idx = 2;
+  % Need to edit stop/start of profiles
+  start = struct('lat',-75.408,'lon',-99.374);
+  stop = struct('lat',-75.320,'lon',-100.594);
+  input_type = 'echo';
+  passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+  
+  param_fn = 'rds_param_2014_Antarctica_DC8.xls';
+  day_seg = '20141029_05';
+  frms = 23:24;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2016_Antarctica_DC8.xls';
+  day_seg = '20161104_05';
+  frms = 19;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+  
+  param_fn = 'rds_param_2018_Antarctica_DC8.xls';
+  day_seg = '20181107_01';
+  frms = 22;
+  passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
 end
 
 if strcmpi(example_str,'camp_century_2014_2_weeks')

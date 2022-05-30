@@ -5,13 +5,16 @@ param = [];
 vel_fn = {};
 vel_mult = [];
 
+% Switch vel_fn_dir depending on if processing greenland or antarctica data
 if ispc
   vel_fn_dir = 'Y:\cbarnett\year_greenland_vv\';
+  %vel_fn_dir = 'Y:\cbarnett\year_antarctica_vv\VV\VV_component_EPSG3976';
 else
   vel_fn_dir = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/';
+  %vel_fn_dir = '/cresis/snfs1/scratch/cbarnett/year_antarctica_vv/VV/VV_component_EPSG3976/';
 end
 
-example_str =  'Ryder_line1_2011_2013_2015_2019';
+example_str =  '79N_line1_2010_2014_2017_2018_2019';
 
 if strcmpi(example_str, 'Petermann_line1_2011_2014_2018')
   %% Petermann Line 1 - 2011, 2014, 2018 - TEST // WORKING SCRIPT
@@ -60,34 +63,39 @@ end
 if strcmpi(example_str, 'Petermann_line1_2011_2014_2015_2017_2018_2019')
   %% Petermann Line 1 - 2011, 2014, 2015, 2017, 2018, 2019
   if ispc
-    fn = fullfile('X:\ct_data\rds\2011_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2015_2017_2018_2019_multipass02.mat'));
+    fn = fullfile('X:\ct_data\rds\2011_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2015_2017_2018_2019_Extend_multipass02.mat'));
   else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2015_2017_2018_2019_multipass02'));
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2015_2017_2018_2019_Extend_multipass02'));
   end
-  vel_fn{1}{1} = fullfile(vel_fn_dir,'vv2011_MEaSURES_tile_com1.tif');
+  %vel_fn{1}{1} = fullfile(vel_fn_dir,'vv2011_MEaSURES_tile_com1.tif');
+  vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2009_2010_vv_v02.1.tif');
   vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_fn{1}{3} = fullfile(vel_fn_dir,'vv2013_MEaSURES_tile_com1.tif');
+  vel_fn{1}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');  
+  %vel_fn{1}{3} = fullfile(vel_fn_dir,'vv2013_MEaSURES_tile_com1.tif');
+  vel_fn{1}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
 %   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_mult{1} = [1 1 1];
+  vel_mult{1} = [(239/365) (366/366) (365/365) (124/365)];
   vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
-  vel_mult{2} = [1];
+  vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');  
+  vel_mult{2} = [(241/365) (124/365)];
   vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
   vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
-  vel_mult{3} = [1 1];
+  vel_fn{3}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+  vel_mult{3} = [(241/365) (366/366) (89/365)];
   vel_fn{4}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-  vel_mult{4} = [1];
+  vel_mult{4} = [(276/365 + 94/365)];
   % velocity correction for 2018-2019 season uses 2017-2018 data since no
   % NCSIDC velocity map exists for this period of time
   vel_fn{5}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif'); 
-  vel_mult{5} = [1];
+  vel_mult{5} = [(271/365 + 107/365)];
 end
 
-if strcmpi(example_str, 'Petermann_line2_2007_2013_2014_2017')
+if strcmpi(example_str, 'Petermann_line2_2013_2014_2017')
   %% Petermann Line 2 - 2007, 2013, 2014, 2017
   if ispc
-    fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line2_2013_2014_2017_multipass02.mat'));
+    fn = fullfile('X:\ct_data\rds\2013_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line2_2013_2014_2017_Extend_multipass02.mat'));
   else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line2_2013_2014_2017_multipass02'));
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line2_2013_2014_2017_Extend_multipass02'));
   end
   % velocity correction for 2007-2013 uses 2009-2010 and 2012-2013
   % velocities twice to correct for missing data between 2010-2011 and
@@ -98,42 +106,37 @@ if strcmpi(example_str, 'Petermann_line2_2007_2013_2014_2017')
 %   vel_fn{1}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
 %   vel_mult{1} = [1 1 2 2];
   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_mult{1} = [1];
+  vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
+  vel_mult{1} = [(256/365) (132/365)];
   vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
   vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
-  vel_mult{2} = [1 1 1];
+  vel_fn{2}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+  vel_mult{2} = [(234/365) (365/365) (366/366) (90/365)];
 end
-
-% if strcmpi(example_str, 'Petermann_line3_2007_2010A_2010B_2017')
-%   % Petermann Line 3 - 2007, 2010A, 2010B, 2017 
-%   if ispc
-%     fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line3_2007_2010_2010DC8_2017_multipass.mat'));
-%   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line3_2007_2010_2010CD8_2017_multipass'));
-%   end
-% end
 
 if strcmpi(example_str, 'Petermann_line4_2010_2011_2013_2014_2017')
   %% Petermann Line 4 - 2010, 2011, 2013, 2014, 2017 
   if ispc
-    fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014_2017_multipass02.mat'));
+    fn = fullfile('X:\ct_data\rds\2010_Greenland_DC8\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014_2017_Extend_multipass02.mat'));
   else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014_2017_multipass02'));
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2010_Greenland_DC8/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014_2017_Extend_multipass02'));
   end
   % 2010-2011 and 2011-2013 use NSIDC years 2012-2013 correction since none
   % exists for the covered time period.
   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2009_2010_vv_v02.1.tif');
-  vel_mult{1} = [1];
+  vel_mult{1} = [(283/365 + 126/365)];
   vel_fn{2}{1} = fullfile(vel_fn_dir,'test_2009_2013_combo_float.tif');
   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_mult{2} = [1 1];
+  vel_mult{2} = [(239/365) (366/366 + 109/365)];
   vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_mult{3} = [1];
+  vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
+  vel_mult{3} = [(256/365) (132/365)];
   vel_fn{4}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
   vel_fn{4}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
   vel_fn{4}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
-  vel_mult{4} = [1 1 1];
+  vel_fn{4}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+  vel_mult{4} = [(233/365) (365/365) (366/366) (89/365)];
 end
 
 if strcmpi(example_str, 'Petermann_oblique_2014_2017_2018')
@@ -153,60 +156,36 @@ if strcmpi(example_str, 'Petermann_oblique_2014_2017_2018')
   vel_mult{3} = [1];
 end
 
-if strcmpi(example_str, '79N_line1_2010_2014_2016_2018_TEST') 
-  %% 79N Line 1 - 2010, 2014, 2016, 2018 - TEST // WORKING SCRIPT
+if strcmpi(example_str, '79N_line1_2010_2014_2017_2018_2019')
+  %% 79N Line 1 - 2010, 2014, 2017, 2018, 2019
   if ispc
-    fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018_multipass.mat'));
+    fn = fullfile('X:\ct_data\rds\2017_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2017_2018_2019_Extend_multipass02.mat'));
   else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018_multipass'));
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2017_2018_2019_Extend_multipass'));
   end
+%   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+%   vel_mult{1} = [4];
+%   vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
+%   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+%   vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+%   vel_mult{2} = [1 1 1];
+%   vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+%   vel_mult{3} = [1];
+%   vel_fn{4}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+%   vel_mult{4} = [1];
   
   vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_mult{1} = [4];
-  vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
-  vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
-  vel_mult{2} = [1 1];
-  vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
-  vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-  vel_mult{3} = [1 1];
-end
-
-if strcmpi(example_str, '79N_line1_2010_2014_2016_2018_2019')
-  %% 79N Line 1 - 2010, 2014, 2016, 2018, 2019
-  if ispc
-    fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018_2019_multipass.mat'));
-  else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018_2019_multipass'));
-  end
-  
-  vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-  vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2013_2014_vv_v02.1.tif');
-  vel_mult{1} = [3 1];
+  vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
+  vel_mult{1} = [(221/365 + 365/365 + 366/366 + 365/365) 118/365];
   vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
   vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
-  vel_mult{2} = [1 1];
+  vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+  vel_mult{2} = [247/365 365/365 129/366];
   vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
   vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-  vel_mult{3} = [1 1];
+  vel_mult{3} = [237/366 92/365];
   vel_fn{4}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-  vel_mult{4} = [1];
-end
-
-if strcmpi(example_str, 'Humboldt_line1_2012_2013_2014_2017')
-    %% Humboldt Glacier - 2012, 2013, 2014, 2017
-    if ispc
-      fn = fullfile('X:\ct_data\rds\2013_Greenland_P3\CSARP_multipass\',sprintf('Humboldt_line1_2012_2013_2014_2017_multipass.mat'));
-    else
-      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_multipass/',sprintf('Humboldt_line1_2012_2013_2014_2017_multipass'));
-    end
-    vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-    vel_mult{1} = [1];
-    vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2013_2014_vv_v02.1.tif');
-    vel_mult{2} = [1];
-    vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
-    vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
-    vel_fn{3}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
-    vel_mult{3} = [1 1 1];
+  vel_mult{4} = [(273/365 + 107/365)];
 end
 
 if strcmpi(example_str, 'Ryder_line1_2011_2013_2015_2019')
@@ -217,13 +196,15 @@ if strcmpi(example_str, 'Ryder_line1_2011_2013_2015_2019')
       fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_multipass/',sprintf('Ryder_line1_2011_2013_2015_2019_multipass02'));
     end
     vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-    vel_mult{1} = [2];
-    vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
-    vel_mult{2} = [2];
+    vel_mult{1} = [(237/365 + 366/366 + 116/365)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+    vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
+    vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+    vel_mult{2} = [(249/365) (365/365) (126/365)];
     vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
     vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
     vel_fn{3}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-    vel_mult{3} = [1 1 2];
+    vel_mult{3} = [(239/365) (365/365) (365 + 365 +113)/365];
     % Use the NSIDC 2017-2018 velocity for the 2018-2019 season shift
 end
 
@@ -234,14 +215,33 @@ if strcmpi(example_str, 'Steensby_line1_2011_2013_2015_2019')
     else
       fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_multipass/',sprintf('Steensby_line1_2011_2013_2015_2019_multipass02'));
     end
-        vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-    vel_mult{1} = [2];
-    vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
-    vel_mult{2} = [2];
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+    vel_mult{1} = [(237/365 + 366/366 + 116/365)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+    vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2014_2015_vv_v02.1.tif');
+    vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+    vel_mult{2} = [(249/365) (365/365) (126/365)];
     vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
     vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
     vel_fn{3}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-    vel_mult{3} = [1 1 2];
+    vel_mult{3} = [(239/365) (365/365) (365 + 365 +113)/365];
+end
+
+if strcmpi(example_str, 'Humboldt_line1_2012_2014_2017')
+    %% Humboldt Glacier - 2012, 2014, 2017
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Humboldt_line1_2012_2014_2017_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Humboldt_line1_2012_2014_2017_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
+    vel_mult{1} = [(235/365 + 365/365) 139/365];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
+    vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
+    vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+    vel_fn{2}{4} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+    vel_mult{2} = [226/365 365/365 366/366 107/365];
 end
 
 if strcmpi(example_str, 'ZI_line1_2010_2014_2016_2017_2018_2019')
@@ -251,18 +251,127 @@ if strcmpi(example_str, 'ZI_line1_2010_2014_2016_2017_2018_2019')
     else
       fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('ZI_line1_2010_2014_2016_2017_2018_2019_multipass02'));
     end
-    vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
-    vel_mult{1} = [4];
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2009_2010_vv_v02.1.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2012_2013_vv_v02.1.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
+    vel_mult{1} = [(221/365) (365/365 + 366/366 + 365/365) 127/365];
     vel_fn{2}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic500_2014_2015_vv_v02.1.tif');
     vel_fn{2}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2015_2016_vv_v02.1.tif');
-    vel_mult{2} = [1 1];
+    vel_fn{2}{3} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
+    vel_mult{2} = [(238/365) (365/365) (129/366)];
     vel_fn{3}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2016_2017_vv_v02.1.tif');
-    vel_mult{3} = [1];
+    vel_fn{3}{2} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
+    vel_mult{3} = [(237/365) (92/365)];
     vel_fn{4}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-    vel_mult{4} = [1];
+    vel_mult{4} = [(237/365 + 107/365)];
     vel_fn{5}{1} = fullfile(vel_fn_dir,'greenland_vel_mosaic200_2017_2018_vv_v02.1.tif');
-    vel_mult{5} = [1];
+    vel_mult{5} = [(258/365 + 95/365)];
     % Use the NSIDC 2017-2018 velocity for the 2018-2019 season shift
+end
+
+if strcmpi(example_str, 'PIG_line1_2014_2016_2018')
+    %% Pine Island Glacier 1 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line1_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line1_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
+end
+
+if strcmpi(example_str, 'PIG_line2_2014_2016_2018')
+    %% Pine Island Glacier 2 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line2_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line2_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
+end
+
+if strcmpi(example_str, 'PIG_line3_2014_2016_2018')
+    %% Pine Island Glacier 3 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line3_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line3_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
+end
+
+if strcmpi(example_str, 'PIG_line4_2014_2016_2018')
+    %% Pine Island Glacier 4 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line4_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line4_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
+end
+
+if strcmpi(example_str, 'PIG_line5_2014_2016_2018')
+    %% Pine Island Glacier 5 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line5_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line5_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
+end
+
+if strcmpi(example_str, 'PIG_line6_2014_2016_2018')
+    %% Pine Island Glacier 6 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line6_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line6_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
+end
+
+if strcmpi(example_str, 'PIG_line7_2014_2016_2018')
+    %% Pine Island Glacier 7 - 2014, 2016, 2018
+    if ispc
+      fn = fullfile('X:\ct_data\rds\2016_Antarctica_DC8\CSARP_multipass\',sprintf('PIG_line7_2014_2016_2018_multipass02.mat'));
+    else
+      fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2016_Antarctica_DC8/CSARP_multipass/',sprintf('PIG_line7_2014_2016_2018_multipass02'));
+    end
+    vel_fn{1}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2014_2015_1km_v01_mag.tif');
+    vel_fn{1}{2} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2015_2016_1km_v01_mag.tif');
+    vel_fn{1}{3} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{1} = [(64/365) (365/365) (309/366)];
+    vel_fn{2}{1} = fullfile(vel_fn_dir,'Antarctica_ice_velocity_2016_2017_1km_v01_mag.tif');
+    vel_mult{2} = [(57/366 + 365/365 + 311/365)];
 end
 
 %%
