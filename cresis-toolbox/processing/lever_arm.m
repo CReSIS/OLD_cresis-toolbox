@@ -1,36 +1,53 @@
 function [phase_center] = lever_arm(param, tx_weights, rxchannel)
 % [phase_center] = lever_arm(param, tx_weights, rxchannel)
 %
-% Returns lever arm position for antenna phase center.
+% Returns lever arm position for antenna phase center. See remarks below
+% to understand the coordinate system for output "phase_center".
 %
-% param = parameter struct
-%   .season_name = string containing the season name (e.g. 2011_Greenland_TO)
-%   .radar_name = string containing the radar name (e.g. snow2)
-%   .gps_source = string from GPS file using format SOURCE-VERSION
-%      Only the source is used (e.g. ATM-final_20120303)
-% tx_weights = transmit amplitude weightings (from the radar worksheet of
-%   the parameter spreadsheet)
-%   These are amplitude weights, not power weights.
-% rxchannel = receive channel to return phase_center for (scalar,
-%   positive integer)
-%   Setting rxchannel to 0, causes the "reference" position to be returned.
-%   This is usually the position of one of the center receive elements
-%   and equal weights on all transmitters.
+% =========================================================================
+% INPUTS:
 %
-% phase_center = lever arm to each phase center specified by
-%   tx_weights and rxchannel
+% param: parameter struct
+%
+%  .season_name: string containing the season name (e.g. 2011_Greenland_TO)
+%
+%  .radar_name: string containing the radar name (e.g. snow2)
+%
+%  .gps_source: string from GPS file using format SOURCE-VERSION (e.g.
+%  ATM-final_20120303). The SOURCE portion is used to determine which lever
+%  arm set to use for a particular dataset since some field seasons have
+%  more than one GPS source.
+%
+% tx_weights: transmit amplitude weightings (from the radar worksheet of
+% the parameter spreadsheet) These are amplitude weights, not power
+% weights.
+%
+% rxchannel: receive channel to return phase_center for (scalar, positive
+% integer) Setting rxchannel to 0, causes the "reference" position to be
+% returned. This is usually the position of one of the center receive
+% elements and equal weights on all transmitters.
+%
+% =========================================================================
+% OUTPUTS:
+%
+% phase_center: lever arm to each phase center specified by tx_weights and
+% rxchannel. See remarks below to understand the coordinate system for
+% output "phase_center".
+%
 %
 % =========================================================================
 % REMARKS:
 %
 % 1). Lever arm refers to a (3 x 1) vector that expresses the position of
 %     each phase center relative to the position that the GPS trajectory
-%     was processed to.  The basis for the vector is the coordinate
-%     system of the plane's body (Xb, Yb, Zb).  This is a righthanded,
-%     orthogonal system that agrees with aerospace convention.  +Xb points
-%     from the plane's center of gravity towards its nose.  +Yb points from
-%     the plane's center of gravity along the right wing.  +Zb points from
-%     the plane's center of gravity down towards the Earth's surface.
+%     was processed to (this is often the GPS antenna or IMU measurement
+%     center).  The basis for the vector is the coordinate system of the
+%     plane's body (Xb, Yb, Zb).  This is a righthanded, orthogonal system
+%     that agrees with aerospace convention.  +Xb points from the plane's
+%     center of gravity towards its nose.  +Yb points from the plane's
+%     center of gravity along the right wing.  +Zb points from the plane's
+%     center of gravity down towards the Earth's surface (i.e. increasing
+%     Zb points downwards!).
 %
 % 2). The lever arm of the Nth receive channel is defined using the
 %     following syntax:

@@ -837,16 +837,17 @@ if update_mode ~= 1
   %% Write RSS Arena XML config file
   if isfield(default,'arena') && ~strcmpi(param.season_name,'2017_Antarctica_Basler')
     % Create arena parameter structure
-    arena = struct('version','1');
-    arena.awg = default.arena.awg;
-    arena.dacs = default.arena.dacs;
-    arena.dacs_sampFreq = default.arena.dacs_sampFreq;
-    arena.dacs_internal_delay = default.arena.dacs_internal_delay;
-    arena.dacs_start_delay = default.arena.dacs_start_delay;
-    arena.zeropimods = default.arena.zeropimods;
-    arena.TTL_time = default.arena.TTL_time;
-    arena.TTL_names = default.arena.TTL_names;
-    arena.TTL_states = default.arena.TTL_states;
+    arena = default.arena;
+%     arena = struct('version','1');
+%     arena.awg = default.arena.awg;
+%     arena.dacs = default.arena.dacs;
+%     arena.dacs_sampFreq = default.arena.dacs_sampFreq;
+%     arena.dacs_internal_delay = default.arena.dacs_internal_delay;
+%     arena.dacs_start_delay = default.arena.dacs_start_delay;
+%     arena.zeropimods = default.arena.zeropimods;
+%     arena.TTL_time = default.arena.TTL_time;
+%     arena.TTL_names = default.arena.TTL_names;
+%     arena.TTL_states = default.arena.TTL_states;
     % Ensure non-negative delays
     min_delay = inf;
     for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
@@ -860,11 +861,13 @@ if update_mode ~= 1
       arena.wfs(wf).name = '';
       arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
       arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
-      arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* default.arena.max_tx ./ default.txequal.max_DDS_amp;
-      arena.wfs(wf).fc = (settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq ...
-        + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
-      arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...
-        - settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq);
+      arena.wfs(wf).tx_weights = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* param.config.max_tx ./ default.txequal.max_DDS_amp;
+      arena.wfs(wf).f0 = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq;
+      arena.wfs(wf).f1 = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq;
+%       arena.wfs(wf).fc = (settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq ...
+%         + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
+%       arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...
+%         - settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq);
       arena.wfs(wf).delay = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Delay - min_delay;
       arena.wfs(wf).phase = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).PhaseZ20Offset;
       arena.wfs(wf).Tpd = double(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).LenZ20Mult) ...
@@ -873,24 +876,49 @@ if update_mode ~= 1
     end
     
     % Create XML document
-    xml_doc = write_arena_xml([],'init',arena);
-    xml_doc = write_arena_xml(xml_doc,'ctu_0013',arena);
-    xml_doc = write_arena_xml(xml_doc,'dac-ad9129_0014',arena);
-    xml_doc = write_arena_xml(xml_doc,'dac-ad9129_0014_waveform',arena);
-    xml_doc = write_arena_xml(xml_doc,'psc_0001',arena);
-    xml_doc = write_arena_xml(xml_doc,'subsystems',arena);
-    
-    out_str = xmlwrite(xml_doc);
+    xml_param = param;
+    xml_param.wfs = arena.wfs;
+    xml_param.prf = 1/arena.PRI;
+    xml_param.arena = arena;
+    xml_param.arena.adc = [];
+    xml_param.board_map = {};
+
+    [~,xml_param.arena.psc_name] = ct_fileparts(out_xml_fn);
+    xml_param.arena.fn = fullfile(param.arena_base_dir,[xml_param.arena.psc_name '.xml']);
+
+    [doc,xml_param] = write_arena_xml([],xml_param);
+
+    % Create XML document
+    out_str = xmlwrite(doc);
     out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
-    [~,rss_fn_name] = ct_fileparts(out_xml_fn);
-    rss_fn = fullfile(param.rss_base_dir,[rss_fn_name '.xml']);
-    fprintf('\nWriting %s\n', rss_fn);
-    if ~exist(param.rss_base_dir,'dir')
-      mkdir(param.rss_base_dir);
+    arena_fn_dir = fileparts(xml_param.arena.fn);
+    if ~exist(arena_fn_dir,'dir')
+      mkdir(arena_fn_dir);
     end
-    fid = fopen(rss_fn,'w');
+    fprintf('  Writing Arena XML: %s\n', xml_param.arena.fn);
+    fid = fopen(xml_param.arena.fn,'w');
     fwrite(fid,out_str,'char');
     fclose(fid);
+    
+%     [doc,param] = write_arena_xml(doc,param);
+%     xml_doc = write_arena_xml([],'init',arena);
+%     xml_doc = write_arena_xml(xml_doc,'ctu_0013',arena);
+%     xml_doc = write_arena_xml(xml_doc,'dac-ad9129_0014',arena);
+%     xml_doc = write_arena_xml(xml_doc,'dac-ad9129_0014_waveform',arena);
+%     xml_doc = write_arena_xml(xml_doc,'psc_0001',arena);
+%     xml_doc = write_arena_xml(xml_doc,'subsystems',arena);
+%     
+%     out_str = xmlwrite(xml_doc);
+%     out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
+%     [~,rss_fn_name] = ct_fileparts(out_xml_fn);
+%     rss_fn = fullfile(param.rss_base_dir,[rss_fn_name '.xml']);
+%     fprintf('\nWriting %s\n', rss_fn);
+%     if ~exist(param.rss_base_dir,'dir')
+%       mkdir(param.rss_base_dir);
+%     end
+%     fid = fopen(rss_fn,'w');
+%     fwrite(fid,out_str,'char');
+%     fclose(fid);
   end
   
 end

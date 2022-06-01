@@ -166,8 +166,8 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
   if strcmpi(param.file_search_mode,'last_file')
     global g_basic_file_loader_selection;
     board_folder_name = defaults{1}.board_folder_name;
-    adc = defaults{1}.records.file.adcs(1);
-    board = adc_to_board(param.radar_name,adc);
+    adc = param.img(1,2);
+    board = wf_adc_to_board(merge_structs(param,defaults{1}),param.img(1,1:2));
     board_folder_name = regexprep(board_folder_name,'%02d',sprintf('%02.0f',adc));
     board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
     board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
@@ -290,8 +290,8 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
     else
       % NI based systems
       board_folder_name = defaults{1}.board_folder_name;
-      adc = defaults{1}.records.file.adcs(1);
-      board = adc_to_board(param.radar_name,adc);
+      adc = param.img(1,2);
+      [board,board_idx,profile] = wf_adc_to_board(merge_structs(param,defaults{1}),param.img(1,1:2));
       board_folder_name = regexprep(board_folder_name,'%02d',sprintf('%02.0f',adc));
       board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
       board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
