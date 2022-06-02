@@ -579,8 +579,16 @@ if ~isempty(param.config.param_fn)
   read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
   fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
-  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   
   param_txt_fn = ct_filename_ct_tmp(param,'','param', [param.config.date_str,'.txt']);
@@ -614,8 +622,16 @@ if ~isempty(param.config.param_fn)
   fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
   fprintf(fid,'\n');
-  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   fclose(fid);
 end
