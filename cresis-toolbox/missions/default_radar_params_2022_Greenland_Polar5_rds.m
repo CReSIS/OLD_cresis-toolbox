@@ -15,7 +15,7 @@ param.radar_name = 'mcords5';
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_mcords5;
-param.config.board_map = {};
+param.config.board_map = {'chan1','chan2','chan3','chan4','chan5','chan6','chan7','chan8'};
 param.config.tx_map = {'awg0','awg1','awg2','awg3','awg4','awg5','awg6','awg7'};
 
 param.config.file.version = 407;
@@ -33,12 +33,19 @@ param.config.tx_enable = [1 1 1 1 1 1 1 1];
 param.config.max_tx = 0.63;
 param.config.max_tx_voltage = sqrt(1000*50)*10^(-2/20); % voltage at max_tx
 
+param.config.cresis.presum_bug_fixed = true;
+param.config.cresis.clk = 200e6;
+param.config.cresis.config_version = 2.0;
+param.config.cresis.rx_gain_dB = 48;
+param.records.gps.time_offset = 1;
+
+
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.xml_file_prefix = 'mcords5';
 default.data_file_prefix = 'mcords5';
-default.header_load_func = @basic_load_mcords5;
-default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
-default.xml_version = 2.0;
+% default.header_load_func = @basic_load_mcords5;
+% default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
+% default.xml_version = 2.0;
 
 default.noise_50ohm = [-39.8	-41.0	-40.1	-39.6	-38.4	-39.1	-38.3	-39.6	];
 
@@ -369,9 +376,6 @@ arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2e-6+param.wfs(wf).Tp
 
 default.arena = arena;
 
-%% Vectors worksheet in parameter spreadsheet
-default.vectors.gps.time_offset = 1;
-
 %% Records worksheet in parameter spreadsheet
 default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
 default.records.file.adcs = [1:8];
@@ -469,8 +473,8 @@ default.radar.adc_bits = 12;
 default.radar.adc_full_scale = 2;
 default.radar.rx_paths = [1:8];
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 48;
-default.radar.adc_SNR_dB = 59;
+% default.radar.rx_gain = 48;
+% default.radar.adc_SNR_dB = 59;
 default.radar.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 defaults = {};

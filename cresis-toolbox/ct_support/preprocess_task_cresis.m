@@ -62,8 +62,8 @@ for board_idx = 1:num_board_to_load
   fns_list{board_idx} = fns;
   
   % Copy Log Files
-  if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
-    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
+  if board_idx == 1 && ~isempty(param.config.gps_file_mask)
+    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.gps_file_mask);
     out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
     fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
     try
@@ -716,7 +716,7 @@ save(fn_board_hdrs,'-v7.3','board_hdrs','fns_list','failed_load');
 % =========================================================================
 for board_idx = 1:numel(param.config.board_map)
   if any(failed_load{board_idx})
-    warning('Some files failed to load, consider deleting these to avoid problems.');
+    warning('Some files failed to load, consider deleting these to avoid problems:');
     for fn_idx = find(failed_load{board_idx})
       fprintf('  %s\n', fns_list{board_idx}{fn_idx});
     end
@@ -1091,14 +1091,14 @@ if any(param.config.file.version == [403 404 407 408])
   % NI XML settings files available, break segments based on settings files
   % and header information
   
-  xml_version = param.config.daq.xml_version;
+  xml_version = param.config.cresis.config_version;
   cresis_xml_mapping;
   
-  settings_fn_dir = fullfile(param.config.base_dir,param.config.config_folder_name);
+  settings_fn_dir = fullfile(param.config.base_dir,param.config.config_folder_names);
   fprintf('\nSettings Directory: %s\n\n', settings_fn_dir);
   
   % Read XML files in this directory
-  [settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
+  [settings,~] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
   
   % Get the date information out of the filename
   fn_datenums = {};
@@ -1112,6 +1112,7 @@ if any(param.config.file.version == [403 404 407 408])
   
   %% Create Segments: Print settings
   oparams = {};
+  [~,defaults] = param.config.default();
   for set_idx = 1:length(settings)
     % Print out settings
     [~,settings_fn_name] = fileparts(settings(set_idx).fn);
@@ -1141,7 +1142,7 @@ if any(param.config.file.version == [403 404 407 408])
     end
     
     % Associate default parameters with each settings
-    default = default_radar_params_settings_match(param.config.defaults,settings(set_idx));
+    default = default_radar_params_settings_match(defaults,settings(set_idx));
     oparams{end+1} = default;
     try; oparams{end} = rmfield(oparams{end},'config_regexp'); end;
     try; oparams{end} = rmfield(oparams{end},'name'); end;
@@ -1151,7 +1152,7 @@ if any(param.config.file.version == [403 404 407 408])
     oparams{end}.cmd.notes = default.name;
     
     oparams{end}.records.file.base_dir = param.config.base_dir;
-    oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
+    oparams{end}.records.file.board_folder_name = param.config.board_folder_names;
     if ~isempty(oparams{end}.records.file.board_folder_name) ...
         && oparams{end}.records.file.board_folder_name(1) ~= filesep
       % Ensures that board_folder_name is not a text number which Excel
@@ -1260,7 +1261,7 @@ if any(param.config.file.version == [403 404 407 408])
         oparams{end}.day_seg = sprintf('%s_%02d',param.config.date_str,length(oparams));
         oparams{end}.records.file.start_idx = segment.start_idxs;
         oparams{end}.records.file.stop_idx = segment.stop_idxs;
-        oparams{end}.records.gps.time_offset = default.records.gps.time_offset + segment.day_wrap_offset;
+        oparams{end}.records.gps.time_offset = param.records.gps.time_offset + segment.day_wrap_offset;
       end
     end
   end

@@ -1,5 +1,5 @@
 function [param] = default_radar_params_2021_Greenland_Polar_mcords
-% [param] = default_radar_params_2019_Antarctica_Polar6_mcords
+% [param] = default_radar_params_2021_Greenland_Polar_mcords
 %
 % MCORDS 5: 2021 Greenland Polar5
 %

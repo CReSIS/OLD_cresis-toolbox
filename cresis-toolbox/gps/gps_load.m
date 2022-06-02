@@ -5,7 +5,7 @@ function gps = gps_load(gps_fn)
 %
 % Author: John Paden
 %
-% See also: gps_check, gps_load, gps_make
+% See also: gps_check, gps_load, gps_create
 
 gps = load(gps_fn);
 old_gps = gps;
@@ -130,7 +130,7 @@ tmp_gps.elev = gps.elev;
 tmp_gps.roll = gps.roll;
 tmp_gps.pitch = gps.pitch;
 tmp_gps.heading = gps.heading;
-[tmp_gps,error_flag] = gps_make_monotonic(tmp_gps);
+[tmp_gps,error_flag] = gps_force_monotonic(tmp_gps);
 if error_flag
   warning('gps file has nonmonotonic records. Correcting.');
   gps.gps_time = tmp_gps.gps_time;
@@ -177,7 +177,7 @@ if isfield(gps,'sync_gps_time')
   if isfield(gps,'comp_time')
     sync_gps.comp_time = gps.comp_time;
   end
-  [sync_gps,error_flag] = gps_make_monotonic(sync_gps);
+  [sync_gps,error_flag] = gps_force_monotonic(sync_gps);
   if error_flag
     warning('gps file has nonmonotonic sync_gps_time or radar_time records. Correcting.');
   end
