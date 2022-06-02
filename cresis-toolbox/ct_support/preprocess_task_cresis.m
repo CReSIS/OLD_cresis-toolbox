@@ -31,11 +31,11 @@ end
 
 % Save concatenated temporary file
 fn_board_hdrs = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,'board_hdrs.mat'));
-num_board_to_load = numel(param.config.board_map);
+num_board_to_load = numel(param.records.file.boards);
 board_hdrs = cell(1,num_board_to_load);
 failed_load = cell(1,num_board_to_load);
 fns_list = cell(1,num_board_to_load);
-if param.config.reuse_tmp_files && exist(fn_board_hdrs,'file')
+if param.config.reuse_tmp_files && exist(fn_board_hdrs,'file') && ~param.config.tmp_load_mode
   try
     fprintf('Found %s\n  Trying to load...\n', fn_board_hdrs);
     load(fn_board_hdrs,'board_hdrs','fns_list','failed_load');
@@ -47,13 +47,13 @@ end
 
 for board_idx = 1:num_board_to_load
   %% Read Headers: Filenames
-  board = param.config.board_map{board_idx};
-  board_folder_name = param.config.board_folder_name;
+  board = param.records.file.boards{board_idx};
+  board_folder_name = param.config.board_folder_names;
   board_folder_name = regexprep(board_folder_name,'%b',board);
   
   get_filenames_param = struct('regexp',param.config.file.regexp);
   fns = get_filenames(fullfile(param.config.base_dir,board_folder_name), ...
-    param.config.file.prefix, param.config.file.midfix, ...
+    param.records.file.prefix, param.config.file.midfix, ...
     param.config.file.suffix, get_filenames_param);
   
   if param.config.online_mode == 2
@@ -63,7 +63,7 @@ for board_idx = 1:num_board_to_load
   
   % Copy Log Files
   if board_idx == 1 && ~isempty(param.config.gps_file_mask)
-    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.gps_file_mask);
+    log_files = fullfile(param.config.base_dir,param.config.config_folder_names,param.config.gps_file_mask);
     out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
     fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
     try
@@ -78,7 +78,7 @@ for board_idx = 1:num_board_to_load
   
   if isempty(fns)
     warning('No files found matching %s*%s*%s', ...
-      fullfile(param.config.base_dir,board_folder_name,param.config.file.prefix), ...
+      fullfile(param.config.base_dir,board_folder_name,param.records.file.prefix), ...
       param.config.file.midfix, param.config.file.suffix);
     fprintf('%s done %s\n', mfilename, datestr(now));
     success = true;
@@ -91,12 +91,12 @@ for board_idx = 1:num_board_to_load
   
   % ACORDS filenames are not in chronological order, resort by their
   % extension (.1, .2, .3, ..., .100, etc.)
-  if any(param.config.file.version == [405 406])
+  if any(param.records.file.version == [405 406])
     basenames = {};
     file_idxs = [];
     new_fns = {};
     finfo_param.hnum = 1;
-    finfo_param.preprocess.file.version = param.config.file.version;
+    finfo_param.preprocess.file.version = param.records.file.version;
     for fidx = 1:length(fns)
       fname = fname_info_acords(fns{fidx},finfo_param);
       new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
@@ -107,69 +107,69 @@ for board_idx = 1:num_board_to_load
   
   %% Read Headers: Header Info
   hdr_param = struct('file_mode','ieee-be');
-  if any(param.config.file.version == [1])
+  if any(param.records.file.version == [1])
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = int32([4 16 20]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [2])
+  elseif any(param.records.file.version == [2])
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = int32([4 8 12 24]); % epri seconds fractions loopback/nyquist-zone
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [4])
+  elseif any(param.records.file.version == [4])
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = int32([4 8 12 16]); % epri sec1 sec2 fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
     
-  elseif any(param.config.file.version == [3 5])
+  elseif any(param.records.file.version == [3 5])
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = int32(4*[1 2 3 9 10 11]); % epri seconds fractions start/stop-index DDCfield1 DDCfield2
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [8])
+  elseif any(param.records.file.version == [8])
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = int32([4 8 12 16 33 36 38 40]);
     % epri seconds fractions counter nyquist-zone waveform-ID
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1) uint8(1) uint16(1) uint16(1) uint64(1)};
     
-  elseif any(param.config.file.version == [101])
+  elseif any(param.records.file.version == [101])
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = int32([4 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [102])
+  elseif any(param.records.file.version == [102])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = int32(4*[1 3 4 5 6]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
     hdr_param.frame_sync = hex2dec('1ACFFC1D');
     
-  elseif any(param.config.file.version == [401])
+  elseif any(param.records.file.version == [401])
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = int32([16 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [402 403])
+  elseif any(param.records.file.version == [402 403])
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fraction counter
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
     
-  elseif any(param.config.file.version == [404])
+  elseif any(param.records.file.version == [404])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = int32([4 16 20 24]); % epri seconds fraction counter
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
     
-  elseif any(param.config.file.version == [405 406])
+  elseif any(param.records.file.version == [405 406])
     hdr_param.file_mode = 'ieee-le';
     hdr_param.frame_sync = uint32(0);
     hdr_param.field_offsets = int32([0 4]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [7 11 407 408])
+  elseif any(param.records.file.version == [7 11 407 408])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     
   else
-    error('Unsupported file version %d (%s)', param.config.file.version, param.radar_name);
+    error('Unsupported file version %d (%s)', param.records.file.version, param.radar_name);
   end
   
   %% Read Headers: File Loop
@@ -188,7 +188,7 @@ for board_idx = 1:num_board_to_load
     % Create temporary filename that will store the header information for
     % this file.
     fn = fns{fn_idx};
-    if any(param.config.file.version == [405 406])
+    if any(param.records.file.version == [405 406])
       [~,fn_name,ext] = fileparts(fn);
       fn_name = [fn_name,ext];
     else
@@ -208,7 +208,7 @@ for board_idx = 1:num_board_to_load
       if param.config.reuse_tmp_files && exist(tmp_hdr_fn,'file')
         % Try to load temporary file
         try
-          if any(param.config.file.version == [101])
+          if any(param.records.file.version == [101])
             hdr = load(tmp_hdr_fn);
             board_hdrs{board_idx}.unknown ...
               = cat(2,board_hdrs{board_idx}.unknown,reshape(hdr.unknown,[1 length(hdr.unknown)]));
@@ -216,13 +216,13 @@ for board_idx = 1:num_board_to_load
               = cat(2,board_hdrs{board_idx}.seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
             board_hdrs{board_idx}.fraction ...
               = cat(2,board_hdrs{board_idx}.fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-          elseif any(param.config.file.version == [102])
+          elseif any(param.records.file.version == [102])
             hdr = load(tmp_hdr_fn);
             board_hdrs{board_idx}.radar_time ...
               = cat(2,board_hdrs{board_idx}.radar_time,hdr.radar_time);
             board_hdrs{board_idx}.radar_time_1pps ...
               = cat(2,board_hdrs{board_idx}.radar_time_1pps,hdr.radar_time_1pps);
-          elseif any(param.config.file.version == [405 406])
+          elseif any(param.records.file.version == [405 406])
             hdr = load(tmp_hdr_fn);
             hdr_log = [hdr_log,hdr.hdr];
             hdr_raw = [hdr_raw fn_idx*ones(1,length(hdr.hdr))];
@@ -237,9 +237,9 @@ for board_idx = 1:num_board_to_load
               = cat(2,board_hdrs{board_idx}.seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
             board_hdrs{board_idx}.fraction ...
               = cat(2,board_hdrs{board_idx}.fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-            if any(param.config.file.version == [8])
+            if any(param.records.file.version == [8])
               board_hdrs{board_idx}.waveform_ID = cat(2,board_hdrs{board_idx}.waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
-            elseif any(param.config.file.version == [403 407 408])
+            elseif any(param.records.file.version == [403 407 408])
               board_hdrs{board_idx}.counter = cat(2,board_hdrs{board_idx}.counter,reshape(hdr.counter,[1 length(hdr.counter)]));
             end
           end
@@ -266,51 +266,51 @@ for board_idx = 1:num_board_to_load
     end
     
     try
-      if any(param.config.file.version == [1])
-        hdr = basic_load_fmcw(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      if any(param.records.file.version == [1])
+        hdr = basic_load_fmcw(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [2])
-        hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [2])
+        hdr = basic_load_fmcw2(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [4])
-        hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [4])
+        hdr = basic_load_fmcw2(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [3 5])
-        hdr = basic_load_fmcw3(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [3 5])
+        hdr = basic_load_fmcw3(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = struct('presums',hdr.presums);
-      elseif any(param.config.file.version == [6])
-        hdr = basic_load_fmcw4(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [6])
+        hdr = basic_load_fmcw4(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = struct('presums',hdr.presums);
-      elseif any(param.config.file.version == [7 11])
-        hdr = basic_load(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [7 11])
+        hdr = basic_load(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
         hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fractions counter
-      elseif any(param.config.file.version == [8])
-        hdr = basic_load_fmcw8(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [8])
+        hdr = basic_load_fmcw8(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = struct('presums',hdr.presums);
-      elseif any(param.config.file.version == [101])
-        hdr = basic_load_accum(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [101])
+        hdr = basic_load_accum(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [102])
-        hdr = basic_load_accum2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [102])
+        hdr = basic_load_accum2(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [401])
-        hdr = basic_load_mcords(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [401])
+        hdr = basic_load_mcords(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [402])
-        hdr = basic_load_mcords2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [402])
+        hdr = basic_load_mcords2(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [403])
-        hdr = basic_load_mcords3(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [403])
+        hdr = basic_load_mcords3(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [404])
-        hdr = basic_load_mcords4(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [404])
+        hdr = basic_load_mcords4(fn, struct('file_version',param.records.file.version,'clk',param.records.file.clk));
         wfs = hdr.wfs;
-      elseif any(param.config.file.version == [405 406])
+      elseif any(param.records.file.version == [405 406])
         % Load header information that never changes
         %   You need to get the record sizes
         clear hdr wfs
-        hdr = basic_load_acords(fn,struct('datatype',0,'file_version',param.config.file.version,'verbose',0));
+        hdr = basic_load_acords(fn,struct('datatype',0,'file_version',param.records.file.version,'verbose',0));
         for hidx = 1:length(hdr)
           wfs{1}.num_samp(hidx) = hdr(hidx).num_samp;
           wfs{2}.num_samp(hidx) = hdr(hidx).num_samp;
@@ -334,21 +334,21 @@ for board_idx = 1:num_board_to_load
           wfs{2}.tx_win(hidx) = hdr(hidx).tx_win;
           wfs{1}.t0(hidx) = hdr(hidx).samp_win_delay;
           wfs{2}.t0(hidx) = hdr(hidx).samp_win_delay;
-          if param.config.file.version == 406
+          if param.records.file.version == 406
             wfs{1}.elem_slots(hidx,:) = [hdr(hidx).elem_1 hdr(hidx).elem_2 hdr(hidx).elem_3 hdr(hidx).elem_4];
             wfs{2}.elem_slots(hidx,:) = [hdr(hidx).elem_1 hdr(hidx).elem_2 hdr(hidx).elem_3 hdr(hidx).elem_4];
             wfs{1}.blank(hidx) = hdr(hidx).rx_blank_end;
             wfs{1}.adc_gains(hidx,:) = 10.^((44-hdr(hidx).low_gain_atten).*ones(1,hdr(hidx).num_elem+1)./20);
             wfs{2}.blank(hidx) = hdr(hidx).hg_blank_end;
             wfs{2}.adc_gains(hidx,:) = 10.^((80-hdr(hidx).high_gain_atten).*ones(1,hdr(hidx).num_elem+1)./20);
-          elseif param.config.file.version == 405
+          elseif param.records.file.version == 405
             wfs{1}.blank(hidx) = hdr(hidx).rx_blank_end;
             wfs{1}.adc_gains(hidx,:) = 10.^(44-hdr(hidx).low_gain_atten./20);
             wfs{2}.blank(hidx) = hdr(hidx).hg_blank_end;
             wfs{2}.adc_gains(hidx,:) = 10.^(80-hdr(hidx).high_gain_atten./20);
           end
         end
-      elseif any(param.config.file.version == [407 408])
+      elseif any(param.records.file.version == [407 408])
         try
           hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',param.config.cresis.presum_bug_fixed));
           hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
@@ -381,7 +381,7 @@ for board_idx = 1:num_board_to_load
       continue;
     end
     
-    if any(param.config.file.version == [1])
+    if any(param.records.file.version == [1])
       [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Find bad records by checking their size (i.e. the distance between
@@ -399,7 +399,7 @@ for board_idx = 1:num_board_to_load
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
       
-    elseif any(param.config.file.version == [2])
+    elseif any(param.records.file.version == [2])
       [file_size offset epri seconds fraction tmp] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       loopback = mod(floor(tmp/2^16),2^2) - 1;
       nyquist_zone = mod(tmp,2^3) - 1;
@@ -421,7 +421,7 @@ for board_idx = 1:num_board_to_load
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','loopback','nyquist_zone','wfs');
       
-    elseif any(param.config.file.version == [4])
+    elseif any(param.records.file.version == [4])
       [file_size offset epri sec1 sec2 fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Convert seconds from NMEA ASCII string
@@ -446,23 +446,23 @@ for board_idx = 1:num_board_to_load
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
       
-    elseif any(param.config.file.version == [3 5 6])
+    elseif any(param.records.file.version == [3 5 6])
       [file_size offset epri seconds fraction hdr9 hdr10 hdr11] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       start_idx = floor(hdr9/2^16);
       stop_idx = mod(hdr9,2^16);
       NCO_freq_step = mod(hdr10,2^16);
-      if param.config.file.version == 6
+      if param.records.file.version == 6
         nadir_or_sidelooking_select = mod(floor(hdr11/2^24),2^8);
       else
         nyquist_zone = mod(floor(hdr11/2^24),2^8);
       end
-      if param.config.file.version == 3
+      if param.records.file.version == 3
         DDC_filter_select = mod(floor(hdr11/2^16),2^8) + 1;
       else
         DDC_filter_select = mod(floor(hdr11/2^16),2^8);
       end
-      if param.config.file.version == 3 || param.config.file.version == 6
+      if param.records.file.version == 3 || param.records.file.version == 6
         DDC_or_raw_select = mod(hdr11,2^8);
       else
         DDC_or_raw_select = mod(hdr11,2^8);
@@ -495,7 +495,7 @@ for board_idx = 1:num_board_to_load
         'start_idx','stop_idx','DDC_filter_select','DDC_or_raw_select', ...
         'num_sam','nyquist_zone','NCO_freq_step');
       
-    elseif any(param.config.file.version == [8])
+    elseif any(param.records.file.version == [8])
       [file_size offset epri seconds fraction counter nyquist_zone start_idx stop_idx waveform_ID] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       HEADER_SIZE = 48;
@@ -524,7 +524,7 @@ for board_idx = 1:num_board_to_load
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
         'counter','nyquist_zone','start_idx','stop_idx','waveform_ID');
       
-    elseif any(param.config.file.version == [101])
+    elseif any(param.records.file.version == [101])
       [file_size offset unknown seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Find bad records by checking their size (i.e. the distance between
@@ -542,21 +542,21 @@ for board_idx = 1:num_board_to_load
       
       save(tmp_hdr_fn,'offset','unknown','seconds','fraction');
       
-    elseif any(param.config.file.version == [102])
+    elseif any(param.records.file.version == [102])
       [file_size offset radar_time_ms radar_time_ls radar_time_1pps_ms radar_time_1pps_ls] ...
         = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
-      radar_time = (hdr_data(3,:)*2^32 + hdr_data(4,:)) / (param.config.cresis.clk/100);
-      radar_time_1pps = (hdr_data(5,:)*2^32 + hdr_data(6,:)) / (param.config.cresis.clk/100);
+      radar_time = (hdr_data(3,:)*2^32 + hdr_data(4,:)) / (param.records.file.clk/100);
+      radar_time_1pps = (hdr_data(5,:)*2^32 + hdr_data(6,:)) / (param.records.file.clk/100);
       
       save(tmp_hdr_fn,'offset','radar_time','radar_time_1pps','wfs');
       
-    elseif any(param.config.file.version == [401])
+    elseif any(param.records.file.version == [401])
       error('Not supported');
       
-    elseif any(param.config.file.version == [402])
+    elseif any(param.records.file.version == [402])
       error('Not supported');
       
-    elseif any(param.config.file.version == [403])
+    elseif any(param.records.file.version == [403])
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds);
       
@@ -579,7 +579,7 @@ for board_idx = 1:num_board_to_load
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
-    elseif any(param.config.file.version == [404])
+    elseif any(param.records.file.version == [404])
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds);
       
@@ -602,7 +602,7 @@ for board_idx = 1:num_board_to_load
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
-    elseif any(param.config.file.version == [405 406])
+    elseif any(param.records.file.version == [405 406])
       % Load header information that can change on every record AND
       % is required for records generation (radar time)
       %     radar_time =
@@ -610,20 +610,20 @@ for board_idx = 1:num_board_to_load
       offset = [];
       seconds = [];
       % Get header timestamps and offsets
-      [hdr htime hoffset] = basic_load_acords(fn,struct('datatype',0,'file_version',param.config.file.version,'verbose',0));
+      [hdr htime hoffset] = basic_load_acords(fn,struct('datatype',0,'file_version',param.records.file.version,'verbose',0));
       raw_file_time = htime(1);
       % Get data records timestamps and offsets
-      [data seconds offset] = basic_load_acords(fn,struct('datatype',2,'file_version',param.config.file.version,'verbose',0));
+      [data seconds offset] = basic_load_acords(fn,struct('datatype',2,'file_version',param.records.file.version,'verbose',0));
       fractions = zeros(size(seconds));
       save(tmp_hdr_fn,'offset','seconds','hdr','hoffset','htime','wfs','raw_file_time');
       
-    elseif any(param.config.file.version == [7 11 407 408])
+    elseif any(param.records.file.version == [7 11 407 408])
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds);
       
       % Find bad records by checking their size
-      if any(param.config.file.version == [407 408])
+      if any(param.records.file.version == [407 408])
         % The distance between frame syncs should be constant
         expected_rec_size = median(diff(offset));
         meas_rec_size = diff(offset);
@@ -633,7 +633,7 @@ for board_idx = 1:num_board_to_load
         % the next file to see if the complete record is there)
         bad_mask(end+1) = false;
         
-      elseif any(param.config.file.version == [7 11])
+      elseif any(param.records.file.version == [7 11])
         % User must supply the valid record sizes
         if ~isfield(param.config.cresis,'expected_rec_sizes') || isempty(param.config.cresis.expected_rec_sizes)
           fprintf('Record sizes found in this file:\n');
@@ -665,7 +665,7 @@ for board_idx = 1:num_board_to_load
     end
     
     % Load and concatenate temporary file
-    if any(param.config.file.version == [101])
+    if any(param.records.file.version == [101])
       hdr = load(tmp_hdr_fn);
       board_hdrs{board_idx}.unknown ...
         = cat(2,board_hdrs{board_idx}.unknown,reshape(hdr.unknown,[1 length(hdr.unknown)]));
@@ -673,13 +673,13 @@ for board_idx = 1:num_board_to_load
         = cat(2,board_hdrs{board_idx}.seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
       board_hdrs{board_idx}.fraction ...
         = cat(2,board_hdrs{board_idx}.fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-    elseif any(param.config.file.version == [102])
+    elseif any(param.records.file.version == [102])
       hdr = load(tmp_hdr_fn);
       board_hdrs{board_idx}.radar_time ...
         = cat(2,board_hdrs{board_idx}.radar_time,hdr.radar_time);
       board_hdrs{board_idx}.radar_time_1pps ...
         = cat(2,board_hdrs{board_idx}.radar_time_1pps,hdr.radar_time_1pps);
-    elseif any(param.config.file.version == [405 406])
+    elseif any(param.records.file.version == [405 406])
       hdr = load(tmp_hdr_fn);
       hdr_log = [hdr_log,hdr.hdr];
       hdr_raw = [hdr_raw fn_idx*ones(1,length(hdr.hdr))];
@@ -694,9 +694,9 @@ for board_idx = 1:num_board_to_load
         = cat(2,board_hdrs{board_idx}.seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
       board_hdrs{board_idx}.fraction ...
         = cat(2,board_hdrs{board_idx}.fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-      if any(param.config.file.version == [8])
+      if any(param.records.file.version == [8])
         board_hdrs{board_idx}.waveform_ID = cat(2,board_hdrs{board_idx}.waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
-      elseif any(param.config.file.version == [403 407 408])
+      elseif any(param.records.file.version == [403 407 408])
         board_hdrs{board_idx}.counter = cat(2,board_hdrs{board_idx}.counter,reshape(hdr.counter,[1 length(hdr.counter)]));
       end
     end
@@ -714,7 +714,7 @@ save(fn_board_hdrs,'-v7.3','board_hdrs','fns_list','failed_load');
 
 %% List bad files
 % =========================================================================
-for board_idx = 1:numel(param.config.board_map)
+for board_idx = 1:numel(param.records.file.boards)
   if any(failed_load{board_idx})
     warning('Some files failed to load, consider deleting these to avoid problems:');
     for fn_idx = find(failed_load{board_idx})
@@ -726,7 +726,7 @@ end
 %% waveform_ID Debug
 % =========================================================================
 if 0
-  % waveform_ID decoding for: any(param.config.file.version == [8])
+  % waveform_ID decoding for: any(param.records.file.version == [8])
   keyboard
   waveform_ID_unique = unique(waveform_ID)
   waveform_ID_char = char(reshape(typecast(waveform_ID_unique,'int8'),[8 length(waveform_ID_unique)]).')
@@ -786,7 +786,7 @@ end
 % =========================================================================
 if param.config.online_mode
   
-  for board_idx = 1:numel(param.config.board_map)
+  for board_idx = 1:numel(param.records.file.boards)
     epri_jumps = diff(double(board_hdrs{board_idx}.epri));
     fprintf('Board %d: List of up to 10 last EPRI jumps of >100 records:\n', board_idx);
     bad_jumps = epri_jumps(abs(epri_jumps) > 100);
@@ -794,7 +794,7 @@ if param.config.online_mode
     fprintf(' %.0f', bad_jumps(max(1,end-9):end));
     fprintf(' record jumps\n');
     
-    utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.config.cresis.clk;
+    utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.records.file.clk;
     fprintf('Board %d: UTC time SOD jumps of >0.5 sec:\n', board_idx);
     utc_time_sod_jumps = diff(utc_time_sod);
     bad_jumps = utc_time_sod_jumps(abs(utc_time_sod_jumps) > 0.5);
@@ -808,10 +808,10 @@ end
   
 %% Correct time variable
 % =========================================================================
-for board_idx = 1:numel(param.config.board_map)
+for board_idx = 1:numel(param.records.file.boards)
   
-  if any(param.config.file.version == [1 2 3 4 5 6 7 8 11 101 403 404 407 408])
-    utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.config.cresis.clk;
+  if any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 404 407 408])
+    utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.records.file.clk;
     epri = double(board_hdrs{board_idx}.epri);
     
     if 0
@@ -973,7 +973,7 @@ for board_idx = 1:numel(param.config.board_map)
     board_hdrs{board_idx}.utc_time_sod = utc_time_sod;
     board_hdrs{board_idx}.epri = epri;
     
-  elseif any(param.config.file.version == [405 406])
+  elseif any(param.records.file.version == [405 406])
     utc_time_sod = board_hdrs{board_idx}.seconds; % this is actually comp_time but doesn't need to
     % be converted to actual utc_time_sod since it's only looking at gaps in
     % the data
@@ -999,9 +999,9 @@ for board_idx = 1:numel(param.config.board_map)
     hold off;
     
     names = fieldnames(hdr_log(1));
-    if param.config.file.version == 406
+    if param.records.file.version == 406
       change_fields = [2 5 6 7 8 9 10 11 12 17 18 19 20 21];
-    elseif param.config.file.version == 405
+    elseif param.records.file.version == 405
       change_fields = [2 5 6 7 8 9 10 11 12];
     end
     
@@ -1086,7 +1086,7 @@ end
 %% Create Segments
 % =========================================================================
 
-if any(param.config.file.version == [403 404 407 408])
+if any(param.records.file.version == [403 404 407 408])
   %% Create Segments: Read XML settings
   % NI XML settings files available, break segments based on settings files
   % and header information
@@ -1102,7 +1102,7 @@ if any(param.config.file.version == [403 404 407 408])
   
   % Get the date information out of the filename
   fn_datenums = {};
-  for board_idx = 1:numel(param.config.board_map)
+  for board_idx = 1:numel(param.records.file.boards)
     fn_datenums{board_idx} = [];
     for data_fn_idx = 1:length(fns_list{board_idx})
       fname = fname_info_mcords2(fns_list{board_idx}{data_fn_idx});
@@ -1133,7 +1133,7 @@ if any(param.config.file.version == [403 404 407 408])
       fprintf('    WF %d Len:', wf); fprintf(' %.1f us', 1e6*settings(set_idx).(config_var).Base_Len*settings(set_idx).(config_var).Waveforms(wf).Len_Mult); fprintf('\n');
     end
     
-    for board_idx = 1:numel(param.config.board_map)
+    for board_idx = 1:numel(param.records.file.boards)
       if set_idx < length(settings)
         settings(set_idx).file_matches{board_idx} = find(fn_datenums{board_idx} >= settings(set_idx).datenum & fn_datenums{board_idx} < settings(set_idx+1).datenum);
       else
@@ -1143,6 +1143,7 @@ if any(param.config.file.version == [403 404 407 408])
     
     % Associate default parameters with each settings
     default = default_radar_params_settings_match(defaults,settings(set_idx));
+    default = merge_structs(param,default);
     oparams{end+1} = default;
     try; oparams{end} = rmfield(oparams{end},'config_regexp'); end;
     try; oparams{end} = rmfield(oparams{end},'name'); end;
@@ -1159,10 +1160,10 @@ if any(param.config.file.version == [403 404 407 408])
       % will misinterpret as a numeric type
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
-    oparams{end}.records.file.boards = param.config.board_map;
-    oparams{end}.records.file.version = param.config.file.version;
-    oparams{end}.records.file.prefix = param.config.file.prefix;
-    oparams{end}.records.file.clk = param.config.cresis.clk;
+    oparams{end}.records.file.boards = param.records.file.boards;
+    oparams{end}.records.file.version = param.records.file.version;
+    oparams{end}.records.file.prefix = param.records.file.prefix;
+    oparams{end}.records.file.clk = param.records.file.clk;
     oparams{end}.radar.prf = settings(set_idx).(config_var).(prf_var);
 
     % Usually the default.radar.wfs structure only has one waveform
@@ -1177,7 +1178,7 @@ if any(param.config.file.version == [403 404 407 408])
       oparams{end}.radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
       oparams{end}.radar.wfs(wf).tukey = settings(set_idx).(config_var).RAM_Taper;
       % Transmit weights
-      if any(param.config.file.version == [403 407 408])
+      if any(param.records.file.version == [403 407 408])
         tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
         tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
       else
@@ -1209,7 +1210,7 @@ if any(param.config.file.version == [403 404 407 408])
     
     counters = {};
     file_idxs = {};
-    for board_idx = 1:numel(param.config.board_map)
+    for board_idx = 1:numel(param.records.file.boards)
       counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap));
       file_idxs{board_idx} = board_hdrs{board_idx}.file_idxs;
       day_wrap_offset{board_idx} = board_hdrs{board_idx}.day_wrap_offset;
@@ -1266,7 +1267,7 @@ if any(param.config.file.version == [403 404 407 408])
     end
   end
   
-elseif any(param.config.file.version == [410])
+elseif any(param.records.file.version == [410])
   % MCRDS headers available, break segments based on filenames
   
 else
@@ -1275,7 +1276,7 @@ else
   % param.config.max_time_gap determine which field and gap size to use).
   counters = {};
   file_idxs = {};
-  for board_idx = 1:numel(param.config.board_map)
+  for board_idx = 1:numel(param.records.file.boards)
     counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap));
     file_idxs{board_idx} = board_hdrs{board_idx}.file_idxs;
     day_wrap_offset{board_idx} = board_hdrs{board_idx}.day_wrap_offset;
@@ -1337,17 +1338,17 @@ else
     if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
-    oparams{end}.records.file.boards = param.config.board_map;
-    oparams{end}.records.file.version = param.config.file.version;
-    oparams{end}.records.file.prefix = param.config.file.prefix;
-    oparams{end}.records.file.clk = param.config.cresis.clk;
+    oparams{end}.records.file.boards = param.records.file.boards;
+    oparams{end}.records.file.version = param.records.file.version;
+    oparams{end}.records.file.prefix = param.records.file.prefix;
+    oparams{end}.records.file.clk = param.records.file.clk;
   end
   
 end
 
 %% Print out segments
 % =========================================================================
-if ~isempty(param.config.param_fn)
+if exist(param.config.param_fn,'file')
   % Print parameter spreadsheet values to stdout and param_txt_fn
   % =========================================================================
   fid = 1;
@@ -1365,8 +1366,16 @@ if ~isempty(param.config.param_fn)
   read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
   fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
-  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   
   param_txt_fn = ct_filename_ct_tmp(param,'','param', [param.config.date_str,'.txt']);
@@ -1400,8 +1409,16 @@ if ~isempty(param.config.param_fn)
   fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
   fprintf(fid,'\n');
-  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   fclose(fid);
 end

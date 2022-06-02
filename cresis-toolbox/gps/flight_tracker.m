@@ -22,21 +22,22 @@
 % =================================================================
 % User Settings
 % =================================================================
+global gRadar;
 % geotiff_fn = 'C:\GIS_data\greenland\Landsat-7\mzl7geo_90m_lzw.tif';
 % geotiff_fn = 'C:\GIS_data\arctic\NaturalEarth_Data\Arctic_NaturalEarth.tif';
 % geotiff_fn = '/scratch/GIS_data/greenland/Landsat-7/mzl7geo_90m_lzw.tif'; % For Land Ice
 % geotiff_fn = '/scratch/GIS_data/greenland/Landsat-7/Greenland_natural_90m.tif'; % For Land Ice
-geotiff_fn = '/scratch/GIS_data/arctic/Landsat-7/arctic_natural_90m.tif'; % For Land Ice
+geotiff_fn = fullfile(gRadar.gis_path,'arctic','Landsat-7','arctic_natural_90m.tif'); % For Land Ice
 % geotiff_fn = '/scratch/GIS_data/arctic/ArcticDEM/arcticdem_mosaic_500m_v3.0.tif'; % For Land Ice
 % geotiff_fn = '/scratch/GIS_data/arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif'; % For Sea Ice
 
-dem_fn = '/scratch/GIS_data/arctic/ArcticDEM/arcticdem_mosaic_500m_v3.0.tif';
+dem_fn = fullfile(gRadar.gis_path,'arctic','ArcticDEM','arcticdem_mosaic_500m_v3.0.tif');
 [dem_RGB, dem_R, ~] = geotiffread(dem_fn);
 dem_proj = geotiffinfo(dem_fn);
 dem_x_axis = dem_R(3,1) + dem_R(2,1)*(1:size(dem_RGB,2));
 dem_y_axis = dem_R(3,2) + dem_R(1,2)*(1:size(dem_RGB,1));
 
-gps_input_type = 'serial'; % file_mcords, file_accum, or serial
+gps_input_type = 'file_mcords'; % file_mcords, file_accum, or serial
 
 % You may have to run from bash shell: "sudo chmod a+rwx /dev/ttyS0" as root
 serial_dev = '/dev/ttyUSB0';
@@ -44,10 +45,10 @@ serial_dev = '/dev/ttyUSB0';
 % serial_dev = '/dev/ttyS0';
 BAUD_RATE = 115200;
 
-gps_input_fn_dir = '/tmp/';
-gps_input_fn_start = 'GPS';
+% gps_input_fn_dir = '/tmp/';
 % gps_input_fn_dir = 'E:\';
-% gps_input_fn_start = 'GPS';
+gps_input_fn_dir = 'C:\metadata\2022_Greenland_Polar5\20220512\';
+gps_input_fn_start = 'GPS';
 % gps_input_fn_dir = '\\172.18.1.33\accum\';
 % gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
 gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
@@ -55,12 +56,12 @@ gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
                            % cause program to crash
 
 % For OIB, get kmz file from John Sonntag, then unzip the kmz file and use the "doc.kml" that is inside
-% kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
-kml_fn = '/scratch/metadata/2022_Greenland_P3/flight_plans/Eureka_flight_coords_04_22_2022_GT2L.kml'; % Set this to empty if the file is not available
+kml_fn = 'C:\metadata\2022_Greenland_Polar5\flight_lines\VVF_Flug1.kml';
+% kml_fn = '/scratch/metadata/2022_Greenland_P3/flight_plans/Eureka_flight_coords_04_22_2022_GT2L.kml'; % Set this to empty if the file is not available
 kml_mission_name = '';
 
 enable_gps_record = false;
-gps_fn_dir = '/scratch/metadata/2022_Greenland_P3/';
+gps_fn_dir = '/scratch/metadata/2022_Greenland_Polar5/';
 
 
 [year,month,day] = datevec(now);
@@ -77,8 +78,16 @@ else
     % Simple KML file
     xDoc = xmlread(kml_fn);
     document = read_xml(xDoc);
-    pos = textscan(document.kml{1}.Document{1}.Placemark{1}.LineString{1}.coordinates{1}.text{1}.node_val, ...
-      '%f%f%f','Delimiter',',');
+    if isfield(document.kml{1}.Document{1},'Placemark')
+      pos = textscan(document.kml{1}.Document{1}.Placemark{1}.LineString{1}.coordinates{1}.text{1}.node_val, ...
+       '%f%f%f','Delimiter',',');
+    elseif isfield(document.kml{1}.Document{1}.Folder{1},'Placemark')
+      pos = textscan(document.kml{1}.Document{1}.Folder{1}.Placemark{1}.LineString{1}.coordinates{1}.text{1}.node_val, ...
+       '%f%f','Delimiter',', ');
+    else
+      % Not able to find "Placemark" field that probably contains the
+      % LineString field that should be read.
+    end
     kml_lon = pos{1};
     kml_lat = pos{2};
   else

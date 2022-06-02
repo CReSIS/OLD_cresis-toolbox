@@ -38,10 +38,17 @@ for config_idx = 1:numel(param.config.default)
 
   cparam = param.config.default{config_idx}();
   cparam.config.default = param.config.default{config_idx};
-  cparam.config.base_dir = param.config.base_dir{config_idx};
-  cparam.config.config_folder_names = param.config.config_folder_names{config_idx};
-  cparam.config.board_folder_names = param.config.board_folder_names{config_idx};
-  cparam.config.date_str = param.config.date_str{config_idx};
+  if isfield(param.config,'base_dir')
+    cparam.config.base_dir = param.config.base_dir{config_idx};
+    cparam.config.config_folder_names = param.config.config_folder_names{config_idx};
+    cparam.config.board_folder_names = param.config.board_folder_names{config_idx};
+    cparam.config.date_str = param.config.date_str{config_idx};
+  else
+    cparam.config.base_dir = '';
+    cparam.config.config_folder_names = '';
+    cparam.config.board_folder_names = '%b';
+    cparam.config.date_str = datestr(now,'yyyymmdd');
+  end
   if isfield(param.config,'regexp')
     cparam.config.file.regexp = param.config.regexp{config_idx};
   end
@@ -49,6 +56,11 @@ for config_idx = 1:numel(param.config.default)
   %% Input checks
   % =========================================================================
   
+  % .config.cpu_time_per_file: Positive double with units of seconds.
+  % Default is 10 seconds. Cluster cpu_time allotment per raw data file
+  if ~isfield(cparam.config,'cpu_time_per_file') || isempty(cparam.config.cpu_time_per_file)
+    cparam.config.cpu_time_per_file = 10;
+  end
   if ~isfield(cparam.config,'date_str') || isempty(cparam.config.date_str)
     % Segment ID is created from the date of the config folder unless this
     % cell array is set.
@@ -83,42 +95,48 @@ for config_idx = 1:numel(param.config.default)
   if ~isfield(cparam.config,'gps_file_mask') || isempty(cparam.config.gps_file_mask)
     cparam.config.gps_file_mask = '';
   end
-  if ~isfield(cparam.config,'mat_or_bin_hdr_output') || isempty(cparam.config.mat_or_bin_hdr_output)
-    cparam.config.mat_or_bin_hdr_output = '.mat';
-  end
   if ~isfield(cparam.config,'max_time_gap') || isempty(cparam.config.max_time_gap)
     % Maximum time in seconds between two data records before forcing a segment break
     cparam.config.max_time_gap = 10;
   end
+  % .config.min_seg_size: Scalar integer. Default is 2. Minimum number of files in
+  % a segment (segments with less files will be discarded)
   if ~isfield(cparam.config,'min_seg_size') || isempty(cparam.config.min_seg_size)
-    % Minimum number of files in a segment (segments with less files will be
-    % discarded)
     cparam.config.min_seg_size = 2;
   end
+  % .config.online_mode: Scaler integer. Default is 0. Allowed values:
+  % * 0: not online mode
+  % * 1: online mode (process all files)
+  % * 2: online mode (process only the most recent file)
   if ~isfield(cparam.config,'online_mode') || isempty(cparam.config.online_mode)
     cparam.config.online_mode = 0;
-    % 0: not online mode
-    % 1: online mode (process all files)
-    % 2: online mode (process only the most recent file)
   end
+  % .config.param_fn: String containing the parameter spreadsheet filename.
+  % Default is RADARNAME_param_SEASONNAME.xls.
   if ~isfield(cparam.config,'param_fn') || isempty(cparam.config.param_fn)
     cparam.config.param_fn ...
       = ct_filename_param(sprintf('%s_param_%s.xls',ct_output_dir(cparam.radar_name),cparam.season_name));
   end
+  % .config.reuse_tmp_files: Logical scaler. Default is true. If true, the
+  % function will use any existing header files in ct_tmp and not recreate
+  % them.
   if ~isfield(cparam.config,'reuse_tmp_files') || isempty(cparam.config.reuse_tmp_files)
     cparam.config.reuse_tmp_files = true;
   end
+  % .config.skip_files_end: Scaler integer. Default is 0. Number of files
+  % to ignore at the end of the segment
   if ~isfield(cparam.config,'skip_files_end') || isempty(cparam.config.skip_files_end)
-    % Number of files to ignore at the end of the segment
     cparam.config.skip_files_end = 0;
   end
+  % .config.skip_files_start: Scaler integer. Default is 0. Number of files
+  % to ignore at the beginning of the segment.
   if ~isfield(cparam.config,'skip_files_start') || isempty(cparam.config.skip_files_start)
-    % Number of files to ignore at the beginning of the segment
     cparam.config.skip_files_start = 0;
   end
-  if ~isfield(cparam.config,'cpu_time_per_file') || isempty(cparam.config.cpu_time_per_file)
-    % Cluster cpu_time allotment per raw data file
-    cparam.config.cpu_time_per_file = 10;
+  % .config.tmp_load_mode: Scaler logical. Default is false. If true, then
+  % preprocess runs just for quick temporary loading of files.
+  if ~isfield(cparam.config,'tmp_load_mode') || isempty(cparam.config.tmp_load_mode)
+    cparam.config.tmp_load_mode = false;
   end
 
   %% Setup preprocess task
@@ -127,8 +145,8 @@ for config_idx = 1:numel(param.config.default)
   dparam.argsin{1} = cparam;
   
   num_fns = 0;
-  for board_idx = 1:length(cparam.config.board_map)
-    board = cparam.config.board_map{board_idx};
+  for board_idx = 1:length(cparam.records.file.boards)
+    board = cparam.records.file.boards{board_idx};
     board_folder_name = cparam.config.board_folder_names;
     board_folder_name = regexprep(board_folder_name,'%b',board);
 
@@ -148,6 +166,4 @@ end
 
 ctrl_chain = {{ctrl}};
 
-fprintf('Done %s\n', datestr(now));
-
-return;
+fprintf('%s: Done %s\n', mfilename, datestr(now));

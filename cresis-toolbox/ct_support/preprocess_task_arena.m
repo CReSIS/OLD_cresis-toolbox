@@ -21,7 +21,6 @@ function success = preprocess_task_arena(param)
 base_dir = fullfile(param.config.base_dir);
 config_folder_name = fullfile(param.config.config_folder_name);
 reuse_tmp_files = param.config.reuse_tmp_files;
-mat_or_bin_hdr_output = param.config.mat_or_bin_hdr_output;
 
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
@@ -155,11 +154,7 @@ for config_idx = 1:length(configs)
         fullfile(board_folder_name, fn_name));
       [out_fn_dir,out_fn_name] = fileparts(out_fn);
       out_fn = fullfile(out_fn_dir,[out_fn_name,'.dat']);
-      if strcmpi(mat_or_bin_hdr_output,'.mat')
-        out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.mat']);
-      else
-        out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.hdr']);
-      end
+      out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.mat']);
       
       % Print status
       fprintf('arena_pkt_strip %d/%d %d/%d %s (%s)\n    %s\n', config_idx, ...

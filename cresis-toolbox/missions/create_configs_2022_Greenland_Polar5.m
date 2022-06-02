@@ -46,7 +46,7 @@ if 0
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
     final_DDS_phase_no_time = [0 0 0 0 0 0 0 0]; % not used usually
-    final_DDS_amp{idx} = [4000 4000 4000 4000 4000 4000 4000 4000]/4000*0.63;
+    final_DDS_amp{idx} = [4000 4000 4000 4000 4000 4000 4000 4000];
     final_DDS_time{idx} =  [0 0 2.5 2.5 3.125 3.125 0 0];
   end
 else
@@ -56,28 +56,28 @@ else
   % 150-520 MHz
   final_DDS_phase{end+1} = [24.5	73.3	-18.4	0.0	-49.7	14.3	125.2	54.4];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [1167	3003	2568	4000	3911	2528	2408	1330]/4000*0.63;
+  final_DDS_amp{end+1} = [1167	3003	2568	4000	3911	2528	2408	1330];
   final_DDS_time{end+1} =  [0.37	0.58	2.15	2.50	2.39	2.42	0.78	0.43];
     
  % final_DDS_phase{end+1} = [70.7	99.2	-116.2	0.0	-13.4	-12.8	132.0	83.6];
  % final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
- % final_DDS_amp{end+1} = [1285	2868	4000	4000	3702	2852	2145	1609]/4000*0.63;
+ % final_DDS_amp{end+1} = [1285	2868	4000	4000	3702	2852	2145	1609];
  % final_DDS_time{end+1} =  [1.6942	1.7961	2.2041	2.5000	2.3630	2.3930	2.0502	1.9164];
   
   %    final_DDS_phase{end+1} = [0 0 -100 0 0 0 0 0];
   %  final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  %  final_DDS_amp{end+1} = [1140	2209	4000	4000	4000	3755	2248	1130]/4000*0.63;
+  %  final_DDS_amp{end+1} = [1140	2209	4000	4000	4000	3755	2248	1130];
   %  final_DDS_time{end+1} =  [2.5 2.5 2.5 2.5 2.5 2.5 2.5 2.5];
 
   % 180-210 MHz
   final_DDS_phase{end+1} = [64.5	61.3	163.6	0.0	-117.5	155.5	59.8	-64.0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [930	2541	2931	4000	3432	3162	2166	1066]/4000*0.63;
+  final_DDS_amp{end+1} = [930	2541	2931	4000	3432	3162	2166	1066];
   final_DDS_time{end+1} =  [-1.36	-2.65	2.51	2.50	0.42	2.59	-1.01	-2.00];
   
  % final_DDS_phase{end+1} = [142.3	-91.9	227.7	0.0	209.5	-53.3	-230.6	83.6];
  % final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
- % final_DDS_amp{end+1} = [897	1830	4000	4000	3705	2976	1797	936]/4000*0.63;
+ % final_DDS_amp{end+1} = [897	1830	4000	4000	3705	2976	1797	936];
  % final_DDS_time{end+1} =  [-0.4500	1.2410	-1.7874	2.5000	-1.2370	-1.8574	-0.3766	0.2870];
  
   % 320-350 MHz
@@ -89,13 +89,13 @@ else
   % 285-315 MHz
   final_DDS_phase{end+1} = [0 0 0 0 0 0 0 0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [4000 4000 4000 4000 4000 4000 4000 4000]/4000*0.63;
+  final_DDS_amp{end+1} = [4000 4000 4000 4000 4000 4000 4000 4000];
   final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
     
   % 510-540 MHz
   final_DDS_phase{end+1} = [0 0 0 0 0 0 0 0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [4000 4000 4000 4000 4000 4000 4000 4000]/4000*0.63;
+  final_DDS_amp{end+1} = [4000 4000 4000 4000 4000 4000 4000 4000];
   final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
     
   % 150-240 MHz
@@ -152,7 +152,7 @@ for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
   param = merge_structs(param,param_defaults);
   param.arena = arena;
-  param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]/4000*0.63; param.max_data_rate = 755; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
+  param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 755; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -245,7 +245,7 @@ for Tpd_idx = 1:length(Tpd_list)
     param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
   param = merge_structs(param,param_defaults);
   param.arena = arena;
-    param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]/4000*0.63; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
+    param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
     param.DDC_select = DDC_select_list(freq_idx);
     param.max_duty_cycle = 0.12;
     param.create_IQ = false;

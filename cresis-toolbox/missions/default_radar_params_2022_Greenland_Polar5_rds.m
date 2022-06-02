@@ -12,18 +12,18 @@ function [param,defaults] = default_radar_params_2022_Greenland_Polar5_rds
 param.season_name = '2022_Greenland_Polar5';
 param.radar_name = 'mcords5';
 
+% Reading in files
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_mcords5;
-param.config.board_map = {'chan1','chan2','chan3','chan4','chan5','chan6','chan7','chan8'};
+param.config.header_load_param = struct('presum_bug_fixed',true,'clk',1600e6);
 param.config.tx_map = {'awg0','awg1','awg2','awg3','awg4','awg5','awg6','awg7'};
 
-param.config.file.version = 407;
-param.config.file.prefix = param.radar_name;
-param.config.file.suffix = '.bin';
+% Creating segments
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 1;
 
+% Creating settings files
 param.config.max_data_rate = 240;
 param.config.max_duty_cycle = 0.1;
 param.config.prf_multiple = [10e6]; % Power supply sync signal that PRF must be a factor of these numbers
@@ -33,109 +33,106 @@ param.config.tx_enable = [1 1 1 1 1 1 1 1];
 param.config.max_tx = 0.63;
 param.config.max_tx_voltage = sqrt(1000*50)*10^(-2/20); % voltage at max_tx
 
-param.config.cresis.presum_bug_fixed = true;
-param.config.cresis.clk = 200e6;
+% Interpretting settings
 param.config.cresis.config_version = 2.0;
 param.config.cresis.rx_gain_dB = 48;
-param.records.gps.time_offset = 1;
-
+param.config.gps_file_mask = 'GPS*';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
-default.xml_file_prefix = 'mcords5';
-default.data_file_prefix = 'mcords5';
-% default.header_load_func = @basic_load_mcords5;
-% default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
-% default.xml_version = 2.0;
+% default.xml_file_prefix = 'mcords5';
+% default.data_file_prefix = 'mcords5';
 
-default.noise_50ohm = [-39.8	-41.0	-40.1	-39.6	-38.4	-39.1	-38.3	-39.6	];
+param.config.adc_SNR_dB = 59;
+param.config.noise_figure = 2;
+param.config.max_tx = 0.63;
 
-default.Pt = (4*1000 + 4*500) * sum(chebwin(8,30).^2)/8;
-default.Gt = 8*4;
-default.Ae = 2*0.468 * 0.468;
+param.config.noise_50ohm = [-39.8	-41.0	-40.1	-39.6	-38.4	-39.1	-38.3	-39.6	];
 
-default.system_loss_dB = 10.^(-5.88/10);
-default.max_DDS_RAM = 4000;
-default.tx_voltage = sqrt(1000*50)*10^(-2/20);
+param.config.Pt = (4*1000 + 4*500) * sum(chebwin(8,30).^2)/8;
+param.config.Gt = 8*4;
+param.config.Ae = 2*0.468 * 0.468;
 
-default.iq_mode = 0;
-default.tx_DDS_mask = [1 1 1 1 1 1 1 1];
+param.config.system_loss_dB = 10.^(-5.88/10);
+param.config.max_DDS_RAM = 4000;
+param.config.tx_voltage = sqrt(1000*50)*10^(-2/20);
+
+param.config.iq_mode = 0;
+param.config.tx_DDS_mask = [1 1 1 1 1 1 1 1]; % Used by basic_rx_chan_equalization
 
 % default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq','bit_shifts'};
 % default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 % For airborne test:
-% default.basic_surf_track_min_time = 2e-6; % Normally 0e-6 for lab test, 2e-6 for flight test
-% default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
+% param.config.basic_surf_track_min_time = 2e-6; % Normally 0e-6 for lab test, 2e-6 for flight test
+% param.config.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 % For ground test:
-default.basic_surf_track_min_time = 0e-6; % Normally 0e-6 for lab test, 2e-6 for flight test
-default.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
+param.config.basic_surf_track_min_time = 0e-6; % Normally 0e-6 for lab test, 2e-6 for flight test
+param.config.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
 
-default.board_folder_name = 'chan%d';
+% default.board_folder_name = 'chan%d';
 
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 8
   ref_adc = 1;
-  default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
-  default.txequal.ref_wf_adc = 1;
-  default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
-  default.txequal.Hwindow_desired = chebwin(8,30).';
-  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
-  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
-  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
-  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
-  default.txequal.remove_linear_phase_en = true;
+  param.config.txequal.img = [(1:8).', ref_adc*ones(8,1)];
+  param.config.txequal.ref_wf_adc = 1;
+  param.config.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
+  param.config.txequal.Hwindow_desired = chebwin(8,30).';
+  param.config.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
+  param.config.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  param.config.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  param.config.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  param.config.txequal.remove_linear_phase_en = true;
 elseif 0
   % Channel 4 ADC is bad:
   ref_adc = 5;
-  default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
-  default.txequal.ref_wf_adc = 4;
-  default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
-  default.txequal.Hwindow_desired = chebwin(8,30).';
-  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
-  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
-  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
-  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
-  default.txequal.remove_linear_phase_en = true;
+  param.config.txequal.img = [(1:8).', ref_adc*ones(8,1)];
+  param.config.txequal.ref_wf_adc = 4;
+  param.config.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
+  param.config.txequal.Hwindow_desired = chebwin(8,30).';
+  param.config.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
+  param.config.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  param.config.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  param.config.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  param.config.txequal.remove_linear_phase_en = true;
 elseif 0
   % DDS 3 is not used, but create settings not changed:
   %   Connect antenna 1 to a 50 oxhm load
   %   Connect antenna 2 to WFG 1
   %   Connect antenna 3 to WFG 2
   ref_adc = 4;
-  default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
-  default.txequal.wf_mapping = [1 2 0 4 5 6 7 8];
-  default.txequal.ref_wf_adc = 4;
-  default.txequal.Hwindow_desired = chebwin(7,30).';
-  default.txequal.max_DDS_amp = [4000 4000 0 4000 4000 4000 4000 4000];
-  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
-  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
-  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
-  default.txequal.remove_linear_phase_en = true;
+  param.config.txequal.img = [(1:8).', ref_adc*ones(8,1)];
+  param.config.txequal.wf_mapping = [1 2 0 4 5 6 7 8];
+  param.config.txequal.ref_wf_adc = 4;
+  param.config.txequal.Hwindow_desired = chebwin(7,30).';
+  param.config.txequal.max_DDS_amp = [4000 4000 0 4000 4000 4000 4000 4000];
+  param.config.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  param.config.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  param.config.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  param.config.txequal.remove_linear_phase_en = true;
 elseif 0
   % DDS 3 to 8 are not used and ADC's 3 to 24 are not used, create settings
   % also only uses first two DDS
   ref_adc = 1;
-  default.txequal.img = [(1:2).', ref_adc*ones(2,1)];
+  param.config.txequal.img = [(1:2).', ref_adc*ones(2,1)];
   default.wf_mapping = [1 2 0 0 0 0 0 0];
-  default.txequal.ref_wf_adc = 1;
-  default.txequal.Hwindow_desired = [1 1];
-  default.txequal.max_DDS_amp = [4000 4000 0 0 0 0 0 0];
-  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
-  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
-  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
-  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
-  default.txequal.remove_linear_phase_en = false;
+  param.config.txequal.ref_wf_adc = 1;
+  param.config.txequal.Hwindow_desired = [1 1];
+  param.config.txequal.max_DDS_amp = [4000 4000 0 0 0 0 0 0];
+  param.config.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  param.config.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  param.config.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  param.config.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  param.config.txequal.remove_linear_phase_en = false;
 end
-
-param.config.max_tx = 0.63;
 
 %% AWI MCoRDS Arena Parameters
 arena = [];
@@ -377,105 +374,73 @@ arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2e-6+param.wfs(wf).Tp
 default.arena = arena;
 
 %% Records worksheet in parameter spreadsheet
-default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
-default.records.file.adcs = [1:8];
-default.records.file.adc_headers = [1:8];
-default.records.file.version = 407;
-default.records.file.boards = {'chan1','chan2','chan3','chan4','chan5','chan6','chan7','chan8'};
-default.records.gps.en = 1;
-default.records.frame_mode = 0;
-default.records.presum_bug_fixed = 1;
-default.records.tmp_fn_uses_adc_folder_name = 1;
+param.records.file.version = 407;
+param.records.file.boards = {'chan1','chan2','chan3','chan4','chan5','chan6','chan7','chan8'};
+param.records.file.board_folder_name = '%b';
+param.records.file.prefix = param.radar_name;
+param.records.file.suffix = '.bin';
+param.records.file.clk = 1600e6;
+param.records.gps.time_offset = 1;
+param.records.presum_bug_fixed = 1;
+param.records.frames.mode = 1;
+param.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
 
-%% Quick look worksheet in parameter spreadsheet
-default.qlook.qlook.out_path = '';
-default.qlook.qlook.en = 1;
-default.qlook.block_size = 5000;
-default.qlook.frm_types = {0,[0 1],0,0,-1};
-default.qlook.coh_noise_method = [];
-default.qlook.coh_noise_arg = [];
-default.qlook.ft_wind = @hanning;
-default.qlook.ft_wind_time = false;
-default.qlook.ft_dec = true;
-default.qlook.pulse_comp = [];
-default.qlook.pulse_rfi.en = [];
-default.qlook.pulse_rfi.inc_ave= [];
-default.qlook.pulse_rfi.thresh_scale = [];
-default.qlook.roll_correction = 0;
-default.qlook.lever_arm_fh = @lever_arm;
-default.qlook.elev_correction = 0;
-default.qlook.B_filter = ones(1,20)/20;
-default.qlook.decimate_factor = 20;
-default.qlook.inc_ave = 10;
-default.qlook.surf.en = 1;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.noise_rng = [0 -50 10];
-default.qlook.surf.min_bin = 2e-6;
-default.qlook.surf.max_bin = [];
-default.qlook.surf.threshold = 9;
-default.qlook.surf.sidelobe = 15;
-default.qlook.surf.medfilt = 3;
-default.qlook.surf.search_rng = [0:2];
+%% Qlook worksheet in parameter spreadsheet
+param.qlook.out_path = '';
+param.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
+param.qlook.en = 1;
+param.qlook.block_size = 10000;
+param.qlook.dec = 20;
+param.qlook.inc_dec = 5;
+param.qlook.surf.en = 1;
+param.qlook.surf.profile = 'RDS';
 
-%% CSARP worksheet in parameter spreadsheet
-default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
-default.csarp.frm_types = {0,[0 1],0,0,-1};
-default.csarp.chunk_len = 3500;
-default.csarp.chunk_overlap = 10;
-default.csarp.frm_overlap = 0;
-default.csarp.coh_noise_removal = 0;
-default.csarp.array_rx = 0;
-default.csarp.time_of_full_support = 3.5e-5;
-default.csarp.pulse_rfi.en = [];
-default.csarp.pulse_rfi.inc_ave= [];
-default.csarp.pulse_rfi.thresh_scale = [];
-default.csarp.trim_vals = [];
-default.csarp.pulse_comp = 1;
-default.csarp.ft_dec = 1;
-default.csarp.ft_wind = @hanning;
-default.csarp.ft_wind_time = 0;
-default.csarp.lever_arm_fh = @lever_arm;
-default.csarp.mocomp.en = 1;
-default.csarp.mocomp.type = 2;
-default.csarp.mocomp.filter = {@butter  [2]  [0.1000]};
-default.csarp.mocomp.uniform_en = 1;
-default.csarp.sar_type = 'f-k';
-default.csarp.sigma_x = 2.5;
-default.csarp.sub_aperture_steering = 0;
-default.csarp.st_wind = @hanning;
-default.csarp.start_eps = 3.15;
+%% SAR worksheet in parameter spreadsheet
+param.sar.out_path = '';
+param.sar.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
+param.sar.chunk_len = 5000;
+param.sar.combine_rx = 0;
+param.sar.mocomp.en = 1;
+param.sar.mocomp.type = 2;
+param.sar.mocomp.filter = {@butter  [2]  [0.1000]};
+param.sar.mocomp.uniform_en = 1;
+param.sar.sar_type = 'fk';
+param.sar.sigma_x = 2.5;
+param.sar.sub_aperture_steering = 0;
+param.sar.st_wind = @hanning;
+param.sar.start_eps = 3.15;
 
-%% Combine worksheet in parameter spreadsheet
-default.array.in_path = '';
-default.array.array_path = '';
-default.array.out_path = '';
-default.array.method = 'standard';
-default.array.window = @hanning;
-default.array.bin_rng = 0;
-default.array.rline_rng = -5:5;
-default.array.dbin = 1;
-default.array.dline = 6;
-default.array.DCM = [];
-default.array.three_dim.en = 0;
-default.array.three_dim.layer_fn = '';
-default.array.Nsv = 1;
-default.array.theta_rng = [0 0];
-default.array.sv_fh = @array_proc_sv;
-default.array.diag_load = 0;
-default.array.Nsig = 2;
+%% Array worksheet in parameter spreadsheet
+param.array.in_path = '';
+param.array.array_path = '';
+param.array.out_path = '';
+param.array.method = 'standard';
+param.array.window = @hanning;
+param.array.bin_rng = 0;
+param.array.line_rng = -5:5;
+param.array.dbin = 1;
+param.array.dline = 6;
+param.array.DCM = [];
+param.array.tomo_en = 0;
+param.array.Nsv = 1;
+param.array.theta_rng = [0 0];
+param.array.sv_fh = @array_proc_sv;
+param.array.diag_load = 0;
+param.array.Nsrc = 2;
 
 %% Radar worksheet in parameter spreadsheet
-default.radar.fs = 1600e6;
-default.radar.Tadc = []; % normally leave empty to use value in file header
-default.radar.fs = 1600e6;
-default.radar.adc_bits = 12;
-default.radar.adc_full_scale = 2;
-default.radar.rx_paths = [1:8];
-default.radar.noise_figure = 2;
-% default.radar.rx_gain = 48;
-% default.radar.adc_SNR_dB = 59;
-default.radar.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+param.radar.fs = 1600e6;
+param.radar.Tadc = []; % normally leave empty to use value in file header
+param.radar.adc_bits = 12;
+param.radar.Vpp_scale = 2;
+param.radar.lever_arm_fh = @lever_arm;
+
+param.radar.wfs.rx_paths = [1:8];
+param.radar.wfs.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+
+param.radar.wfs(1).Tsys = [0 0 0 0 0 0 0]/1e9;
+param.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
+param.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
 
 defaults = {};
 

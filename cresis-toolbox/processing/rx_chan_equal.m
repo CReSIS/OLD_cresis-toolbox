@@ -106,7 +106,7 @@ rlines = param.rlines(1):param.rlines(end);
 rbins = param.rbins(1):param.rbins(end);
 
 % ref_idx: index into data that will be the reference
-ref_idx = param.ref_wf_adc;
+ref_idx = param.config.ref_wf_adc;
 
 % colors: used for plotting
 colors = {'k.','r.','y.','g.','c.','b.','m.','kx','rx','yx','gx','cx','bx','mx','ko','ro','yo','go','co','bo','mo','k+','r+','y+'};
@@ -118,16 +118,16 @@ ave_fh = param.averaging_fh;
 freq = param.freq;
 time = param.time;
 
-if ~isfield(param,'delay')
-  param.delay = [];
+if ~isfield(param.config,'delay')
+  param.config.delay = [];
 end
 
-if ~isfield(param.delay,'method') || isempty(param.delay.method)
-  param.delay.method = 'xcorr_complex';
+if ~isfield(param.config.delay,'method') || isempty(param.config.delay.method)
+  param.config.delay.method = 'xcorr_complex';
 end
   
 %% Setup code for estimation equalization coefficients
-switch(param.delay.method)
+switch(param.config.delay.method)
   case 'threshold'
     delay_method = 1;
   case 'xcorr_complex'
@@ -140,16 +140,16 @@ switch(param.delay.method)
     error('delay.method %d is not supported', param.analysis.surf.delay.method);
 end
 
-if ~isfield(param.delay,'ref_bins') || isempty(param.delay.ref_bins)
-  param.delay.ref_bins = -20:20;
+if ~isfield(param.config.delay,'ref_bins') || isempty(param.config.delay.ref_bins)
+  param.config.delay.ref_bins = -20:20;
 end
 
-if ~isfield(param.delay,'search_bins') || isempty(param.delay.search_bins)
-  param.delay.search_bins = -7:7;
+if ~isfield(param.config.delay,'search_bins') || isempty(param.config.delay.search_bins)
+  param.config.delay.search_bins = -7:7;
 end
 
-if ~isfield(param.delay,'Mt') || isempty(param.delay.Mt)
-  param.delay.Mt = 64;
+if ~isfield(param.config.delay,'Mt') || isempty(param.config.delay.Mt)
+  param.config.delay.Mt = 64;
 end
 
 if ~isfield(param,'td') || isempty(param.td)
@@ -192,8 +192,8 @@ mocomp_param.season_name = param.season_name;
 mocomp_param.radar_name = param.radar_name;
 mocomp_param.gps_source = hdr.gps_source;
 for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
+  wf = abs(param.config.img(wf_adc_idx,1));
+  adc = param.config.img(wf_adc_idx,2);
   mocomp_param.rx = param.rx_paths{wf}(adc);
   
   % drange = change in range (positive is longer range)
@@ -223,8 +223,8 @@ num_chan = size(data,3);
 % =======================================================================
 w = 2*pi*freq;
 for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
+  wf = abs(param.config.img(wf_adc_idx,1));
+  adc = param.config.img(wf_adc_idx,2);
   data(:,:,wf_adc_idx) = ifft(fft(data(:,:,wf_adc_idx)).*exp(1i*repmat(w,1,size(data,2))*param.td(param.rx_paths{wf}(adc))));
 end
 
@@ -233,8 +233,8 @@ end
 % =======================================================================
 
 for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
+  wf = abs(param.config.img(wf_adc_idx,1));
+  adc = param.config.img(wf_adc_idx,2);
   data(:,:,wf_adc_idx) = data(:,:,wf_adc_idx) ./ (10^(param.amp(param.rx_paths{wf}(adc))/20).*exp(1i*param.phase(param.rx_paths{wf}(adc))/180*pi));
 end
 ascope_check_flag = 0;  % compare average ascopes before and after equalization
@@ -324,8 +324,8 @@ end
 
 %% Cross correlation to determine recommended time, phase, and amplitude offsets
 % =======================================================================
-ref_bins = param.delay.ref_bins(1) : param.delay.ref_bins(end);
-search_bins = param.delay.search_bins(1) : param.delay.search_bins(end);
+ref_bins = param.config.delay.ref_bins(1) : param.config.delay.ref_bins(end);
+search_bins = param.config.delay.search_bins(1) : param.config.delay.search_bins(end);
 zero_padding_offset = length(search_bins) - length(ref_bins);
 Hcorr_wind = hanning(length(ref_bins));
 clear peak_val peak_offset;
@@ -340,11 +340,11 @@ if delay_method == 2
       rline = rlines(rline_idx);
       [corr_out,lags] = xcorr(data(surf_bins(rline_idx)+search_bins,rline,adc_idx), ...
         data(surf_bins(rline_idx)+ref_bins,rline,ref_idx) .* Hcorr_wind);
-      corr_int = interpft(corr_out,param.delay.Mt*length(corr_out));
+      corr_int = interpft(corr_out,param.config.delay.Mt*length(corr_out));
       [peak_val(adc_idx,rline_idx) peak_offset(adc_idx,rline_idx)] = max(corr_int);
       peak_val(adc_idx,rline_idx) = abs(max(data(surf_bins(rline_idx)+search_bins,rline,adc_idx))) ...
         .*exp(1i*angle(peak_val(adc_idx,rline_idx)));
-      peak_offset(adc_idx,rline_idx) = (peak_offset(adc_idx,rline_idx)-1)/param.delay.Mt+1 ...
+      peak_offset(adc_idx,rline_idx) = (peak_offset(adc_idx,rline_idx)-1)/param.config.delay.Mt+1 ...
         + ref_bins(1) + search_bins(1) - 1 - zero_padding_offset;
     end
   end
@@ -364,7 +364,7 @@ elseif delay_method == 4
   %% Peak method
   for rline_idx = 1:length(rlines)
     rline = rlines(rline_idx);
-    data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,ref_idx),param.delay.Mt*length(search_bins));
+    data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,ref_idx),param.config.delay.Mt*length(search_bins));
     [peak_val(ref_idx,rline_idx),peak_offset(ref_idx,rline_idx)] = max(data_int);
   end
   
@@ -373,13 +373,13 @@ elseif delay_method == 4
   for adc_idx = adc_idxs
     for rline_idx = 1:length(rlines)
       rline = rlines(rline_idx);
-      data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,adc_idx),param.delay.Mt*length(search_bins));
+      data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,adc_idx),param.config.delay.Mt*length(search_bins));
       [peak_val(adc_idx,rline_idx),peak_offset(adc_idx,rline_idx)] = max(data_int);
       peak_offset(adc_idx,rline_idx) = peak_offset(adc_idx,rline_idx) - peak_offset(ref_idx,rline_idx);
       peak_val(adc_idx,rline_idx) = abs(peak_val(adc_idx,rline_idx)).*exp(1i*angle(data_int(peak_offset(ref_idx,rline_idx))));
     end
   end
-  peak_offset = peak_offset / param.delay.Mt;
+  peak_offset = peak_offset / param.config.delay.Mt;
   peak_offset(ref_idx,:) = 0;
   dt = (time(2)-time(1));
 else
@@ -396,8 +396,8 @@ lever_arm_param.season_name = param.season_name;
 lever_arm_param.radar_name = ct_output_dir(param.radar_name);
 lever_arm_param.gps_source = hdr.gps_source;
 for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
+  wf = abs(param.config.img(wf_adc_idx,1));
+  adc = param.config.img(wf_adc_idx,2);
   mocomp_param.rx = param.rx_paths{wf}(adc);
   phase_center = lever_arm(lever_arm_param, param.tx_weights, mocomp_param.rx);
   y_offset(wf_adc_idx) = -phase_center(2);
@@ -471,8 +471,8 @@ td_out = param.td;
 amp_out = param.amp;
 phase_out = param.phase;
 for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
+  wf = abs(param.config.img(wf_adc_idx,1));
+  adc = param.config.img(wf_adc_idx,2);
   td_out(param.rx_paths{wf}(adc)) = param.td(param.rx_paths{wf}(adc)) + ave_fh(peak_offset(wf_adc_idx,:))*dt;
   amp_out(param.rx_paths{wf}(adc)) = param.amp(param.rx_paths{wf}(adc)) + lp(ref_val_pow(wf_adc_idx),1);
   phase_out(param.rx_paths{wf}(adc)) = param.phase(param.rx_paths{wf}(adc)) + angle(ref_val(wf_adc_idx))*180/pi;
@@ -494,8 +494,8 @@ if param.plot_en
   plot([]); ha3 = gca;  hold on;
   clear leg_cell;
   for wf_adc_idx = 1:size(data,3)
-    wf = abs(param.img(wf_adc_idx,1));
-    adc = param.img(wf_adc_idx,2);
+    wf = abs(param.config.img(wf_adc_idx,1));
+    adc = param.config.img(wf_adc_idx,2);
     rx = param.rx_paths{wf}(adc);
     plot(ha1,peak_offset(wf_adc_idx,:) - peak_offset(ref_idx,:),[colors{mod(wf_adc_idx-1,length(colors))+1}])
     plot(ha2,lp(peak_val(wf_adc_idx,:)./peak_val(ref_idx,:),2),[colors{mod(wf_adc_idx-1,length(colors))+1}])

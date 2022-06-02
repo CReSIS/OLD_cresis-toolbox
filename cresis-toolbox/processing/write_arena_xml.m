@@ -51,12 +51,12 @@ for wf = 1:length(param.wfs)
   if (~isfield(param.wfs(wf),'tx_enable') || isempty(param.wfs(wf).tx_enable)) && isfield(param.config,'tx_enable')
     param.wfs(wf).tx_enable = param.config.tx_enable;
   end
-  if (~isfield(param.wfs(wf),'tx_weights') || isempty(param.wfs(wf).tx_weights)) && isfield(param,'tx_weights')
-    param.wfs(wf).tx_weights = param.tx_weights;
+  if (~isfield(param.wfs(wf),'scale') || isempty(param.wfs(wf).scale)) && isfield(param,'scale')
+    param.wfs(wf).scale = param.scale;
   end
-  if any(param.wfs(wf).tx_weights > param.config.max_tx)
-    error('Tx weights param.wfs(%d).tx_weights=%s > param.config.max_tx=%s for waveform %d', ...
-      wf, mat2str_generic(param.wfs(wf).tx_weights), mat2str_generic(param.config.max_tx), wf);
+  if any(param.wfs(wf).scale > param.config.max_tx)
+    error('Tx weights param.wfs(%d).scale=%s > param.config.max_tx=%s for waveform %d', ...
+      wf, mat2str_generic(param.wfs(wf).scale), mat2str_generic(param.config.max_tx), wf);
   end
 end
 
@@ -87,6 +87,7 @@ param.eprf = param.prf / presums;
 
 %% Determine modes/sequences for each waveform
 total_modes = 0;
+total_indexes = 0;
 for wf = 1:length(wfs)
   zeropimods = wfs(wf).zeropimods(:).';
 
@@ -103,15 +104,17 @@ for wf = 1:length(wfs)
         % Need to add an EPRI mode since this is the first waveform and
         % there is more than 1 presum
         num_modes = 1;
+        num_indexes = 1;
         wfs(wf).reset = false(1,num_modes);
-        wfs(wf).next = total_modes+1;
-        wfs(wf).repeat_to = total_modes;
+        wfs(wf).next = total_indexes+1;
+        wfs(wf).repeat_to = total_indexes;
         wfs(wf).repeat_count = wfs(wf).presums/numel(zeropimods)-1;
       else
         num_modes = 2;
+        num_indexes = 2;
         wfs(wf).reset = false(1,num_modes);
-        wfs(wf).next = total_modes+[1 2];
-        wfs(wf).repeat_to = total_modes+1;
+        wfs(wf).next = total_indexes+[1 2];
+        wfs(wf).repeat_to = total_indexes+1;
         wfs(wf).repeat_count = wfs(wf).presums/numel(zeropimods)-2;
       end
       wfs(wf).modes = total_modes+(0:num_modes-1);
@@ -152,12 +155,13 @@ for wf = 1:length(wfs)
         % marked as the EPRI mode and the second and later passes through
         % the zero pi modes are not EPRI modes.
         num_modes = numel(zeropimods)+1;
+        num_indexes = 2*numel(zeropimods);
         wfs(wf).tx_invert = wfs(wf).tx_invert([1:end, 1:end]);
         wfs(wf).adc_zeropi = wfs(wf).adc_zeropi([1:end, 1:end]);
         wfs(wf).zeropiphase = wfs(wf).zeropiphase([1:end, 1:end]);
-        wfs(wf).next = total_modes+[1:2*numel(zeropimods)];
+        wfs(wf).next = total_indexes+[1:2*numel(zeropimods)];
         wfs(wf).repeat_to = zeros(1,2*numel(zeropimods));
-        wfs(wf).repeat_to(end) = total_modes+numel(zeropimods);
+        wfs(wf).repeat_to(end) = total_indexes+numel(zeropimods);
         wfs(wf).repeat_count = zeros(1,2*numel(zeropimods));
         wfs(wf).repeat_count(end) = wfs(wf).presums/numel(zeropimods)-2;
         wfs(wf).modes = total_modes+[0:numel(zeropimods) 1:numel(zeropimods)-1];
@@ -167,9 +171,10 @@ for wf = 1:length(wfs)
         % This waveform does not require separate passes through the
         % zero-pi modes for EPRI and non-EPRI modes.
         num_modes = numel(zeropimods);
-        wfs(wf).next = total_modes+(1:num_modes);
+        num_indexes = numel(zeropimods);
+        wfs(wf).next = total_indexes+(1:num_modes);
         wfs(wf).repeat_to = zeros(1,num_modes);
-        wfs(wf).repeat_to(end) = total_modes;
+        wfs(wf).repeat_to(end) = total_indexes;
         wfs(wf).repeat_count = zeros(1,num_modes);
         wfs(wf).repeat_count(end) = wfs(wf).presums/numel(zeropimods)-1;
         wfs(wf).modes = total_modes+(0:num_modes-1);
@@ -293,6 +298,7 @@ for wf = 1:length(wfs)
 
     wfs(wf).modes = total_modes+(0:num_modes-1);
     wfs(wf).epri = false(1,num_modes);
+    num_indexes = num_modes;
 
   else
     error('param.arena.psc.type must be psc_0001 or psc_0003. The correct version depends on the hardware firmware.');
@@ -310,6 +316,7 @@ for wf = 1:length(wfs)
   end
 
   total_modes = total_modes + num_modes;
+  total_indexes = total_indexes + num_indexes;
 end
 
 
@@ -862,7 +869,7 @@ for dac_idx = dac_idxs
     %Nt = round(wfs(wf).Tpd * dac.dacClk/8)*8;
     Nt = 256;
     BW = wfs(wf).f1-wfs(wf).f0;
-    %scale = wfs(wf).tx_weights(tx_idx);
+    %scale = wfs(wf).scale(tx_idx);
     scale = 0;
     zeropiphase = 0;
     alpha = wfs(wf).tukey;
@@ -912,7 +919,7 @@ for dac_idx = dac_idxs
     Nt = round(wfs(wf).Tpd * dac.dacClk/8)*8;
     BW = wfs(wf).f1-wfs(wf).f0;
     if wfs(wf).tx_enable(tx_idx)
-      scale = wfs(wf).tx_weights(tx_idx);
+      scale = wfs(wf).scale(tx_idx);
     else
       scale = 0;
     end
@@ -1023,9 +1030,8 @@ end
 
 %% DAC Waveforms: dac-ad9129_0014
 dac_idxs = find(strcmpi('dac-ad9129_0014',{arena.dac.type}));
-for dac_idx = dac_idxs
-%   if ~isempty(dac_idxs)
-%     dac_idx = dac_idxs(1)
+if ~isempty(dac_idxs)
+  dac_idx = dac_idxs(1);
 
   dac = arena.dac(dac_idx);
   tx_idx = find(strcmpi(dac.name,param.config.tx_map));
@@ -1042,7 +1048,7 @@ for dac_idx = dac_idxs
     alpha = wfs(wf).tukey;
     equal.delay = wfs(wf).delay;
     equal.phase = wfs(wf).phase;
-    equal.scale = wfs(wf).tx_weights;
+    equal.scale = wfs(wf).scale;
     Nt = round((wfs(wf).Tpd+equal.delay/1e9) * fs);
 
     config = doc.createElement('config'); configs.appendChild(config);
@@ -1085,66 +1091,66 @@ for dac_idx = dac_idxs
   waveform_names = {};
   for wf = 1:length(arena.wfs)
 
-for dac_idx = dac_idxs
-  fs = arena.dac(dac_idx).dacClk;
+    for dac_idx = dac_idxs
+      fs = arena.dac(dac_idx).dacClk;
 
-    fc = (wfs(wf).f0+wfs(wf).f1)/2;
-    BW = wfs(wf).f1 - wfs(wf).f0;
-    Tpd = wfs(wf).Tpd;
-    alpha = wfs(wf).tukey;
-    equal.delay = wfs(wf).delay;
-    equal.phase = wfs(wf).phase;
-    equal.scale = wfs(wf).tx_weights;
-    Nt = round((wfs(wf).Tpd+equal.delay/1e9) * fs);
+      fc = (wfs(wf).f0+wfs(wf).f1)/2;
+      BW = wfs(wf).f1 - wfs(wf).f0;
+      Tpd = wfs(wf).Tpd;
+      alpha = wfs(wf).tukey;
+      equal.delay = wfs(wf).delay;
+      equal.phase = wfs(wf).phase;
+      equal.scale = wfs(wf).scale;
+      Nt = round((wfs(wf).Tpd+equal.delay/1e9) * fs);
 
-    %[0.63 ]
-    %  0.1652 0.326800 0.511500 0.63 0.6300 0.511500 0.3268 0.1652
-    %    chebwin(8,30)
+      %[0.63 ]
+      %  0.1652 0.326800 0.511500 0.63 0.6300 0.511500 0.3268 0.1652
+      %    chebwin(8,30)
 
-    for zeropimod = wfs(wf).zeropimods(:).'
-      new_waveform_name = sprintf('waveformCh%d_%s_%.0fus_%.0f',dac_idx-1,wfs(wf).name,Tpd*1e6,zeropimod);
-      if any(strcmpi(new_waveform_name,waveform_names))
-        continue;
+      for zeropimod = wfs(wf).zeropimods(:).'
+        new_waveform_name = sprintf('waveformCh%d_%s_%.0fus_%.0f',dac_idx-1,wfs(wf).name,Tpd*1e6,zeropimod);
+        if any(strcmpi(new_waveform_name,waveform_names))
+          continue;
+        end
+        waveform_names{end+1} = new_waveform_name;
+
+        config = doc.createElement('config'); configs.appendChild(config);
+        config.setAttribute('type',sprintf('%s_waveform',dac.type));
+
+        child = doc.createElement('name'); config.appendChild(child);
+        child.appendChild(doc.createTextNode(waveform_names{end}));
+
+        child = doc.createElement('description'); config.appendChild(child);
+        child.appendChild(doc.createTextNode(''));
+
+        child = doc.createElement('sampFreq'); config.appendChild(child);
+        child.appendChild(doc.createTextNode(sprintf('%f',fs/1e6)));
+
+        child = doc.createElement('pulse'); config.appendChild(child);
+        grandchild = doc.createElement('name'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode('Pulse'));
+        grandchild = doc.createElement('centerFreq'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',fc(dac_idx)/1e6)));
+        grandchild = doc.createElement('bandwidth'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac_idx)/1e6)));
+        grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac_idx)*1e-3)));
+        grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropimod)));
+        grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode('1.000000'));
+        grandchild = doc.createElement('taper'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode('Tukey'));
+        grandchild = doc.createElement('alpha'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',alpha)));
+        grandchild = doc.createElement('scale'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.scale(dac_idx))));
+        grandchild = doc.createElement('numPoints'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(sprintf('%d',Nt(dac_idx))));
+        grandchild = doc.createElement('Filename'); child.appendChild(grandchild);
+        grandchild.appendChild(doc.createTextNode(''));
       end
-      waveform_names{end+1} = new_waveform_name;
-
-      config = doc.createElement('config'); configs.appendChild(config);
-      config.setAttribute('type',sprintf('%s_waveform',dac.type));
-
-      child = doc.createElement('name'); config.appendChild(child);
-      child.appendChild(doc.createTextNode(waveform_names{end}));
-
-      child = doc.createElement('description'); config.appendChild(child);
-      child.appendChild(doc.createTextNode(''));
-
-      child = doc.createElement('sampFreq'); config.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%f',fs/1e6)));
-
-      child = doc.createElement('pulse'); config.appendChild(child);
-      grandchild = doc.createElement('name'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode('Pulse'));
-      grandchild = doc.createElement('centerFreq'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%f',fc(dac_idx)/1e6)));
-      grandchild = doc.createElement('bandwidth'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac_idx)/1e6)));
-      grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac_idx)*1e-3)));
-      grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropimod)));
-      grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode('1.000000'));
-      grandchild = doc.createElement('taper'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode('Tukey'));
-      grandchild = doc.createElement('alpha'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%f',alpha)));
-      grandchild = doc.createElement('scale'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.scale(dac_idx))));
-      grandchild = doc.createElement('numPoints'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%d',Nt(dac_idx))));
-      grandchild = doc.createElement('Filename'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(''));
     end
-end
   end
 
 end

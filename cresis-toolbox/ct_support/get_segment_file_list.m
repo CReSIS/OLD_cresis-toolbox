@@ -6,16 +6,35 @@ function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(para
 % using run_get_segment_file_list.m.
 %
 % param: struct from param spreadsheet read in by read_param_xls
+%
 %  .records
+%
 %   .file
-%    .version: raw file version (see "raw file guide" on wiki)
-%    .board_folder_name: board folder name (%b in the filename will be
-%      replaced by the board number)
+%
 %    .base_dir: base directory
-%    .prefix: beginning filename search term
-%    .midfix: middle filename search term
-%    .regexp: additional regular expression to run after the initial file
-%      search
+%
+%    .board_folder_name: board folder name (%b in the filename will be
+%    replaced by the corresponding string for the current board from the
+%    cell array of strings param.records.file.boards)
+%
+%    .boards: cell array of strings containing the board folder names (e.g.
+%    {'board0','board1',...} or {'chan1','chan2',...})
+%
+%    .midfix: string containing middle filename search term. Default is
+%    empty string.
+%
+%    .prefix: string containing beginning filename search term. Default is
+%    empty string.
+%
+%    .regexp: optional regular expression string that runs after the
+%    initial file search if not empty. Default is empty string.
+%
+%    .suffix: string containing end filename search term. Default is empty
+%    string.
+%
+%    .version: integer scaler containing the raw file version (see "raw
+%    file guide" on wiki)
+%
 % board: optional parameter used with some radars that have multiple adcs
 %
 % Author: John Paden
