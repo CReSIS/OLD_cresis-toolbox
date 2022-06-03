@@ -143,7 +143,7 @@ for file_idx = 1:length(fns)
     error('Not enough data in file to process. Choose a different file.');
   end
   
-  param.ref_wf_adc = param.config.txequal.ref_wf_adc;
+  ref_wf_adc = param.config.txequal.ref_wf_adc;
   [fn_dir fn_name] = fileparts(fn);
   
   %% Convert from quantization to voltage @ ADC
@@ -170,7 +170,7 @@ for file_idx = 1:length(fns)
   [pc_signal,pc_time] = pulse_compress(data,pc_param);
 
   %% Track surface
-  ml_data = lp(fir_dec(abs(pc_signal(:,:,param.ref_wf_adc)).^2,ones(1,5)/5,1));
+  ml_data = lp(fir_dec(abs(pc_signal(:,:,ref_wf_adc)).^2,ones(1,5)/5,1));
   good_time_bins = find(pc_time > pc_param.Tpd*param.config.basic_surf_track_Tpd_factor & pc_time > param.config.basic_surf_track_min_time);
   [max_value,surf_bin] = max(ml_data(good_time_bins,:));
   surf_bin = surf_bin + good_time_bins(1)-1;
@@ -202,7 +202,6 @@ for file_idx = 1:length(fns)
   end
   param.wf_mapping = param.config.txequal.wf_mapping;
   param.bad_chan_mask = param.wf_mapping == 0;
-  param.ref_chan = param.ref_wf_adc;
   Hwindow_desired = param.config.txequal.Hwindow_desired;
   max_DDS_amp = param.config.txequal.max_DDS_amp;
   time_delay_desired = param.config.txequal.time_delay_desired;
@@ -265,7 +264,7 @@ for file_idx = 1:length(fns)
   %% Surface tracker
   % =======================================================================
   % Incoherent along-track filtering
-  surf_data = filter2(ones(1,6),abs(data{param.ref_chan}.^2));
+  surf_data = filter2(ones(1,6),abs(data{ref_wf_adc}.^2));
   % Simple max search to find surface
   [surf_vals surf_bins] = max(surf_data(rbins,rlines));
   surf_bins = rbins(1)-1 + surf_bins;
@@ -283,7 +282,7 @@ for file_idx = 1:length(fns)
     
   %% Noise power estimate and SNR threshold
   % =======================================================================
-  noise_power = mean(mean(abs(data{abs(param.wf_mapping(param.ref_chan))}(param.noise_rbins,rlines)).^2));
+  noise_power = mean(mean(abs(data{abs(param.wf_mapping(ref_wf_adc))}(param.noise_rbins,rlines)).^2));
 
   %% Extract delay (using oversampled cross correlation), phase and amplitude
   % differences between channels
@@ -308,7 +307,7 @@ for file_idx = 1:length(fns)
         % Gets the time offset relative to the reference channel (a postive
         % offset means that the channel leads the reference channel)
         [corr_out,lags] = xcorr(data{chan}(surf_bins(rline_idx)+search_bins,rline), ...
-          data{param.ref_chan}(surf_bins(rline_idx)+ref_bins,rline) .* Hcorr_wind);
+          data{ref_wf_adc}(surf_bins(rline_idx)+ref_bins,rline) .* Hcorr_wind);
         corr_int = interpft(corr_out,param.basic_tx_chan_equal.Mt*length(corr_out));
         [peak_val(chan,rline_idx) peak_offset(chan,rline_idx)] = max(corr_int);
         peak_offset(chan,rline_idx) = (peak_offset(chan,rline_idx)-1)/param.basic_tx_chan_equal.Mt+1 ...
@@ -338,7 +337,7 @@ for file_idx = 1:length(fns)
       wf = abs(param.wf_mapping(chan));
       ref_time = peak_offset_time(chan,:);
       
-      if chan == param.ref_chan
+      if chan == ref_wf_adc
         median_mask = ones(size(good_rlines));
         ref_time_mean(chan) = 0;
       else
@@ -363,7 +362,7 @@ for file_idx = 1:length(fns)
         hold on;
         plot(ref_time,'ro');
         hold off;
-        title(sprintf('Relative Time (%d to ref %d)', chan, param.ref_chan));
+        title(sprintf('Relative Time (%d to ref %d)', chan, ref_wf_adc));
         ylim([min(min(ref_time),-1e-11) max(1e-11,max(ref_time))]);
       end
     end
@@ -389,9 +388,9 @@ for file_idx = 1:length(fns)
   for chan = 1:length(param.wf_mapping)
     if param.wf_mapping(chan) ~= 0
       wf = abs(param.wf_mapping(chan));
-      ref_power = tx_powers(chan,:)./tx_powers(param.ref_chan,:);
+      ref_power = tx_powers(chan,:)./tx_powers(ref_wf_adc,:);
       
-      if chan == param.ref_chan  || update_mode == 4
+      if chan == ref_wf_adc  || update_mode == 4
         median_mask = ones(size(good_rlines));
         delta_power(chan) = 0;
       else
@@ -416,7 +415,7 @@ for file_idx = 1:length(fns)
         hold on;
         plot(lp(ref_power,1),'ro');
         hold off;
-        title(sprintf('Relative Power (%d to ref %d)', chan, param.ref_chan));
+        title(sprintf('Relative Power (%d to ref %d)', chan, ref_wf_adc));
       end
     end
   end
@@ -443,13 +442,13 @@ for file_idx = 1:length(fns)
   for chan = 1:length(param.wf_mapping)
     if param.wf_mapping(chan) ~= 0
       wf = abs(param.wf_mapping(chan));
-      ref_phase = tx_phases(chan,:).*conj(tx_phases(param.ref_chan,:));
+      ref_phase = tx_phases(chan,:).*conj(tx_phases(ref_wf_adc,:));
       ref_values_real = real(ref_phase);
       ref_values_imag = imag(ref_phase);
       
       median_mask = ones(size(good_rlines));
       ref_phase_mean(chan) = mean(ref_phase);
-%       if chan == param.ref_chan
+%       if chan == ref_wf_adc
 %         median_mask = ones(size(good_rlines));
 %         ref_phase_mean(chan) = 1;
 %       else
@@ -484,7 +483,7 @@ for file_idx = 1:length(fns)
         hold on;
         plot(angle(ref_phase)*180/pi,'ro');
         hold off;
-        title(sprintf('Relative Phase (%d to ref %d)', chan, param.ref_chan));
+        title(sprintf('Relative Phase (%d to ref %d)', chan, ref_wf_adc));
       end
     else
       ref_phase_mean(chan) = 1;
@@ -520,7 +519,7 @@ if update_mode == 1
   mean_error = mean(results.DDS_time_error,1);
   if param.config.txequal.remove_linear_phase_en
     mean_error = detrend(mean_error);
-    mean_error = mean_error - mean_error(param.ref_chan);
+    mean_error = mean_error - mean_error(ref_wf_adc);
     fprintf('%*s',fn_length,'Mean Error (slope removed)');
   else
     fprintf('%*s',fn_length,'Mean Error');
@@ -675,7 +674,7 @@ if update_mode == 1
     fprintf('%*s',fn_length,'Mean Error');
   end
   mean_error = 180/pi*angle(mean_error);
-  mean_error = mean_error - mean_error(param.ref_chan);
+  mean_error = mean_error - mean_error(ref_wf_adc);
   for wf = 1:size(mean_error,2)
     fprintf('\t%.1f', mean_error(wf));
   end
@@ -713,14 +712,14 @@ else
   end
   fprintf('\n');
   fprintf('Mean');
-  final_DDS_phase = angle(mean(exp(j*results.DDS_phase),1))*180/pi;
+  final_DDS_phase = angle(mean(exp(j*(results.DDS_phase-results.DDS_phase(ref_wf_adc))),1))*180/pi;
   for wf = 1:size(results.DDS_time,2)
     fprintf('\t%.1f', final_DDS_phase(:,wf));
   end
   fprintf('\n');
   fprintf('Median');
   for wf = 1:size(results.DDS_time,2)
-    fprintf('\t%.1f', final_DDS_phase(wf) + angle(mean(exp(j*results.DDS_phase(:,wf)) .* exp(-j*final_DDS_phase(wf)/180*pi),1))*180/pi);
+    fprintf('\t%.1f', final_DDS_phase(wf) + angle(mean(exp(j*(results.DDS_phase(:,wf)-results.DDS_phase(ref_wf_adc))) .* exp(-j*final_DDS_phase(wf)/180*pi),1))*180/pi);
   end
   fprintf('\n');
   fprintf('Stdev');
@@ -733,7 +732,7 @@ else
     fprintf('Delay Compensated Mean');
     final_DDS_phase_comp = final_DDS_phase + 360*(final_DDS_time/1e9 ...
       - param.DDS_start_time)*(pc_param.f0+pc_param.f1)/2;
-    final_DDS_phase_comp = 180/pi*angle(exp(j*(final_DDS_phase_comp - final_DDS_phase_comp(param.ref_chan))/180*pi));
+    final_DDS_phase_comp = 180/pi*angle(exp(j*(final_DDS_phase_comp - final_DDS_phase_comp(ref_wf_adc))/180*pi));
     final_DDS_phase_comp(logical(param.bad_chan_mask)) = 0;
     for wf = 1:size(results.DDS_time,2)
       fprintf('\t%.1f', final_DDS_phase_comp(:,wf));

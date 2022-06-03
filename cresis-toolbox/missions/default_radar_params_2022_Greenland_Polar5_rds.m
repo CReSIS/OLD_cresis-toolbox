@@ -76,7 +76,7 @@ if 1
   %   Connect antenna N to WFG N for all N = 1 to 8
   ref_adc = 1;
   param.config.txequal.img = [(1:8).', ref_adc*ones(8,1)];
-  param.config.txequal.ref_wf_adc = 1;
+  param.config.txequal.ref_wf_adc = 4;
   param.config.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
   param.config.txequal.Hwindow_desired = chebwin(8,30).';
   param.config.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];

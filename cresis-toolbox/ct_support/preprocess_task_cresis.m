@@ -350,6 +350,9 @@ for board_idx = 1:num_board_to_load
         end
       elseif any(param.records.file.version == [407 408])
         try
+          if ~isfield(param.config.cresis,'presum_bug_fixed')
+            error('param.config.cresis.presum_bug_fixed must be set. 0 or false for the old DDS and 1 or true for the new Arena waveform generator.');
+          end
           hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',param.config.cresis.presum_bug_fixed));
           hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
           if hdr.file_version == 407
@@ -361,7 +364,7 @@ for board_idx = 1:num_board_to_load
         catch ME
           if 1
             fprintf('Warning HACK NOT enabled for mcords5 without frame sync field. Enabling may fix this problem.\n');
-            error(ME);
+            rethrow(ME);
           else
             fprintf('Warning HACK enabled for mcords5 without frame sync field\n');
             fn_hack = '/mnt/HDD10/1805101801/UWB/chan6/mcords5_06_20180510_112936_00_0000.bin';
