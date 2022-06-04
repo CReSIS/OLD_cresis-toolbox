@@ -45,7 +45,7 @@ param.config.cresis.gps_file_mask = 'GPS*';
 % default.xml_file_prefix = 'mcords5';
 % default.data_file_prefix = 'mcords5';
 % default.header_load_func = @basic_load_mcords5;
-% default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
+% default.header_load_params = struct('clk',200e6,'presum_mode',0);
 % default.xml_version = 2.0;
 % 
 % default.noise_50ohm = [-39.8	-41.0	-40.1	-39.6	-38.4	-39.1	-38.3	-39.6	];
@@ -222,7 +222,7 @@ default.records.gps.time_offset = 1;
 default.records.frames.mode = 2;
 %default.records.frames.geotiff_fn = fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif');
 default.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
-default.records.presum_bug_fixed = 1;
+default.records.presum_mode = 0;
 
 %% Qlook worksheet
 default.qlook.block_size = 5000;

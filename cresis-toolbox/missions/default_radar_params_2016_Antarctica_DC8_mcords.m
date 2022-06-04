@@ -65,7 +65,7 @@ default.records.file.adcs = [1:6];
 default.records.file.adc_headers = [1:6];
 default.records.gps.en = 1;
 default.records.frame_mode = 0;
-default.records.presum_bug_fixed = 0;
+default.records.presum_mode = 1;
 default.records.tmp_fn_uses_adc_folder_name = 1;
 
 %% Get heights (quick-look) worksheet in parameter spreadsheet

@@ -49,7 +49,7 @@ param.cmd.generic = 1;
 param.records.gps.time_offset = 1;
 param.records.frames.mode = 1;
 param.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
-param.records.presum_bug_fixed = 0;
+param.records.presum_mode = 1;
 
 %% Qlook worksheet
 param.qlook.out_path = '';

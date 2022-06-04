@@ -1,9 +1,53 @@
-function [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,threshold)
-% [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,threshold)
+function [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,threshold,segment_end_file_trim)
+% [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,threshold,segment_end_file_trim)
 %
-% Support function for preprocess_task_cresis.m
+% Support function for preprocess_task_cresis.m. Takes header information
+% from raw data files and generates a list of segments by finding time gaps
+% in the data. The minimum size of the gap and segment end effects are
+% parameters.
+%
+% Inputs:
+% =========================================================================
+%
+% counters: cell array of counters vectors. One cell for each board. Each
+% vector contains one entry per radar record.
+%
+% file_idxs: cell array of file_idxs vectors. One cell for each board. Each
+% vector contains one entry per radar record.
+%
+% day_wrap_offset: cell array of day_wrap_offset vectors. One cell for each
+% board. Each vector contains one entry per radar record.
+%
+% threshold: Positive scaler double. Default is 10. Specifies the duration
+% in seconds that will cause a new segment to be formed.
+%
+% segment_end_file_trim: Optional. Positive scaler integer. Default is 0.
+% Specifies the number of files at the end of a segment/radar-settings to
+% ignore if there is a time gap that ocurs in these files.
+%
+% Outputs:
+% =========================================================================
+%
+% segs:
+%
+% stats:
 %
 % Author: John Paden
+
+%% Input check
+
+% segment_end_file_trim: Positive scaler integer. Default is 0. Specifies
+% the number of files at the end of a segment/radar-settings to ignore if
+% there is a time gap that ocurs in these files.
+if ~exist('segment_end_file_trim','var') || isempty(segment_end_file_trim)
+  segment_end_file_trim = 0;
+end
+
+% threshold: Positive scaler double. Default is 10. Specifies the duration
+% in seconds that will cause a new segment to be formed.
+if ~exist('threshold','var') || isempty(threshold)
+  threshold = 10;
+end
 
 % Debug: Test Code
 debug_test_code = 0;
@@ -68,7 +112,7 @@ for seg_idx = 1:length(segs_idxs)
     % Find files for this segment
     mask = counters{board_idx} >= start_counter & counters{board_idx} <= stop_counter;
     match_files = file_idxs{board_idx}(mask);
-    if isempty(match_files)
+    if isempty(match_files) || (seg_idx>1 && max(file_idxs{board_idx}) - min(match_files) < segment_end_file_trim)
       segs(seg_idx).start_idxs(board_idx) = 0;
       segs(seg_idx).stop_idxs(board_idx) = -1;
       segs(seg_idx).day_wrap_offset(board_idx) = 0;

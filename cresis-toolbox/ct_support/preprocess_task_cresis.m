@@ -22,6 +22,10 @@ if ~isfield(param.config,'field_time_gap') || isempty(param.config.field_time_ga
   param.config.field_time_gap = 'utc_time_sod';
 end
 
+if ~isfield(param.config,'segment_end_file_trim') || isempty(param.config.segment_end_file_trim)
+  param.config.segment_end_file_trim = 1;
+end
+
 if ~isfield(param.config,'plots_visible') || isempty(param.config.plots_visible)
   param.config.plots_visible = 1;
 end
@@ -350,10 +354,10 @@ for board_idx = 1:num_board_to_load
         end
       elseif any(param.records.file.version == [407 408])
         try
-          if ~isfield(param.config.cresis,'presum_bug_fixed')
-            error('param.config.cresis.presum_bug_fixed must be set. 0 or false for the old DDS and 1 or true for the new Arena waveform generator.');
+          if ~isfield(param.records,'presum_mode')
+            error('param.records.presum_mode must be set. 1 for the old DDS and 0 for the new Arena waveform generator.');
           end
-          hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',param.config.cresis.presum_bug_fixed));
+          hdr = basic_load_mcords5(fn,struct('presum_mode',param.records.presum_mode));
           hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
           if hdr.file_version == 407
             hdr_param.field_offsets = int32([4 16 20 24]); % epri seconds fractions counter
@@ -368,7 +372,7 @@ for board_idx = 1:num_board_to_load
           else
             fprintf('Warning HACK enabled for mcords5 without frame sync field\n');
             fn_hack = '/mnt/HDD10/1805101801/UWB/chan6/mcords5_06_20180510_112936_00_0000.bin';
-            hdr = basic_load_mcords5(fn_hack,struct('presum_bug_fixed',param.config.cresis.presum_bug_fixed));
+            hdr = basic_load_mcords5(fn_hack,struct('presum_mode',param.records.presum_mode));
             hdr_param.frame_sync = uint32(hex2dec('01600558')); % Used for 20180510 Greenland Polar6 recovery
             hdr_param.field_offsets = int32([4 16 20 24]-36); % epri seconds fractions counter % Used for 20180511 Greenland Polar6 recovery
             hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
@@ -1229,7 +1233,7 @@ if any(param.records.file.version == [403 404 407 408])
         day_wrap_offset{board_idx} = day_wrap_offset{board_idx}(mask);
       end
     end
-    [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,param.config.max_time_gap);
+    [segs,stats] = preprocess_create_segments(counters,file_idxs,day_wrap_offset,param.config.max_time_gap,param.config.segment_end_file_trim);
     
     if 1
       % Debug: Test Code

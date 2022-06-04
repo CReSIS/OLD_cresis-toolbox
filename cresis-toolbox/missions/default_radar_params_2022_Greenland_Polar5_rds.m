@@ -16,12 +16,12 @@ param.radar_name = 'mcords5';
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_mcords5;
-param.config.header_load_param = struct('presum_bug_fixed',true,'clk',1600e6);
+param.config.header_load_param = struct('presum_mode',true,'clk',200e6);
 param.config.tx_map = {'awg0','awg1','awg2','awg3','awg4','awg5','awg6','awg7'};
 
 % Creating segments
 param.config.max_time_gap = 10;
-param.config.min_seg_size = 1;
+param.config.segment_end_file_trim = 2;
 
 % Creating settings files
 param.config.max_data_rate = 240;
@@ -379,9 +379,9 @@ param.records.file.boards = {'chan1','chan2','chan3','chan4','chan5','chan6','ch
 param.records.file.board_folder_name = '%b';
 param.records.file.prefix = param.radar_name;
 param.records.file.suffix = '.bin';
-param.records.file.clk = 1600e6;
+param.records.file.clk = 200e6;
 param.records.gps.time_offset = 1;
-param.records.presum_bug_fixed = 1;
+param.records.presum_mode = 0;
 param.records.frames.mode = 1;
 param.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
 
@@ -441,6 +441,25 @@ param.radar.wfs.Tadc_adjust = 0.000010179163; % System time delay: leave this em
 param.radar.wfs(1).Tsys = [0 0 0 0 0 0 0]/1e9;
 param.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
 param.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
+
+%% Post worksheet
+param.post.data_dirs = {'qlook'};
+param.post.layer_dir = 'layerData';
+param.post.maps_en = 1;
+param.post.echo_en = 1;
+param.post.layers_en = 0;
+param.post.data_en = 0;
+param.post.csv_en = 1;
+param.post.concat_en = 1;
+param.post.pdf_en = 1;
+param.post.map.location = 'Greenland';
+param.post.map.type = 'combined';
+% param.post.echo.elev_comp = 2;
+% param.post.echo.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Depth,-2800,DBottom,-100),max(Surface_Depth+100)]';
+param.post.echo.elev_comp = 3;
+param.post.echo.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-3500,DBottom,-100),max(Surface_Elev+100)]';
+param.post.echo.er_ice = 3.15;
+param.post.ops.location = 'arctic';
 
 defaults = {};
 
