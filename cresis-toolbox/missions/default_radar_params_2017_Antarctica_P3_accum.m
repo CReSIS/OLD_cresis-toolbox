@@ -15,7 +15,7 @@ param.radar_name = 'mcords5-accum';
 default.xml_file_prefix = 'mcords5';
 default.data_file_prefix = 'mcords5';
 default.header_load_func = @basic_load_mcords5;
-default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
+default.header_load_params = struct('clk',200e6,'presum_mode',0);
 default.xml_version = 2.0;
 
 default.noise_50ohm = [0 0 0 0];

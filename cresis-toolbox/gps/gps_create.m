@@ -1,7 +1,7 @@
 % script gps_create
 %
 % Makes GPS files (called from each mission specific routine)
-% Variables set up in gps_make_SEASON_SOURCE
+% Variables set up in gps_create_SEASON_SOURCE
 %
 % in_fn = 1 by N cell array of strings containing filenames
 %  Full path of input GPS file
@@ -101,7 +101,7 @@ for file_idx = 1:length(in_fns)
       else
         cur_file_type = sync_file_type{file_idx};
       end
-      gps_fh = gps_make_fh(cur_file_type);
+      gps_fh = gps_create_fh(cur_file_type);
       fprintf('  %s\n', sync_fn{sync_fn_idx});
       gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
       
@@ -189,7 +189,7 @@ for file_idx = 1:length(in_fns)
         cur_file_type = cur_file_type(1:plus_idx-1);
       end
     end
-    gps_fh = gps_make_fh(cur_file_type);
+    gps_fh = gps_create_fh(cur_file_type);
     fn = in_fn{in_fn_idx};
     [fn_dir,fn_name] = fileparts(fn);
     gps_tmp = gps_fh(fn,params{file_idx}{in_fn_idx});

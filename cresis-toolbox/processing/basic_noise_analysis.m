@@ -310,6 +310,8 @@ if param.basic_noise_analysis.psd_en
         combined_psd_legend{wf_adc} = sprintf('w%d-a%d', wf, adc);
       end
     end
+    link_figures(300+(1:size(data,3)));
+    link_figures(400+(1:size(data,3)));
   end
 end
 if plot_combined_psd

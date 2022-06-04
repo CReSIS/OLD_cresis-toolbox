@@ -703,10 +703,12 @@ elseif any(strcmpi(radar_name,{'mcords4','mcords5'}))
     end
     fprintf('Loading file %s\n', fn);
     % Load the data file
+    load_param = param.config.header_load_param;
+    load_param.recs = param.config.recs;
     if strcmp(radar_name,'mcords4')
-      [hdr,data_tmp] = basic_load_mcords4(fn,struct('clk',param.radar.fs/4,'recs',param.config.recs));
+      [hdr,data_tmp] = basic_load_mcords4(fn,load_param);
     else
-      [hdr,data_tmp] = basic_load_mcords5(fn,struct('clk',param.radar.fs,'recs',param.config.recs,'presum_bug_fixed',1));
+      [hdr,data_tmp] = basic_load_mcords5(fn,load_param);
     end
     % Remove extra records to help reduce total memory usage
 %     if isfield(param,'rlines') && ~isempty(param.rlines)

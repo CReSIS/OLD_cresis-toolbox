@@ -2,6 +2,8 @@
 %
 % Makes the GPS files for 2022_greenland_Polar5 field season
 
+%% Setup
+% =========================================================================
 tic;
 
 global gRadar;
@@ -13,7 +15,9 @@ if isempty(support_path)
   support_path = gRadar.support_path;
 end
 
-gps_path = fullfile(support_path,'gps','2022_greenland_Polar5');
+season_name = '2022_greenland_Polar5';
+
+gps_path = fullfile(support_path,'gps',season_name);
 if ~exist(gps_path,'dir')
   fprintf('Making directory %s\n', gps_path);
   fprintf('  Press a key to proceed\n');
@@ -25,31 +29,41 @@ if isempty(data_support_path)
   data_support_path = gRadar.data_support_path;
 end
 
-debug_level = 1;
-
-in_base_path = fullfile(data_support_path,'2022_greenland_Polar5');
+in_base_path = fullfile(data_support_path,season_name);
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
-sync_fns = {}; sync_params = {};
+sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
+%% <== CHOOSE WHICH GPS SOURCE TO PROCESS
 gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'AWI';
 
 if strcmpi(gps_source_to_use,'NMEA')
-  % =======================================================================
-  % NMEA
+  %% NMEA
   % =======================================================================
  
+%   file_idx = file_idx + 1;
+%   year = 2022; month = 5; day = 12;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path, ...
+%     sprintf('%04d%02d%02d',year,month,day)),'GPS_','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   date_str{file_idx} = '20220512';
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+ 
   file_idx = file_idx + 1;
-  year = 2022; month = 5; day = 12;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path, 'nmea', ...
+  year = 2022; month = 6; day = 3;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path, ...
     sprintf('%04d%02d%02d',year,month,day)),'GPS_','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
-  date_str{file_idx} = '20220512';
+  date_str{file_idx} = '20220603';
   file_type{file_idx} = 'NMEA';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
-
+  
 elseif strcmpi(gps_source_to_use,'AWI')
   % =======================================================================
   % AWI

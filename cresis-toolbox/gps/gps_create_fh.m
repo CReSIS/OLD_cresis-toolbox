@@ -1,7 +1,7 @@
-function gps_fh = gps_make_fh(cur_file_type)
-% gps_fh = gps_make_fh(cur_file_type)
+function gps_fh = gps_create_fh(cur_file_type)
+% gps_fh = gps_create_fh(cur_file_type)
 %
-% Support function for gps_make.m
+% Support function for gps_create.m
 %
 % Author: John Paden
 

@@ -59,9 +59,6 @@ param.config.tx_voltage = sqrt(1000*50)*10^(-2/20);
 param.config.iq_mode = 0;
 param.config.tx_DDS_mask = [1 1 1 1 1 1 1 1]; % Used by basic_rx_chan_equalization
 
-% default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq','bit_shifts'};
-% default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
-
 % For airborne test:
 % param.config.basic_surf_track_min_time = 2e-6; % Normally 0e-6 for lab test, 2e-6 for flight test
 % param.config.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
@@ -438,9 +435,9 @@ param.radar.lever_arm_fh = @lever_arm;
 param.radar.wfs.rx_paths = [1:8];
 param.radar.wfs.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
-param.radar.wfs(1).Tsys = [0 0 0 0 0 0 0]/1e9;
-param.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
-param.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
+param.radar.wfs(1).Tsys = [0 0 0 0 0 0 0 0]/1e9;
+param.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0 0];
+param.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0];
 
 %% Post worksheet
 param.post.data_dirs = {'qlook'};
@@ -464,165 +461,145 @@ param.post.ops.location = 'arctic';
 defaults = {};
 
 %% Wideband settings
-default.radar.wfs(1).chan_equal_Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
+default.radar.wfs(1).Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
 default.radar.wfs(1).chan_equal_dB = [-4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2];
 default.radar.wfs(1).chan_equal_deg = [113.1 64.8 124.3 133.7 108 138.1 71.6 102.9];
 default.radar.ft_dec = [37 40];
 
  % survey mode
-default.qlook.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 default.config_regexp = 'survey_150-520MHz_.*thick.xml';
 default.name = 'Survey Mode 150-520 MHz';
 defaults{end+1} = default;
 
  % thin ice mode
-default.qlook.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
+default.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 default.config_regexp = 'thinice_150-520MHz_.*thick.xml';
 default.name = 'Thin Ice Mode 150-520 MHz';
 defaults{end+1} = default;
 
  % 2 beam imaging mode
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 default.config_regexp = 'image_150-520MHz_.*thick.xml';
 default.name = '2 Beam Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
  % 3 beam imaging mode
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[2*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 default.config_regexp = 'image3_150-520MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
  % sea ice mode
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 default.config_regexp = 'seaice_150-520MHz_.*.xml';
 default.name = 'Sea Ice 150-520 MHz';
 defaults{end+1} = default;
 
  % image high thin with narrowband
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[2*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 default.config_regexp = 'imagehighthin_150-520MHz_.*.xml';
 default.name = 'High Alt Thin Ice Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
 %% Narrowband settings
-default.radar.wfs(1).chan_equal_Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
+default.radar.wfs(1).Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
 default.radar.wfs(1).chan_equal_dB = [0 0.9 0.2 0 3.2 1.7 3.9 2.4];
 default.radar.wfs(1).chan_equal_deg = [-14.6 -69.7 -6.8 0 -13.9 -1.8 -48.8 -15.8];
 default.radar.ft_dec = [3 20];
 
 % survey mode
-default.qlook.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
-default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06';
+default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'survey_180-210MHz_.*thick.xml';
 default.name = 'Survey Mode 180-210 MHz';
 defaults{end+1} = default;
 
 % thin ice mode
-default.qlook.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
+default.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
-default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_thin';
+default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'thinice_180-210MHz_.*thick.xml';
 default.name = 'Thin Ice Mode 180-210 MHz';
 defaults{end+1} = default;
 
  % 2 beam imaging mode
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
-default.radar.DC_adjust = {'DC_20160413_04_wf3.mat','DC_20160413_04_wf3.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image';
+default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = '^image_180-210MHz_.*thick.xml';
 default.name = '2 Beam Image Mode 180-210 MHz';
 defaults{end+1} = default;
 
 % 3 beam imaging mode
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[2*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
-default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image3';
+default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'image3_180-210MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 180-210 MHz';
 defaults{end+1} = default;
 
 % egrip imaging mode
-default.qlook.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
+default.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).'; 4*ones(8,1),(1:8).']};
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
-default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image3';
+default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'egrip_image.*.xml';
 default.name = 'EGRIP Image 180-210 MHz';
 defaults{end+1} = default;
 
 %% Other settings
 
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = [];
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 
-default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06';
 default.config_regexp = 'survey_180-210MHz_.*DECONV.xml';
 default.name = 'Deconv 180-210 MHz';
 defaults{end+1} = default;
 
-default.radar.DC_adjust = [];
-default.radar.ref_fn = '';
 default.config_regexp = '.*180-210MHz.*';
 default.name = 'Other Settings 180-210 MHz';
 defaults{end+1} = default;
 
-default.radar.wfs(1).chan_equal_Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
+default.radar.wfs(1).Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
 default.radar.wfs(1).chan_equal_dB = [-4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2];
 default.radar.wfs(1).chan_equal_deg = [113.1 64.8 124.3 133.7 108 138.1 71.6 102.9];
 
-default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
-default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160426_05';
 default.config_regexp = 'survey_150-520MHz_.*DECONV.xml';
 default.name = 'Deconv 150-520 MHz';
 defaults{end+1} = default;
 
-default.radar.DC_adjust = [];
-default.radar.ref_fn = '';
 default.config_regexp = '.*150-520MHz.*';
 default.name = 'Other Settings 150-520 MHz';
 defaults{end+1} = default;
-
-return;

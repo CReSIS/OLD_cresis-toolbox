@@ -64,7 +64,7 @@ function gps = read_gps_nmea(in_fns, param)
 %
 % Author: William Blake, John Paden, Anthony Hoch, Logan Smith
 %
-% See also read_gps_*.m, gps_plot.m, gps_make.m
+% See also read_gps_*.m, gps_plot.m, gps_create.m
 
 if ~exist('param','var')
   param = [];

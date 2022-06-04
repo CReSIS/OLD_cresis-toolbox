@@ -6,7 +6,7 @@ function [gps,error_flag] = gps_force_monotonic(gps)
 %
 % Author: John Paden
 %
-% See also read_gps_*.m, gps_plot.m, gps_make.m, gps_force_monotonic.m
+% See also read_gps_*.m, gps_plot.m, gps_create.m, gps_force_monotonic.m
 
 error_flag = false;
 
@@ -17,7 +17,7 @@ end
 %% Sort records according to gps.gps_time
 [~,sort_idxs] = sort(gps.gps_time);
 if any(sort_idxs ~= 1:length(sort_idxs))
-  warning('GPS time is not monotonically increasing. Manual inspection is suggested. May need to run gps_force_monotonic.m in gps_make_SEASON.m for this particular file.');
+  warning('GPS time is not monotonically increasing. Manual inspection is suggested. May need to run gps_force_monotonic.m in gps_create_SEASON.m for this particular file.');
   gps.gps_time = gps.gps_time(sort_idxs);
   gps.lat = gps.lat(sort_idxs);
   gps.lon = gps.lon(sort_idxs);
@@ -47,7 +47,7 @@ end
 good_mask = [true, (diff(gps.gps_time) > 0)];
 
 if ~all(good_mask)
-  warning('GPS time has repeated records. Manual inspection is suggested. May need to run gps_force_monotonic.m in gps_make_SEASON.m for this particular file.');
+  warning('GPS time has repeated records. Manual inspection is suggested. May need to run gps_force_monotonic.m in gps_create_SEASON.m for this particular file.');
   
   gps.gps_time = gps.gps_time(good_mask);
   gps.lat = gps.lat(good_mask);
@@ -85,7 +85,7 @@ if isfield(gps,'radar_time')
   good_mask = [true, (diff(gps.radar_time) > 0)];
   
   if ~all(good_mask)
-    warning('radar_time has repeated records. Manual inspection is suggested. May need to run gps_force_monotonic.m in gps_make_SEASON.m for this particular file.');
+    warning('radar_time has repeated records. Manual inspection is suggested. May need to run gps_force_monotonic.m in gps_create_SEASON.m for this particular file.');
     
     gps.gps_time = gps.gps_time(good_mask);
     gps.lat = gps.lat(good_mask);

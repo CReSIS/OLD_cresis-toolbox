@@ -25,7 +25,11 @@ classdef (HandleCompatible = true) frames_create < handle
       
       %% Creator: General Setup
       % =====================================================================
-      obj.param = merge_structs(param, param_override);
+      if exist('param_override','var')
+        obj.param = merge_structs(param, param_override);
+      else
+        obj.param = param;
+      end
       
       fprintf('=====================================================================\n');
       fprintf('%s: %s (%s)\n', mfilename, obj.param.day_seg, datestr(now));

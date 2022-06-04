@@ -15,7 +15,7 @@ function param = default_radar_params_2014_Greenland_P3_rds
 % default.xml_file_prefix = 'mcords3';
 % default.data_file_prefix = 'mcords3';
 % default.header_load_func = @basic_load_mcords3;
-% default.header_load_params = struct('clk',1e9/9,'presum_bug_fixed',false);
+% default.header_load_params = struct('clk',1e9/9,'presum_mode',1);
 % default.xml_version = 1.4;
 % 
 % default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.2	-40.8	-40.5	-41.4	-39.9	-40.2	-42.0	-43.6	-43.0	-44.1	-44.6];

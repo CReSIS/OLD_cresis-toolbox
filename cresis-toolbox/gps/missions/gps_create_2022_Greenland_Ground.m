@@ -63,10 +63,10 @@ elseif strcmpi(gps_source_to_use,'cresis')
   
 end
 
-%% gps_make
+%% gps_create
 % Read and translate files according to user settings
 % =========================================================================
-gps_make;
+gps_create;
 
 %% custom fixes
 % =========================================================================

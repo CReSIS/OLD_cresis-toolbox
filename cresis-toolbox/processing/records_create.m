@@ -496,6 +496,11 @@ records_create_save_workspace;
 %% Correct time, sync GPS data, and save records
 records_create_sync;
 
+%% Create reference trajectory file
+if param.records.gps.en
+  records_reference_trajectory(param);
+end
+
 %% Create frames
 % param.records.frames.mode == 0: Do nothing
 if param.records.frames.mode == 1 % Autogenerate if needed and then manually edit

@@ -15,7 +15,7 @@ param.radar_name = 'mcords3';
 default.xml_file_prefix = 'mcords3';
 default.data_file_prefix = 'mcords3';
 default.header_load_func = @basic_load_mcords3;
-default.header_load_params = struct('clk',150e6,'presum_bug_fixed',false);
+default.header_load_params = struct('clk',150e6,'presum_mode',1);
 default.xml_version = 2.0;
 
 % default.noise_50ohm = [-41.6	-42.2	-42.4	-41.9	-42.5	-42.9	-41.7	-43.0	-44.1	-44.7	-43.1	-44.1	-41.8	-42.6	-41.4	-42.6	-41.8	-43.1	-42.0	-42.7	-41.1	-43.4	-42.1	-41.9];
