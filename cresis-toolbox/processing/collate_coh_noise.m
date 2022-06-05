@@ -90,6 +90,9 @@ end
 if ~isfield(param.collate_coh_noise,'dft_corr_time')
   param.collate_coh_noise.dft_corr_time = {};
 end
+if isnumeric(param.collate_coh_noise.dft_corr_time)
+  param.collate_coh_noise.dft_corr_time = {param.collate_coh_noise.dft_corr_time};
+end
 for img = param.collate_coh_noise.imgs
   if length(param.collate_coh_noise.dft_corr_time) < img
     param.collate_coh_noise.dft_corr_time{img} = inf;

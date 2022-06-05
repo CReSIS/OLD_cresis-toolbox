@@ -620,9 +620,11 @@ for img = 1:length(store_param.load.imgs)
             num_coh_ave = cmd.threshold_coh_ave;
             figure(1); clf;
             imagesc(lp(nan_fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1, [], [], [], [], 2)));
+            title(sprintf('Raw data wf %d adc %d blk %d of %d', wf, adc, rline0_idx, length(rline0_list)))
             cc = caxis;
             a1 = gca;
             figure(2); clf;
+            title(sprintf('Good sample mask wf %d adc %d blk %d of %d', wf, adc, rline0_idx, length(rline0_list)))
             imagesc(good_samples);
             colormap(gray);
             caxis([0 1]);
@@ -641,9 +643,11 @@ for img = 1:length(store_param.load.imgs)
               imagesc( lp(bsxfun(@minus, tmp, tmp_mean )) );
               caxis(cc);
             end
+            title(sprintf('Raw data coh noise removed wf %d adc %d blk %d of %d', wf, adc, rline0_idx, length(rline0_list)))
             a3 = gca;
             figure(4); clf;
             imagesc(angle(fir_dec(data(:,rlines),ones(1,num_coh_ave)/num_coh_ave,1)));
+            title(sprintf('Raw data phase wf %d adc %d blk %d of %d', wf, adc, rline0_idx, length(rline0_list)))
             a4 = gca;
             linkaxes([a1 a2 a3 a4], 'xy');
             keyboard
