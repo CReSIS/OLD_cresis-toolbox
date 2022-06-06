@@ -786,6 +786,7 @@ for img = 1:length(store_param.load.imgs)
         t0 = time(1);
         fc = freq(1);
         Tpd = tmp_param.radar.wfs(wf).Tpd;
+        layer_nan_mask = [];
         if isnumeric(cmd.start_time)
           start_bin = find(time>=cmd.start_time,1)*ones(1,size(data,2));
           if isempty(start_bin)
@@ -797,6 +798,7 @@ for img = 1:length(store_param.load.imgs)
           cmd.start_time.eval.Tstart = time(1);
           cmd.start_time.eval.Tend = time(end);
           layers = opsLoadLayers(param,cmd.start_time);
+          layer_nan_mask = isnan(interp1(layers.gps_time, layers.twtt, gps_time));
           layers.twtt = interp_finite(layers.twtt,0);
           layers.twtt = interp1(layers.gps_time, layers.twtt, gps_time);
           start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
@@ -846,7 +848,7 @@ for img = 1:length(store_param.load.imgs)
         end
         file_type = 'analysis_waveform_tmp';
         ct_save(out_fn, 'wf_data','time_rng', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'dt', 'fc', 'param_analysis', 'param_records','file_type','file_version');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'dt', 'fc', 'layer_nan_mask', 'param_analysis', 'param_records','file_type','file_version');
       end
       
       

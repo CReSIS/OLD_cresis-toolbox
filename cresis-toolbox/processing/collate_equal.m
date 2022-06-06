@@ -891,8 +891,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     equal.peak_val{wf} = peak_val;
     
     equal.Tsys_offset{wf} = nanmean(peak_offset(:,rlines),2)*dt;
-    equal.chan_equal_deg_offset{wf} = angle(nanmean(peak_val(:,rlines),2)) * 180/pi;
-    equal.chan_equal_dB_offset{wf} = db(nanmean(abs(peak_val(:,rlines)).^2,2),'power');
+    peak_val_masked = peak_val;
+    peak_val_masked(abs(peak_offset(:,rlines) - nanmedian(peak_offset(:,rlines),2))>1) = NaN;
+    equal.chan_equal_deg_offset{wf} = angle(nanmean(peak_val_masked(:,rlines),2)) * 180/pi;
+    equal.chan_equal_dB_offset{wf} = db(nanmean(abs(peak_val_masked(:,rlines)).^2,2),'power');
     
     equal.Tsys_offset_std{wf} = nanstd(peak_offset(:,rlines),[],2)*dt;
     equal.chan_equal_deg_offset_std{wf} = angle(nanstd(peak_val(:,rlines),[],2)) * 180/pi;
