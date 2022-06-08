@@ -16,7 +16,7 @@ if strcmpi(radar_setup,'MCORDS5')
   param.config.file_search_mode = 'segment';
   
   % .base_dir_search: cell vector of paths to search for data files
-  param.config.base_dir_search = {'C:\rds\2022_Greenland_Polar5\20220512\','D:\awi\','/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight','/mnt/AWI_SSD0/1604261202/UWB/'};
+  param.config.base_dir_search = {'\\192.168.1.100\d\awi','C:\rds\2022_Greenland_Polar5\20220512\','D:\awi\','/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight','/mnt/AWI_SSD0/1604261202/UWB/'};
   
   % out_xml_fn_dir = String containing the directory where the new XML file
   %   will be placed

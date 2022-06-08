@@ -310,9 +310,9 @@ if param.basic_noise_analysis.psd_en
         combined_psd_legend{wf_adc} = sprintf('w%d-a%d', wf, adc);
       end
     end
-    link_figures(300+(1:size(data,3)));
-    link_figures(400+(1:size(data,3)));
   end
+  link_figures(300+(1:size(data,3)));
+  link_figures(400+(1:size(data,3)));
 end
 if plot_combined_psd
   legend(h_psd_axes,combined_psd_legend,'location','best')

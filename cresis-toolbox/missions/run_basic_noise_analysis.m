@@ -17,10 +17,10 @@ if strcmpi(radar_setup,'MCORDS5')
   
   % .file_search_mode: Specify how to search for a file: 'last_file',
   %   'specific', 'default', or empty to be asked
-  param.config.file_search_mode = 'specific';
+  param.config.file_search_mode = 'last_file';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.config.base_dir_search = {'G:\20220603\','C:\rds\2022_Greenland_Polar5\20220512\','D:\awi\','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB/'};
+  param.config.base_dir_search = {'G:\20220603\','C:\rds\2022_Greenland_Polar5\20220512\','D:\awi\','\\192.168.1.100\D\AWI\'};
   
   % .pdf_en: Enable time domain, probability density function, and quantization plots
   param.basic_noise_analysis.pdf_en = false;
