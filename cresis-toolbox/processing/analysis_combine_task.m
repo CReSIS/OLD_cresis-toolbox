@@ -444,6 +444,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         heading = [];
         wf_data = [];
         time_rng = [];
+        layer_nan_mask = [];
         for block_idx = 1:length(blocks)
           rec_load_start = blocks(block_idx);
           
@@ -471,6 +472,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           heading = cat(2,heading,waveform.heading);
           wf_data = cat(2,wf_data,waveform.wf_data);
           time_rng = cat(2,time_rng,waveform.time_rng);
+          layer_nan_mask = cat(2,layer_nan_mask,waveform.layer_nan_mask);
         end
         
         % Constant waveform fields carried over from last file loaded:
@@ -486,6 +488,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         waveform.heading = heading;
         waveform.wf_data = wf_data;
         waveform.time_rng = time_rng;
+        waveform.layer_nan_mask = layer_nan_mask;
         
         if param.ct_file_lock
           waveform.file_version = '1L';

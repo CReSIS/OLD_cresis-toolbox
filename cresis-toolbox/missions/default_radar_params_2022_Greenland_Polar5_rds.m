@@ -433,7 +433,7 @@ param.radar.Vpp_scale = 2;
 param.radar.lever_arm_fh = @lever_arm;
 
 param.radar.wfs.rx_paths = [1:8];
-param.radar.wfs.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+param.radar.wfs.Tadc_adjust = 0.000010179163-1.936020e-6; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 param.radar.wfs(1).Tsys = [0 0 0 0 0 0 0 0]/1e9;
 param.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0 0];
