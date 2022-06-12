@@ -541,6 +541,24 @@ default.config_regexp = 'survey_180-210MHz_.*thick.xml';
 default.name = 'Survey Mode 180-210 MHz';
 defaults{end+1} = default;
 
+% polarimetric mode
+default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.qlook.imgs = {[1*ones(4,1),(3:6).'],[3*ones(4,1),(3:6).'],[5*ones(4,1),(3:6).']};
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = 'polarimetric_180-210MHz_.*thick.xml';
+default.name = 'Polarimetric Mode 180-210 MHz';
+defaults{end+1} = default;
+
+% survey polarimetric mode
+default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.qlook.imgs = {[1*ones(4,1),(3:6).'],[2*ones(4,1),(3:6).'],[3*ones(4,1),(3:6).']};
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = 'sur_pol_180-210MHz_.*thick.xml';
+default.name = 'Survey Polarimetric Mode 180-210 MHz';
+defaults{end+1} = default;
+
 % thin ice mode
 default.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};

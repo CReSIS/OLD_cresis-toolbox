@@ -188,6 +188,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
         heading = waveform.heading;
         time_rng = waveform.time_rng;
         wf_data = waveform.wf_data;
+        layer_nan_mask = waveform.layer_nan_mask;
       else
         gps_time(end+1,:) = waveform.gps_time;
         lat(end+1,:) = waveform.lat;
@@ -198,6 +199,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
         heading(end+1,:) = waveform.heading;
         time_rng(:,:,end+1) = waveform.time_rng;
         wf_data(:,:,end+1) = waveform.wf_data;
+        layer_nan_mask(end+1,:) = waveform.layer_nan_mask;
       end
     end
   end
