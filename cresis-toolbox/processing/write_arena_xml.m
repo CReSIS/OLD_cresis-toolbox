@@ -723,15 +723,8 @@ if strcmpi(arena.ctu.type,'ctu_0013')
   num_modes = 0;
   for wf = 1:length(arena.wfs)
     segment_times = [arena.TTL_time(1:2) wfs(wf).Tpd*1e6+arena.TTL_time(3) arena.PRI*1e6];
-    if wf == 1
-      wf_modes = length(arena.zeropimods)+1;
-      segment_states_idx = [1 2*ones(size(arena.zeropimods))];
-    else
-      wf_modes = length(arena.zeropimods);
-      segment_states_idx = [2*ones(size(arena.zeropimods))];
-    end
     
-    for mode = 0:wf_modes-1
+    for mode = 0:length(wfs(wf).zeropimods)-1
       child = doc.createElement('mode'); config.appendChild(child);
       child.appendChild(doc.createTextNode(''));
       grandchild = doc.createElement('id'); child.appendChild(grandchild);
@@ -740,7 +733,11 @@ if strcmpi(arena.ctu.type,'ctu_0013')
       segment_time_str = [sprintf('%g', segment_times(1)), sprintf(' %g', segment_times(2:end))];
       grandchild.appendChild(doc.createTextNode(segment_time_str));
       grandchild = doc.createElement('segmentStates'); child.appendChild(grandchild);
-      idx = segment_states_idx(mode+1);
+      if wfs(wf).epri(mode+1) == 1
+        idx = 1;
+      else
+        idx = 2;
+      end
       segment_state_str = lower(dec2hex(bin2dec(char(arena.TTL_states{idx}(end:-1:1,1).'+48)),8));
       for state_idx = 2:size(arena.TTL_states{idx},2)
         segment_state_str = cat(2,segment_state_str, ' ', ...
@@ -748,7 +745,7 @@ if strcmpi(arena.ctu.type,'ctu_0013')
       end
       grandchild.appendChild(doc.createTextNode(segment_state_str));
     end
-    num_modes = num_modes + wf_modes;
+    num_modes = num_modes + length(wfs(wf).zeropimods);
   end
   
   child = doc.createElement('pps'); config.appendChild(child);
@@ -996,13 +993,8 @@ for dac_idx = dac_idxs
     if delay < 0
       error('Delay "arena.dacs_start_delay - arena.dacs_internal_delay" must be nonnegative: %g.', delay);
     end
-    if wf == 1
-      wf_modes = 1+length(zeropimods);
-    else
-      wf_modes = length(zeropimods);
-    end
 
-    for mode = 0:wf_modes-1
+    for mode = 0:length(wfs(wf).zeropimods)-1
       child = doc.createElement('mode'); config.appendChild(child);
       child.appendChild(doc.createTextNode(''));
       grandchild = doc.createElement('id'); child.appendChild(grandchild);
@@ -1023,7 +1015,7 @@ for dac_idx = dac_idxs
       end
       grandchild.setAttribute('type','dac-ad9129_0014_waveform');
     end
-    num_modes = num_modes + wf_modes;
+    num_modes = num_modes + length(wfs(wf).zeropimods);
   end
 
 end
