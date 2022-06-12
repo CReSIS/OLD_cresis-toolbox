@@ -665,26 +665,6 @@ if isfield(param,'arena')
     fid = fopen(xml_param.arena.fn,'w');
     fwrite(fid,out_str,'char');
     fclose(fid);
-
-  % Create XML document
-%   doc = write_arena_xml([],'init',arena);
-%   doc = write_arena_xml(doc,'ctu_0013',arena);
-%   doc = write_arena_xml(doc,'dac-ad9129_0014',arena);
-%   doc = write_arena_xml(doc,'dac-ad9129_0014_waveform',arena);
-%   doc = write_arena_xml(doc,'psc_0001',arena);
-%   doc = write_arena_xml(doc,'subsystems',arena);
-%   
-%   out_str = xmlwrite(doc);
-%   out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
-%   [~,rss_fn_name] = fileparts(param.fn);
-%   rss_fn = fullfile(param.rss_base_dir,[rss_fn_name '.xml']);
-%   if ~exist(param.rss_base_dir,'dir')
-%     mkdir(param.rss_base_dir);
-%   end
-%   fprintf('  Writing RSS: %s\n', rss_fn);
-%   fid = fopen(rss_fn,'w');
-%   fwrite(fid,out_str,'char');
-%   fclose(fid);
   
 end
 
