@@ -105,20 +105,42 @@ for wf = 1:length(wfs)
         % there is more than 1 presum
         num_modes = 1;
         num_indexes = 1;
-        wfs(wf).reset = false(1,num_modes);
         wfs(wf).next = total_indexes+1;
         wfs(wf).repeat_to = total_indexes;
         wfs(wf).repeat_count = wfs(wf).presums/numel(zeropimods)-1;
       else
         num_modes = 2;
         num_indexes = 2;
-        wfs(wf).reset = false(1,num_modes);
         wfs(wf).next = total_indexes+[1 2];
         wfs(wf).repeat_to = total_indexes+1;
         wfs(wf).repeat_count = wfs(wf).presums/numel(zeropimods)-2;
       end
       wfs(wf).modes = total_modes+(0:num_modes-1);
       wfs(wf).epri = false(1,num_modes);
+      wfs(wf).reset = false(1,num_modes);
+      if zeropimod==180 || zeropimod==270
+        wfs(wf).adc_zeropi = true(1,num_modes);
+      else
+        wfs(wf).adc_zeropi = false(1,num_modes);
+      end
+      if any(find(strcmpi('dac-ad9129_0014',{arena.dac.type})))
+        % This DAC does not support tx_invert so a new waveform must be
+        % loaded for each zero pi phase
+        wfs(wf).zeropiphase = zeropimod*ones(1,num_modes);
+        wfs(wf).tx_invert = false(1,num_modes);
+      else
+        if zeropimod==180 || zeropimod==270
+          wfs(wf).tx_invert = true(1,num_modes);
+        else
+          wfs(wf).tx_invert = false(1,num_modes);
+        end
+        if zeropimod==90 || zeropimod==270
+          wfs(wf).zeropiphase = 90*ones(1,num_modes);
+        else
+          wfs(wf).zeropiphase = zeros(1,num_modes);
+        end
+      end
+      
     else
       % This waveform has more than one phase in the zero_pi_mode sequence.
       if mod(wfs(wf).presums,numel(zeropimods))
@@ -131,19 +153,26 @@ for wf = 1:length(wfs)
       for zeropimod_idx = 1:numel(zeropimods)
         zeropimod = zeropimods(zeropimod_idx);
         if zeropimod==180 || zeropimod==270
-          wfs(wf).tx_invert(zeropimod_idx) = true;
-        else
-          wfs(wf).tx_invert(zeropimod_idx) = false;
-        end
-        if zeropimod==180 || zeropimod==270
           wfs(wf).adc_zeropi(zeropimod_idx) = true;
         else
           wfs(wf).adc_zeropi(zeropimod_idx) = false;
         end
-        if zeropimod==90 || zeropimod==270
-          wfs(wf).zeropiphase(zeropimod_idx) = 90;
+        if any(find(strcmpi('dac-ad9129_0014',{arena.dac.type})))
+          % This DAC does not support tx_invert so a new waveform must be
+          % loaded for each zero pi phase
+          wfs(wf).zeropiphase(zeropimod_idx) = zeropimod;
+          wfs(wf).tx_invert(zeropimod_idx) = false;
         else
-          wfs(wf).zeropiphase(zeropimod_idx) = 0;
+          if zeropimod==180 || zeropimod==270
+            wfs(wf).tx_invert(zeropimod_idx) = true;
+          else
+            wfs(wf).tx_invert(zeropimod_idx) = false;
+          end
+          if zeropimod==90 || zeropimod==270
+            wfs(wf).zeropiphase(zeropimod_idx) = 90;
+          else
+            wfs(wf).zeropiphase(zeropimod_idx) = 0;
+          end
         end
       end
 
@@ -166,6 +195,7 @@ for wf = 1:length(wfs)
         wfs(wf).repeat_count(end) = wfs(wf).presums/numel(zeropimods)-2;
         wfs(wf).modes = total_modes+[0:numel(zeropimods) 1:numel(zeropimods)-1];
         wfs(wf).epri = false(1,2*numel(zeropimods));
+        wfs(wf).reset = false(1,2*numel(zeropimods));
 
       else
         % This waveform does not require separate passes through the
@@ -179,8 +209,8 @@ for wf = 1:length(wfs)
         wfs(wf).repeat_count(end) = wfs(wf).presums/numel(zeropimods)-1;
         wfs(wf).modes = total_modes+(0:num_modes-1);
         wfs(wf).epri = false(1,num_modes);
+        wfs(wf).reset = false(1,num_modes);
       end
-      wfs(wf).reset = false(1,num_modes);
 
     end
 
@@ -221,19 +251,26 @@ for wf = 1:length(wfs)
         wfs(wf).repeat_count = 0;
       end
       if zeropimod==180 || zeropimod==270
-        wfs(wf).tx_invert = true(1,num_modes);
-      else
-        wfs(wf).tx_invert = false(1,num_modes);
-      end
-      if zeropimod==180 || zeropimod==270
         wfs(wf).adc_zeropi = true(1,num_modes);
       else
         wfs(wf).adc_zeropi = false(1,num_modes);
       end
-      if zeropimod==90 || zeropimod==270
-        wfs(wf).zeropiphase = 90*ones(1,num_modes);
+      if any(find(strcmpi('dac-ad9129_0014',{arena.dac.type})))
+        % This DAC does not support tx_invert so a new waveform must be
+        % loaded for each zero pi phase
+        wfs(wf).zeropiphase = zeropimod*ones(1,num_modes);
+        wfs(wf).tx_invert = false(1,num_modes);
       else
-        wfs(wf).zeropiphase = zeros(1,num_modes);
+        if zeropimod==180 || zeropimod==270
+          wfs(wf).tx_invert = true(1,num_modes);
+        else
+          wfs(wf).tx_invert = false(1,num_modes);
+        end
+        if zeropimod==90 || zeropimod==270
+          wfs(wf).zeropiphase = 90*ones(1,num_modes);
+        else
+          wfs(wf).zeropiphase = zeros(1,num_modes);
+        end
       end
 
     else
@@ -248,19 +285,26 @@ for wf = 1:length(wfs)
       for zeropimod_idx = 1:numel(zeropimods)
         zeropimod = zeropimods(zeropimod_idx);
         if zeropimod==180 || zeropimod==270
-          wfs(wf).tx_invert(zeropimod_idx) = true;
-        else
-          wfs(wf).tx_invert(zeropimod_idx) = false;
-        end
-        if zeropimod==180 || zeropimod==270
           wfs(wf).adc_zeropi(zeropimod_idx) = true;
         else
           wfs(wf).adc_zeropi(zeropimod_idx) = false;
         end
-        if zeropimod==90 || zeropimod==270
-          wfs(wf).zeropiphase(zeropimod_idx) = 90;
+        if any(find(strcmpi('dac-ad9129_0014',{arena.dac.type})))
+          % This DAC does not support tx_invert so a new waveform must be
+          % loaded for each zero pi phase
+          wfs(wf).zeropiphase(zeropimod_idx) = zeropimod;
+          wfs(wf).tx_invert(zeropimod_idx) = false;
         else
-          wfs(wf).zeropiphase(zeropimod_idx) = 0;
+          if zeropimod==180 || zeropimod==270
+            wfs(wf).tx_invert(zeropimod_idx) = true;
+          else
+            wfs(wf).tx_invert(zeropimod_idx) = false;
+          end
+          if zeropimod==90 || zeropimod==270
+            wfs(wf).zeropiphase(zeropimod_idx) = 90;
+          else
+            wfs(wf).zeropiphase(zeropimod_idx) = 0;
+          end
         end
       end
 
@@ -720,20 +764,24 @@ if strcmpi(arena.ctu.type,'ctu_0013')
   child = doc.createElement('numSegments'); config.appendChild(child);
   child.appendChild(doc.createTextNode(sprintf('%d',size(arena.TTL_states{1},2))));
   
-  num_modes = 0;
   for wf = 1:length(arena.wfs)
     segment_times = [arena.TTL_time(1:2) wfs(wf).Tpd*1e6+arena.TTL_time(3) arena.PRI*1e6];
+
+    modes = wfs(wf).modes;
+    [~,unique_idxs] = unique(modes);
     
-    for mode = 0:length(wfs(wf).zeropimods)-1
+    for mode_idx = unique_idxs(:).'
+      mode_latch = modes(mode_idx);
+    
       child = doc.createElement('mode'); config.appendChild(child);
       child.appendChild(doc.createTextNode(''));
       grandchild = doc.createElement('id'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%d',num_modes+mode)));
+      grandchild.appendChild(doc.createTextNode(sprintf('%d',mode_latch)));
       grandchild = doc.createElement('segmentTimes'); child.appendChild(grandchild);
       segment_time_str = [sprintf('%g', segment_times(1)), sprintf(' %g', segment_times(2:end))];
       grandchild.appendChild(doc.createTextNode(segment_time_str));
       grandchild = doc.createElement('segmentStates'); child.appendChild(grandchild);
-      if wfs(wf).epri(mode+1) == 1
+      if wfs(wf).epri(mode_idx) == 1
         idx = 1;
       else
         idx = 2;
@@ -745,7 +793,6 @@ if strcmpi(arena.ctu.type,'ctu_0013')
       end
       grandchild.appendChild(doc.createTextNode(segment_state_str));
     end
-    num_modes = num_modes + length(wfs(wf).zeropimods);
   end
   
   child = doc.createElement('pps'); config.appendChild(child);
@@ -812,9 +859,11 @@ for dac_idx = dac_idxs
   
   for wf = 1:length(wfs)
     Tpd = round(wfs(wf).Tpd*1e6);
+
     modes = wfs(wf).modes;
+    [~,unique_idxs] = unique(modes);
     
-    for mode_idx = 1:length(modes)
+    for mode_idx = unique_idxs(:).'
       mode_latch = modes(mode_idx);
       
       mode_xml = doc.createElement('mode'); config.appendChild(mode_xml);
@@ -839,7 +888,7 @@ for dac_idx = dac_idxs
         if wfs(wf).zeropiphase(mode_idx) == 0
           child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus',dac_idx-1,wfs(wf).name,Tpd) ));
         else
-          child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0fdeg',dac_idx-1,wfs(wf).name,Tpd,wfs(wf).zeropiphase) ));
+          child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0fdeg',dac_idx-1,wfs(wf).name,Tpd,wfs(wf).zeropiphase(mode_idx)) ));
         end
       else
         child.appendChild(doc.createTextNode('No_Tx'));
@@ -985,20 +1034,23 @@ for dac_idx = dac_idxs
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
 
-  num_modes = 0;
   for wf = 1:length(arena.wfs)
-    zeropimods = wfs(wf).zeropimods(:).';
     Tpd = round(wfs(wf).Tpd*1e6);
     delay = arena.dacs_start_delay - arena.dacs_internal_delay;
     if delay < 0
       error('Delay "arena.dacs_start_delay - arena.dacs_internal_delay" must be nonnegative: %g.', delay);
     end
 
-    for mode = 0:length(wfs(wf).zeropimods)-1
+    modes = wfs(wf).modes;
+    [~,unique_idxs] = unique(modes);
+    
+    for mode_idx = unique_idxs(:).'
+      mode_latch = modes(mode_idx);
+
       child = doc.createElement('mode'); config.appendChild(child);
       child.appendChild(doc.createTextNode(''));
       grandchild = doc.createElement('id'); child.appendChild(grandchild);
-      grandchild.appendChild(doc.createTextNode(sprintf('%d',num_modes+mode)));
+      grandchild.appendChild(doc.createTextNode(sprintf('%d',mode_latch)));
       grandchild = doc.createElement('enabled'); child.appendChild(grandchild);
       grandchild.appendChild(doc.createTextNode('1'));
       grandchild = doc.createElement('delay'); child.appendChild(grandchild);
@@ -1009,13 +1061,12 @@ for dac_idx = dac_idxs
       grandchild.appendChild(doc.createTextNode('0.000000'));
       grandchild = doc.createElement('config'); child.appendChild(grandchild);
       if wfs(wf).enabled(dac_idx)
-        grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0f',dac_idx-1,wfs(wf).name,Tpd,zeropimods(1+mod(mode,length(zeropimods))) )));
+        grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0fdeg',dac_idx-1,wfs(wf).name,Tpd,wfs(wf).zeropiphase(mode_idx)) ));
       else
         grandchild.appendChild(doc.createTextNode('No_Tx'));
       end
       grandchild.setAttribute('type','dac-ad9129_0014_waveform');
     end
-    num_modes = num_modes + length(wfs(wf).zeropimods);
   end
 
 end
@@ -1032,7 +1083,7 @@ if ~isempty(dac_idxs)
   configs = system.getFirstChild;
 
   if dac_idx == 1
-    wf = 1; dac_idx = 1; dac = arena.dac(dac_idx); zeropimod = 0;
+    wf = 1; dac_idx = 1; dac = arena.dac(dac_idx); zeropiphase = 0;
     fs = arena.dac(dac_idx).dacClk;
     fc = (wfs(wf).f0+wfs(wf).f1)/2;
     BW = wfs(wf).f1 - wfs(wf).f0;
@@ -1065,7 +1116,7 @@ if ~isempty(dac_idxs)
     grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
     grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac_idx)*1e-3)));
     grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropimod)));
+    grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropiphase)));
     grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
     grandchild.appendChild(doc.createTextNode('1.000000'));
     grandchild = doc.createElement('taper'); child.appendChild(grandchild);
@@ -1099,8 +1150,8 @@ if ~isempty(dac_idxs)
       %  0.1652 0.326800 0.511500 0.63 0.6300 0.511500 0.3268 0.1652
       %    chebwin(8,30)
 
-      for zeropimod = wfs(wf).zeropimods(:).'
-        new_waveform_name = sprintf('waveformCh%d_%s_%.0fus_%.0f',dac_idx-1,wfs(wf).name,Tpd*1e6,zeropimod);
+      for zeropiphase = unique(wfs(wf).zeropiphase)
+        new_waveform_name = sprintf('waveformCh%d_%s_%.0fus_%.0fdeg',dac_idx-1,wfs(wf).name,Tpd*1e6,zeropiphase);
         if any(strcmpi(new_waveform_name,waveform_names))
           continue;
         end
@@ -1128,7 +1179,7 @@ if ~isempty(dac_idxs)
         grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac_idx)*1e-3)));
         grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropimod)));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropiphase)));
         grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode('1.000000'));
         grandchild = doc.createElement('taper'); child.appendChild(grandchild);
@@ -1280,12 +1331,9 @@ if strcmpi(arena.psc.type,'psc_0001')
       else
         field = 'PRI';
       end
-      zeropiphase = 0;
+      zeropiphase = wfs(wf).zeropiphase(mode_idx);
       if wfs(wf).tx_invert(mode_idx)
         zeropiphase = zeropiphase + 180;
-      end
-      if wfs(wf).zeropiphase(mode_idx)
-        zeropiphase = zeropiphase + 90;
       end
       psc_name = sprintf('%.0fus, %s, %d',wfs(wf).Tpd*1e6, field, zeropiphase);
       child.appendChild(doc.createTextNode(psc_name));
@@ -1359,12 +1407,9 @@ if strcmpi(arena.psc.type,'psc_0003')
       else
         field = 'PRI';
       end
-      zeropiphase = 0;
+      zeropiphase = wfs(wf).zeropiphase(mode_idx);
       if wfs(wf).tx_invert(mode_idx)
         zeropiphase = zeropiphase + 180;
-      end
-      if wfs(wf).zeropiphase(mode_idx)
-        zeropiphase = zeropiphase + 90;
       end
       psc_name = sprintf('%.0fus, %s, %d',wfs(wf).Tpd*1e6, field, zeropiphase);
       child.appendChild(doc.createTextNode(psc_name));
