@@ -209,7 +209,7 @@ if ~isempty(event.Key)
   
   figure(mdata.h_fig); clf;
   h_img1 = imagesc(mdata.I(:,:,mdata.col));
-  caxis(mdata.limsi);
+%   caxis(mdata.limsi);
   cbar1 = colorbar;
   ylabel(cbar1, 'Input Image Intensity');
   ylabel('num\_states (FT rbin)');

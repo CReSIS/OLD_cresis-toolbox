@@ -5,14 +5,14 @@ function viterbi_tests2()
   global matrix layer elevation;
   
   % CONSTANTS
-  rows = 20;
-  cols = 20;
-  flatness = 100;
-  along_track_weight = 100;
-  down_shift = rows;
+  rows = 40;
+  cols = 40;
+  flatness = 5;
+  along_track_weight = 5;
+  down_shift = 100;
   matrix = zeros(rows, cols);
   shift_matrix = 1;
-  shift_elev = 1;
+  shift_elev = 10;
   for i = 1:cols
       matrix(floor(abs(sin(i)/flatness)*rows+1 - shift_matrix*(i/rows)*down_shift) + down_shift, i) = 30; % Layer
   end
