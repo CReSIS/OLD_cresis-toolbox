@@ -49,18 +49,21 @@ end
 
 % Run the save command
 if ~isempty(varargin)
-  if any(strcmp('-append',varargin)) && exist(fn,'file')
-    % Appending to file, so version field not required
-    cmd = sprintf('save(''%s''%s)',fn,sprintf(',''%s''',varargin{:}));
+  append_field_mask = ~strcmp('-append',varargin);
+  if exist(fn,'file')
+    if any(append_field_mask)
+      % If file exists then we cannot set the file version if we are
+      % appending
+      cmd = sprintf('save(''%s''%s)',fn,sprintf(',''%s''',varargin{:}));
+    else
+    cmd = sprintf('save(''%s''%s,''%s'')',fn,sprintf(',''%s''',varargin{:}),mat_file_version);
+    end
   else
+    % If the file does not exist, then we cannot append.
+    varargin = varargin(append_field_mask);
     cmd = sprintf('save(''%s''%s,''%s'')',fn,sprintf(',''%s''',varargin{:}),mat_file_version);
   end
 else
-  if any(strcmp('-append',varargin)) && exist(fn,'file')
-    % Appending to file, so version field not required
-    cmd = sprintf('save(''%s'')',fn);
-  else
-    cmd = sprintf('save(''%s'',''%s'')',fn,mat_file_version);
-  end
+  cmd = sprintf('save(''%s'',''%s'')',fn,mat_file_version);
 end
 evalin('caller',cmd);

@@ -62,8 +62,11 @@ function [layers,layer_params] = opsLoadLayers(param, layer_params)
 %
 %  .lidar_source: string containing 'atm', 'awi', or 'dtu' if using lidar source
 %
-%  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
-%  is "surface"
+%  .name: string containing the layer name (e.g. 'surface', 'Surface', 'bottom', 'atm', etc), default
+%  is "surface". Leave empty if using regular expression.
+%
+%  .regexp: string containing a regular expression, all layers matching the
+%  regular expression will be loaded. Default is empty/not defined.
 %
 %  .source: string
 %    'custom': Custom layer source similar to opsCopyLayers

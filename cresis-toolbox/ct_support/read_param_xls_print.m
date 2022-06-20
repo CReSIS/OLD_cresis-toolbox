@@ -20,7 +20,10 @@ function read_param_xls_print(param_fn, generic_ws, params, fid)
 %  read_param_xls_generic.m, read_param_xls_radar.m: 
 %
 % See also for printing out spreadsheet to stdout:
-%  read_param_xls_print, read_param_xls_print_headers.m
+%  read_param_xls_print.m, read_param_xls_print_headers.m
+%
+% See also for printing matlab values:
+%  mat2str_generic.m
 
 if ~exist('fid','var')
   fid = 1; % stdout by default

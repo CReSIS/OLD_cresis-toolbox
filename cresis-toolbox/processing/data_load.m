@@ -7,6 +7,8 @@ function [hdr,data] = data_load(param,records,states)
 
 wfs = param.radar.wfs;
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 %% Preallocate data
 % ===================================================================
 total_rec = param.load.recs(end)-param.load.recs(1)+1;
@@ -301,7 +303,7 @@ for state_idx = 1:length(states)
           if isempty(file_data_last_file)
             % Record offset is negative and so represents a record that
             % bridges into the next file
-            file_data_last_file = file_data(end+records.offset(board_idx,rec)+1:end);
+            file_data_last_file = file_data(end+max(-end,records.offset(board_idx,rec))+1:end);
             break
           else
             file_data_last_file = [];
@@ -712,7 +714,11 @@ for state_idx = 1:length(states)
             hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw{img}(1);
             hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal{img}(1);
             hdr.DDC_dec{img}(out_rec) = DDC_dec{img}(1);
-            hdr.DDC_freq{img}(out_rec) = DDC_freq{img}(1);
+            if isfinite(wfs(wf).DDC_freq)
+              hdr.DDC_freq{img}(out_rec) = wfs(wf).DDC_freq;
+            else
+              hdr.DDC_freq{img}(out_rec) = DDC_freq{img}(1);
+            end
             hdr.Nt{img}(out_rec) = Nt{img}(1);
             hdr.t0_raw{img}(out_rec) = t0{img}(1);
             hdr.t_ref{img}(out_rec) = t_ref{img}(1);
@@ -757,8 +763,13 @@ if ~param.load.raw_data
       
       % Apply channel compensation, presum normalization, and constant
       % receiver gain compensation
-      chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-        .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+      if strcmpi(radar_type,'deramp')
+        chan_equal = 1;
+      else
+        chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+          .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+      end
+      
       if length(wfs(wf).system_dB) == 1
         % Only a single number is provided for system_dB so apply it to all
         % receiver paths

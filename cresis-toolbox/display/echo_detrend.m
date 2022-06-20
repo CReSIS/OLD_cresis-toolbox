@@ -199,6 +199,9 @@ switch param.method
       else
         error('mdata should be an echogram struct with a "Time" field since layer_bottom is specific in two way travel time and needs to be converted to range bins.');
       end
+    else
+      % layer is in range bins
+      param.layer_bottom = round(interp_finite(param.layer_bottom,1));
     end
     if all(isnan(param.layer_top))
       param.layer_top(:) = 1;
@@ -209,6 +212,9 @@ switch param.method
       else
         error('mdata should be an echogram struct with a "Time" field since layer_top is specific in two way travel time and needs to be converted to range bins.');
       end
+    else
+      % layer is in range bins
+      param.layer_top = round(interp_finite(param.layer_top,1));
     end
     
     mask = false(size(data));
@@ -225,7 +231,7 @@ switch param.method
       if top_bin > Nt || bottom_bin < 1
         continue;
       end
-      bins = top_bin:bottom_bin;
+      bins = round(top_bin):round(bottom_bin);
       
       if length(bins) >= 2
         mask(bins,rline) = isfinite(data(bins,rline));
@@ -243,8 +249,8 @@ switch param.method
     trend = zeros(Nt,1);
     for rline = 1:Nx
       % Section 2: Evaluate the polynomial
-      top_bin = param.layer_top(rline);
-      bottom_bin = param.layer_bottom(rline);
+      top_bin = round(param.layer_top(rline));
+      bottom_bin = round(param.layer_bottom(rline));
       if top_bin < 1 && bottom_bin >= 1
         top_bin = 1;
       end
@@ -305,9 +311,9 @@ switch param.method
         figure(1); clf;
         plot(data(:,rline));
         if param.roll_comp_en
-          title(sprintf('Rangeline %d block %d, Roll= %.3f',rline,param.block,roll(rline) ),'Interpreter','none');
+          title(sprintf('Rangeline %d Roll= %.3f',rline,roll(rline) ),'Interpreter','none');
         else
-          title(sprintf('Rangeline %d block %d',rline,param.block),'Interpreter','none');
+          title(sprintf('Rangeline %d',rline),'Interpreter','none');
         end
         hold on;
         plot(trend);
