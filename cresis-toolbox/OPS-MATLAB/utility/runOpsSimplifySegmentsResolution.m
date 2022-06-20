@@ -17,12 +17,7 @@
 %
 % =========================================================================
 
-%% USER INPUT
-% ----------------------------------------------------------------
-% paramFn: FILENAME.xls OF EXCEL CReSIS PARAMS SHEET
-paramFn = 'rds_param_2012_Greenland_P3.xls';
-
-% ----------------------------------------------------------------
+clear alterParam params 
 % sysName: SYSTEM NAME ('rds','snow','accum','kuband')
 sysName = 'rds';
 
@@ -30,38 +25,53 @@ sysName = 'rds';
 % resolution: the resolution in meters to which to simplify the segments using the Postgis
 % command, ST_SimplifyPreserveTopology. This removes any points which can be removed while
 % maintaining the original line within resolution meters.
-resolution = 500;
+resolution = 100;
 
-%% AUTOMATED SECTION
 alterParam.properties.resolution = resolution;
-params = read_param_xls(ct_filename_param(paramFn));
 
-fprintf('Altering segments ...\n');
-segments = {};
-season = nan;
-for param_idx = 1:length(params)
-  param = params(param_idx);
-  if param.cmd.generic == 1
-    if ~isempty(regexpi(param.cmd.notes,'do not process'))
-      warning('You have enabled a segment with ''do not process'' in the cmd.notes, dbcont to continue');
-      keyboard
-    end
-    segments{end + 1} = param.day_seg;
-
-    if isnan(season)
-      season = param.season_name;
-    elseif param.season_name ~= season
-      error('Segments are being loaded from multiple seasons. This view only supports altering one season at a time.');
-      keyboard
-    end
-  end
+%% Update every segment in the db
+if 1
+  query = sprintf('SELECT id from %s_segments;', sysName);
+  [~,data] = opsQuery(query);
+  segments = [data{:}];
+  alterParam.properties.segment_id = segments;
 end
 
-alterParam.properties.segment = segments;
-alterParam.properties.season = season;
+%% Update from param sheet
+if 0
+
+  % paramFn: FILENAME.xls OF EXCEL CReSIS PARAMS SHEET
+  paramFn = 'rds_param_2015_Greenland_C130.xls';
+
+  params = read_param_xls(ct_filename_param(paramFn));
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20150417_02');
+
+  segments = {};
+
+  for param_idx = 1:length(params)
+    param = params(param_idx);
+    if param.cmd.generic == 1
+      if ~isempty(regexpi(param.cmd.notes,'do not process'))
+        warning('You have enabled a segment with ''do not process'' in the cmd.notes, dbcont to continue');
+        keyboard
+      end
+      segments{end + 1} = param.day_seg;
+    end
+  end
+  alterParam.properties.segment = segments;
+end
+
+%% Call opsSimplifySegmentsResolution
 
 %Alter the current segments
-[status,message] = opsAlterPathResolution(sysName,alterParam);
-
+[status,message] = opsSimplifySegmentsResolution(sysName,alterParam);
+if status ~= 1
+  fprintf('\n');
+  warning(message);
+else
+  fprintf(message);
+  fprintf('\n');
+end
 
 clear alterParam params 
