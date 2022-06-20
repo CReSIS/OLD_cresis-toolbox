@@ -675,7 +675,7 @@ for track_idx = param.layer_tracker.tracks_in_task
   track.max_bin = track.max_bin - min_min_bin;
   track.crossovers(2,:) = track.crossovers(2,:) - min_min_bin;
   
-  %% Track: Create Initial Surface
+  %% Track: Create Initial Layer
   if strcmpi(track.init.method,'dem')
     % Correct for min_bin removal
     track.dem = track.dem - min_min_bin + 1;
@@ -725,15 +725,10 @@ for track_idx = param.layer_tracker.tracks_in_task
   end
   
   %% Track: Tracking
-  if strcmpi(track.method, 'lsm')
-    
-    if track.flag == 1
-      surf = interp_finite(interp1(param.layer_tracker.gt_params.gps_time,param.layer_tracker.gt_params.twtt,mdata.GPS_time));
-      surf_bins = round(interp1(mdata.Time,1:length(mdata.Time),surf));
-      if track.lsm.y == 1
-        track.lsm.y = mean(surf_bins);
-      end
-    end
+  if strcmpi(track.method, 'lsm') && track.lsm.use_mean_surf_en
+    surf = interp_finite(interp1(param.layer_tracker.gt_params.gps_time,param.layer_tracker.gt_params.twtt,mdata.GPS_time));
+    surf_bins = round(interp1(mdata.Time,1:length(mdata.Time),surf));
+    track.lsm.y = mean(surf_bins);
   end
   
   if strcmpi(track.method,'threshold')

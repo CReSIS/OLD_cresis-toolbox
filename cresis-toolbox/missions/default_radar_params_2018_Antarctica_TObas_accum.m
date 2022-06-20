@@ -1,10 +1,12 @@
 function param = default_radar_params_2018_Antarctica_TObas_accum
 % param = default_radar_params_2018_Antarctica_TObas_accum
 %
-% Accum: 2018_Antarctica_TObas
+% Accum: 2018_Antarctica_TObas and 2019_Antarctica_TObas
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
+%
+% Set the param.season_name to the correct season before running.
 %
 % Author: John Paden
 

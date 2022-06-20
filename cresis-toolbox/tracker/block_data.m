@@ -4,25 +4,71 @@
 % param: Parameter structure from read_param_xls parameter spreadsheet
 %
 % param.block_data: Structure which controls the size of each block
+%
 %  .block_size: number of columns in each block
+%
 %  .block_overlap: the percentage of overlap between each block
-%  .top_gap: number of rows before the first layer
-%  .bottom_pad : number of rows after the deepest layer
-%  .surface_flat_en:	Enable/Disable surface flattening
-%  .surface_rel_layers_flat_en:	Optional feature when surface filtering is enabled. Enable this feature to flatten the layers relative to the filtered surface.
-%  .surface_filter_len:	Specifies the length of the filter for filtering the surface
-%  .pre_detrend_filter_en:	Enable/Disable filtering before detrending
-%  .post_detrend_filter_en:	Enable/Disable filtering after detrending (before normalization)
-%  .uncompress_en:	Depending on the echogram data product used (e.g qlook, post), the echogram may be compressed. This flag when true uncompresses the compressed data using uncompress_echogram function prior to any processing.
-%  .early_trunc:	Truncate data immediately after surface flattening (before detrending and normalizing)
-%  .late_trunc:	Truncate data after all data manipulation( i.e detrending and normalizing ) is done.
+%
 %  .debug_plot:	Set to true for debug plots.
+%
 %  .detrend_debug:	Set to true for detrend debug plots.
-%  .echo_path:	Path to echogram data, typically an argument of ct_filename_out function e.g 'CSARP\standard' => ct_filename_out(param,'CSARP\standard').
-%  .out_fn:	Path where output blocks and files are saved. Currently, this is passed as an argument to ct_filename_tmp to save the outputs in KU user's scratch
-%  .layers_source:	This specifies where the layer data is loaded from(e.g layerdata, records, lidar, etc). This forms a field of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
-%  .layerdata_source:	When layers_source is layerdata, this string specifies the layerdata (e.g layer_koenig, layer, post) to be loaded. This field is also one of the fields of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
-%  .regexp:	When layers_source is layerdata, all the layers with layer names that match this regular expression pattern are loaded. This field is also one of the fields of the layer_params struct passed into opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .bottom_pad : number of rows after the deepest layer
+%
+%  .early_trunc:	Truncate data immediately after surface flattening
+%  (before detrending and normalizing)
+%
+%  .echo_path:	Path to echogram data, typically an argument of
+%  ct_filename_out function e.g 'CSARP\standard' =>
+%  ct_filename_out(param,'CSARP\standard').
+%
+%  .late_trunc:	Truncate data after all data manipulation( i.e detrending
+%  and normalizing ) is done.
+%
+%  .layer_params: opsLoadLayers.m structure describing which layers to load
+%  and store in the block files
+%
+%  .layers_source:	This specifies where the layer data is loaded from(e.g
+%  layerdata, records, lidar, etc). This forms a field of the layer_params
+%  struct passed into opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .layerdata_source:	When layers_source is layerdata, this string
+%  specifies the layerdata (e.g layer_koenig, layer, post) to be loaded.
+%  This field is also one of the fields of the layer_params struct passed
+%  into opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .out_fn:	Path where output blocks and files are saved. Currently, this
+%  is passed as an argument to ct_filename_tmp to save the outputs in KU
+%  user's scratch
+%
+%  .post_detrend_filter_en:	Enable/Disable filtering after detrending
+%  (before normalization)
+%
+%  .pre_detrend_filter_en:	Enable/Disable filtering before detrending
+%
+%  .regexp:	When layers_source is layerdata, all the layers with layer
+%  names that match this regular expression pattern are loaded. This field
+%  is also one of the fields of the layer_params struct passed into
+%  opsLoadLayers. See runOpsLoadLayers.m
+%
+%  .surf_param: opsLoadLayers.m structure describing which surface to load
+%  and store in the preprocessing and in the block files
+%
+%  .surface_flat_en:	Enable/Disable surface flattening
+%
+%  .surface_rel_layers_flat_en:	Optional feature when surface filtering is
+%  enabled. Enable this feature to flatten the layers relative to the
+%  filtered surface.
+%
+%  .surface_filter_len:	Specifies the length of the filter for filtering
+%  the surface
+%
+%  .top_gap: number of rows before the first layer
+%
+%  .uncompress_en:	Depending on the echogram data product used (e.g qlook,
+%  post), the echogram may be compressed. This flag when true uncompresses
+%  the compressed data using uncompress_echogram function prior to any
+%  processing.
 %
 % Authors: Ibikunle ( Adapted from John Paden's koenig_mat_loader )
 %
@@ -54,6 +100,10 @@ along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
 
 %% Input Checks: block_data
 % =========================================================================
+
+if ~isfield(param,'block_data') || isempty(param.block_data)
+  param.block_data = [];
+end
 
 % block_data.block_along_track: scalar double, along-track length of each
 % block in meters, default is 5000 m
@@ -100,6 +150,17 @@ if ~isfield(param.block_data.file,'layer_seg_en') || isempty(param.block_data.fi
 end
 if ~isfield(param.block_data.file,'mat_en') || isempty(param.block_data.file.mat_en)
   param.block_data.file.mat_en = true;
+end
+
+% block_data.flatten: structure controlling echo_flatten.m
+if ~isfield(param.block_data,'flatten') || isempty(param.block_data.flatten)
+  param.block_data.flatten = [];
+end
+if ~isfield(param.block_data.flatten,'resample_field') || isempty(param.block_data.flatten.resample_field)
+  param.block_data.flatten.resample_field = [];
+end
+if ~isfield(param.block_data.flatten,'interp_method') || isempty(param.block_data.flatten.interp_method)
+  param.block_data.flatten.interp_method = [];
 end
 
 % Incoherent decimation (inc_dec, inc_B_filter) input check
@@ -197,6 +258,12 @@ ops_param = param;
 ops_param.cmd.frms = frm_list;
 [layers,layer_params] = opsLoadLayers(ops_param, param.block_data.layer_params);
 
+%% Load surface layer
+% =========================================================================
+ops_param = param;
+ops_param.cmd.frms = frm_list;
+[surf,surf_param] = opsLoadLayers(ops_param, param.block_data.surf_param);
+
 %% Block Loop
 % =========================================================================
 frm_mask = false(size(frames.frame_idxs));
@@ -239,13 +306,12 @@ for block_idx = find(block_mask)
     end
   end
   Nx_original = length(cat_data.GPS_time);
+  if ~isempty(param.block_data.surf_param)
+    cat_data.Surface = interp_finite(interp1(surf.gps_time,surf.twtt,cat_data.GPS_time),0);
+  end
   
   %% Block: Echogram layer flattening
   % =======================================================================
-  param.block_data.flatten.resample_field = [];
-  param.block_data.flatten.resample_field.name = 'surface';
-  param.block_data.flatten.resample_field.source = 'layerdata';
-  param.block_data.flatten.interp_method = [];
   if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
     [cat_data.Data,resample_field] = echo_flatten(cat_data, ...
       param.block_data.flatten.resample_field, false, ...
@@ -316,9 +382,28 @@ for block_idx = find(block_mask)
   cat_data.Surface = interp1(dec_idxs,cat_data.Surface,new_axis);
   resample_field = interp1(dec_idxs.',resample_field.',new_axis).';
   
-  %% Block: Extract layers
+  %% Block: Extract surface
   % =======================================================================
   Nx = length(cat_data.GPS_time);
+  if isempty(param.block_data.surf_param)
+    surf_bin = interp1(cat_data.Time,1:length(cat_data.Time),cat_data.Surface);
+  else
+    % Loaded an update to the surface
+    cat_data.Surface = interp_finite(interp1(surf.gps_time,surf.twtt,cat_data.GPS_time),0);
+    twtt = interp1(surf.gps_time,surf.twtt,cat_data.GPS_time);
+    surf_bin = zeros(size(twtt));
+    if isfield(param.block_data,'flatten') && ~isempty(param.block_data.flatten)
+      for rline = 1:Nx
+        % time_flat: vector of twtt associated with each pixel for the
+        % particular column
+        time_flat = interp1(1:length(cat_data.Time),cat_data.Time,resample_field(:,rline),'linear','extrap');
+        surf_bin(rline) = interp1(time_flat,1:length(time_flat),twtt(rline),'linear','extrap');
+      end
+    end
+  end
+  
+  %% Block: Extract layers
+  % =======================================================================
   layers_bin_bitmap = zeros(size(cat_data.Data),'uint8');
   layers_bitmap = zeros(size(cat_data.Data),'uint16');
   layers_segment_bitmap = zeros(size(cat_data.Data),'uint16');
@@ -370,13 +455,10 @@ for block_idx = find(block_mask)
   
   %% Block: Detrend
   % =======================================================================
-  param.block_data.detrend
-  param.block_data.norm
   if isfield(param.block_data,'detrend') && ~isempty(param.block_data.detrend)
-    echo_detrend_data.Data = cat_data.Data;
-    echo_detrend_data.Time = cat_data.Time;
-    echo_detrend_data.Surface = cat_data.Surface;
-    data = echo_detrend(echo_detrend_data,param.block_data.detrend);
+    param.block_data.detrend.layer_top = interp_finite(surf_bin,1);
+    param.block_data.detrend.layer_bottom = nan(size(surf_bin));
+    cat_data.Data = echo_detrend(cat_data,param.block_data.detrend);
   end
   
   %% Block: TBD (roll compensation, etc.)
@@ -390,6 +472,9 @@ for block_idx = find(block_mask)
   
   %% Block: Save
   % =======================================================================
+  if ~exist(out_fn_dir,'dir')
+    mkdir(out_fn_dir);
+  end
   
   if param.block_data.file.img_en
     out_fn_name = sprintf('img_%s_%04d.png',param.day_seg,block_idx);
@@ -423,11 +508,37 @@ for block_idx = find(block_mask)
     imwrite(uint8(layers_segment_bitmap), out_fn);
   end
   
+  if 0
+    % Debug code to review images
+    % =====================================================================
+    out_fn_name = sprintf('img_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    imshow(out_fn);
+    
+    out_fn_name = sprintf('layer_bin_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    
+    out_fn_name = sprintf('layer_mult_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+    
+    out_fn_name = sprintf('layer_seg_%s_%04d.png',param.day_seg,block_idx);
+    out_fn = fullfile(out_fn_dir,out_fn_name);
+    fprintf('%s\t%s\n', out_fn, datestr(now,'yyyymmdd_HHMMSS'));
+    img_test = imread(out_fn);
+    imagesc(img_test);
+  end
+  
   if ~param.block_data.file.mat_en
     cat_data = rmfield(cat_data,'Data');
-  end
-  if ~exist(out_fn_dir,'dir')
-    mkdir(out_fn_dir);
   end
   out_fn_name = sprintf('%s_%04d.mat',param.day_seg,block_idx);
   out_fn = fullfile(out_fn_dir,out_fn_name);

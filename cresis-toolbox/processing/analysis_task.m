@@ -527,7 +527,12 @@ for img = 1:length(store_param.load.imgs)
         DDC_freq_min = [];
         DDC_freq_max = [];
         
-        % Pulse compression
+        % Pulse compression (special settings for coherent noise)
+        if strcmp(radar_type,'deramp')
+          tmp_param.radar.wfs(wf).chan_equal_dB(:) = 0;
+          tmp_param.radar.wfs(wf).chan_equal_deg(:) = 0;
+          tmp_param.radar.wfs(wf).Tsys(:) = 0;
+        end
         tmp_param.radar.wfs(wf).coh_noise_method = '';
         tmp_param.radar.wfs(wf).deconv.en = false;
         tmp_param.radar.wfs(wf).nz_trim = {};

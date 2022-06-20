@@ -11,7 +11,7 @@ INDEX_LABEL = 'None';
 % 'NONE' does not plot a surface
 % 'FT' plots a surface normal to the fast-time axis
 % 'CT' plots a surface normal to the cross-track axis
-SURFACE = 'CT';
+SURFACE = 'FT';
 % Display traversal order for even loops of TRWS
 INDEX_EVEN_LOOP = true;
 
@@ -27,9 +27,14 @@ X = 1:Nx;
 
 if strcmp(SURFACE, 'FT')
     trws_data(3, :, :) = 10;
-    trws_data(2, 3:4, 2:6) = 10;
+    trws_data(2, 3:4, 2:8) = 10;
+    trws_data(3, 3:15, 2:8) = 3;
     trws_data(2, 3, 4) = 10;
-    trws_data(1, 4, 4) = 30;
+    
+    trws_data(2, 4:10, 2:8) = 10;
+    
+    trws_data(2, 10:15, 2:8) = 10;
+    trws_data(1, 5:12, 4) = 20;
     
     bounds = ones(2, Nx);
     bounds(2, :) = Nt;
@@ -67,7 +72,7 @@ if ~strcmp(SURFACE, 'NONE')
     if strcmp(SURFACE, 'FT')
         correct_surface = tomo.trws2(single(trws_data),single(at_slope), ...
           single(at_weight),single(ct_slope),single(ct_weight), ...
-          uint32(MAX_LOOPS), uint32(bounds - 1), 1, uint32(min_bounds - 1), uint32(max_bounds - 1));
+          uint32(MAX_LOOPS), uint32(bounds - 1), uint32(1), uint32(min_bounds - 1), uint32(max_bounds - 1));
     else
         correct_surface = tomo.trws2_CT_perm(trws_data, at_slope, at_weight, MAX_LOOPS, bounds - 1, 1, min_bounds - 1, max_bounds - 1);
     end
@@ -80,8 +85,8 @@ hold on;
 if ~strcmp(SURFACE, 'CT')
     if ~strcmp(SURFACE, 'NONE')
         surf(X, Y, correct_surface, 'FaceAlpha', .2);
-        surf(X, Y, repmat(bounds(1, :), Nsv, 1), 'FaceColor', [86, 135, 214]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
-        surf(X, Y, repmat(bounds(2, :), Nsv, 1), 'FaceColor', [232, 145, 90]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
+%         surf(X, Y, repmat(bounds(1, :), Nsv, 1), 'FaceColor', [86, 135, 214]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
+%         surf(X, Y, repmat(bounds(2, :), Nsv, 1), 'FaceColor', [232, 145, 90]./255, 'LineStyle', 'none', 'FaceAlpha', 0.2);
     end
     xlim([1 Nx]);
 %     xticks(1:Nx);
@@ -110,8 +115,8 @@ else
         surf(X, Z, correct_surface, 'FaceAlpha', .2);
         blue   = [86 , 135, 214]./255;
         orange = [232, 145, 90 ]./255;
-        surf(X, Z, repmat(bounds(1, :), Nt, 1), 'FaceColor', blue, 'LineStyle', 'none', 'FaceAlpha', 0.1);
-        surf(X, Z, repmat(bounds(2, :), Nt, 1), 'FaceColor', orange, 'LineStyle', 'none', 'FaceAlpha', 0.1);
+%         surf(X, Z, repmat(bounds(1, :), Nt, 1), 'FaceColor', blue, 'LineStyle', 'none', 'FaceAlpha', 0.1);
+%         surf(X, Z, repmat(bounds(2, :), Nt, 1), 'FaceColor', orange, 'LineStyle', 'none', 'FaceAlpha', 0.1);
     end
     xlim([1 Nx]);
 %     xticks(1:Nx);

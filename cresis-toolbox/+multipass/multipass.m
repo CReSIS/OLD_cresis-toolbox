@@ -53,16 +53,14 @@ load(fn,'param_combine_passes','pass');
 % =========================================================================
 
 % Confirm either SAR or echogram data
-if ~isfield(param.multipass,'input_type')
-  if ~isfield(pass(1),'input_type')
-    param.multipass.input_type = 'echo';
-  else
-    param.multipass.input_type = pass(1).input_type;
-  end
+if ~isfield(pass(1),'input_type')
+  input_type = 'echo';
+else
+  input_type = pass(1).input_type;
 end
 
 % Confirm echo input type is running comp_mode==2
-if param.multipass.comp_mode ~= 2 && strcmpi(param.multipass.input_type,'echo')
+if param.multipass.comp_mode ~= 2 && strcmpi(input_type,'echo')
   warning('Only param.multipass.comp_mode == 2 may be used with input_type=="echo".');
   param.multipass.comp_mode = 2;
 end
@@ -87,7 +85,7 @@ coregistration_time_shift = param.multipass.coregistration_time_shift;
 
 % debug_plots: cell array of strings that enable certain debug outputs
 if ~isfield(param.multipass,'debug_plots') || isempty(param.multipass.debug_plots)
-  if strcmpi(param.multipass.input_type,'echo')
+  if strcmpi(input_type,'echo')
     param.multipass.debug_plots = {'debug'};
   else
     param.multipass.debug_plots = {'debug','coherent'};
@@ -98,7 +96,9 @@ enable_coherent_plot = any(strcmp('coherent',param.multipass.debug_plots));
 
 % equalization: Equalization (complex weight) for each pass. Default weight is all ones.
 if ~isfield(param.multipass, 'equalization')
-  param.multipass.equalization = exp(1i*(zeros(1,length(pass))/20)/180*pi);
+  % Written with /20 and /180*pi to emphasize the dB and deg format.
+  % param.multipass.equalization = exp(1i*(zeros(1,length(pass))/20)/180*pi);
+  param.multipass.equalization = ones(1,length(pass));
 end
 equalization = param.multipass.equalization;
 
@@ -127,6 +127,7 @@ if ~isfield(param.multipass,'pass_en_mask') || isempty(param.multipass.pass_en_m
 end
 % Assume any undefined passes are enabled
 param.multipass.pass_en_mask(end+1:length(pass)) = true;
+param.multipass.pass_en_mask = logical(param.multipass.pass_en_mask);
 pass_en_mask = param.multipass.pass_en_mask;
 if ~pass_en_mask(master_idx)
   error('The master index pass %d must be enabled in param.multipass.pass_en_mask.', master_idx);
@@ -308,6 +309,9 @@ if enable_debug_plot
   legend(h_plot_map,h_legend_map);
   legend(h_plot_elev,h_legend_elev);
   h_axes_echo = h_axes_echo(pass_en_mask);
+  % x-axes from each pass do not line up since the images are not
+  % registered yet so this does not really work in the x-axis unless the
+  % along-track sampling rate is similar between each pass
   linkaxes(h_axes_echo);
   xlim(h_axes_echo(1),[1 max_rlines]);
   ylim(h_axes_echo(1),param.multipass.time_gate*1e6);
@@ -374,7 +378,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
     pass(pass_idx).ref_y(rline) = offset(:,min_idx).'*ref.y(:,min_idx);
     pass(pass_idx).ref_z(rline) = offset(:,min_idx).'*ref.z(:,min_idx);
     
-    if 0 %strcmp('sar',param.multipass.input_type)
+    if 0 %strcmp('sar',input_type)
       % Compute the location of all pixels from this range line in ECEF
       pass(pass_idx).time;
       time = pass(pass_idx).time(2)-pass(pass_idx).time(1);
@@ -402,7 +406,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
   
   %% Pass: 2. Resample in along-track
   % Resample images and position vectors onto a common along-track axes
-  if strcmp('sar',param.multipass.input_type)
+  if strcmp('sar',input_type)
     % 1. Oversample slave data by 10x in along track
     Mx = 10;
     Nx = size(pass(pass_idx).data,2);
@@ -413,7 +417,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
     % 3. Interpolate oversampled slave data onto master along track axes
     pass(pass_idx).ref_data = interp1(along_track_oversample, ...
       data_oversample, along_track,'linear','extrap').';
-  elseif strcmp('echo',param.multipass.input_type)
+  elseif strcmp('echo',input_type)
     pass(pass_idx).ref_data = interp1(pass(pass_idx).along_track, ...
       pass(pass_idx).data.', along_track,'linear').';
   end
@@ -441,7 +445,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
   
   time_shift = coregistration_time_shift(pass_idx) * dt;
   
-  if strcmp('echo',param.multipass.input_type)
+  if strcmp('echo',input_type)
     % Apply time shift with interpolation
     pass(pass_idx).ref_data = interp1(pass(pass_idx).time, pass(pass_idx).ref_data, pass(pass_idx).time+time_shift, 'linear');
     pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data,NaN);
@@ -456,7 +460,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
   end
   
   %% Pass: 4. Motion/slope compensation
-  if strcmp('sar',param.multipass.input_type)
+  if strcmp('sar',input_type)
     Htime_window = tukeywin_trim(Nt,0.5);
     if param.multipass.comp_mode == 1 || param.multipass.comp_mode == 3
       % Motion compensation of FCS z-motion (envelope and phase)
@@ -486,7 +490,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
       
       pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*pass(pass_idx).freq(1)/c *bsxfun(@times,sin(slope.slope),pass(pass_idx).ref_y(:).'));
     end
-  elseif strcmp('echo',param.multipass.input_type)
+  elseif strcmp('echo',input_type)
     % Motion compensation of FCS z-motion using linear interpolation
     for rline = 1:size(pass(pass_idx).ref_data,2)
       time_shift = pass(pass_idx).ref_z(rline)/(c/2);
@@ -509,11 +513,11 @@ for pass_out_idx = 1:length(pass_en_idxs)
     Mt = 4;
     Nt = length(pass(pass_idx).time);
     dt = pass(pass_idx).time(2)-pass(pass_idx).time(1);
-    if strcmp('sar',param.multipass.input_type)
+    if strcmp('sar',input_type)
       pass(pass_idx).ref_data = interpft(pass(pass_idx).ref_data,Mt*Nt);
       time_Mt = pass(pass_idx).time(1) + dt/Mt*(0:Mt*Nt-1);
       pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(baseline_master_idx).time, 'linear', 0);
-    elseif strcmp('echo',param.multipass.input_type)
+    elseif strcmp('echo',input_type)
       pass(pass_idx).ref_data = interp1(pass(pass_idx).time, pass(pass_idx).ref_data, pass(baseline_master_idx).time, 'linear', 0);
     end
   end
@@ -533,7 +537,7 @@ end
 
 %% Apply equalization
 % -----------------------
-if param.multipass.comp_mode ~= 1 && strcmp('sar',param.multipass.input_type)
+if param.multipass.comp_mode ~= 1 && strcmp('sar',input_type)
   equalization = reshape(equalization,[1 1 numel(equalization)]);
   data = bsxfun(@times,data,1./equalization(:,:,pass_en_idxs));
 end
@@ -585,7 +589,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
   
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
-  if strcmp('echo',param.multipass.input_type)
+  if strcmp('echo',input_type)
     % Echogram: Power detected image
     % =====================================================================
     if strcmp(param.multipass.units,'meters')
@@ -621,7 +625,6 @@ for pass_out_idx = 1:length(pass_en_idxs)
       set(gca,'YDir','normal');
       
       % Convert layerPnts_y from TWTT to WGS_84 Elevation
-      elevation = pass(master_idx).elev;
       surface = pass(pass_idx).layers(1).twtt_ref;
       for lay_idx = 1:length(pass(pass_idx).layers)
         layer_y_curUnit = pass(pass_idx).layers(lay_idx).twtt_ref;
@@ -642,7 +645,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
       xlabel('Range line');
     end
     colormap(1-gray(256));
-    title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_pass.cmd.frms(1),pass(pass_idx).direction),'interpreter','none')
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_pass.day_seg,pass(pass_idx).param_pass.cmd.frms(1),pass(pass_idx).direction),'interpreter','none')
     %caxis([-90 8]);
     
   else
@@ -694,7 +697,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
 end
 linkaxes(h_data_axes,'xy');
 
-if ~strcmp('echo',param.multipass.input_type)
+if ~strcmp('echo',input_type)
   fprintf('=============================================\n');
   fprintf('New equalization\n');
   fprintf('%.1f ', db(new_equalization,'voltage')-mean(db(new_equalization(pass_en_idxs),'voltage')));
@@ -752,7 +755,7 @@ if ~exist(out_fn_dir,'dir')
 end
 ct_save(out_fn,'-v7.3','pass','data','ref','param_combine_passes','param_multipass');
 
-if param.multipass.comp_mode ~= 2 || strcmp('echo',param.multipass.input_type)
+if param.multipass.comp_mode ~= 2 || strcmp('echo',input_type)
   return
 end
 
@@ -773,7 +776,6 @@ param.array.bin_rng = [-4:4];
 param.array.line_rng = [-20:20];
 param.array.dbin = 1;
 param.array.dline = 11;
-param.array.freq_rng = 1;
 h_fig_baseline = figure(200); clf;
 h_plot_baseline = [];
 h_legend_baseline = {};

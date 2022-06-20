@@ -248,35 +248,37 @@ for img = 1:length(param.load.imgs)
       end
       coh_noise = coh_noise * 10.^((system_dB_noise-system_dB)/20);
       
-      % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
-      % changes relative to when the coherent noise was loaded and
-      % estimated.
-      coh_noise = coh_noise * 10.^(( ...
-        noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
-        - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
-        .* exp(1i*( ...
-        noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
-        - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
-      
-      % Tadc_adjust changes do not matter since they do not affect the data
-      % (only the time axis is affected).
-      
-      % Correct any changes in Tsys
-      Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-      Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-      if strcmpi(radar_type,'pulsed')
-        time_correction = param.radar.wfs(wf).time_correction;
-        time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
-        dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
-      else
-        dTsys = Tsys-Tsys_old;
-      end
       noise.Nt = size(coh_noise,1);
       noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
-      if dTsys ~= 0
-        % Positive dTsys means Tsys > Tsys_old and we should reduce the
-        % time delay to all targets by dTsys.
-        coh_noise = ifft(bsxfun(@times, fft(coh_noise), exp(1i*2*pi*noise.freq*dTsys)));
+      if ~strcmpi(radar_type,'deramp')
+        % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
+        % changes relative to when the coherent noise was loaded and
+        % estimated.
+        coh_noise = coh_noise * 10.^(( ...
+          noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
+          - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
+          .* exp(1i*( ...
+          noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+          - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
+        
+        % Tadc_adjust changes do not matter since they do not affect the data
+        % (only the time axis is affected).
+        
+        % Correct any changes in Tsys
+        Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+        Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+        if strcmpi(radar_type,'pulsed')
+          time_correction = param.radar.wfs(wf).time_correction;
+          time_correction_old = noise.param_analysis.radar.wfs(wf).time_correction;
+          dTsys = Tsys-Tsys_old + time_correction-time_correction_old;
+        else
+          dTsys = Tsys-Tsys_old;
+        end
+        if dTsys ~= 0
+          % Positive dTsys means Tsys > Tsys_old and we should reduce the
+          % time delay to all targets by dTsys.
+          coh_noise = ifft(bsxfun(@times, fft(coh_noise), exp(1i*2*pi*noise.freq*dTsys)));
+        end
       end
       
       recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
@@ -617,6 +619,9 @@ for img = 1:length(param.load.imgs)
         %% Pulse compress: Deramp
         freq_axes_changed = false;
         first_good_rec = true; % true until the time/freq axes created for the first time
+        if wf_adc == 1
+          new_Nt = hdr.Nt{img};
+        end
         for rec = 1:size(data{img},2)
           
           if hdr.bad_rec{img}(rec)
@@ -654,7 +659,7 @@ for img = 1:length(param.load.imgs)
             first_good_rec = false;
             freq_axes_changed = true;
             
-            %% Pulse compress: Output time
+            %% Pulse compress Deramp: Output time
             % The output time axes for every choice of DDC_dec must have
             % the same sample spacing. We compute the resampling ratio
             % required to achieve this in the pulse compressed time domain.
@@ -759,7 +764,7 @@ for img = 1:length(param.load.imgs)
               q
             end
             
-            %% Pulse compress: IF->Delay
+            %% Pulse compress Deramp: IF->Delay
             % =============================================================
             if 0
               % ENABLE_FOR_DEBUG_FREQ_MAP
@@ -773,40 +778,56 @@ for img = 1:length(param.load.imgs)
               hdr.DDC_freq{img}(rec) = 95e6;
             end
             
-            % nz: Nyquist zone containing signal spectrum (just renaming
-            %   variable for convenience). The assumption is that the
-            %   signal does not cross nyquist zones.
-            nz = hdr.nyquist_zone_signal{img}(rec);
-            
-            % f_nz0: Lowest frequency in terms of ADC input frequency of the
-            %   nyquist zone which contains the signal
-            f_nz0 = wfs(wf).fs_raw * floor(nz/2);
-            
-            % freq_raw: Frequency axis of raw data assuming that raw signal
-            % spectrum is restricted to the frequency range [(N-1)*fs N*fs]
-            % where N is chosen so that the selected nyquist zone lies
-            % within this frequency range.
-            freq_raw =  f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
-              + df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
-            freq_raw_valid = freq_raw;
-            
-            % conjugate_bins: logical mask indicating which bins are
-            % conjugated, this is also used to determine how frequencies
-            % are wrapped in the nyquist zone when real only sampling is
-            % used (for DFT there are 1 or 2 bins which are real-only and
-            % these are marked to be conjugated by using >= and <=; since
-            % conjugation of these real only bins makes no difference the
-            % only reason to do this is because of the nyquist zone
-            % wrapping)
-            conjugate_bins = ~(freq_raw_valid >= nz*wfs(wf).fs_raw/2 ...
-              & freq_raw_valid <= (1+nz)*wfs(wf).fs_raw/2);
-            
-            % freq_raw_valid: modified to handle wrapping at Nyquist
-            % boundaries
-            if mod(nz,2)
-              freq_raw_valid(conjugate_bins) = nz*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
+            if wfs(wf).nz_complex
+              % The signal can cross nyquist zones because it is complex.
+              % Currently the code assumes that the signal is represented
+              % in complex baseband in the first nyquist zone.
+              nz = 0;
+              
+              freq_raw =  hdr.DDC_freq{img}(rec) ...
+                + df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).';
+              freq_raw_valid = freq_raw;
+              
+              conjugate_bins = false(size(freq_raw_valid));
+              
             else
-              freq_raw_valid(conjugate_bins) = (nz+1)*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
+              
+              % nz: Nyquist zone containing signal spectrum (just renaming
+              %   variable for convenience). The assumption is that the
+              %   signal does not cross nyquist zones.
+              nz = hdr.nyquist_zone_signal{img}(rec);
+              
+              % f_nz0: Lowest frequency in terms of ADC input frequency of the
+              %   nyquist zone which contains the signal
+              f_nz0 = wfs(wf).fs_raw * floor(nz/2);
+              
+              % freq_raw: Frequency axis of raw data assuming that raw signal
+              % spectrum is restricted to the frequency range [(N-1)*fs N*fs]
+              % where N is chosen so that the selected nyquist zone lies
+              % within this frequency range.
+              freq_raw =  f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
+                + df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
+              freq_raw_valid = freq_raw;
+              
+              % conjugate_bins: logical mask indicating which bins are
+              % conjugated, this is also used to determine how frequencies
+              % are wrapped in the nyquist zone when real only sampling is
+              % used (for DFT there are 1 or 2 bins which are real-only and
+              % these are marked to be conjugated by using >= and <=; since
+              % conjugation of these real only bins makes no difference the
+              % only reason to do this is because of the nyquist zone
+              % wrapping)
+              conjugate_bins = ~(freq_raw_valid >= nz*wfs(wf).fs_raw/2 ...
+                & freq_raw_valid <= (1+nz)*wfs(wf).fs_raw/2);
+              
+              % freq_raw_valid: modified to handle wrapping at Nyquist
+              % boundaries
+              if mod(nz,2)
+                freq_raw_valid(conjugate_bins) = nz*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
+              else
+                freq_raw_valid(conjugate_bins) = (nz+1)*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
+              end
+              
             end
             
             % freq_raw_valid: reduce rounding errors so that unique will
@@ -845,32 +866,46 @@ for img = 1:length(param.load.imgs)
               ylabel('Frequency (Hz)');
             end
             
-            %% Pulse compress: IF->Delay (Coh Noise)
+            %% Pulse compress Deramp: IF->Delay (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               % =============================================================
               
               cn.df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
               
-              % nz: Nyquist zone containing signal spectrum (just renaming
-              %   variable for convenience). The assumption is that the
-              %   signal does not cross nyquist zones.
-              cn.nz = double(hdr.nyquist_zone_hw{img}(rec));
-              
-              % f_nz0: Lowest frequency in terms of ADC input frequency of the
-              %   nyquist zone which contains the signal
-              cn.f_nz0 = wfs(wf).fs_raw * floor(cn.nz/2);
-              
-              cn.freq_raw =  cn.f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
-                + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
-              cn.freq_raw_valid = cn.freq_raw;
-              
-              cn.conjugate_bins = ~(cn.freq_raw_valid >= cn.nz*wfs(wf).fs_raw/2 ...
-                & cn.freq_raw_valid <= (1+cn.nz)*wfs(wf).fs_raw/2);
-              
-              if mod(cn.nz,2)
-                cn.freq_raw_valid(cn.conjugate_bins) = cn.nz*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+              if wfs(wf).nz_complex
+                % The signal can cross nyquist zones because it is complex.
+                % Currently the code assumes that the signal is represented
+                % in complex baseband in the first nyquist zone.
+                cn.nz = 0;
+                
+                cn.freq_raw =  hdr.DDC_freq{img}(rec) ...
+                  + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).';
+                cn.freq_raw_valid = cn.freq_raw;
+                
+                cn.conjugate_bins = false(size(cn.freq_raw_valid));
+                
               else
-                cn.freq_raw_valid(cn.conjugate_bins) = (cn.nz+1)*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+                % nz: Nyquist zone containing signal spectrum (just renaming
+                %   variable for convenience). The assumption is that the
+                %   signal does not cross nyquist zones.
+                cn.nz = double(hdr.nyquist_zone_hw{img}(rec));
+                
+                % f_nz0: Lowest frequency in terms of ADC input frequency of the
+                %   nyquist zone which contains the signal
+                cn.f_nz0 = wfs(wf).fs_raw * floor(cn.nz/2);
+                
+                cn.freq_raw =  cn.f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
+                  + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
+                cn.freq_raw_valid = cn.freq_raw;
+                
+                cn.conjugate_bins = ~(cn.freq_raw_valid >= cn.nz*wfs(wf).fs_raw/2 ...
+                  & cn.freq_raw_valid <= (1+cn.nz)*wfs(wf).fs_raw/2);
+                
+                if mod(cn.nz,2)
+                  cn.freq_raw_valid(cn.conjugate_bins) = cn.nz*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+                else
+                  cn.freq_raw_valid(cn.conjugate_bins) = (cn.nz+1)*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+                end
               end
               
               cn.freq_raw_valid = cn.df_raw*round(cn.freq_raw_valid/cn.df_raw);
@@ -889,7 +924,7 @@ for img = 1:length(param.load.imgs)
             
             freq_axes_changed = false; % Reset state
             
-            %% Pulse compress: Time axis
+            %% Pulse compress Deramp: Time axis
             
             % Convert IF frequency to time delay and account for reference
             % deramp time offset, hdr.t_ref
@@ -915,7 +950,7 @@ for img = 1:length(param.load.imgs)
             deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
             time_correction_freq = exp(1i*2*pi*(freq-fc)*time_correction);
             
-            %% Pulse compress: Time axis (Coh Noise)
+            %% Pulse compress Deramp: Time axis (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               
               % Convert IF frequency to time delay and account for reference
@@ -1021,7 +1056,7 @@ for img = 1:length(param.load.imgs)
           end
           
           
-          %% Pulse compress: FFT and Deskew
+          %% Pulse compress Deramp: FFT, Deskew, Coh Noise Removal
           
           % Window and DFT (raw deramped time to regular time)
           NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).Tadc_adjust + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
@@ -1219,24 +1254,26 @@ for img = 1:length(param.load.imgs)
           else
             tmp = tmp(1 : end-1);
           end
-          hdr.Nt{img}(rec) = length(tmp);
-          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = tmp;
+          if wf_adc == 1
+            new_Nt(rec) = length(tmp);
+          end
+          data{img}(1:new_Nt(rec),rec,wf_adc) = tmp;
         end
         
         if 0
           % ENABLE_FOR_DEBUG
           figure(1); clf;
           Mt = 10;
-          data_oversampled = interpft(data{img}(1:hdr.Nt{img}(rec),:,wf_adc), hdr.Nt{img}(rec)*Mt);
+          data_oversampled = interpft(data{img}(1:new_Nt(rec),:,wf_adc), new_Nt(rec)*Mt);
           [~,idx] = max(data_oversampled);
-          time_oversampled = time(1) + dt/Mt* (0:hdr.Nt{img}(rec)*Mt-1).';
+          time_oversampled = time(1) + dt/Mt* (0:new_Nt(rec)*Mt-1).';
           plot((time_oversampled(idx).' - tds)/dt)
           grid on;
           xlabel('Record');
           ylabel('Time error (\Delta_t)');
           
           figure(2); clf;
-          phase_sim = max(data{img}(1:hdr.Nt{img}(rec),:,wf_adc));
+          phase_sim = max(data{img}(1:new_Nt(rec),:,wf_adc));
           [~,ref_idx] = min(abs(tds-wfs(wf).td_mean));
           plot(angle(phase_sim./phase_sim(ref_idx)),'+-');
           hold on
@@ -1249,6 +1286,8 @@ for img = 1:length(param.load.imgs)
           grid on;
         end
         
+        %% Pulse compress Deramp: Corrections, Constant Nt
+        
         % Create a matrix of data with constant time rows, fill invalid samples with NaN
         if wf_adc == 1
           if all(isnan(hdr.t0{img}))
@@ -1258,7 +1297,7 @@ for img = 1:length(param.load.imgs)
             dt = 1;
           else
             idx_start = min(round(hdr.t0{img}/dt));
-            wfs(wf).Nt = max(round(hdr.t0{img}/dt) + hdr.Nt{img})-idx_start;
+            wfs(wf).Nt = max(round(hdr.t0{img}/dt) + new_Nt)-idx_start;
           end
           hdr.time{img} = idx_start*dt + dt*(0:wfs(wf).Nt-1).';
           fc = sum(wfs(wf).BW_window)/2;
@@ -1266,6 +1305,7 @@ for img = 1:length(param.load.imgs)
           df = 1/T;
           hdr.freq{img} = fc + df * ifftshift(-floor(wfs(wf).Nt/2) : floor((wfs(wf).Nt-1)/2)).';
         end
+        
         % Method of copying to make this more efficient for very large
         % complex (real/imag) arrays. Lots of small matrix operations on
         % huge complex matrices is very slow in matlab. Real only matrices
@@ -1273,6 +1313,7 @@ for img = 1:length(param.load.imgs)
         blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
         for block = 1:length(blocks)-1
           rlines = blocks(block) : blocks(block+1)-1;
+          
           reD = real(data{img}(:,rlines,wf_adc));
           imD = imag(data{img}(:,rlines,wf_adc));
           for rec = 1:length(rlines)
@@ -1282,10 +1323,10 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = 0;
             else
               cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
-              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + new_Nt(rlines(rec));
             end
             
-            reD(cur_idx_start : cur_idx_stop,rec) = reD(1:hdr.Nt{img}(rlines(rec)),rec);
+            reD(cur_idx_start : cur_idx_stop,rec) = reD(1:new_Nt(rlines(rec)),rec);
             reD(1:cur_idx_start-1,rec) = wfs(wf).bad_value;
             reD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
@@ -1296,14 +1337,37 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = 0;
             else
               cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
-              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + new_Nt(rlines(rec));
             end
             
-            imD(cur_idx_start : cur_idx_stop,rec) = imD(1:hdr.Nt{img}(rlines(rec)),rec);
+            imD(cur_idx_start : cur_idx_stop,rec) = imD(1:new_Nt(rlines(rec)),rec);
             imD(1:cur_idx_start-1,rec) = wfs(wf).bad_value;
             imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = wfs(wf).bad_value;
           end
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
+          
+          % Corrections:
+          % Apply wf-adc specific channel equalization (for multichannel
+          % systems). For pulsed systems this is taken care of in
+          % data_load.m in corrections.
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = chan_equal .* data{img}(1:wfs(wf).Nt,rlines,wf_adc);
+          
+          % Corrections:
+          % Apply wf-adc specific system time delay (for multichannel
+          % systems). For pulsed systems this is taken care of in
+          % data_load_wfs.m where the reference function is created.
+          Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+          if Tsys ~= 0
+            % Positive Tsys means the time delay to the target is too large
+            % and we should reduce the time delay to all targets by Tsys.
+            data{img}(1:wfs(wf).Nt,rlines,wf_adc) ...
+              = ifft(bsxfun(@times, ...
+              fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc),[],1), ...
+              exp(1i*2*pi*hdr.freq{img}*Tsys)),[],1);
+          end
+          
         end
         clear reD imD;
         
@@ -1455,7 +1519,9 @@ for img = 1:length(param.load.imgs)
       df = hdr.freq{img}(2)-hdr.freq{img}(1);
       BW = df * wfs(wf).Nt;
       deconv_dfc = deconv_fc - fc;
-      hdr.freq{img} = mod(hdr.freq{img} + deconv_dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
+      if wf_adc == 1
+        new_deconv_hdr_freq = mod(hdr.freq{img} + deconv_dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
+      end
       
       for unique_idxs_idx = 1:length(unique_idxs)
         % deconv_mask: Create logical mask corresponding to range lines that use this deconv waveform
@@ -1562,6 +1628,15 @@ for img = 1:length(param.load.imgs)
       end
     end
 
+  end
+  
+  % Update frequency axis for deconv
+  if param.load.pulse_comp == 1 && wfs(wf).deconv.en && wfs(wf).Nt > 0
+    hdr.freq{img} = new_deconv_hdr_freq;
+  end
+  % Update record length field
+  if param.load.pulse_comp == 1 && strcmpi(radar_type,'deramp')
+    hdr.Nt{img} = new_Nt;
   end
   
   if param.load.pulse_comp == 1

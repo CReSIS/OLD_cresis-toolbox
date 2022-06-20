@@ -74,6 +74,12 @@ if ~isfield(param.combine_passes,'input_type') || isempty(param.combine_passes.i
   param.combine_passes.input_type = 'echo';
 end
 
+% sar_load: structure containing the default parameters for sar_load.m. The
+% default value is []/empty struct.
+if ~isfield(param.combine_passes,'sar_load') || isempty(param.combine_passes.sar_load)
+  param.combine_passes.sar_load = [];
+end
+
 % surf_layer: surface layer structure that is used to combine images (only
 % used for "sar" inputs)
 if ~isfield(param.combine_passes,'surf_layer') || isempty(param.combine_passes.surf_layer)
@@ -111,7 +117,7 @@ for passes_idx = 1:length(passes)
       % ECHOGRAM: Default is CSARP_standard
       passes(passes_idx).in_path = 'standard';
     else
-      % SAR: Default is determined by load_sar_data.m
+      % SAR: Default is determined by sar_load.m
       passes(passes_idx).in_path = '';
     end
   end
@@ -141,12 +147,17 @@ param.combine_passes.passes = passes;
 metadata = {};
 data = {};
 for passes_idx = 1: length(passes)
-  %% Load: Load param xls
+  %% Load: Load parameter spreadsheet
   param_fn = ct_filename_param(passes(passes_idx).param_fn);
   % Only load the parameter spreadsheet if it is not already in memory
   if passes_idx == 1 || ~strcmp(passes(passes_idx).day_seg,passes(passes_idx-1).day_seg)
     param_pass = read_param_xls(param_fn,passes(passes_idx).day_seg);
+    % General parameter override merge:
     param_pass = merge_structs(param_pass, param_override);
+    % Pass-specific parameter override merge:
+    param_pass = merge_structs(param_pass, passes(passes_idx).param_override);
+    
+    frames = frames_load(param_pass);
     
     if strcmp(param.combine_passes.input_type,'sar')
       %% Load: Load surface layer
@@ -162,9 +173,9 @@ for passes_idx = 1: length(passes)
     param = merge_structs(param_pass,param);
   end
   
-  %% Load: Load Data
+  %% Load: Data
   if strcmp(param.combine_passes.input_type,'echo')
-    %% Load: Load "echo" Data
+    %% Load Data: Echogram
     echo_fn_dir{passes_idx} = ct_filename_out(param_pass, passes(passes_idx).in_path); %creates directory for pass, from given data format
     % Loop to load each echogram frame
     for frm_idx = 1:length(passes(passes_idx).frms)
@@ -193,6 +204,23 @@ for passes_idx = 1: length(passes)
         metadata{passes_idx}.fcs.y = [];
         metadata{passes_idx}.fcs.z = [];
         metadata{passes_idx}.fcs.pos = [];
+      end
+      % Handle data overlap in old files
+      if tmp_data.GPS_time(1) < frames.gps_time(passes(passes_idx).frms(frm_idx)) ...
+          || tmp_data.GPS_time(end) > frames.gps_time(passes(passes_idx).frms(frm_idx)+1)
+        warning('Old echogram format with extra "overlap" data at start and/or end. Removing overlap.');
+        good_mask = tmp_data.GPS_time >= frames.gps_time(passes(passes_idx).frms(frm_idx)) ...
+          & tmp_data.GPS_time <= frames.gps_time(passes(passes_idx).frms(frm_idx)+1);
+        tmp_data.GPS_time = tmp_data.GPS_time(good_mask);
+        tmp_data.Data = tmp_data.Data(:,good_mask);
+        tmp_data.Latitude = tmp_data.Latitude(good_mask);
+        tmp_data.Longitude = tmp_data.Longitude(good_mask);
+        tmp_data.Elevation = tmp_data.Elevation(good_mask);
+        tmp_data.Roll = tmp_data.Roll(good_mask);
+        tmp_data.Pitch = tmp_data.Pitch(good_mask);
+        tmp_data.Heading = tmp_data.Heading(good_mask);
+        tmp_data.Surface = tmp_data.Surface(good_mask);
+        tmp_data.Bottom = tmp_data.Bottom(good_mask);
       end
       metadata{passes_idx}.gps_time = [metadata{passes_idx}.gps_time ,tmp_data.GPS_time];
       metadata{passes_idx}.lat = [metadata{passes_idx}.lat ,tmp_data.Latitude];
@@ -240,27 +268,91 @@ for passes_idx = 1: length(passes)
         metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z, tmp_data.param_array.array_proc.fcs.z];
         metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos, tmp_data.param_array.array_proc.fcs.pos];
       end
-      data{passes_idx} = [data{passes_idx} ,tmp_data.Data];
+      data{passes_idx} = [data{passes_idx}, tmp_data.Data];
     end
   else
-    %% Load: Load "sar" Data
+    %% Load Data: SAR
     
-    % Setup param_sar structure used to load SAR data
-    param_sar = param_pass;
+    % Setup param_load structure used in sar_load.m
+    param_load = param_pass;
+    param_load.sar_load = param.combine_passes.sar_load;
     % (wf,adc) pairs to load
-    param_sar.load_sar_data.imgs = passes(passes_idx).imgs;
+    param_load.sar_load.imgs = passes(passes_idx).imgs;
     % Debug level (1 = default)
-    param_sar.load_sar_data.debug_level = 2;
+    param_load.sar_load.debug_level = 2;
     
     % Load SAR data for this frame
-    param_sar.load_sar_data.frms = passes(passes_idx).frms;
-    % load_sar_data loads all images at once
-    [data{end+1},metadata{end+1}] = load_sar_data(param_sar);
+    param_load.sar_load.frms = passes(passes_idx).frms;
+    % sar_load loads all images at once
+    [data{end+1},metadata{end+1}] = sar_load(param_load);
     
     metadata{end}.frms = passes(passes_idx).frms;
+    
+    % Update param_pass radar.wfs structure
+    if passes_idx == 1 || ~strcmp(passes(passes_idx).day_seg,passes(passes_idx-1).day_seg)
+      % Load records for data_load_wfs.m and save original param_pass
+      % structure
+      param_pass_original = param_pass;
+      records = records_load(param_pass);
+    else
+      % Reset param_pass so it starts at the same point for each wf-adc
+      % pair
+      param_pass = param_pass_original;
+    end
+    [tmp_wfs,~] = data_load_wfs(setfield(param_pass,'load',struct('imgs',{passes(passes_idx).imgs})),records);
     metadata{end}.param_pass = param_pass;
     
-    %% Do image combining
+    %% Load Data SAR: equalization
+    param_pass.radar.wfs = merge_structs(param_pass.radar.wfs,tmp_wfs);
+    for img = 1:length(passes(passes_idx).imgs)
+      % Get the wf and adc values for this image
+      wf = passes(passes_idx).imgs{img}(1,1);
+      adc = passes(passes_idx).imgs{img}(1,2);
+      % Check to see if the parameter-spreadsheet/param_override values
+      % have been updated from when the SAR data were created.
+      chan_equal ...
+        = 10.^((param_pass.radar.wfs(wf).chan_equal_dB(param_pass.radar.wfs(wf).rx_paths(adc)) ...
+        - metadata{end}.wfs(wf).chan_equal_dB(param_pass.radar.wfs(wf).rx_paths(adc)) )/20) ...
+        .* exp(1i*( ...
+        param_pass.radar.wfs(wf).chan_equal_deg(param_pass.radar.wfs(wf).rx_paths(adc)) ...
+        - metadata{end}.wfs(wf).chan_equal_deg(param_pass.radar.wfs(wf).rx_paths(adc)) )/180*pi);
+      Tsys_old = metadata{end}.wfs(wf).Tsys(param_pass.radar.wfs(wf).rx_paths(adc));
+      Tsys = param_pass.radar.wfs(wf).Tsys(param_pass.radar.wfs(wf).rx_paths(adc));
+      dTsys = Tsys-Tsys_old;
+      if chan_equal ~= 1
+        fprintf('  Updating chan_equal for wf %d adc %d (dchan_equal is %g dB %g deg)\n', wf, adc, db(chan_equal), angle(chan_equal)*180/pi);
+        data{end}{img} = data{end}{img} ./ chan_equal;
+      end
+      if dTsys ~= 0
+        fprintf('  Updating Tsys for wf %d adc %d from %g to %g (dTsys is %g)\n', wf, adc, Tsys_old, Tsys, dTsys);
+        data{end}{img} = ifft(bsxfun(@times,fft(data{end}{img},[],1), ...
+          exp(-1i*2*pi*metadata{end}.wfs(wf).freq*dTsys)));
+      end
+    end
+    if 0
+      % Debug plots
+      rline = 1; % <== SPECIFY WHICH RANGE LINE TO PLOT
+      colors_cell = {'k','r','y','g','b','c','m'};
+      h_plot = [];
+      legend_str = {};
+      figure; clf;
+      for img = 1:length(data{end})
+        for wf_adc = 1:size(data{end}{img},3)
+          wf = passes(passes_idx).imgs{img}(1,1);
+          adc = passes(passes_idx).imgs{img}(1,2);
+          rline = max(1,min(rline,size(data{end}{img},2)));
+          h_tmp = plot(metadata{end}.wfs(wf).time, squeeze(imag(data{end}{img}(:,rline,wf_adc))), colors_cell{1+mod(img-1,length(colors_cell))});
+          if wf_adc == 1
+            legend_str{img} = sprintf('Img %d wf %d adc %d', img, wf, adc);
+            h_plot(img) = h_tmp;
+          end
+          hold on;
+        end
+      end
+      legend(h_plot, legend_str);
+    end
+    
+    %% Load Data SAR: img_comb
     % Combines low-gain and high-gain images into a single image
     param_mode = 'array';
     param_img_combine = param_pass;

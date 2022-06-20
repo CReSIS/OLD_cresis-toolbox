@@ -40,7 +40,7 @@ PLOT_POINTS = false; % Plot data points as sphere's if PLOT_MAX_POINTS is false
 PLOT_THRESHOLD = 'auto'; % The minimum intensity to plot if PLOT_POINTS is true. 'auto' selects the greatest AUTO_THRESHOLD_MAX_POINTS points;
 AUTO_THRESHOLD_MAX_POINTS = 2000; % Number of points to plot when PLOT_THRESHOLD is set to 'auto'
 
-PLOT_MAX_POINTS = false; % Plot maximum data point in the CT dimension for each (AT, FT) row. Overrides PLOT_POINTS
+PLOT_MAX_POINTS = true; % Plot maximum data point in the CT dimension for each (AT, FT) row. Overrides PLOT_POINTS
 MAX_POINTS_NUM = 3; % Number of max points to plot for every (AT, FT) row.
 MAX_POINTS_SKIP = 1; % Number of rows to skip between each plot for max points
 
