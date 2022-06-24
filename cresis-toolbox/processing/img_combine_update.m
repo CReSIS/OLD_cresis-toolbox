@@ -23,7 +23,9 @@ function img_combine_update(param, param_override)
 %% General Setup
 % =====================================================================
 
-param = merge_structs(param, param_override);
+if exist('param_override','var')
+  param = merge_structs(param, param_override);
+end
 
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
@@ -78,6 +80,12 @@ for frm = param.cmd.frms
   fprintf('%s %s (%s)\n', mfilename, out_fn, datestr(now));
 
   param_mode_str = sprintf('param_%s',mode);
+  if ~exist(out_fn,'file')
+    tmp_out_fn = fullfile(out_path, sprintf('Data_img_01_%s_%03d.mat', ...
+      param.day_seg, frm));
+    warning('Combined file does not exist, so using img_01 file as the base for the combined file.');
+    copyfile(tmp_out_fn,out_fn);
+  end
   load(out_fn,param_mode_str,'Surface','GPS_time');
   
   if isempty(param.(mode).img_comb)

@@ -15,7 +15,7 @@ param.radar_name = 'hfrds2';
 default.xml_file_prefix = 'mcords5';
 default.data_file_prefix = 'mcords5';
 default.header_load_func = @basic_load_mcords5;
-default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
+default.header_load_params = struct('clk',200e6,'presum_mode',0);
 default.xml_version = 100.0;
 
 default.noise_50ohm = [0 0 0 0];
@@ -64,7 +64,7 @@ default.records.file.adcs = [1:4];
 default.records.file.adc_headers = [1:4];
 default.records.gps.en = 1;
 default.records.frame_mode = 0;
-default.records.presum_bug_fixed = 1;
+default.records.presum_mode = 0;
 default.records.tmp_fn_uses_adc_folder_name = 1;
 
 %% Get heights (quick-look) worksheet in parameter spreadsheet

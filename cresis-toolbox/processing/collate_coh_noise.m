@@ -90,9 +90,28 @@ end
 if ~isfield(param.collate_coh_noise,'dft_corr_time')
   param.collate_coh_noise.dft_corr_time = {};
 end
+if isnumeric(param.collate_coh_noise.dft_corr_time)
+  param.collate_coh_noise.dft_corr_time = {param.collate_coh_noise.dft_corr_time};
+end
 for img = param.collate_coh_noise.imgs
   if length(param.collate_coh_noise.dft_corr_time) < img
     param.collate_coh_noise.dft_corr_time{img} = inf;
+  end
+end
+
+% distance_weight: default is to match the setting during coh_noise
+% analysis or false if the setting is absent; if true, then the coherent
+% averaging is weighted by the distance travelled. This is primarily useful
+% for ground based traverses where long stops can bias the coherent noise
+% estimate. Setting this to true will reduce the affect the long stops have
+% on the estimated coherent noise mean.
+% NOTE: Only the dft method uses this field.
+if ~isfield(param.collate_coh_noise,'distance_weight') || isempty(param.collate_coh_noise.distance_weight)
+  param.collate_coh_noise.distance_weight = {};
+end
+for img = param.collate_coh_noise.imgs
+  if length(param.collate_coh_noise.distance_weight) < img
+    param.collate_coh_noise.distance_weight{img} = [];
   end
 end
 
@@ -124,8 +143,13 @@ end
 if ~iscell(param.collate_coh_noise.method)
   error('param.collate_coh_noise.method is not a cell array. It must be a cell array of strings containing the method for each image to be processed.');
 end
-if length(param.collate_coh_noise.method) < max(param.collate_coh_noise.imgs)
+if isempty(param.collate_coh_noise.method)
   error('In param.collate_coh_noise.method cell array of strings, a collate coh noise method must be specified for each image. For example {''dft'',''dft''} for images 1 and 2.');
+end
+for img = param.collate_coh_noise.imgs
+  if length(param.collate_coh_noise.method) < img
+    param.collate_coh_noise.method{img} = param.collate_coh_noise.method{1};
+  end
 end
 
 if ~isfield(param.collate_coh_noise,'out_path') || isempty(param.collate_coh_noise.out_path)
@@ -339,10 +363,23 @@ for img = param.collate_coh_noise.imgs
             threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,param.collate_coh_noise.threshold_fir_dec),1),[],2);
           end
         end
+        if isempty(param.collate_coh_noise.distance_weight{img})
+          if isfield(cmd,'distance_weight')
+            param.collate_coh_noise.distance_weight{img} = cmd.distance_weight;
+          else
+            param.collate_coh_noise.distance_weight{img} = false;
+          end
+        end
         if strcmpi(param.collate_coh_noise.method{img},'dft')
           for dft_idx = 1:length(dft_freqs)
             mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
-            dft_noise(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
+            if ~param.collate_coh_noise.distance_weight{img} || sum(noise.along_track) < 10
+              dft_noise(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
+            else
+              distance_weight = noise.along_track./sum(noise.along_track);
+              distance_weight = distance_weight ./ sum(distance_weight);
+              dft_noise(bin_idx,dft_idx) = nansum(bsxfun(@times, conj(mf).*coh_bin, distance_weight));
+            end
             coh_bin = coh_bin - dft_noise(bin_idx,dft_idx) * mf;
           end
         elseif strcmpi(param.collate_coh_noise.method{img},'firdec')

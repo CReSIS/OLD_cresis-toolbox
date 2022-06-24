@@ -59,7 +59,7 @@ proj = geotiffinfo(geotiff_fn);
 
 [x,y] = projfwd(proj,records.lat,records.lon);
 
-%% Fabricating a heading now (code copied from gps_make.m)
+%% Fabricating a heading now (code copied from gps_create.m)
 gps = records;
 along_track = geodetic_to_along_track(gps.lat,gps.lon);
 rlines = get_equal_alongtrack_spacing_idxs(along_track,0.75);
