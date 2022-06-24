@@ -51,7 +51,7 @@ function gps = read_gps_arena(fn, param)
 %
 % Author: John Paden
 %
-% See also read_gps_*.m, gps_plot.m, gps_make.m
+% See also read_gps_*.m, gps_plot.m, gps_create.m
 
 %% NMEA String Format
 % =============================================================================

@@ -1,36 +1,53 @@
 function [phase_center] = lever_arm(param, tx_weights, rxchannel)
 % [phase_center] = lever_arm(param, tx_weights, rxchannel)
 %
-% Returns lever arm position for antenna phase center.
+% Returns lever arm position for antenna phase center. See remarks below
+% to understand the coordinate system for output "phase_center".
 %
-% param = parameter struct
-%   .season_name = string containing the season name (e.g. 2011_Greenland_TO)
-%   .radar_name = string containing the radar name (e.g. snow2)
-%   .gps_source = string from GPS file using format SOURCE-VERSION
-%      Only the source is used (e.g. ATM-final_20120303)
-% tx_weights = transmit amplitude weightings (from the radar worksheet of
-%   the parameter spreadsheet)
-%   These are amplitude weights, not power weights.
-% rxchannel = receive channel to return phase_center for (scalar,
-%   positive integer)
-%   Setting rxchannel to 0, causes the "reference" position to be returned.
-%   This is usually the position of one of the center receive elements
-%   and equal weights on all transmitters.
+% =========================================================================
+% INPUTS:
 %
-% phase_center = lever arm to each phase center specified by
-%   tx_weights and rxchannel
+% param: parameter struct
+%
+%  .season_name: string containing the season name (e.g. 2011_Greenland_TO)
+%
+%  .radar_name: string containing the radar name (e.g. snow2)
+%
+%  .gps_source: string from GPS file using format SOURCE-VERSION (e.g.
+%  ATM-final_20120303). The SOURCE portion is used to determine which lever
+%  arm set to use for a particular dataset since some field seasons have
+%  more than one GPS source.
+%
+% tx_weights: transmit amplitude weightings (from the radar worksheet of
+% the parameter spreadsheet) These are amplitude weights, not power
+% weights.
+%
+% rxchannel: receive channel to return phase_center for (scalar, positive
+% integer) Setting rxchannel to 0, causes the "reference" position to be
+% returned. This is usually the position of one of the center receive
+% elements and equal weights on all transmitters.
+%
+% =========================================================================
+% OUTPUTS:
+%
+% phase_center: lever arm to each phase center specified by tx_weights and
+% rxchannel. See remarks below to understand the coordinate system for
+% output "phase_center".
+%
 %
 % =========================================================================
 % REMARKS:
 %
 % 1). Lever arm refers to a (3 x 1) vector that expresses the position of
 %     each phase center relative to the position that the GPS trajectory
-%     was processed to.  The basis for the vector is the coordinate
-%     system of the plane's body (Xb, Yb, Zb).  This is a righthanded,
-%     orthogonal system that agrees with aerospace convention.  +Xb points
-%     from the plane's center of gravity towards its nose.  +Yb points from
-%     the plane's center of gravity along the right wing.  +Zb points from
-%     the plane's center of gravity down towards the Earth's surface.
+%     was processed to (this is often the GPS antenna or IMU measurement
+%     center).  The basis for the vector is the coordinate system of the
+%     plane's body (Xb, Yb, Zb).  This is a righthanded, orthogonal system
+%     that agrees with aerospace convention.  +Xb points from the plane's
+%     center of gravity towards its nose.  +Yb points from the plane's
+%     center of gravity along the right wing.  +Zb points from the plane's
+%     center of gravity down towards the Earth's surface (i.e. increasing
+%     Zb points downwards!).
 %
 % 2). The lever arm of the Nth receive channel is defined using the
 %     following syntax:
@@ -214,6 +231,15 @@ if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && any(strcmpi(gps
   gps.x = 0; % Forward GPS antenna
   gps.y = 0; % Forward GPS antenna
   gps.z = 0; % Forward GPS antenna
+end
+
+if (any(strcmpi(param.season_name,{'2022_Greenland_Ground'})) && any(strcmpi(gps_source,{'arena','cresis'})))
+  % GPS antenna is mounted almost on the radar antenna phase center
+  % Need to update exactly what the vertical offset is.
+
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
 end
 
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
@@ -874,6 +900,33 @@ if (any(strcmpi(param.season_name,{'2019_Antarctica_TObas'})) && strcmpi(radar_n
     LArx = [-gps.x; -gps.y; -gps.z];
     LAtx = [-gps.x; -gps.y; -gps.z];
   end
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (any(strcmpi(param.season_name,{'2022_Greenland_Ground'})) && strcmpi(radar_name,'accum'))
+
+  % Accumulation antenna
+  LArx = [];
+  LArx(1,:)   = ( 0*0.0254 ) - gps.x; % m
+  LArx(2,:)   = ( 0*0.0254 ) - gps.y; % m
+  LArx(3,:)   = ( 0*0.0254 ) - gps.z; % m
+  
+  LArx = mean(LArx,2); % Combine all elements into a single element
+  
+  LAtx = [];
+  LAtx(1,:)   = ( 0*0.0254 ) - gps.x; % m
+  LAtx(2,:)   = ( 0*0.0254 ) - gps.y; % m
+  LAtx(3,:)   = ( 0*0.0254 ) - gps.z; % m
+  
+  LAtx = mean(LAtx,2); % Combine all elements into a single element
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;

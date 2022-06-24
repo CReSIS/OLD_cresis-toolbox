@@ -227,6 +227,9 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       qstat_res{7} = [];
       if ~isfield(ctrl.cluster,'jm')
         ctrl.cluster.jm = parcluster;
+        if isfield(ctrl.cluster,'matlab_NumWorkers') && ~isempty(ctrl.cluster.matlab_NumWorkers)
+          ctrl.cluster.jm.NumWorkers = ctrl.cluster.matlab_NumWorkers;
+        end
       end
       IDs = cell2mat({ctrl.cluster.jm.Jobs.ID});
       States = {ctrl.cluster.jm.Jobs.State};

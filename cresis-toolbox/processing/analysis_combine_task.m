@@ -299,6 +299,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         roll = [];
         pitch = [];
         heading = [];
+        along_track = [];
         surface = [];
         nyquist_zone = [];
         bad_rec = [];
@@ -347,6 +348,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           roll(end+(1:length(noise.roll))) = noise.roll;
           pitch(end+(1:length(noise.pitch))) = noise.pitch;
           heading(end+(1:length(noise.heading))) = noise.heading;
+          along_track(end+(1:length(noise.along_track))) = noise.along_track;
           surface(end+(1:length(noise.surface))) = noise.surface;
           nyquist_zone(end+(1:length(noise.nyquist_zone))) = noise.nyquist_zone;
           bad_rec(end+(1:length(noise.bad_rec))) = noise.bad_rec;
@@ -393,6 +395,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.roll = roll;
         noise.pitch = pitch;
         noise.heading = heading;
+        noise.along_track = along_track;
         noise.surface = surface;
         noise.nyquist_zone = nyquist_zone;
         noise.bad_rec = bad_rec;
@@ -441,6 +444,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         heading = [];
         wf_data = [];
         time_rng = [];
+        layer_nan_mask = [];
         for block_idx = 1:length(blocks)
           rec_load_start = blocks(block_idx);
           
@@ -468,6 +472,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           heading = cat(2,heading,waveform.heading);
           wf_data = cat(2,wf_data,waveform.wf_data);
           time_rng = cat(2,time_rng,waveform.time_rng);
+          layer_nan_mask = cat(2,layer_nan_mask,waveform.layer_nan_mask);
         end
         
         % Constant waveform fields carried over from last file loaded:
@@ -483,6 +488,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         waveform.heading = heading;
         waveform.wf_data = wf_data;
         waveform.time_rng = time_rng;
+        waveform.layer_nan_mask = layer_nan_mask;
         
         if param.ct_file_lock
           waveform.file_version = '1L';
