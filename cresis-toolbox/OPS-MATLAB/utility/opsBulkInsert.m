@@ -155,7 +155,6 @@ for param_idx = 1:length(params)
     
     %% Path Insert: opsCreatePath
     out_data.geometry.coordinates = [outLon' outLat'];
-    out_data.properties.segment_resolution = settings.segment_resolution;
     out_data.properties.location = param.post.ops.location;
     out_data.properties.season = season_name;
     out_data.properties.season_group = settings.season_group;

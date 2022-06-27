@@ -30,9 +30,10 @@ settings.params = read_param_xls(ct_filename_param('rds_param_2019_Greenland_P3.
 %settings.params = ct_set_params(settings.params, 'cmd.generic', 0);
 %settings.params = ct_set_params(settings.params, 'cmd.generic', 1, 'day_seg', '20120416_01');
 
-% SET THE RESOLUTION TO WHICH TO SIMPLIFY THE SEGMENT LINESTRING (m)
-% 0 = No simplification, full resolution
-settings.segment_resolution = 0;
+% ----------------------------------------------------------------
+% 
+PERFORM_SIMPLIFICATION = true;
+SIMPLIFICATION_RESOLUTION = 1;
 
 %% AUTOMATED SECTION
 
@@ -42,3 +43,11 @@ settings = merge_structs(gRadar,settings);
 
 % RUN OPS BULK INSERT
 opsBulkInsert(settings);
+
+% Perform simplification on the segments
+if PERFORM_SIMPLIFICATION
+    sys = ct_output_dir(params(1).radar_name);
+    param.properties.resolution = SIMPLIFICATION_RESOLUTION;
+    param.properties.segment = params.day_seg;
+    opsSimplifySegmentsResolution(sys, param);
+end
