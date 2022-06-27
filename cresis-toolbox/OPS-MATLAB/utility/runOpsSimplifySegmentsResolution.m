@@ -25,12 +25,18 @@ sysName = 'rds';
 % resolution: the resolution in meters to which to simplify the segments using the Postgis
 % command, ST_SimplifyPreserveTopology. This removes any points which can be removed while
 % maintaining the original line within resolution meters.
-resolution = 100;
+resolution = 1;
 
 alterParam.properties.resolution = resolution;
 
+%% update a segment
+
+if 1 
+   alterParam.properties.segment_id = [3399];
+end
+
 %% Update every segment in the db
-if 1
+if 0
   query = sprintf('SELECT id from %s_segments;', sysName);
   [~,data] = opsQuery(query);
   segments = [data{:}];
