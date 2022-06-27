@@ -27,8 +27,8 @@ settings.params = read_param_xls(ct_filename_param('rds_param_2019_Greenland_P3.
 settings.params = ct_set_params(settings.params, 'cmd.generic', 1);
 settings.params = ct_set_params(settings.params, 'cmd.generic', 0, 'cmd.notes', 'do not process');
 
-%settings.params = ct_set_params(settings.params, 'cmd.generic', 0);
-%settings.params = ct_set_params(settings.params, 'cmd.generic', 1, 'day_seg', '20120416_01');
+settings.params = ct_set_params(settings.params, 'cmd.generic', 0);
+settings.params = ct_set_params(settings.params, 'cmd.generic', 1, 'day_seg', '20190516_01');
 
 % SET THE RESOLUTION TO WHICH TO SIMPLIFY THE SEGMENT LINESTRING (m)
 % 0 = No simplification, full resolution
