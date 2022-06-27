@@ -31,12 +31,12 @@ alterParam.properties.resolution = resolution;
 
 %% update a segment
 
-if 1 
+if 0
    alterParam.properties.segment_id = [3399];
 end
 
 %% Update every segment in the db
-if 0
+if 1
   query = sprintf('SELECT id from %s_segments;', sysName);
   [~,data] = opsQuery(query);
   segments = [data{:}];
