@@ -41,7 +41,7 @@ global gRadar;
 settings = merge_structs(gRadar,settings);
 
 % RUN OPS BULK INSERT
-% opsBulkInsert(settings);
+opsBulkInsert(settings);
 
 % Perform simplification on the segments
 if PERFORM_SIMPLIFICATION
