@@ -30,9 +30,10 @@ settings.params = ct_set_params(settings.params, 'cmd.generic', 0, 'cmd.notes', 
 settings.params = ct_set_params(settings.params, 'cmd.generic', 0);
 settings.params = ct_set_params(settings.params, 'cmd.generic', 1, 'day_seg', '20190516_01');
 
-% SET THE RESOLUTION TO WHICH TO SIMPLIFY THE SEGMENT LINESTRING (m)
-% 0 = No simplification, full resolution
-settings.segment_resolution = 0;
+% ----------------------------------------------------------------
+%
+PERFORM_SIMPLIFICATION = true;
+SIMPLIFICATION_RESOLUTION = 1;
 
 %% AUTOMATED SECTION
 
