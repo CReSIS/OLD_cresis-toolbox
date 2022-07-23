@@ -11,9 +11,9 @@ function run_qlook(varargin)
 
 switch nargin
   case 1
-  run_en = varargin{1};
+    run_en = varargin{1};
   otherwise
-  run_en = 0;
+    run_en = 0;
 end
 
 %% User Setup
@@ -32,6 +32,21 @@ load(param_fn);
 %  Overrides
 param_override = [];
 param_override.qlook.imgs     = param.sim.imgs;
+
+if ~isempty(param.qlook.img_comb) && length(param.qlook.img_comb) ~= 3*(length(param_override.qlook.imgs)-1)
+  warning('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
+  switch length(param_override.qlook.imgs)
+    case 1
+      param_override.qlook.img_comb = [];
+    case 2
+      param_override.qlook.img_comb = [3 -Inf 0.5] * 1e-6 ;
+    case 3
+      param_override.qlook.img_comb = [3 -Inf 0.5 10 -Inf 1.5 ] * 1e-6 ;
+    otherwise
+      error('Hmm.. IDK what to do!!!');
+  end
+end
+
 param_override.qlook.dec      = 1;
 param_override.qlook.inc_dec  = 1;
 
@@ -74,7 +89,7 @@ else
   [c, WGS84] = physical_constants('c', 'WGS84');
   
   if isfield(param.sim,'frame_idx')
-    frm = param.sim.frm;
+    frm = param.sim.frame_idx;
   else
     frm = 1;
   end
@@ -120,7 +135,12 @@ else
       fig_title = sprintf('%s_%s',mfilename, call_sign);
       fig_h = figure('Name',fig_title);
       
-      h_axes(idx) = subplot(1, N_imgs+1, idx);
+      if N_imgs == 1
+        h_axes(idx) = subplot(1, N_imgs, idx);
+      else
+        h_axes(idx) = subplot(1, N_imgs+1, idx);
+      end
+      
       if relative_pow_en
         tmp = tmp-max(tmp(:));
         imagesc(x, full.Time/1e-6, tmp, [-30,0] );
@@ -158,11 +178,12 @@ else
       % Column max
       [col_max, col_max_idxs] = max(tmp);
       plot(x, full.Time(col_max_idxs)/1e-6,'r.');
-      leg_str = [leg_str {'Col Max'} ];
+      [col_pk_val, col_pk_val_idx] = max(col_max);
+      leg_str = [leg_str {sprintf('Col Max (Peak@col[%d] %0.2f dB)', col_pk_val_idx, col_pk_val) } ];
       
       legend(leg_str);
       
-    else % individual images
+    elseif N_imgs>1 % individual images
       wf_adc = 1;
       wf = param.load_data.imgs{img}(wf_adc,1);
       adc = param.load_data.imgs{img}(wf_adc,2);
@@ -217,7 +238,8 @@ else
       % Column max
       [col_max, col_max_idxs] = max(tmp);
       plot(x, indi{img}.Time(col_max_idxs)/1e-6,'r.');
-      leg_str = [leg_str {'Col Max'} ];
+      [col_pk_val, col_pk_val_idx] = max(col_max);
+      leg_str = [leg_str {sprintf('Col Max (Peak@col[%d] %0.2f dB)', col_pk_val_idx, col_pk_val) } ];
       
       legend(leg_str);
       

@@ -11,9 +11,9 @@ function run_array(varargin)
 
 switch nargin
   case 1
-  run_en = varargin{1};
+    run_en = varargin{1};
   otherwise
-  run_en = 0;
+    run_en = 0;
 end
 
 %% User Setup
@@ -33,9 +33,23 @@ load(param_fn);
 param_override = [];
 param_override.array.imgs           = param.sim.imgs;
 % param_override.sar.surf_filt_dist = 10; % default 3000m
-param_override.array.chunk_len      = 100; % default 2500m
+% param_override.array.chunk_len      = 250; % default 2500m
 
 param_override.sar.imgs             = param.sim.imgs;
+
+if ~isempty(param.array.img_comb) && length(param.array.img_comb) ~= 3*(length(param_override.array.imgs)-1)
+  warning('param.array.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
+  switch length(param_override.array.imgs)
+    case 1
+      param_override.array.img_comb = [];
+    case 2
+      param_override.array.img_comb = [3 -Inf 0.5] * 1e-6 ;
+    case 3
+      param_override.array.img_comb = [3 -Inf 0.5 10 -Inf 1.5 ] * 1e-6 ;
+    otherwise
+      error('Hmm.. IDK what to do!!!');
+  end
+end
 
 % dbstop if error;
 % param_override.cluster.type = 'torque';
@@ -73,10 +87,10 @@ else
   %% Load ARRAY data
   % =====================================================================
   
-  [c, WGS84] = physical_constants('c', 'WGS84');  
+  [c, WGS84] = physical_constants('c', 'WGS84');
   
   if isfield(param.sim,'frame_idx')
-    frm = param.sim.frm;
+    frm = param.sim.frame_idx;
   else
     frm = 1;
   end

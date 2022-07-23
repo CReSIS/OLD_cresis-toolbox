@@ -11,9 +11,9 @@ function run_sar(varargin)
 
 switch nargin
   case 1
-  run_en = varargin{1};
+    run_en = varargin{1};
   otherwise
-  run_en = 0;
+    run_en = 0;
 end
 
 %% User Setup
@@ -33,8 +33,8 @@ load(param_fn);
 param_override = [];
 param_override.sar.imgs           = param.sim.imgs;
 param_override.sar.sigma_x        = 5; %2*param.sar.sigma_x;
-param_override.sar.surf_filt_dist = 10; % default 3000m
-param_override.sar.chunk_len      = 100; % default 2500m
+% param_override.sar.surf_filt_dist = 300; % default 3000m
+% param_override.sar.chunk_len      = 250; % default 2500m
 param_override.sar.wf_adc_pair_task_group_method = 'board'; % default 'img'
 % default 'img' causes error  in DDC in data_pulse_compress because if the
 % simulation uses more than 1 image, then the second image in simulation
@@ -85,7 +85,7 @@ else
   
   param.sar_load.imgs = param_override.sar.imgs;
   
-  [data, hdr] = sar_load(param);
+  [sar_data, hdr] = sar_load(param);
   
   call_sign = sprintf('FullSim SAR Data %s', param.day_seg);
   fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -130,9 +130,19 @@ else
     for wf_adc = 1:size(param.load_data.imgs{img},1)
       wf = param.load_data.imgs{img}(wf_adc,1);
       adc = param.load_data.imgs{img}(wf_adc,2);
+      fprintf('(%s) (wf-adc) (%d-%d)\n', datestr(now), wf, adc);
       
       YLim_min = min([YLim_min; hdr.wfs(wf).time], [], 'all');
       YLim_max = max([YLim_max; hdr.wfs(wf).time], [], 'all');
+      
+      if size(sar_data{img},3) > 1
+        single_adc_mode = 1;
+        data{img} = sar_data{img}(:,:,wf_adc); % load single adc
+      else
+        single_adc_mode = 0;
+        data{img} = sar_data{img};
+      end
+      
       tmp = 20*log10(abs(data{img}));
       if lat_plot_en
         x = hdr.fcs{img}{wf_adc}.lat;
@@ -142,7 +152,11 @@ else
         x = 1:length(hdr.lat);
       end
       
-      figure(fig_h);
+      if single_adc_mode
+        fig_h = figure('Name',fig_title);
+      else
+        figure(fig_h);
+      end
       h_axes(img) = subplot(1, N_imgs, img);
       if relative_pow_en
         tmp = tmp-max(tmp(:));
@@ -188,84 +202,116 @@ else
       
       legend(leg_str);
       
+      if single_adc_mode
+        % linkaxes(h_axes);
+        % untested: linkaxes slows down due to
+        % parent bug of having a mixed combo of multiple wf-adc pairs
+        % solution: untangle the plots based on the images (wf, adc)
+        zoom on;
+        set(h_axes, 'YLim', [YLim_min YLim_max]/1e-6);
+        if ~relative_pow_en
+          set(h_axes, 'CLim', [P_min P_max]);
+        end
+        try
+          sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+        end
+        set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+        set(fig_h, 'Position', get(0, 'Screensize'));
+        %   print(gcf, '-dpng', fig_title, '-r300');
+      end
+      
       % Slices
-      if slice_idx_override
-        slice_idx_row = slice_idx_row_override(img);
-        slice_idx_col = slice_idx_col_override(img);
+      if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+        slice_en = 0;
+        continue;
       else
-        slice_idx_row = g_max_row;
-        slice_idx_col = g_max_col;
+        slice_en = 1;
       end
-      leg_str_slice_row = [leg_str_slice_row {sprintf('%d (%d-%d) %d', img, wf, adc, slice_idx_row)} ];
-      leg_str_slice_col = [leg_str_slice_col {sprintf('%d (%d-%d) %d', img, wf, adc, slice_idx_col)} ];
       
-      figure(fig_h_slice);
-      % slow_time (along track) slice
-      h_axes_slice(1) = subplot(221);
-      plot(x, tmp(slice_idx_row,:) );
-      grid on; hold on; axis tight;
-      if lat_plot_en
-        xlabel('Latitude');
-      else
-        xlabel('Along-track position, rlines');
-      end
-      ylabel('Magnitude, dB');
-      legend(leg_str_slice_row);
-      title('Slice slow-time / along-track [ img (wf-adc) col idx ]');
+      if slice_en
+        if slice_idx_override
+          slice_idx_row = slice_idx_row_override(img);
+          slice_idx_col = slice_idx_col_override(img);
+        else
+          slice_idx_row = g_max_row;
+          slice_idx_col = g_max_col;
+        end
+        leg_str_slice_row = [leg_str_slice_row {sprintf('%d (%d-%d) %d', img, wf, adc, slice_idx_row)} ];
+        leg_str_slice_col = [leg_str_slice_col {sprintf('%d (%d-%d) %d', img, wf, adc, slice_idx_col)} ];
+        
+        figure(fig_h_slice);
+        % slow_time (along track) slice
+        h_axes_slice(1) = subplot(221);
+        plot(x, tmp(slice_idx_row,:) );
+        grid on; hold on; axis tight;
+        if lat_plot_en
+          xlabel('Latitude');
+        else
+          xlabel('Along-track position, rlines');
+        end
+        ylabel('Magnitude, dB');
+        legend(leg_str_slice_row);
+        title('Slice slow-time / along-track [ img (wf-adc) col idx ]');
+        
+        
+        h_axes_slice(3) = subplot(223);
+        plot(x, angle(data{img}(slice_idx_row,:)) );
+        grid on; hold on; axis tight;
+        if lat_plot_en
+          xlabel('Latitude');
+        else
+          xlabel('Along-track position, rlines');
+        end
+        ylabel('Phase, radians');
+        legend(leg_str_slice_row);
+        
+        % fast_time (rline) slice
+        h_axes_slice(2) = subplot(222);
+        plot(hdr.wfs(wf).time/1e-6, tmp(:,slice_idx_col) );
+        grid on; hold on; axis tight;
+        xlabel('Fast-time, us');
+        ylabel('Magnitude, dB');
+        title(sprintf('[wf %02d adc %02d]',wf,adc));
+        legend(leg_str_slice_col);
+        title('Slice fast-time / rline [ img (wf-adc) col idx ]');
+        
+        h_axes_slice(4) = subplot(224);
+        plot(hdr.wfs(wf).time/1e-6, angle(data{img}(:,slice_idx_col)) );
+        grid on; hold on; axis tight;
+        xlabel('Fast-time, us');
+        ylabel('Phase, radians');
+        legend(leg_str_slice_col);
+      end %slice_en
       
-      
-      h_axes_slice(3) = subplot(223);
-      plot(x, angle(data{img}(slice_idx_row,:)) );
-      grid on; hold on; axis tight;
-      if lat_plot_en
-        xlabel('Latitude');
-      else
-        xlabel('Along-track position, rlines');
-      end
-      ylabel('Phase, radians');
-      legend(leg_str_slice_row);
-      
-      % fast_time (rline) slice
-      h_axes_slice(2) = subplot(222);
-      plot(hdr.wfs(wf).time/1e-6, tmp(:,slice_idx_col) );
-      grid on; hold on; axis tight;
-      xlabel('Fast-time, us');
-      ylabel('Magnitude, dB');
-      title(sprintf('[wf %02d adc %02d]',wf,adc));
-      legend(leg_str_slice_col);
-      title('Slice fast-time / rline [ img (wf-adc) col idx ]');
-
-      h_axes_slice(4) = subplot(224);
-      plot(hdr.wfs(wf).time/1e-6, angle(data{img}(:,slice_idx_col)) );
-      grid on; hold on; axis tight;
-      xlabel('Fast-time, us');
-      ylabel('Phase, radians');
-      legend(leg_str_slice_col);
-      
+    end % wf_adc
+  end % img
+  
+  if ~single_adc_mode
+    figure(fig_h);
+    linkaxes(h_axes); zoom on;
+    set(h_axes, 'YLim', [YLim_min YLim_max]/1e-6);
+    if ~relative_pow_en
+      set(h_axes, 'CLim', [P_min P_max]);
     end
+    try
+      sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+    end
+    set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+    set(fig_h, 'Position', get(0, 'Screensize'));
+    %   print(gcf, '-dpng', fig_title, '-r300');
   end
   
-  figure(fig_h_slice);
-  linkaxes(h_axes_slice([1,3]),'x'); zoom on;
-  linkaxes(h_axes_slice([2,4]),'x'); zoom on;
-  try
-    sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+  if slice_en
+    figure(fig_h_slice);
+    linkaxes(h_axes_slice([1,3]),'x'); zoom on;
+    linkaxes(h_axes_slice([2,4]),'x'); zoom on;
+    try
+      sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+    end
+    set(findobj(fig_h_slice,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+    set(fig_h_slice, 'Position', get(0, 'Screensize'));
+    %   print(gcf, '-dpng', fig_title, '-r300');
   end
-  set(findobj(fig_h_slice,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
-  set(fig_h_slice, 'Position', get(0, 'Screensize'));
-  %   print(gcf, '-dpng', fig_title, '-r300');
   
-  figure(fig_h);
-  linkaxes(h_axes); zoom on;
-  set(h_axes, 'YLim', [YLim_min YLim_max]/1e-6);
-  if ~relative_pow_en
-    set(h_axes, 'CLim', [P_min P_max]);
-  end
-  try
-    sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
-  end
-  set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
-  set(fig_h, 'Position', get(0, 'Screensize'));
-  %   print(gcf, '-dpng', fig_title, '-r300');
   
 end

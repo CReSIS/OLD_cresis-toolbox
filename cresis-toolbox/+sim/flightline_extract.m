@@ -11,7 +11,7 @@ function [param, records, records2, frames, exec_good] = flightline_extract(para
 frames = [];
 records = [];
 records2 = []; % only for crosschecking
-exec_good = 0;
+exec_good = 0; % flag to check if this script ran completely
 
 [c, WGS84] = physical_constants('c', 'WGS84');
 
@@ -47,17 +47,17 @@ try
   fprintf('(%s) Loading records', datestr(now));
   records = records_load( param );
 catch ME
-  fprintf('\t\t-- Failed (%s)\n',  datestr(now)); return;
+  fprintf('\t\t-- Failed\n'); return;
 end
-fprintf('\t\t-- Loaded (%s)\n',  datestr(now));
+fprintf('\t\t-- Loaded\n');
 
 try
   fprintf('(%s) Loading frames',  datestr(now));
   frames = frames_load( param );
 catch ME
-  fprintf('\t\t-- Failed (%s)\n',  datestr(now)); return;
+  fprintf('\t\t-- Failed\n'); return;
 end
-fprintf('\t\t-- Loaded (%s)\n',  datestr(now));
+fprintf('\t\t-- Loaded\n');
 
 %% Setup records, frames
 
@@ -65,9 +65,10 @@ fprintf('\t\t-- Loaded (%s)\n',  datestr(now));
 if isfield(param.sim,'start_gps_time') && isfield(param.sim,'stop_gps_time')
   start_idx = find(records.gps_time>=param.sim.start_gps_time,1,'first');
   stop_idx  = find(records.gps_time>=param.sim.stop_gps_time,1,'first');
-elseif isfield(param.sim,'frame_idx') % select frame
+elseif isfield(param.sim,'frame_idx') && ~isempty(param.sim.frame_idx) % select frame
   start_idx   = frames.frame_idxs(param.sim.frame_idx);
   stop_idx    = frames.frame_idxs(param.sim.frame_idx+1);
+  stop_idx    = frames.frame_idxs(param.sim.frame_idx) + 1000;
 elseif 1  % just some default values
   start_idx = 1;
   stop_idx  = 1001;
@@ -93,17 +94,104 @@ if rec_len~=length(records.gps_time)
 end
 
 % override default variables in frames
-frames.frame_idxs = 1;
+if isfield(param.sim,'frame_idx') && ~isempty(param.sim.frame_idx) % select frame
+  frames.frame_idxs = param.sim.frame_idx;
+else
+  param.sim.frame_idx = 1;
+  frames.frame_idxs = 1;
+end
 frames.nyquist_zone = NaN; %1
 frames.proc_mode = 0;
 frames.quality = 1;
 
 fprintf('(%s) Setup records, frames \t-- Done\n',  datestr(now));
 
-%% Waveforms
+%% Load phase centers
+
+param.la = [];
+param.gps_source = records.gps_source;
+
+figure('Name', 'Phase Centers');
+marker_color = colororder; % get 7x3 (colors)x(RGB)
+marker_color_N = size(marker_color,1);
+
+for wf = 1:length(param.radar.wfs)
+  la.pc_ref(wf,:) = [+1; -1; -1] .* lever_arm(param, param.radar.wfs(wf).tx_weights, 0);
+  la.pc_noise_ref(wf,:) = [+1; -1; -1] .* lever_arm(param, [], 0);
+  
+  for rx_path = 1:length(param.radar.wfs(wf).rx_paths)
+    rx = param.radar.wfs(wf).rx_paths(rx_path);
+    marker_color_idx = rem(rx-1, 7) +1; % fixed color for a rx path
+    
+    if ~isnan(rx)
+      la.pc(wf,rx,:) = [+1; -1; -1] .* lever_arm(param, param.radar.wfs(wf).tx_weights, rx);
+      la.pc_noise(wf,rx,:) = [+1; -1; -1] .* lever_arm(param, [], rx);
+      
+      xx = la.pc(wf,rx,1);
+      yy = la.pc(wf,rx,2);
+      zz = la.pc(wf,rx,3);
+      
+      % 3D
+      subplot(221)
+      title('3D');
+      plot3(xx,yy,zz, 's', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.001,yy,zz+0.03, sprintf('%d',rx), 'FontSize',8 ,'Color', marker_color(marker_color_idx,:) );
+      hold on; grid on;
+      xlabel('X (positve=heading)');
+      ylabel('Y (positive=portside)');
+      zlabel('Z (positive=zenith)');
+      
+      % Top (looking nadir z negative, left is Y positive, top is x positive)
+      subplot(222)
+      title('Looking nadir (Z=negative)');
+      plot3(xx,yy,zz, 's', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.001,yy,zz+0.03, sprintf('%d',rx), 'FontSize',8 ,'Color', marker_color(marker_color_idx,:) );
+      hold on; grid on;
+      xlabel('X (Top=positive=heading)');
+      ylabel('Y (Left=positve=portside)');
+      zlabel('Z');
+      view(-90,90);
+      
+      % Side (looking portside y positive, right is X positive, top is z positive)
+      subplot(223);
+      title('Looking Portside (Y=positive)');
+      plot3(xx,yy,zz, 's', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.001,yy,zz+0.03, sprintf('%d',rx), 'FontSize',8 ,'Color', marker_color(marker_color_idx,:) );
+      hold on; grid on;
+      xlabel('X (Right=positve=heading)');
+      ylabel('Y');
+      zlabel('Z (Top=positive=zenith)');
+      view(0,0);
+      % Front (looking forward x positive, left is Y positive, top is z positive)
+      subplot(224);
+      title('Looking Forward (X=positive)');
+      plot3(xx,yy,zz, 's', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.001,yy,zz+0.03, sprintf('%d',rx), 'FontSize',8 ,'Color', marker_color(marker_color_idx,:) );
+      hold on; grid on;
+      xlabel('X');
+      ylabel('Y (Left=positive=portside)');
+      zlabel('Z (Top=positive=zenith)');
+      view(-90,0);      
+    end
+    
+  end
+end
+
+% suptitle('Numbers = rx path; [O, *] = phase center [w/o, w] attitude  ');
+param.la = la;
+clear la rx_path rx xx yy zz marker_color marker_color_N marker_color_idx
+
+%% Load and setup waveforms
 
 param.load.imgs = param.sim.imgs;
-[wfs,~] = data_load_wfs(param,records);
+
+try
+  fprintf('(%s) Loading waveforms', datestr(now));
+  [wfs,~] = data_load_wfs(param,records);
+catch ME
+  fprintf('\t-- Failed\n'); return;
+end
+fprintf('\t-- Loaded\n');
 
 % overrides for each waveform
 for wf = 1:length(wfs)
@@ -133,7 +221,7 @@ end
 param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 
 if param.sim.debug_plots_en
-  figure;
+  figure('Name', 'Waveforms');
   for wf = 1:length(wfs)
     tmp = param.radar.wfs(wf).time_raw;
     plot(tmp/1e-6, wf*ones(size(tmp)), '.'); hold on;
@@ -143,11 +231,12 @@ if param.sim.debug_plots_en
   ylabel('wf');
   yticks(1:length(wfs));
   ylim([0 length(wfs)+1]);
+  title('Waveforms');
 end
 
 clear wf wfs tmp;
 
-fprintf('(%s) Waveforms \t\t-- Done\n',  datestr(now));
+fprintf('(%s) Setup waveforms \t\t-- Done\n',  datestr(now));
 
 %% Signal % not used for now
 
@@ -218,20 +307,20 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   
   if param.sim.debug_plots_en
     % check records vs rec
-    figure;
+    figure('Name', 'Flightline Northward');
     plot(records.lon, records.lat, 'x');
-    hold on;
+    hold on; grid on;
     plot(rec.lon, rec.lat, 'o');
-    xlabel('Longitude'); ylabel('Latitude');
-    grid on; legend({'records','rec'});
+    xlabel('Longitude');
+    ylabel('Latitude');
+    legend({'Loaded','Simulated North'});
+    title('Flightline Northward');
     
-    % check 3d plot
-    figure;
-    plot3(rec.x, rec.y, rec.z); hold on;
-    grid on;
+    % de-debug check 3d plot
+    % figure; plot3(rec.x, rec.y, rec.z); hold on; grid on;
     
     % check northward unit vector
-    figure;
+    figure('Name', 'Flightline Northward (check traj vector error~=1e-10)');
     traj_ecef_diff = diff(traj_ecef,[],2); % Point2Point vectors
     traj_ecef_diff = traj_ecef_diff ./vecnorm(traj_ecef_diff); % P2P unit vectors
     test_unit_vec   = traj_ecef_diff - north_unit_vec;
@@ -239,14 +328,16 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
     title('error should be reasonable (1e-10)');
     yticks([1, 2, 3]);
     yticklabels({'x', 'y', 'z'});
-    ylabel('p2p vs north unitvector error');
+    ylabel('point2point vs north unitvector error');
+    xlabel('records');
+    title('Flightline Northward (check traj vector error~=1e-10)');
     
     clear traj_ecef_diff test_unit_vec
   end
   
   param.gps = rec;
   
-  % Overwrite simulated rajectory to records file
+  % Overwrite simulated trajectory to records file
   records = merge_structs(records, param.gps);
   
   clear along_track dx a A b B north_unit_vec traj_ecef rec
@@ -255,7 +346,9 @@ if isfield(param.sim, 'north_along_track_en') && param.sim.north_along_track_en
   
 else
   
-  %% For Reference flightline
+  %% For actual flightline
+  
+  param.sim.north_along_track_en = 0;
   
   param.gps.lat       = records.lat;
   param.gps.lon       = records.lon;
@@ -266,9 +359,7 @@ else
   param.gps.gps_time  = records.gps_time;
   [param.gps.x, param.gps.y, param.gps.z] = geodeticD2ecef(param.gps.lat, param.gps.lon, param.gps.elev, WGS84.ellipsoid);
   
-  fprintf('(%s) Flightline RefTraj \t-- Done\n',  datestr(now));
-  
-  param.sim.north_along_track_en = 0;
+  fprintf('(%s) Flightline Actual \t-- Done\n',  datestr(now));
   
 end
 
@@ -287,9 +378,13 @@ trajectory_param = struct('gps_source',records.gps_source, ...
 [records2.x, records2.y, records2.z] = geodeticD2ecef(records2.lat, records2.lon, records2.elev, WGS84.ellipsoid);
 
 if param.sim.debug_plots_en
-  figure;
-  plot(records.lon, records.lat, 'x'); hold on;
+  figure('Name', 'Reference Trajectory (with leverarm)');
+  plot(records.lon, records.lat, 'x'); hold on; grid on;
   plot(records2.lon, records2.lat, 'o');
+  xlabel('Lon');
+  ylabel('Lat');
+  legend('Loaded','RefTraj w la');
+  title('Reference Trajectory (with leverarm)');
 end
 
 clear trajectory_param
@@ -299,6 +394,7 @@ fprintf('(%s) Reference Trajectory \t-- Done\n',  datestr(now));
 %% Create local FCS (Flight Coordinate System)
 
 altra = fcs_local(records2);
+param.sim.altra = altra;
 
 %% Target(s) location
 
@@ -319,7 +415,7 @@ end
 switch param.target.type
   case {'point', 'points'}
     
-    if 1 
+    if 1
       % For simple target position method:
       
       % A to B is the flightline
@@ -378,7 +474,7 @@ switch param.target.type
       
       if param.sim.debug_plots_en
         % check 3d plot for FCS XYZ
-        figure;
+        figure('Name', 'Target(s) Location');
         plot3(records2.x, records2.y, records2.z, '.'); hold on;
         plot3(records2.x(1), records2.y(1), records2.z(1), 'x','Color','r');
         grid on;
@@ -393,11 +489,15 @@ switch param.target.type
         xlabel('x ECEF');
         ylabel('y ECEF');
         zlabel('z ECEF');
+        title('Target(s) Location');
         
         if size(T,2) == 1
-          figure;
+          figure('Name', 'Target(s) Location - Range check');
           test_range = vecnorm([records2.x; records2.y; records2.z]-T);
           plot(test_range,'x');
+          xlabel('N records');
+          ylabel('Slant range, meters');
+          title('Target(s) Location - Range check');
         end
       end
       
@@ -465,6 +565,7 @@ param.records.file.version = 1000;
 
 % To use while loading simulated data
 param.load_data.recs = [start_idx stop_idx];
+param.load_data.recs = [1 rec_len];
 param.load_data.imgs = param.sim.imgs;
 
 exec_good = 1;
@@ -499,7 +600,7 @@ for idx = 1: size(A,2)
   end
   
   plot3(A(1,idx), A(2,idx), A(3,idx), 'o','LineWidth',2,'Color','b');
-%   text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
+  %   text(midP(1), midP(2), midP(3), sprintf('%f',p2p_dist));
   
 end
 end

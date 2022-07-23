@@ -9,9 +9,9 @@ switch nargin
     records = varargin{1};
   case 2
     records = varargin{1};
-    target  = varargin{2};
+    target  = varargin{2}; % for future
   otherwise
-    warning('find_multiple: argin not supported !!!');
+    warning('fcs_local: argin not supported !!!');
     return;
 end
 

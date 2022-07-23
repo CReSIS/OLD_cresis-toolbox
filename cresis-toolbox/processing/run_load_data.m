@@ -699,7 +699,6 @@ elseif run_example == 7
   %  - Examines data from the full simulator (sim.input_full_sim)
   %  - Plots work best for point targets
   % =======================================================================
-  try; hara; end;
   
   [c, WGS84] = physical_constants('c', 'WGS84');
   
@@ -707,7 +706,7 @@ elseif run_example == 7
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
-%   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
+  %   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
   
   load(param_fn);
@@ -733,7 +732,15 @@ elseif run_example == 7
       [traj.x, traj.y, traj.z] = geodeticD2ecef(traj.lat,traj.lon,traj.elev, WGS84.ellipsoid);
       
       target  = hdr.param_load_data.target;
-      range   = sqrt( (traj.x - target.x).^2 + (traj.y - target.y).^2 + (traj.z - target.z).^2 );
+      try
+        range   = sqrt( (traj.x - target.x).^2 + (traj.y - target.y).^2 + (traj.z - target.z).^2 );
+      catch
+        range = sqrt( ...
+          + ( bsxfun(@minus, traj.x, target.x') ).^2 ...
+          + ( bsxfun(@minus, traj.y, target.y') ).^2 ...
+          + ( bsxfun(@minus, traj.z, target.z') ).^2 );
+      end
+      
       twtt    = 2*range/c;
       time    = hdr.time{img};
       freq    = hdr.freq{img};
@@ -743,11 +750,15 @@ elseif run_example == 7
       test_twtt   = param.sim.twtt{img,wf_adc}  - twtt;
       test_time   = param.radar.wfs(wf).time - time;
       
-      if any(test_range); warning('!!! Range mismatch sum:%f m\n', sum(abs(test_range))); end
-      if any(test_twtt); warning('!!! twtt mismatch sum:%f ns\n', sum(abs(test_twtt))/1e-9); end
-      if any(test_time); warning('!!! time mismatch sum:%f ns\n', sum(abs(test_time))/1e-9); end
+      if any(test_range(:)); warning('!!! Range mismatch sum:%f m\n', sum(abs(test_range(:)))); end
+      if any(test_twtt(:)); warning('!!! twtt mismatch sum:%f ns\n', sum(abs(test_twtt(:)))/1e-9); end
+      if any(test_time(:)); warning('!!! time mismatch sum:%f ns\n', sum(abs(test_time(:)))/1e-9); end
       
       for compressing_this = 1  %continue; % FullSim hdr checks
+        
+        if 1 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+          continue;
+        end
         
         call_sign = sprintf('FullSim hdr checks wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -761,18 +772,18 @@ elseif run_example == 7
         legend('Simulated', 'Loaded', 'Reference');
         title('Trajectories');
         subplot(132);
-        plot(param.sim.range{img,wf_adc}, '.'); hold on; grid on;
-        plot(range, 'o');
+        plot(param.sim.range{img,wf_adc}.', '.'); hold on; grid on;
+        plot(range.', 'o');
         xlabel('Along-track position, rlines');
         ylabel('Range, meters');
-        legend('Simulated', 'Calculated');
+        legend('... Simulated', 'ooo Calculated');
         title('Range to target');
         subplot(133);
-        plot(param.sim.twtt{img,wf_adc}./1e-6, '.'); hold on; grid on;
-        plot(twtt./1e-6, 'o');
+        plot(param.sim.twtt{img,wf_adc}.'./1e-6, '.'); hold on; grid on;
+        plot(twtt.'./1e-6, 'o');
         xlabel('Along-track position, rlines');
         ylabel('TWTT, us');
-        legend('Simulated', 'Calculated');
+        legend('... Simulated', 'ooo Calculated');
         title('TWTT to target');
         try
           sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
@@ -816,36 +827,47 @@ elseif run_example == 7
       [fdata_max, fdata_max_idx]  = max(fdata,[],1);
       [tmp_max, tmp_max_idx]      = max(tmp,[],1);
       [ftmp_max, ftmp_max_idx]    = max(ftmp,[],1);
-      [twtt_min, twtt_min_idx]    = min(twtt);
+      [twtt_min, twtt_min_idx]    = min(twtt,[],2); % in second dimension
+      
+      twtt_min_idx_linear = sub2ind(size(twtt), 1:size(twtt,1), twtt_min_idx');
       
       [Nt,Nx] = size(data);
       x       = 1:Nx;
       
       % To compare data_max with expected phase
       wave_number = 4*pi/ (c/hdr.param_load_data.radar.wfs(wf).fc);
-      expected_phase = exp(1i * wave_number * (-range + range(twtt_min_idx)) );
+      expected_phase = exp(1i * wave_number * bsxfun(@plus, -range, range(twtt_min_idx)) );
       % expected phase is data dependent % find the reason for this offset
       %   expected_phase = exp(1i * wave_number * (-range + range(twtt_min_idx)) ) * data_max(twtt_min_idx);
       
       for compressing_this = 1  %continue; % FullSim Time Domain
         
+        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+          continue;
+        end
+        
         call_sign = sprintf('FullSim Time Domain wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
         fig_h = figure('Name',fig_title);
         subplot(121);
-        imagesc(x, time/1e-6, tmp-max(tmp(:)) ,[-30,0] );
-        cb = colorbar; cb.Label.String = 'Relative Power, dB';
+        if 0
+          imagesc(x, time/1e-6, tmp-max(tmp(:)) ,[-30,0] );
+          cb = colorbar; cb.Label.String = 'Relative Power, dB';
+        else
+          imagesc(x, time/1e-6, tmp);
+          cb = colorbar; cb.Label.String = 'Power, dB';
+        end
         grid on; hold on; axis tight;
-        plot(x, twtt/1e-6, '--', 'Color', 'g');
-        plot(twtt_min_idx, twtt(twtt_min_idx)/1e-6, 's','LineWidth',2);
+        plot(x, twtt.'/1e-6, '--', 'Color', 'g');
+        plot(twtt_min_idx, twtt(twtt_min_idx_linear)/1e-6, 's','LineWidth',2);
         xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
         title('PhaseHistory Magnitude');
         subplot(122);
         imagesc(x, time/1e-6, angle(data) );
         cb = colorbar; cb.Label.String = 'Radians';
         grid on; hold on; axis tight;
-        plot(x, twtt/1e-6, '--', 'Color', 'g');
-        plot(twtt_min_idx, twtt(twtt_min_idx)/1e-6, 's','LineWidth',2);
+        plot(x, twtt.'/1e-6, '--', 'Color', 'g');
+        plot(twtt_min_idx, twtt(twtt_min_idx_linear)/1e-6, 's','LineWidth',2);
         xlabel('Along-track position, rlines'); ylabel('Fast-time, us');
         title('PhaseHistory Phase');
         if 0
@@ -866,6 +888,10 @@ elseif run_example == 7
       end % for compressing_this % FullSim Time Domain
       
       for compressing_this = 1  %continue; % FullSim Freq Domain
+        
+        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+          continue;
+        end
         
         call_sign = sprintf('FullSim Freq Domain wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -893,12 +919,16 @@ elseif run_example == 7
       
       for compressing_this = 1  %continue; % FullSim Time Phase checks
         
+        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+          continue;
+        end
+        
         call_sign = sprintf('FullSim Time Phase checks wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
         fig_h = figure('Name',fig_title);
         subplot(311);
         plot(x, time(data_max_idx)/1e-6, '.-'); hold on;
-        plot(x, twtt/1e-6, 's')
+        plot(x, twtt.'/1e-6, 's')
         xlabel('Along-track position, rlines');
         ylabel('Fast-time, us');
         legend('fast-time(max(data))', 'TWTT');
@@ -906,7 +936,7 @@ elseif run_example == 7
         title('Time checks');
         subplot(312);
         plot(x, unwrap(angle(data_max)),'.'); hold on;
-        plot(x, unwrap(angle(expected_phase)),'s');
+        plot(x, unwrap(angle(expected_phase.')),'s');
         xlabel('Along-track position, rlines');
         ylabel('Radians');
         legend('UnwrapPhase(max(data))', 'Expected');
@@ -914,7 +944,7 @@ elseif run_example == 7
         title('Phase Checks');
         subplot(313);
         plot(x, angle(data_max),'.'); hold on;
-        plot(x, angle(expected_phase),'s');
+        plot(x, angle(expected_phase.'),'s');
         xlabel('Along-track position, rlines');
         ylabel('Radians');
         legend('Phase(max(data))', 'Expected');
@@ -931,6 +961,14 @@ elseif run_example == 7
       
       for compressing_this = 1  %continue; % FullSim TD FD windows
         
+        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+          continue;
+        end
+        
+        if 0 || length(param.target.x) > 4
+          continue;
+        end
+        
         if ~exist('fig_h_windows', 'var')
           call_sign = sprintf('FullSim TD FD windows');
           fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -941,7 +979,7 @@ elseif run_example == 7
           figure( fig_h_windows );
         end
         subplot(121);
-        plot(time/1e-6, tmp(:,twtt_min_idx) ); hold on;
+        plot(time/1e-6, tmp(:,twtt_min_idx),'.-' ); hold on;
         plot(twtt_min/1e-6, tmp(tmp_max_idx(twtt_min_idx), twtt_min_idx) , 's','LineWidth',2);
         xlabel('Fast-time, us');
         ylabel('Magnitude, dB');
@@ -968,6 +1006,6 @@ elseif run_example == 7
       
     end % for wf_adc
   end % for img
-
+  
 end %% for run_example
 
