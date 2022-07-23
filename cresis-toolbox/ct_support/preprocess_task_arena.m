@@ -21,7 +21,6 @@ function success = preprocess_task_arena(param)
 base_dir = fullfile(param.config.base_dir);
 config_folder_name = fullfile(param.config.config_folder_name);
 reuse_tmp_files = param.config.reuse_tmp_files;
-mat_or_bin_hdr_output = param.config.mat_or_bin_hdr_output;
 
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
@@ -66,20 +65,22 @@ configs = configs(~bad_mask);
 for config_idx = 1:length(configs)
   %% Initialize variables
   arena_radar_header_type; % Load radar header types
+  
   last_bytes_m = [];
   last_bytes = zeros(64,1,'uint8');
   last_bytes_len = int32(0);
   num_expected = int32(-1);
   pkt_counter = int32(-1);
-  if strcmpi(configs(config_idx).radar_name,'KUSnow')
-    radar_header_type = snow_radar_header_type;
+  if strcmpi(configs(config_idx).radar_name,'KUSnow') ...
+      || strcmpi(configs(config_idx).radar_name,'SnowRadar2')
+    radar_header_type = snow_radar_header_type; % arena_radar_header_type
     min_num_expected = int32(0);
     max_num_expected = int32(configs(config_idx).max_num_bins);
     default_num_expected = int32(512);
     num_header_fields = int32(9);
     length_field_offset = int32(68);
   elseif strcmpi(configs(config_idx).radar_name,'TOHFSounder')
-    radar_header_type = hf_sounder_radar_header_type;
+    radar_header_type = hf_sounder_radar_header_type; % arena_radar_header_type
     min_num_expected = int32(0);
     max_num_expected = int32(configs(config_idx).max_num_bins);
     default_num_expected = int32(512);
@@ -92,7 +93,7 @@ for config_idx = 1:length(configs)
     num_header_fields = int32(33);
     length_field_offset = int32(260);
   elseif strcmpi(configs(config_idx).radar_name,'ku0001') || strcmpi(configs(config_idx).radar_name,'ku0002')
-    radar_header_type = ku0001_radar_header_type;
+    radar_header_type = ku0001_radar_header_type; % arena_radar_header_type
     min_num_expected = int32(0);
     max_num_expected = int32(configs(config_idx).max_num_bins);
     default_num_expected = int32(512);
@@ -100,7 +101,13 @@ for config_idx = 1:length(configs)
     length_field_offset = int32(68);
     
   else
-    error('Not a supported radar header type %d.', radar_header_type);
+    warning('Not a supported arena config XML radar name %s. Could indicate a file error. If a new system, then an entry may need to be added here. Run "dbcont" to continue and use default values.', configs(config_idx).radar_name);
+    keyboard
+    min_num_expected = int32(0);
+    max_num_expected = int32(configs(config_idx).max_num_bins);
+    default_num_expected = int32(512);
+    num_header_fields = int32(9);
+    length_field_offset = int32(68);
   end
   
   %% Get Files for each board
@@ -147,11 +154,7 @@ for config_idx = 1:length(configs)
         fullfile(board_folder_name, fn_name));
       [out_fn_dir,out_fn_name] = fileparts(out_fn);
       out_fn = fullfile(out_fn_dir,[out_fn_name,'.dat']);
-      if strcmpi(mat_or_bin_hdr_output,'.mat')
-        out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.mat']);
-      else
-        out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.hdr']);
-      end
+      out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.mat']);
       
       % Print status
       fprintf('arena_pkt_strip %d/%d %d/%d %s (%s)\n    %s\n', config_idx, ...
@@ -211,31 +214,48 @@ for config_idx = 1:length(configs)
       end
       
       % Check to see if outputs already exist
-      if strcmpi(configs(config_idx).radar_name,'ku0002')
-        if reuse_tmp_files && exist(out_hdr_fn,'file')      
-          continue;
-        end
-      else
-        if reuse_tmp_files && exist(out_hdr_fn,'file') ...
-            && (strcmpi(configs(config_idx).datastream_type,'tcp') || exist(out_fn,'file'))
+      if reuse_tmp_files && exist(out_hdr_fn,'file')
+        % For older systems that used UDP (datastream_type == 'udp'), the
+        % UDP packet headers are in the raw data files and preprocess also
+        % creates a copy of the data files without the packet header. Look
+        % for this file in that case. Newer systems can override this check
+        % by setting param.config.arena.daq.udp_packet_headers = false.
+        if ~strcmpi(configs(config_idx).datastream_type,'udp') ...
+            || exist(out_fn,'file') ...
+            || isfield(param.config.arena,'daq') ...
+               && isfield(param.config.arena.daq,'udp_packet_headers') ...
+               && ~param.config.arena.daq.udp_packet_headers
+          % Load the file to ensure it is not corrupted:
+          % * If not corrupted, then execution continues onto the next
+          %   file.
+          % * If the file is corrupted, matlab will produce an error here
+          %   and stop. The corrupt file should be deleted and the
+          %   preprocess run again.
           load(out_hdr_fn,'last_bytes','last_bytes_len','num_expected','pkt_counter');
           continue;
         end
       end
       
       %% Read in headers from data file and create network packet stripped data file
-      if strcmpi(configs(config_idx).datastream_type,'tcp')
-        [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_tcp_mex(fn,out_fn,last_bytes,last_bytes_len, ...
+      if strcmpi(configs(config_idx).datastream_type,'udp') ...
+          && (~isfield(param.config.arena,'daq') ...
+          || ~isfield(param.config.arena.daq,'udp_packet_headers') ...
+          || param.config.arena.daq.udp_packet_headers)
+        % In old arena systems, choosing the UDP datastream created raw
+        % data files with UDP packet headers in them and a copy of the raw
+        % data file without the packet headers will be made in "out_fn". If
+        % using a new system, then the UDP packet headers are not in the
+        % files, but param.config.arena.daq.udp_packet_headers must be set
+        % to true for preprocess to process them correctly.
+        [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
           num_expected,pkt_counter,min_num_expected,max_num_expected, ...
           default_num_expected,num_header_fields,length_field_offset);
       else
-        if strcmpi(configs(config_idx).radar_name,'ku0002')
-          [hdr,data] = basic_load_arena(fn);
-        else
-          [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
-            num_expected,pkt_counter,min_num_expected,max_num_expected, ...
-            default_num_expected,num_header_fields,length_field_offset);
-        end
+        % The "out_fn" input argument is ignored. These raw data files do
+        % not contain UDP packet headers.
+        [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_tcp_mex(fn,out_fn,last_bytes,last_bytes_len, ...
+          num_expected,pkt_counter,min_num_expected,max_num_expected, ...
+          default_num_expected,num_header_fields,length_field_offset);
       end
       
       %% Write header output file
@@ -253,6 +273,7 @@ for config_idx = 1:length(configs)
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
             'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
             'last_bytes','last_bytes_len','num_expected','pkt_counter');
+          
         elseif strcmpi(configs(config_idx).radar_name,'ku0002') 
           offset = hdr{1}.frame_sync;
           mode_latch = hdr{1}.mode;
@@ -265,8 +286,10 @@ for config_idx = 1:length(configs)
           
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
             'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
-            'last_bytes','last_bytes_len','num_expected','pkt_counter');          
-        elseif strcmpi(configs(config_idx).radar_name,'KUSnow')
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
+          
+        elseif strcmpi(configs(config_idx).radar_name,'KUSnow') ...
+          || strcmpi(configs(config_idx).radar_name,'SnowRadar2')
           offset = mod(hdr(1,:),2^32);
           mode_latch = mod(hdr(3,:),2^8);
           subchannel = mod(bitshift(hdr(3,:),-8),2^8);
@@ -407,10 +430,15 @@ for config_idx = 1:length(configs)
     oparams{end}.records.file.start_idx(board_idx) = 1;
     oparams{end}.records.file.stop_idx(board_idx) = length(configs(config_idx).fns{board_idx});
   end
-  if strcmpi(configs(config_idx).datastream_type,'tcp')
-    oparams{end}.records.file.base_dir = base_dir;
-  else
+  if strcmpi(configs(config_idx).datastream_type,'udp') ...
+      || ~isfield(param.config.arena,'daq') ...
+      || ~isfield(param.config.arena.daq,'udp_packet_headers') ...
+      || param.config.arena.daq.udp_packet_headers
+    % See earlier discussion on udp_packet_headers. The raw data files with
+    % the UDP packet headers removed are stored in ct_tmp.
     oparams{end}.records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
+  else
+    oparams{end}.records.file.base_dir = base_dir;
   end
   oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
   if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
@@ -437,6 +465,24 @@ for config_idx = 1:length(configs)
     board_idx = board_idx_wfs(wf_idx);
     mode_latch = mode_wfs(wf_idx);
     subchannel = subchannel_wfs(wf_idx);
+    if strcmpi(param.season_name,'2022_Greenland_P3')
+      % Delete This After AITT 2022 done
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq = 10e9/1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth = 15e9/1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.sampFreq = 2400; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints = 240e-6*configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6; % TEMP FIX
+      configs(config_idx).dac{1}.delay = 0; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha = 15e9/240e-6;
+      for tx = 1:length(oparams{end}.radar.wfs(wf).tx_paths)
+        tx_idx = oparams{end}.radar.wfs(wf).tx_paths(tx);
+        if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
+          configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale = 1;
+        else
+          scale(tx) = 0;
+        end
+      end
+    end
+    
     fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq*1e6;
     BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth*1e6;
     if strcmpi(configs(config_idx).radar_name,'ku0002')
@@ -528,8 +574,16 @@ if ~isempty(param.config.param_fn)
   read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
   fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
-  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   
   param_txt_fn = ct_filename_ct_tmp(param,'','param', [param.config.date_str,'.txt']);
@@ -563,8 +617,16 @@ if ~isempty(param.config.param_fn)
   fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
   fprintf(fid,'\n');
-  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   fclose(fid);
 end

@@ -18,6 +18,7 @@ param_fns = {};
 % param_fns{end+1} = 'accum_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
 % param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
+% param_fns{end+1} = 'accum_param_2022_Greenland_Ground.xls';
 
 %% CReSIS Kuband Radar
 % param_fns{end+1} = 'kuband_param_2009_Antarctica_DC8.xls';
@@ -99,6 +100,7 @@ param_fns = {};
 % param_fns{end+1} = 'snow_param_2019_Antarctica_GV.xls';
 % param_fns{end+1} = 'snow_param_2019_SouthDakota_N1KU.xls';
 % param_fns{end+1} = 'snow_param_2020_SouthDakota_N1KU.xls';
+% param_fns{end+1} = 'snow_param_2022_Greenland_P3.xls';
 
 %% CReSIS RDS (data products only)
 % param_fns{end+1} = 'rds_param_2009_Greenland_TO_wise.xls'; % Data outputs only
@@ -137,9 +139,16 @@ param_fns = {};
 % param_fns{end+1} = 'snow_param_2021_Alaska_SO.xls'; % Season not complete/NOT CREATED
 
 %% AWI Radar Depth Sounder
+% rds_param_2015_Greenland_Polar6 % No good data from this season
+% rds_param_2016_Greenland_Polar6 % Listed under CReSIS RDS
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
+% param_fns{end+1} = 'rds_param_2019_Antarctica_Polar6.xls';
+% param_fns{end+1} = 'rds_param_2021_Greenland_Polar5.xls';
+% param_fns{end+1} = 'rds_param_2022_Greenland_Polar5.xls';
 
 %% AWI Snow Radar
 % param_fns{end+1} = 'snow_param_2016_Greenland_Polar6.xls'; % Season not completed
 % param_fns{end+1} = 'snow_param_2017_Arctic_Polar5.xls';
+% param_fns{end+1} = 'snow_param_2019_Arctic_Polar6.xls';
+% param_fns{end+1} = 'snow_param_2020_Arctic_Polar6.xls';

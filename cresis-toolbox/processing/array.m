@@ -39,7 +39,9 @@ function ctrl_chain = array(param,param_override)
 
 %% General Setup
 % =====================================================================
-param = merge_structs(param, param_override);
+if exist('param_override','var')
+  param = merge_structs(param, param_override);
+end
 
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
@@ -203,6 +205,14 @@ if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_avera
     % output position is the average position of all the array elements.
     param.array.fcs_pos_averaged = true;
   end
+end
+
+if ~isfield(param.array,'sv_model') || isempty(param.array.sv_model)
+  param.array.sv_model = 'ideal';
+end
+
+if ~isfield(param.array,'sv_lut_path') || isempty(param.array.sv_lut_path)
+  param.array.sv_lut_path = 'analysis';
 end
 
 %% Setup processing

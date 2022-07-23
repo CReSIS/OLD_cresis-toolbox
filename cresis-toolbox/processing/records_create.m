@@ -37,6 +37,18 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
+% param.records.arena: structure controlling records creation of
+% arena-based digital systems
+if ~isfield(param.records,'arena')
+  param.records.arena = [];
+end
+
+% param.records.arena.total_presums: override total_presums value that is
+% normally read in from the config.xml file
+if ~isfield(param.records.arena,'total_presums')
+  param.records.arena.total_presums = [];
+end
+
 % boards: List of subdirectories containing the files for each board (a
 % board is a data stream stored to disk and often contains the data stream
 % from multiple ADCs)
@@ -82,7 +94,7 @@ if ~isfield(param.records,'presum_mode') || isempty(param.records.presum_mode)
     % to be sent and discarded (not used for presumming)
     param.records.presum_mode = 1;
   elseif any(param.records.file.version == [407 408])
-    error('The param.records.presum_mode must be specified. Set to 0 if not using the 8-channel 1 GSPS DDS by Ledford/Leuschen. Set to 1 if it was used.');;
+    error('The param.records.presum_mode must be specified. If using the new waveform generator (Arena-based), this field should be 0. If using the old waveform generator, this field should be set to 1. The old waveform generator is an 8-channel 1 GSPS DDS by Ledford/Leuschen (not Arena-based).');
   else
     param.records.presum_mode = 0;
   end
@@ -100,10 +112,15 @@ if ~isfield(param.records.gps,'utc_time_halved') || isempty(param.records.gps.ut
   end
 end
 
+% records.frames: structure that controls the frame generation after the
+% records file is created.
 if ~isfield(param.records,'frames') || isempty(param.records.frames)
   param.records.frames = [];
 end
 
+% records.frames.mode: 0, 1, or 2. Default is 0. 0: do nothing with frames,
+% 1: autogenerate frames if they do not exist and then manually edit the
+% frames, 2: autogenerate the frames
 if ~isfield(param.records.frames,'mode') || isempty(param.records.frames.mode)
   param.records.frames.mode = 0;
 end
@@ -337,12 +354,16 @@ if any(param.records.file.version == [9 10 103 412])
 
     %% Correct EPRI/Arena: Find EPRI jumps and mask out
     % =====================================================================
-%     jump_idxs = find( abs(diff(double(epri_pris))/configs.total_presums - 1) > 0.1);
-    jump_idxs = find( abs(diff(double(epri_pris))/configs.adc{board_idx}.presums - 1) > 0.1);
+    if isempty(param.records.arena.total_presums)
+      total_presums = configs.total_presums;
+    else
+      total_presums = param.records.arena.total_presums;
+    end
+    jump_idxs = find( abs(diff(double(epri_pris))/total_presums - 1) > 0.1);
     
     bad_mask = zeros(size(epri_pris));
     for jump_idx = jump_idxs
-      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/configs.total_presums - 1;
+      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/total_presums - 1;
       fprintf('jump_idx: %d, jump: %d\n', jump_idx, jump);
       fprintf('epri_pris: %d to %d\n', epri_pris(jump_idx), epri_pris(jump_idx+1));
       if jump < -0.1
@@ -475,15 +496,20 @@ records_create_save_workspace;
 %% Correct time, sync GPS data, and save records
 records_create_sync;
 
+%% Create reference trajectory file
+if param.records.gps.en
+  records_reference_trajectory(param);
+end
+
 %% Create frames
 % param.records.frames.mode == 0: Do nothing
-if param.records.frames.mode == 1
+if param.records.frames.mode == 1 % Autogenerate if needed and then manually edit
   frames_fn = ct_filename_support(param,'','frames');
   if ~exist(frames_fn,'file')
     frames_autogenerate(param,param_override);
   end
   obj = frames_create(param,param_override);
-elseif param.records.frames.mode >= 2
+elseif param.records.frames.mode >= 2 % Autogenerate the frames file
   frames_autogenerate(param,param_override);
 end
 
