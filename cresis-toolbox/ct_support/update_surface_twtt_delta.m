@@ -151,15 +151,15 @@ for frm_idx = 1:length(param.cmd.frms)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
           adc = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,2));
           
-					if 0
-          	rx_path = mdata.(param_field).radar.wfs(wf).rx_paths(adc);
+          if 1
+            rx_path = mdata.(param_field).radar.wfs(wf).rx_paths(adc);
           else
-						try
-							rx_path = param.radar.wfs(wf).rx_paths(adc);
-						catch ME
-							rx_path = 1;
-						end
-					end
+            try
+              rx_path = param.radar.wfs(wf).rx_paths(adc);
+            catch ME
+              rx_path = 1;
+            end
+          end
           
           % t_ref correction
           if ~isfield(param.radar.wfs(wf),'t_ref') ...
@@ -322,16 +322,16 @@ for frm_idx = 1:length(param.cmd.frms)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
           adc = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,2));
-
-					if 0
-          	rx_path = mdata.(param_field).radar.wfs(wf).rx_paths(adc);
-					else
-						try
-							rx_path = param.radar.wfs(wf).rx_paths(adc);
-						catch ME
-							rx_path = 1;
-						end
-					end
+          
+          if 1
+            rx_path = mdata.(param_field).radar.wfs(wf).rx_paths(adc);
+          else
+            try
+              rx_path = param.radar.wfs(wf).rx_paths(adc);
+            catch ME
+              rx_path = 1;
+            end
+          end
           
           mdata.(param_field).radar.wfs(wf).t_ref = param.radar.wfs(wf).t_ref;
           mdata.(param_field).radar.wfs(wf).Tsys(rx_path) = param.radar.wfs(wf).Tsys(rx_path);
