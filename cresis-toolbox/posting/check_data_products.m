@@ -10,9 +10,10 @@
 
 %% Automated Section
 
+if ~exist('run_var'); run_var = 0; end
 %% Check that only good files are present in each directory
 
-command_window_out_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','check_data_products', sprintf('console_%s.txt',datestr(now,'YYYYmmDD_HHMMSS')));
+command_window_out_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','check_data_products', sprintf('console_%s_run_%02d.txt',datestr(now,'YYYYmmDD_HHMMSS'),run_var));
 command_window_out_fn_dir = fileparts(command_window_out_fn);
 if ~exist(command_window_out_fn_dir,'dir')
   mkdir(command_window_out_fn_dir);
@@ -119,6 +120,7 @@ if check_for_bad_files
 end
 
 %% Check that all outputs are there for each segment
+local_counter = 0;
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~enable_all_without_do_not_process
@@ -130,6 +132,12 @@ for param_idx = 1:length(params)
       continue;
     end
   end
+  local_counter = local_counter+1;
+  fprintf('=========================================================================\n');
+  fprintf('%s (local_counter: %d)\n', ...
+    param.day_seg, local_counter);
+  fprintf('=========================================================================\n');
+%   continue;
   % dirs_list: list of all output directories to check (usually just one)
   for dir_idx = 1:length(dirs_list)
     if ~isempty(dirs_list{dir_idx})
@@ -198,7 +206,7 @@ for param_idx = 1:length(params)
         fprintf('  Frames %s\n', frames_fn);
         if exist(frames_fn,'file')
           try
-            load(frames_fn);
+            frames = frames_load(param);
             fprintf('    Exists\n');
           catch ME
             fprintf('    Error:\n');
@@ -251,7 +259,7 @@ for param_idx = 1:length(params)
                 delete(fn);
               end
             else
-              if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'layer')
+              if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'layerData')
                 if strcmp(outputs{output_idx},'CSARP_out')
                   fns2 = get_filenames(fn,'','','');
                   fn = fns2{1};
@@ -314,7 +322,7 @@ for param_idx = 1:length(params)
       
       %% Check for expected image files
       frames_fn = ct_filename_support(param,'','frames');
-      frames = load(frames_fn);
+      frames = frames_load(param);
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
           outputs_post_dir,'', true),'images',param.day_seg);
@@ -413,6 +421,7 @@ for param_idx = 1:length(params)
     end
   end
 end
+
 
 diary off;
 fprintf('Console output: %s\n', command_window_out_fn);
