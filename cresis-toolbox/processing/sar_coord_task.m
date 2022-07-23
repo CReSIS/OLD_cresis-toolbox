@@ -113,23 +113,25 @@ SAR_coord_param.Lsar = Lsar;
 fcs = SAR_coord_system(SAR_coord_param,ref,ref,along_track,output_along_track);
 
 sar = [];
-sar.file_version = '1';
-sar.file_type = 'sar_coord';
-sar.Lsar = Lsar;
-sar.gps_source = records.gps_source;
+sar.Lsar            = Lsar;
+sar.gps_source      = records.gps_source;
 sar.gps_time_offset = records.param_records.records.gps.time_offset;
-sar.type = param.sar.mocomp.type;
-sar.sigma_x = param.sar.sigma_x;
-sar.presums = param.sar.presums;
-sar.along_track = along_track;
-sar.surf_pp = spline(along_track(surf_idxs),surf);
-sar.origin = fcs.origin;
-sar.x = fcs.x;
-sar.z = fcs.z;
-sar.roll = fcs.roll;
-sar.pitch = fcs.pitch;
-sar.heading = fcs.heading;
-sar.gps_time = fcs.gps_time;
+sar.type            = param.sar.mocomp.type;
+sar.sigma_x         = param.sar.sigma_x;
+sar.presums         = param.sar.presums;
+sar.along_track     = along_track;
+sar.surf_pp         = spline(along_track(surf_idxs),surf);
+sar.origin    = fcs.origin;
+sar.pos       = fcs.pos;
+sar.x         = fcs.x;
+sar.y         = fcs.y;
+sar.z         = fcs.z;
+sar.roll      = fcs.roll;
+sar.pitch     = fcs.pitch;
+sar.heading   = fcs.heading;
+sar.surface   = fcs.surface;
+sar.bottom    = fcs.bottom;
+sar.gps_time  = fcs.gps_time;
 
 sar_fn = fullfile(sar_coord_dir,'sar_coord.mat');
 sar_fn_dir = fileparts(sar_fn);
@@ -138,12 +140,15 @@ if ~exist(sar_fn_dir,'dir')
 end
 fprintf('Saving SAR coord %s (%s)\n', sar_fn, datestr(now));
 if param.ct_file_lock
-  file_version = '1L';
+  sar.file_version = '1L';
 else
-  file_version = '1';
+  sar.file_version = '1';
 end
-file_type = 'sar_coord';
-ct_save(sar_fn,'-struct','sar','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time','file_version','file_type');
+sar.file_type = 'sar_coord';
+ct_save(sar_fn,'-struct','sar','Lsar','gps_source','gps_time_offset', ...
+  'type','sigma_x','presums','along_track','surf_pp', ...
+  'origin','pos','x','y','z','roll','pitch','heading', ...
+  'surface','bottom','gps_time','file_version','file_type');
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 
