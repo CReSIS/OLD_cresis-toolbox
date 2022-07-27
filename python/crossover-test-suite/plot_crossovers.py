@@ -24,6 +24,7 @@ import ctypes
 from pathlib import Path
 
 import geopandas
+import matplotlib.pyplot as plt
 
 from shapely import wkb
 
@@ -53,11 +54,30 @@ def load_data():
     return data
 
 
-def plot_geom(geom: str):
+def plot_map():
+    """Make a base plot of the Greenland map."""
+    map_df = geopandas.read_file("maps/GRL_adm0.shp")
+    return map_df.boundary.plot(color='black')
+
+
+def plot_geom(geom: str, base, color):
+    
     geom_obj = wkb.loads(geom, hex=True)
     df = geopandas.GeoDataFrame(geometry=[geom_obj])
-    df.plot()
+    df.plot(ax=base, color=color)
+
+
+def plot_geoms():
+    data = load_data()
+    map_base = plot_map()
+    for row in data["0m segments"]:
+        plot_geom(row["geom"], map_base, "b")
+    for row in data["1m segments"]:
+        plot_geom(row["geom"], map_base, "r")
+
+    plt.show()
+
+
 
 if __name__ == "__main__":
-    data = load_data()
-    plot_geom(data["1m segments"][0]["geom"])
+    plot_geoms()
