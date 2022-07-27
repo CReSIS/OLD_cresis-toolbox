@@ -42,6 +42,7 @@ else
 end
 
 % DECODE THE SERVER RESPONSE
+disp 'Job submitted, timeout may occur here';
 [status,message] = jsonResponseDecode(jsonResponse);
 
 end
