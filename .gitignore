@@ -13,3 +13,5 @@
 python/crossover-test-suite/postgres-conn.json
 **/__pycache__/
 *.pyc
+python/crossover-test-suite/data
+python/crossover-test-suite/maps
