@@ -28,6 +28,7 @@ import geopandas
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib as mpl
+from matplotlib.offsetbox import AnchoredText
 
 from shapely import wkb
 from shapely.ops import transform
@@ -115,7 +116,7 @@ def plot_geoms(geoms: List[str], base, color=None, zorder=1):
     # Keep note of children of base axes before plotting so that we can find the new child after plotting
     old_children = set(base.get_children())
     df = geopandas.GeoDataFrame(geometry=geoms)
-    ax = df.plot(ax=base, color=color, zorder=zorder)
+    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=10)
 
     # Find the child we just plotted to return it
     plotted_child = list(set(ax.get_children()) - old_children)
@@ -135,13 +136,15 @@ class VisibilityState():
         self.plot_cx_0m = plot_cx_0m
         self.plot_cx_1m = plot_cx_1m
 
+        self.toggle_button_1 = None
+        self.toggle_button_2 = None
+
     def toggle_0m(self, clk=None):
         self.showing_0m = not self.showing_0m
         if self.plot_seg_0m is not None:
             self.plot_seg_0m.set_visible(self.showing_0m)
         if self.plot_cx_0m is not None:
             self.plot_cx_0m.set_visible(self.showing_0m)
-        # plt.draw()
 
     def toggle_1m(self, clk=None):
         self.showing_1m = not self.showing_1m
@@ -149,13 +152,16 @@ class VisibilityState():
             self.plot_seg_1m.set_visible(self.showing_1m)
         if self.plot_cx_1m is not None:
             self.plot_cx_1m.set_visible(self.showing_1m)
-        # plt.draw()
 
     def set_state(self, state):
         self.plot_seg_1m.set_visible(state)
         self.plot_seg_0m.set_visible(state)
         self.plot_cx_0m.set_visible(state)
         self.plot_cx_1m.set_visible(state)
+
+    def set_button_state(self, state):
+        self.toggle_button_1.set_visible(state)
+        self.toggle_button_2.set_visible(state)
 
 
 def plot_from_data(map_base, data):
@@ -190,12 +196,13 @@ def plot_from_data(map_base, data):
     b_toggle_1.on_clicked(state.toggle_1m)
     WIDGETS.append(b_toggle_1)
 
+    state.toggle_button_1 = ax_toggle_0
+    state.toggle_button_2 = ax_toggle_1
+
     map_base.legend([plot_seg_1m, plot_cx_1m, plot_seg_0m, plot_cx_0m], 
                     ['1m Segments', '1m Crossovers', 'Full Res Segments', 'Full Res Crossovers',])
 
     return state
-
-    # plt.draw()
 
 
 def get_segments(name, data):
@@ -228,10 +235,8 @@ def plot_pair(pair, map_base, data):
     if pair.cx_pair[1] is not None:
         elements.append(plot_geoms([pair.cx_pair[1]["cx_geom"]], map_base, COLORS["1m crossovers"], 2))
 
-
     return elements
     
-
 
 class DistanceState():
 
@@ -242,11 +247,17 @@ class DistanceState():
         self.selected_cx_idx = None
         self.visibility_state = visibility_state
         self.cx_plot_elements = None
+        self.home_button = None
+        self.zoom_toggle_button = None
+        self.cx_text = None
+        self.bounds = None
+        self.zoomed = False
 
     def view_prev(self, clk=None):
         if self.selected_cx_idx is None:
-            self.selected_cx_idx = 1
-        if self.selected_cx_idx == 0:
+            self.zoomed = True
+
+        if self.selected_cx_idx is None or self.selected_cx_idx == 0:
             self.selected_cx_idx = len(self.cx_distances)
         
         self.selected_cx_idx -= 1
@@ -255,8 +266,9 @@ class DistanceState():
     
     def view_next(self, clk=None):
         if self.selected_cx_idx is None:
-            self.selected_cx_idx = len(self.cx_distances) - 2
-        if self.selected_cx_idx == len(self.cx_distances) - 1:
+            self.zoomed = True
+
+        if self.selected_cx_idx is None or self.selected_cx_idx == len(self.cx_distances) - 1:
             self.selected_cx_idx = -1
         
         self.selected_cx_idx += 1
@@ -265,12 +277,30 @@ class DistanceState():
 
     def show_cx(self):
         self.visibility_state.set_state(False)
+        self.home_button.set_visible(True)
+        self.zoom_toggle_button.set_visible(True)
+        self.visibility_state.set_button_state(False)
         self.hide_cx()
 
         pair = self.cx_distances[self.selected_cx_idx]
 
-        self.cx_plot_elements = plot_pair(pair, self.map_base, data)
+        self.cx_plot_elements = plot_pair(pair, self.map_base, self.data)
 
+        # Get info for annotation box
+        cx_1_pp1 = None
+        cx_1_pp2 = None
+        cx_2_pp1 = None
+        cx_2_pp2 = None
+        if pair.cx_pair[0] is not None:
+            cx_1_pp1 = pair.cx_pair[0]["pp1_id"]
+            cx_1_pp2 = pair.cx_pair[0]["pp2_id"]
+        if pair.cx_pair[1] is not None:
+            cx_2_pp1 = pair.cx_pair[1]["pp1_id"]
+            cx_2_pp2 = pair.cx_pair[1]["pp2_id"]
+        
+        self.cx_text.txt.set_text(f"Crossover {self.selected_cx_idx}\nDistance {pair.distance:.3} m\nSegments {pair.segment_pair}\nFull Res point path ids {cx_1_pp1} {cx_1_pp2}\n1m point path ids {cx_2_pp1} {cx_2_pp2}")
+
+        # Set window viewport
         cx_1_bounds = []
         cx_2_bounds = []
         if pair.cx_pair[0] is not None and pair.cx_pair[1] is not None:
@@ -296,20 +326,31 @@ class DistanceState():
         xmargin = 0
         ymargin = 0
         if width < height:
-            xmargin = (height - width) // 2
+            xmargin = (height - width) / 2
         elif height < width:
-            ymargin = (width - height) // 2
+            ymargin = (width - height) / 2
 
-        self.map_base.set_xlim(
-            minx - xmargin,
-            maxx + xmargin
-            )
-        self.map_base.set_ylim(
-            miny - ymargin,
-            maxy + ymargin
-            )
+        self.bounds = [minx - xmargin, miny - ymargin, maxx + xmargin, maxy + ymargin]
 
-        # plt.draw()
+        if self.zoomed:
+            self.zoom_in()
+
+    def zoom_in(self):
+        if self.bounds is not None:
+            self.map_base.set_xlim(
+                self.bounds[0],
+                self.bounds[2]
+                )
+            self.map_base.set_ylim(
+                self.bounds[1],
+                self.bounds[3]
+                )
+            self.zoomed = True
+
+    def zoom_out(self):
+        self.map_base.set_xlim(DEFAULT_LIMITS[0], DEFAULT_LIMITS[2])
+        self.map_base.set_ylim(DEFAULT_LIMITS[1], DEFAULT_LIMITS[3])
+        self.zoomed = False
 
     def hide_cx(self):
         if self.cx_plot_elements is not None:
@@ -320,29 +361,52 @@ class DistanceState():
     def view_home(self, clk=None):
         self.hide_cx()
         self.visibility_state.set_state(True)
-        self.map_base.set_xlim(DEFAULT_LIMITS[0], DEFAULT_LIMITS[2])
-        self.map_base.set_ylim(DEFAULT_LIMITS[1], DEFAULT_LIMITS[3])
+        self.visibility_state.set_button_state(True)
+        self.home_button.set_visible(False)
+        self.zoom_toggle_button.set_visible(False)
+        self.zoom_out()
+        self.cx_text.txt.set_text("")
+
+    def zoom_toggle(self, clk=None):
+        self.zoomed = not self.zoomed
+        if self.zoomed:
+            self.zoom_in()
+        else:
+            self.zoom_out()
 
 
 def plot_dist_analyzer(map_base, data, cx_distances, visibility_state):
 
     ax_next_cx = plt.axes((0.9, 0.6, 0.1, 0.075))
     ax_prev_cx = plt.axes((0.9, 0.5, 0.1, 0.075))
-    ax_home_cx = plt.axes((0.9, 0.4, 0.1, 0.075))
+    ax_zoom_toggle_cx = plt.axes((0.9, 0.4, 0.1, 0.075))
+    ax_home_cx = plt.axes((0.9, 0.3, 0.1, 0.075))
 
     state = DistanceState(map_base, data, cx_distances, visibility_state)
 
-    b_next_cx = Button(ax_next_cx, 'Next Large Distance')
+    b_next_cx = Button(ax_next_cx, 'Show Next CX')
     b_next_cx.on_clicked(state.view_next)
     WIDGETS.append(b_next_cx)
-    b_prev_cx = Button(ax_prev_cx, 'Prev Large Distance')
+    b_prev_cx = Button(ax_prev_cx, 'Show Prev CX')
     b_prev_cx.on_clicked(state.view_prev)
     WIDGETS.append(b_prev_cx)
-    b_home = Button(ax_home_cx, 'Home')
+    b_zoom_toggle = Button(ax_zoom_toggle_cx, 'Toggle Zoom')
+    b_zoom_toggle.on_clicked(state.zoom_toggle)
+    WIDGETS.append(b_zoom_toggle)
+    b_home = Button(ax_home_cx, 'Show all')
     b_home.on_clicked(state.view_home)
     WIDGETS.append(b_home)
 
-    # plt.draw()
+    cx_text = AnchoredText(
+        "", prop={"size": 10}, frameon=False, loc='lower left')
+    map_base.add_artist(cx_text)
+
+    state.home_button = ax_home_cx
+    state.home_button.set_visible(False)
+    state.zoom_toggle_button = ax_zoom_toggle_cx
+    state.zoom_toggle_button.set_visible(False)
+
+    state.cx_text = cx_text
 
 
 if __name__ == "__main__":
@@ -356,3 +420,6 @@ if __name__ == "__main__":
     plot_dist_analyzer(map_base, data, cx_distances, visibility_state)
 
     plt.show()
+
+
+# TODO[Reece]: Do not assume the name or order of the files

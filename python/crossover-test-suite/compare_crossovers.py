@@ -78,15 +78,17 @@ def label_pair(seg1_name, seg2_name):
 
 def group_segment_pairs(cx_set):
     """Group data from crossover sets into pairs of segments."""
-    groups = groupby(cx_set, lambda row: label_pair(row["seg1_name"], row["seg2_name"]))
+    key = lambda row: label_pair(row["seg1_name"], row["seg2_name"])
+    # Iters passed to groupby must be sorted by the key
+    groups = groupby(sorted(cx_set, key=key), key=key)
     return {k: list(v) for k, v in groups}
 
 
 def find_differences(cx_set_1, cx_set_2):
     """Compare two sets of crossovers and find the distances between crossovers."""
+
     cx_set_1 = group_segment_pairs(cx_set_1)
     cx_set_2 = group_segment_pairs(cx_set_2)
-
     all_segment_pairs = set(cx_set_1.keys()) | set(cx_set_2.keys())
 
     segment_pair_comparisons = {}
@@ -107,8 +109,9 @@ def find_differences(cx_set_1, cx_set_2):
 if __name__ == "__main__":
     from plot_crossovers import load_data
     data = load_data()
+    # NOTE[REECE]: Always putting 0m (full res) and then 1m for consistency. This order is assumed elsewhere
     cx_distances = find_differences(data["0m crossovers"], data["1m crossovers"])
 
-
-
-# TODO[REECE]: Find crossovers without matches and allow interface to filter for these crossovers
+    print("Total crossovers:", len([cx.distance for cx in cx_distances]))
+    print("Total Distance (no inf):", sum(cx.distance for cx in cx_distances if cx.distance is not math.inf))
+    print("# Missing:", len([cx for cx in cx_distances if cx.distance is math.inf]))
