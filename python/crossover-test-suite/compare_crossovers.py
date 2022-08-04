@@ -5,9 +5,6 @@ from json import load
 import math
 
 
-MAX_DISTANCE = 2
-
-
 def distance(cx_1, cx_2):
     """Find the distance between two crossovers."""
     if cx_1 is None or cx_2 is None:

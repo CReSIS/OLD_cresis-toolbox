@@ -14,6 +14,12 @@ Likewise, a Fiona whl can obtained from https://www.lfd.uci.edu/~gohlke/pythonli
     Install it in the same manner.
 Install the remaining dependencies with `pip install -r requirements.txt`
 
+Map shape files can be obtained from https://maps.princeton.edu/catalog/stanford-sd368wz2435
+GRL_adm0.shp and GRL_adm0.shx should be placed in a maps folder.
+
+The data files csvs can be obtained by running the data_queries.py file on virtual boxes 
+which are already simplified to the desired resolutions. Use the postgres-conn.sample.json
+to produce a postgres-conn.json file which points to the vbox DB.
 
 Author: Reece Mathews
 """
@@ -29,10 +35,14 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib as mpl
 from matplotlib.offsetbox import AnchoredText
+import fiona.errors
 
 from shapely import wkb
 from shapely.ops import transform
 import pyproj
+
+
+os.chdir(Path(__file__).parent)
 
 load_ruler = True
 
@@ -103,7 +113,10 @@ def load_data():
 
 def plot_map():
     """Make a base plot of the Greenland map."""
-    map_df = geopandas.read_file("maps/GRL_adm0.shp")
+    try:
+        map_df = geopandas.read_file("maps/GRL_adm0.shp")
+    except fiona.errors.DriverError:
+        raise FileNotFoundError("No map files found")
     map_df = map_df.set_crs("EPSG:4326")
     map_df = map_df.to_crs("EPSG:3413")
     return map_df.boundary.plot(color='black')
@@ -116,7 +129,7 @@ def plot_geoms(geoms: List[str], base, color=None, zorder=1):
     # Keep note of children of base axes before plotting so that we can find the new child after plotting
     old_children = set(base.get_children())
     df = geopandas.GeoDataFrame(geometry=geoms)
-    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=10)
+    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=20)
 
     # Find the child we just plotted to return it
     plotted_child = list(set(ax.get_children()) - old_children)
