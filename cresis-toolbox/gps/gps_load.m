@@ -1,11 +1,30 @@
 function gps = gps_load(gps_fn)
 % gps = gps_load(gps_fn)
 %
+% gps_fn: either a string containing the path to a CSARP_support GPS file
+% or a parameter structure from read_param_xls.m which has sufficient
+% information populated to determine the standard location of the gps
+% file associated with the data segment the parameter structure is for.
+%
 % gps_load('/cresis/snfs1/dataproducts/csarp_support/gps/2019_Antarctica_Ground/gps_20200107.mat');
 %
 % Author: John Paden
 %
 % See also: gps_check, gps_load, gps_make
+
+if isstruct(gps_fn)
+  % When gps_fn is a structure, it should be a parameter spreadsheet
+  % structure (e.g. as read in from read_param_xls.m)
+  param = gps_fn;
+  if ~isfield(param,'day_seg') || isempty(param.day_seg)
+    error('%s requires that param.day_seg exist and be nonempty', mfilename);
+  end
+  gps_fn = ct_filename_support(param,'','gps',1);
+end
+
+if ~exist(gps_fn,'file')
+  error('GPS file does not exist: %s (%s).', gps_fn, datestr(now));
+end
 
 gps = load(gps_fn);
 old_gps = gps;
