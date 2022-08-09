@@ -37,7 +37,7 @@ end
 
 % SET SEGMENT_RESOLUTION DEFAULT to full resolution
 if ~isfield(param.properties,'segment_resolution')
-  param.properties.segment_resolution = 0;
+  param.properties.segment_resolution = -1;
 end
 
 % CONSTRUCT THE JSON STRUCTURE
