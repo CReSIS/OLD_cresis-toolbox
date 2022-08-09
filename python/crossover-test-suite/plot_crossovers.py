@@ -66,12 +66,14 @@ if Path(os.getcwd()).name == "cresis-toolbox":
 
 DATA_DIR = Path("data")
 WIDGETS = []
+SIMP_RES = "1m"  # Resolution of the simplified data
+
 
 COLORS = {
-        "1m segments":   "C1",
-        "1m crossovers": "C2",
+        f"{SIMP_RES} segments":   "C1",
+        f"{SIMP_RES} crossovers": "C2",
         "0m segments":   "C3",
-        "0m crossovers": "C4",
+        "0m crossovers": "C5",
     }
 
 DEFAULT_LIMITS = [-3.5e6, -3.5e6, 1e6, -0.5e6]
@@ -129,7 +131,7 @@ def plot_geoms(geoms: List[str], base, color=None, zorder=1):
     # Keep note of children of base axes before plotting so that we can find the new child after plotting
     old_children = set(base.get_children())
     df = geopandas.GeoDataFrame(geometry=geoms)
-    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=20)
+    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=30)
 
     # Find the child we just plotted to return it
     plotted_child = list(set(ax.get_children()) - old_children)
@@ -191,8 +193,8 @@ def plot_from_data(map_base, data):
     map_base.set_xlabel('Meters East of North pole')
     map_base.set_ylabel('Meters North of North pole')
 
-    plot_seg_1m = plot_geoms([row["geom"] for row in data["1m segments"]], map_base, COLORS["1m segments"])
-    plot_cx_1m = plot_geoms([row["cx_geom"] for row in data["1m crossovers"]], map_base, COLORS["1m crossovers"], 2)
+    plot_seg_1m = plot_geoms([row["geom"] for row in data[f"{SIMP_RES} segments"]], map_base, COLORS[f"{SIMP_RES} segments"])
+    plot_cx_1m = plot_geoms([row["cx_geom"] for row in data[f"{SIMP_RES} crossovers"]], map_base, COLORS[f"{SIMP_RES} crossovers"], 2)
     plot_seg_0m = plot_geoms([row["geom"] for row in data["0m segments"]], map_base, COLORS["0m segments"])
     plot_cx_0m = plot_geoms([row["cx_geom"] for row in data["0m crossovers"]], map_base, COLORS["0m crossovers"], 2)
 
@@ -225,9 +227,9 @@ def get_segments(name, data):
         if row["name"] == name:
             segments["0m segments"] = row
             break
-    for row in data["1m segments"]:
+    for row in data[f"{SIMP_RES} segments"]:
         if row["name"] == name:
-            segments["1m segments"] = row
+            segments[f"{SIMP_RES} segments"] = row
             break
 
     return segments
@@ -246,7 +248,7 @@ def plot_pair(pair, map_base, data):
     if pair.cx_pair[0] is not None:
         elements.append(plot_geoms([pair.cx_pair[0]["cx_geom"]], map_base, COLORS["0m crossovers"], 2))
     if pair.cx_pair[1] is not None:
-        elements.append(plot_geoms([pair.cx_pair[1]["cx_geom"]], map_base, COLORS["1m crossovers"], 2))
+        elements.append(plot_geoms([pair.cx_pair[1]["cx_geom"]], map_base, COLORS[f"{SIMP_RES} crossovers"], 2))
 
     return elements
     
@@ -429,7 +431,7 @@ if __name__ == "__main__":
     map_base = plot_map()
 
     visibility_state = plot_from_data(map_base, data)
-    cx_distances = find_differences(data["0m crossovers"], data["1m crossovers"])
+    cx_distances = find_differences(data["0m crossovers"], data[f"{SIMP_RES} crossovers"])
     plot_dist_analyzer(map_base, data, cx_distances, visibility_state)
 
     plt.show()
