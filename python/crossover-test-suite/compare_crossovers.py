@@ -5,6 +5,10 @@ from json import load
 import math
 
 
+# The distance between crossovers past which will be reported
+ACCEPTABLE_DISTANCE = 2
+
+
 def distance(cx_1, cx_2):
     """Find the distance between two crossovers."""
     if cx_1 is None or cx_2 is None:
@@ -104,11 +108,21 @@ def find_differences(cx_set_1, cx_set_2):
 
 
 if __name__ == "__main__":
-    from plot_crossovers import load_data
+    from plot_crossovers import load_data, SIMP_RES
     data = load_data()
-    # NOTE[REECE]: Always putting 0m (full res) and then 1m for consistency. This order is assumed elsewhere
-    cx_distances = find_differences(data["0m crossovers"], data["1m crossovers"])
+    # NOTE[REECE]: Always putting 0m (full res) and then simplified for consistency. This order is assumed elsewhere
+    cx_distances = find_differences(data["0m crossovers"], data[f"{SIMP_RES} crossovers"])
 
     print("Total crossovers:", len([cx.distance for cx in cx_distances]))
     print("Total Distance (no inf):", sum(cx.distance for cx in cx_distances if cx.distance is not math.inf))
     print("# Missing:", len([cx for cx in cx_distances if cx.distance is math.inf]))
+    print(f"Total past {ACCEPTABLE_DISTANCE}m difference:", len([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE]))
+    print(f"Total distance past {ACCEPTABLE_DISTANCE}m difference:", sum([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE and cx.distance is not math.inf]))
+    print("Unnacceptable differences:")
+    print("{:^10} {:^20} {:^23}".format("Distance", "Angles", "Segments"), sep="|")
+    for cx in cx_distances:
+        # if cx.distance <= ACCEPTABLE_DISTANCE:
+        #     break
+        angles = (f"{float(cx.cx_pair[0]['angle']) if cx.cx_pair[0] is not None else 'None':<6.4}",
+                  f"{float(cx.cx_pair[1]['angle']) if cx.cx_pair[1] is not None else 'None':<6.4}")
+        print(f"{cx.distance:<10.4}", f"{str(angles):<20}", cx.segment_pair, sep="|")
