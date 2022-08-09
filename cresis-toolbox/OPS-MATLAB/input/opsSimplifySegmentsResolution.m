@@ -8,7 +8,7 @@ function [status,data] = opsSimplifySegmentsResolution(sys,param)
 %   sys: (string) sys name ('rds','accum','snow',...)
 %   param: structure with fields
 %     properties.segment: {string(s)} OR segment_id [integer(s)]
-%     properties.resolution: number of meters between each point
+%     properties.resolution: the threshold to which to simplify
 %
 % Output:
 %   status: integer (0:Error,1:Success,2:Warning)

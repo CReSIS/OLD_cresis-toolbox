@@ -24,8 +24,8 @@ sysName = 'rds';
 % ----------------------------------------------------------------
 % resolution: the resolution in meters to which to simplify the segments using the Postgis
 % command, ST_SimplifyPreserveTopology. This removes any points which can be removed while
-% maintaining the original line within resolution meters.
-resolution = 1;
+% maintaining the original line within resolution meters. -1 is full resolution.
+resolution = 0;
 
 alterParam.properties.resolution = resolution;
 
