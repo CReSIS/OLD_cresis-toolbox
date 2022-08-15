@@ -64,9 +64,9 @@ if Path(os.getcwd()).name == "cresis-toolbox":
     os.chdir("python/crossover-test-suite")
 
 
-DATA_DIR = Path("data")
+DATA_DIR = Path("data") / "ops0"
 WIDGETS = []
-SIMP_RES = "1m"  # Resolution of the simplified data
+SIMP_RES = "0.1m"  # Resolution of the simplified data
 
 
 COLORS = {
@@ -215,7 +215,7 @@ def plot_from_data(map_base, data):
     state.toggle_button_2 = ax_toggle_1
 
     map_base.legend([plot_seg_1m, plot_cx_1m, plot_seg_0m, plot_cx_0m], 
-                    ['1m Segments', '1m Crossovers', 'Full Res Segments', 'Full Res Crossovers',])
+                    [f'{SIMP_RES} Segments', f'{SIMP_RES} Crossovers', 'Full Res Segments', 'Full Res Crossovers',])
 
     return state
 
