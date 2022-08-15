@@ -121,8 +121,8 @@ if __name__ == "__main__":
     print("Unnacceptable differences:")
     print("{:^10} {:^20} {:^23}".format("Distance", "Angles", "Segments"), sep="|")
     for cx in cx_distances:
-        # if cx.distance <= ACCEPTABLE_DISTANCE:
-        #     break
+        if cx.distance <= ACCEPTABLE_DISTANCE:
+            break
         angles = (f"{float(cx.cx_pair[0]['angle']) if cx.cx_pair[0] is not None else 'None':<6.4}",
                   f"{float(cx.cx_pair[1]['angle']) if cx.cx_pair[1] is not None else 'None':<6.4}")
         print(f"{cx.distance:<10.4}", f"{str(angles):<20}", cx.segment_pair, sep="|")
