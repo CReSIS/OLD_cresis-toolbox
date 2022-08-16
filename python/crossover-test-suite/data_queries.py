@@ -78,7 +78,7 @@ def run_query_segments(current_resolution: float, system: str = "rds",
     segments, desc = query(f"""with geom1 as (select geom from {system}_segments where name=%s),
                                 geom2 as (select geom from {system}_segments where name=%s)
 
-                              select distinct seg.name, st_npoints(geom) as num_points, ss.name, ss.location_id, geom 
+                              select distinct seg.name, st_npoints(geom) as num_points, geom 
                               from {system}_segments seg join {system}_seasons ss on ss.id=seg.season_id where ss.location_id=1
                               and (seg.name in %s or seg.name in 
                               (select seg.name from geom1, geom2, {system}_segments seg
@@ -131,8 +131,8 @@ def run_delete_crossovers(system: str = "rds"):
 
 
 if __name__ == "__main__":
-    RESOLUTION = .1
+    RESOLUTION = 0
     DB = "ops0"
     # run_delete_crossovers()
-    run_query_segments(RESOLUTION)
-    run_query_crossovers(RESOLUTION)
+    # run_query_segments(RESOLUTION)
+    # run_query_crossovers(RESOLUTION)
