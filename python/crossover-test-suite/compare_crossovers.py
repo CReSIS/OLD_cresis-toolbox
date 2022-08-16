@@ -118,6 +118,16 @@ if __name__ == "__main__":
     print("# Missing:", len([cx for cx in cx_distances if cx.distance is math.inf]))
     print(f"Total past {ACCEPTABLE_DISTANCE}m difference:", len([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE]))
     print(f"Total distance past {ACCEPTABLE_DISTANCE}m difference:", sum([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE and cx.distance is not math.inf]))
+    
+    total_0m_points = 0
+    for segment in data["0m segments"]:
+        total_0m_points += int(segment["num_points"])
+    total_simp_points = 0
+    for segment in data[f"{SIMP_RES} segments"]:
+        total_simp_points += int(segment["num_points"])
+    
+    print("Number of points reduced to", total_simp_points / total_0m_points)
+
     print("Unnacceptable differences:")
     print("{:^10} {:^20} {:^23}".format("Distance", "Angles", "Segments"), sep="|")
     for cx in cx_distances:
