@@ -1,7 +1,6 @@
 """Tools for determining the difference between two sets of crossovers."""
 from collections import namedtuple
 from itertools import groupby, product, chain
-from json import load
 import math
 
 
@@ -109,7 +108,9 @@ def find_differences(cx_set_A, cx_set_B):
 
 if __name__ == "__main__":
     from plot_crossovers import load_data, TARGETA, TARGETB
-    data = load_data()
+    print("loading data")
+    data = load_data(("crossovers", ))
+    print("finding crossover differences")
     cx_distances = find_differences(data[f"{TARGETA} crossovers"], data[f"{TARGETB} crossovers"])
 
     print("Total crossovers:", len([cx.distance for cx in cx_distances]))
@@ -118,15 +119,6 @@ if __name__ == "__main__":
     print(f"Total past {ACCEPTABLE_DISTANCE}m difference:", len([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE]))
     print(f"Total distance past {ACCEPTABLE_DISTANCE}m difference:", sum([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE and cx.distance is not math.inf]))
     
-    total_A_points = 0
-    for segment in data[f"{TARGETA} segments"]:
-        total_A_points += int(segment["num_points"])
-    total_B_points = 0
-    for segment in data[f"{TARGETB} segments"]:
-        total_B_points += int(segment["num_points"])
-    
-    print("Number of points reduced to", total_B_points / total_A_points)
-
     print("Unnacceptable differences:")
     print("{:^10} {:^20} {:^23}".format("Distance", "Angles", "Segments"), sep="|")
     for cx in cx_distances:

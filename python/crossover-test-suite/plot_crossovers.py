@@ -66,9 +66,11 @@ if Path(os.getcwd()).name == "cresis-toolbox":
 
 DATA_DIR = Path("data")
 WIDGETS = []
-TARGETB = "ops/0m"
 TARGETA = "ops0/0m"
-
+TARGETB = "ops0/0.1m"
+# TARGETA = "vbox/15m"
+# TARGETB = "vbox/1m"
+IGNORED_SEGMENTS = ['20190512_02', '20190515_01', '20190516_02', '20190508_01']
 
 COLORS = {
         f"{TARGETB} segments":   "C1",
@@ -96,12 +98,12 @@ def convert_geom(geom: str):
     return geom_proj
 
 
-def load_data():
+def load_data(data_types=("segments", "crossovers")):
     """Load each CSV from the DATA_DIR."""
     data = {}
 
     for target in (TARGETA, TARGETB):
-        for file_type in ("segments", "crossovers"):
+        for file_type in data_types:
             name = f"{target} {file_type}"
             file = DATA_DIR / f"{name}.csv"
             with open(file, newline='') as f:
@@ -112,6 +114,14 @@ def load_data():
                     if field.endswith("geom"):
                         geom_str = row[field]
                         row[field] = convert_geom(geom_str)
+
+    # Remove ignored segments
+    for file in data:
+        if file.endswith("segments"):
+            data[file] = [row for row in data[file] if row["name"] not in IGNORED_SEGMENTS]
+        if file.endswith("crossovers"):
+            data[file] = [row for row in data[file] if row["seg1_name"] not in IGNORED_SEGMENTS 
+                                                    and row["seg2_name"] not in IGNORED_SEGMENTS]
 
     return data
 
@@ -124,7 +134,9 @@ def plot_map():
         raise FileNotFoundError("No map files found")
     map_df = map_df.set_crs("EPSG:4326")
     map_df = map_df.to_crs("EPSG:3413")
-    return map_df.boundary.plot(color='black')
+
+    map_base = map_df.boundary.plot(color='black')
+    return map_base
 
 
 def plot_geoms(geoms: List[str], base, color=None, zorder=1):
@@ -145,17 +157,29 @@ def plot_geoms(geoms: List[str], base, color=None, zorder=1):
 
 
 class VisibilityState():
+    """Control display of all segments."""
     showing_A = True
     showing_B = True
 
-    def __init__(self, plot_seg_A, plot_seg_B, plot_cx_A, plot_cx_B):
-        self.plot_seg_A = plot_seg_A
-        self.plot_seg_B = plot_seg_B
-        self.plot_cx_A = plot_cx_A
-        self.plot_cx_B = plot_cx_B
+    def __init__(self, data, map_base):
+        self.plot_seg_A = None
+        self.plot_seg_B = None
+        self.plot_cx_A = None
+        self.plot_cx_B = None
+        self.data = data
+        self.map_base = map_base
 
         self.toggle_button_A = None
         self.toggle_button_B = None
+
+    def first_plot(self):
+        self.plot_seg_A = plot_geoms([row["geom"] for row in data[f"{TARGETA} segments"]], map_base, COLORS[f"{TARGETA} segments"])
+        self.plot_cx_A = plot_geoms([row["cx_geom"] for row in data[f"{TARGETA} crossovers"]], map_base, COLORS[f"{TARGETA} crossovers"], 2)
+        self.plot_seg_B = plot_geoms([row["geom"] for row in data[f"{TARGETB} segments"]], map_base, COLORS[f"{TARGETB} segments"])
+        self.plot_cx_B = plot_geoms([row["cx_geom"] for row in data[f"{TARGETB} crossovers"]], map_base, COLORS[f"{TARGETB} crossovers"], 2)
+        self.map_base.legend([self.plot_seg_B, self.plot_cx_B, self.plot_seg_A, self.plot_cx_A], 
+                             [f"{TARGETB} Segments", f'{TARGETB} Crossovers', f'{TARGETA} Segments', f'{TARGETA} Crossovers',])
+
 
     def toggle_A(self, clk=None):
         self.showing_A = not self.showing_A
@@ -172,6 +196,10 @@ class VisibilityState():
             self.plot_cx_B.set_visible(self.showing_B)
 
     def set_state(self, state):
+        if self.plot_seg_A is None:
+            if not state:
+                return 
+            self.first_plot()
         self.plot_seg_A.set_visible(state)
         self.plot_seg_B.set_visible(state)
         self.plot_cx_A.set_visible(state)
@@ -196,13 +224,8 @@ def plot_from_data(map_base, data):
     map_base.set_xlabel('Meters East of North pole')
     map_base.set_ylabel('Meters North of North pole')
 
-    plot_seg_A = plot_geoms([row["geom"] for row in data[f"{TARGETA} segments"]], map_base, COLORS[f"{TARGETA} segments"])
-    plot_cx_A = plot_geoms([row["cx_geom"] for row in data[f"{TARGETA} crossovers"]], map_base, COLORS[f"{TARGETA} crossovers"], 2)
-    plot_seg_B = plot_geoms([row["geom"] for row in data[f"{TARGETB} segments"]], map_base, COLORS[f"{TARGETB} segments"])
-    plot_cx_B = plot_geoms([row["cx_geom"] for row in data[f"{TARGETB} crossovers"]], map_base, COLORS[f"{TARGETB} crossovers"], 2)
-
     # Create visibility toggle buttons
-    state = VisibilityState(plot_seg_A, plot_seg_B, plot_cx_A, plot_cx_B)
+    state = VisibilityState(data, map_base)
 
     ax_toggle_A = plt.axes((0.9, 0.8, 0.1, 0.075))
     ax_toggle_B = plt.axes((0.9, 0.7, 0.1, 0.075))
@@ -216,9 +239,6 @@ def plot_from_data(map_base, data):
 
     state.toggle_button_A = ax_toggle_A
     state.toggle_button_B = ax_toggle_B
-
-    map_base.legend([plot_seg_B, plot_cx_B, plot_seg_A, plot_cx_A], 
-                    [f"{TARGETB} Segments", f'{TARGETB} Crossovers', f'{TARGETA} Segments', f'{TARGETA} Crossovers',])
 
     return state
 
@@ -243,20 +263,26 @@ def plot_pair(pair, map_base, data):
     elements = []
     
     segments = pair.segment_pair.split(" ")
-    for segment_name in segments:
+    for i, segment_name in enumerate(segments):
         segment_objs = get_segments(segment_name, data)
         for segment_file in segment_objs:
             elements.append(plot_geoms([segment_objs[segment_file]["geom"]], map_base, COLORS[segment_file]))
-    
+            if i == 0:
+                elements[-1].set_label(segment_file)
+
     if pair.cx_pair[0] is not None:
         elements.append(plot_geoms([pair.cx_pair[0]["cx_geom"]], map_base, COLORS[f"{TARGETA} crossovers"], 2))
+        elements[-1].set_label(f"{TARGETA} crossovers")
     if pair.cx_pair[1] is not None:
         elements.append(plot_geoms([pair.cx_pair[1]["cx_geom"]], map_base, COLORS[f"{TARGETB} crossovers"], 2))
+        elements[-1].set_label(f"{TARGETB} crossovers")
 
+    map_base.legend()
     return elements
     
 
 class DistanceState():
+    """Control display of crossover comparisons"""
 
     def __init__(self, map_base, data, cx_distances, visibility_state):
         self.map_base = map_base
@@ -425,16 +451,21 @@ def plot_dist_analyzer(map_base, data, cx_distances, visibility_state):
     state.zoom_toggle_button.set_visible(False)
 
     state.cx_text = cx_text
+    state.view_next()
 
 
 if __name__ == "__main__":
     from compare_crossovers import find_differences
 
+    print("Loading Data")
     data = load_data()
+    print("Plotting map")
     map_base = plot_map()
 
     visibility_state = plot_from_data(map_base, data)
+    print("Comparing crossovers")
     cx_distances = find_differences(data[f"{TARGETA} crossovers"], data[f"{TARGETB} crossovers"])
+    print("Plotting")
     plot_dist_analyzer(map_base, data, cx_distances, visibility_state)
 
     plt.show()
