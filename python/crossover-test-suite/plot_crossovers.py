@@ -64,16 +64,17 @@ if Path(os.getcwd()).name == "cresis-toolbox":
     os.chdir("python/crossover-test-suite")
 
 
-DATA_DIR = Path("data") / "ops0"
+DATA_DIR = Path("data")
 WIDGETS = []
-SIMP_RES = "0.1m"  # Resolution of the simplified data
+TARGETB = "ops/0m"
+TARGETA = "ops0/0m"
 
 
 COLORS = {
-        f"{SIMP_RES} segments":   "C1",
-        f"{SIMP_RES} crossovers": "C2",
-        "0m segments":   "C3",
-        "0m crossovers": "C5",
+        f"{TARGETB} segments":   "C1",
+        f"{TARGETB} crossovers": "C2",
+        f"{TARGETA} segments":   "C3",
+        f"{TARGETA} crossovers": "C5",
     }
 
 DEFAULT_LIMITS = [-3.5e6, -3.5e6, 1e6, -0.5e6]
@@ -99,16 +100,18 @@ def load_data():
     """Load each CSV from the DATA_DIR."""
     data = {}
 
-    for file in os.listdir(DATA_DIR):
-        name = Path(file).stem
-        with open(DATA_DIR / file, newline='') as f:
-            data[name] = list(csv.DictReader(f))
+    for target in (TARGETA, TARGETB):
+        for file_type in ("segments", "crossovers"):
+            name = f"{target} {file_type}"
+            file = DATA_DIR / f"{name}.csv"
+            with open(file, newline='') as f:
+                data[name] = list(csv.DictReader(f))
 
-        for row in data[name]:
-            for field in row:
-                if field.endswith("geom"):
-                    geom_str = row[field]
-                    row[field] = convert_geom(geom_str)
+            for row in data[name]:
+                for field in row:
+                    if field.endswith("geom"):
+                        geom_str = row[field]
+                        row[field] = convert_geom(geom_str)
 
     return data
 
@@ -142,41 +145,41 @@ def plot_geoms(geoms: List[str], base, color=None, zorder=1):
 
 
 class VisibilityState():
-    showing_0m = True
-    showing_1m = True
+    showing_A = True
+    showing_B = True
 
-    def __init__(self, plot_seg_0m, plot_seg_1m, plot_cx_0m, plot_cx_1m):
-        self.plot_seg_0m = plot_seg_0m
-        self.plot_seg_1m = plot_seg_1m
-        self.plot_cx_0m = plot_cx_0m
-        self.plot_cx_1m = plot_cx_1m
+    def __init__(self, plot_seg_A, plot_seg_B, plot_cx_A, plot_cx_B):
+        self.plot_seg_A = plot_seg_A
+        self.plot_seg_B = plot_seg_B
+        self.plot_cx_A = plot_cx_A
+        self.plot_cx_B = plot_cx_B
 
-        self.toggle_button_1 = None
-        self.toggle_button_2 = None
+        self.toggle_button_A = None
+        self.toggle_button_B = None
 
-    def toggle_0m(self, clk=None):
-        self.showing_0m = not self.showing_0m
-        if self.plot_seg_0m is not None:
-            self.plot_seg_0m.set_visible(self.showing_0m)
-        if self.plot_cx_0m is not None:
-            self.plot_cx_0m.set_visible(self.showing_0m)
+    def toggle_A(self, clk=None):
+        self.showing_A = not self.showing_A
+        if self.plot_seg_A is not None:
+            self.plot_seg_A.set_visible(self.showing_A)
+        if self.plot_cx_A is not None:
+            self.plot_cx_A.set_visible(self.showing_A)
 
-    def toggle_1m(self, clk=None):
-        self.showing_1m = not self.showing_1m
-        if self.plot_seg_1m is not None:
-            self.plot_seg_1m.set_visible(self.showing_1m)
-        if self.plot_cx_1m is not None:
-            self.plot_cx_1m.set_visible(self.showing_1m)
+    def toggle_B(self, clk=None):
+        self.showing_B = not self.showing_B
+        if self.plot_seg_B is not None:
+            self.plot_seg_B.set_visible(self.showing_B)
+        if self.plot_cx_B is not None:
+            self.plot_cx_B.set_visible(self.showing_B)
 
     def set_state(self, state):
-        self.plot_seg_1m.set_visible(state)
-        self.plot_seg_0m.set_visible(state)
-        self.plot_cx_0m.set_visible(state)
-        self.plot_cx_1m.set_visible(state)
+        self.plot_seg_A.set_visible(state)
+        self.plot_seg_B.set_visible(state)
+        self.plot_cx_A.set_visible(state)
+        self.plot_cx_B.set_visible(state)
 
     def set_button_state(self, state):
-        self.toggle_button_1.set_visible(state)
-        self.toggle_button_2.set_visible(state)
+        self.toggle_button_A.set_visible(state)
+        self.toggle_button_B.set_visible(state)
 
 
 def plot_from_data(map_base, data):
@@ -193,29 +196,29 @@ def plot_from_data(map_base, data):
     map_base.set_xlabel('Meters East of North pole')
     map_base.set_ylabel('Meters North of North pole')
 
-    plot_seg_1m = plot_geoms([row["geom"] for row in data[f"{SIMP_RES} segments"]], map_base, COLORS[f"{SIMP_RES} segments"])
-    plot_cx_1m = plot_geoms([row["cx_geom"] for row in data[f"{SIMP_RES} crossovers"]], map_base, COLORS[f"{SIMP_RES} crossovers"], 2)
-    plot_seg_0m = plot_geoms([row["geom"] for row in data["0m segments"]], map_base, COLORS["0m segments"])
-    plot_cx_0m = plot_geoms([row["cx_geom"] for row in data["0m crossovers"]], map_base, COLORS["0m crossovers"], 2)
+    plot_seg_A = plot_geoms([row["geom"] for row in data[f"{TARGETA} segments"]], map_base, COLORS[f"{TARGETA} segments"])
+    plot_cx_A = plot_geoms([row["cx_geom"] for row in data[f"{TARGETA} crossovers"]], map_base, COLORS[f"{TARGETA} crossovers"], 2)
+    plot_seg_B = plot_geoms([row["geom"] for row in data[f"{TARGETB} segments"]], map_base, COLORS[f"{TARGETB} segments"])
+    plot_cx_B = plot_geoms([row["cx_geom"] for row in data[f"{TARGETB} crossovers"]], map_base, COLORS[f"{TARGETB} crossovers"], 2)
 
     # Create visibility toggle buttons
-    state = VisibilityState(plot_seg_0m, plot_seg_1m, plot_cx_0m, plot_cx_1m)
+    state = VisibilityState(plot_seg_A, plot_seg_B, plot_cx_A, plot_cx_B)
 
-    ax_toggle_0 = plt.axes((0.9, 0.8, 0.1, 0.075))
-    ax_toggle_1 = plt.axes((0.9, 0.7, 0.1, 0.075))
+    ax_toggle_A = plt.axes((0.9, 0.8, 0.1, 0.075))
+    ax_toggle_B = plt.axes((0.9, 0.7, 0.1, 0.075))
 
-    b_toggle_0 = Button(ax_toggle_0, 'Toggle Full Res')
-    b_toggle_0.on_clicked(state.toggle_0m)
-    WIDGETS.append(b_toggle_0)  # Necessary to avoid garbage collection
-    b_toggle_1 = Button(ax_toggle_1, 'Toggle 1m')
-    b_toggle_1.on_clicked(state.toggle_1m)
-    WIDGETS.append(b_toggle_1)
+    b_toggle_A = Button(ax_toggle_A, f'Toggle {TARGETA}')
+    b_toggle_A.on_clicked(state.toggle_A)
+    WIDGETS.append(b_toggle_A)  # Necessary to avoid garbage collection
+    b_toggle_B = Button(ax_toggle_B, f'Toggle {TARGETB}')
+    b_toggle_B.on_clicked(state.toggle_B)
+    WIDGETS.append(b_toggle_B)
 
-    state.toggle_button_1 = ax_toggle_0
-    state.toggle_button_2 = ax_toggle_1
+    state.toggle_button_A = ax_toggle_A
+    state.toggle_button_B = ax_toggle_B
 
-    map_base.legend([plot_seg_1m, plot_cx_1m, plot_seg_0m, plot_cx_0m], 
-                    [f'{SIMP_RES} Segments', f'{SIMP_RES} Crossovers', 'Full Res Segments', 'Full Res Crossovers',])
+    map_base.legend([plot_seg_B, plot_cx_B, plot_seg_A, plot_cx_A], 
+                    [f"{TARGETB} Segments", f'{TARGETB} Crossovers', f'{TARGETA} Segments', f'{TARGETA} Crossovers',])
 
     return state
 
@@ -223,13 +226,13 @@ def plot_from_data(map_base, data):
 def get_segments(name, data):
     """Find the rows in the data files for a given segment by name."""
     segments = {}
-    for row in data["0m segments"]:
+    for row in data[f"{TARGETA} segments"]:
         if row["name"] == name:
-            segments["0m segments"] = row
+            segments[f"{TARGETA} segments"] = row
             break
-    for row in data[f"{SIMP_RES} segments"]:
+    for row in data[f"{TARGETB} segments"]:
         if row["name"] == name:
-            segments[f"{SIMP_RES} segments"] = row
+            segments[f"{TARGETB} segments"] = row
             break
 
     return segments
@@ -246,9 +249,9 @@ def plot_pair(pair, map_base, data):
             elements.append(plot_geoms([segment_objs[segment_file]["geom"]], map_base, COLORS[segment_file]))
     
     if pair.cx_pair[0] is not None:
-        elements.append(plot_geoms([pair.cx_pair[0]["cx_geom"]], map_base, COLORS["0m crossovers"], 2))
+        elements.append(plot_geoms([pair.cx_pair[0]["cx_geom"]], map_base, COLORS[f"{TARGETA} crossovers"], 2))
     if pair.cx_pair[1] is not None:
-        elements.append(plot_geoms([pair.cx_pair[1]["cx_geom"]], map_base, COLORS[f"{SIMP_RES} crossovers"], 2))
+        elements.append(plot_geoms([pair.cx_pair[1]["cx_geom"]], map_base, COLORS[f"{TARGETB} crossovers"], 2))
 
     return elements
     
@@ -431,7 +434,7 @@ if __name__ == "__main__":
     map_base = plot_map()
 
     visibility_state = plot_from_data(map_base, data)
-    cx_distances = find_differences(data["0m crossovers"], data[f"{SIMP_RES} crossovers"])
+    cx_distances = find_differences(data[f"{TARGETA} crossovers"], data[f"{TARGETB} crossovers"])
     plot_dist_analyzer(map_base, data, cx_distances, visibility_state)
 
     plt.show()

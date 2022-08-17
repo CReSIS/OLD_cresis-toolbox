@@ -9,60 +9,60 @@ import math
 ACCEPTABLE_DISTANCE = 2
 
 
-def distance(cx_1, cx_2):
+def distance(cx_A, cx_B):
     """Find the distance between two crossovers."""
-    if cx_1 is None or cx_2 is None:
+    if cx_A is None or cx_B is None:
         return math.inf
-    return cx_1["cx_geom"].distance(cx_2["cx_geom"])
+    return cx_A["cx_geom"].distance(cx_B["cx_geom"])
 
 
 Match = namedtuple("Match", "distance cx_pair segment_pair")
 
 
-def find_closest(cx_segment_pair_1, cx_segment_pair_2, segment_pair):
+def find_closest(cx_segment_pair_A, cx_segment_pair_B, segment_pair):
     """Match the crossovers between the pairs to the closest crossover in the other pair."""
 
     # Add id's to each crossover
-    cx_1 = []
-    for cx_i, cx in enumerate(cx_segment_pair_1):
+    cx_A = []
+    for cx_i, cx in enumerate(cx_segment_pair_A):
         cx_n = cx.copy()
         cx_n["id"] = cx_i
-        cx_1.append(cx_n)
-    cx_2 = []
-    for cx_i, cx in enumerate(cx_segment_pair_2):
+        cx_A.append(cx_n)
+    cx_B = []
+    for cx_i, cx in enumerate(cx_segment_pair_B):
         cx_n = cx.copy()
         cx_n["id"] = cx_i
-        cx_2.append(cx_n)
+        cx_B.append(cx_n)
 
     # Calculate distance between every pair of crossovers
     distances = []
-    for pair in product(cx_1, cx_2):
+    for pair in product(cx_A, cx_B):
         distances.append(Match(distance(*pair), pair, segment_pair))
 
     # Iterate distances by lowest and keep first match of each crossover
-    matched_1 = set()
-    matched_2 = set()
+    matched_A = set()
+    matched_B = set()
     matches = []
     for match in sorted(distances, key=lambda d: d.distance):
         
         # Skip pairings involving cx's we've already matched
-        if match.cx_pair[0]["id"] in matched_1:
+        if match.cx_pair[0]["id"] in matched_A:
             continue
-        if match.cx_pair[1]["id"] in matched_2:
+        if match.cx_pair[1]["id"] in matched_B:
             continue
         matches.append(match)
-        matched_1.add(match.cx_pair[0]["id"])
-        matched_2.add(match.cx_pair[1]["id"])
+        matched_A.add(match.cx_pair[0]["id"])
+        matched_B.add(match.cx_pair[1]["id"])
 
     # Add any crossovers without matches
-    if len(matched_1) < len(cx_1):
-        for cx in cx_1:
-            if cx["id"] in matched_1:
+    if len(matched_A) < len(cx_A):
+        for cx in cx_A:
+            if cx["id"] in matched_A:
                 continue
             matches.append(Match(math.inf, (cx, None), segment_pair))
-    if len(matched_2) < len(cx_2):
-        for cx in cx_2:
-            if cx["id"] in matched_2:
+    if len(matched_B) < len(cx_B):
+        for cx in cx_B:
+            if cx["id"] in matched_B:
                 continue
             matches.append(Match(math.inf, (None, cx), segment_pair))
 
@@ -85,22 +85,22 @@ def group_segment_pairs(cx_set):
     return {k: list(v) for k, v in groups}
 
 
-def find_differences(cx_set_1, cx_set_2):
+def find_differences(cx_set_A, cx_set_B):
     """Compare two sets of crossovers and find the distances between crossovers."""
 
-    cx_set_1 = group_segment_pairs(cx_set_1)
-    cx_set_2 = group_segment_pairs(cx_set_2)
-    all_segment_pairs = set(cx_set_1.keys()) | set(cx_set_2.keys())
+    cx_set_A = group_segment_pairs(cx_set_A)
+    cx_set_B = group_segment_pairs(cx_set_B)
+    all_segment_pairs = set(cx_set_A.keys()) | set(cx_set_B.keys())
 
     segment_pair_comparisons = {}
 
     for segment_pair in all_segment_pairs:
-        if segment_pair in cx_set_1 and segment_pair in cx_set_2:
-            segment_pair_comparisons[segment_pair] = find_closest(cx_set_1[segment_pair], cx_set_2[segment_pair], segment_pair)
-        elif segment_pair in cx_set_1:
-            segment_pair_comparisons[segment_pair] = [Match(math.inf, (cx, None), segment_pair) for cx in cx_set_1[segment_pair]]
-        elif segment_pair in cx_set_2:
-            segment_pair_comparisons[segment_pair] = [Match(math.inf, (None, cx), segment_pair) for cx in cx_set_2[segment_pair]]
+        if segment_pair in cx_set_A and segment_pair in cx_set_B:
+            segment_pair_comparisons[segment_pair] = find_closest(cx_set_A[segment_pair], cx_set_B[segment_pair], segment_pair)
+        elif segment_pair in cx_set_A:
+            segment_pair_comparisons[segment_pair] = [Match(math.inf, (cx, None), segment_pair) for cx in cx_set_A[segment_pair]]
+        elif segment_pair in cx_set_B:
+            segment_pair_comparisons[segment_pair] = [Match(math.inf, (None, cx), segment_pair) for cx in cx_set_B[segment_pair]]
 
     ordered_distances = sorted(chain(*segment_pair_comparisons.values()), key=lambda m: m.distance, reverse=True)
 
@@ -108,10 +108,9 @@ def find_differences(cx_set_1, cx_set_2):
 
 
 if __name__ == "__main__":
-    from plot_crossovers import load_data, SIMP_RES
+    from plot_crossovers import load_data, TARGETA, TARGETB
     data = load_data()
-    # NOTE[REECE]: Always putting 0m (full res) and then simplified for consistency. This order is assumed elsewhere
-    cx_distances = find_differences(data["0m crossovers"], data[f"{SIMP_RES} crossovers"])
+    cx_distances = find_differences(data[f"{TARGETA} crossovers"], data[f"{TARGETB} crossovers"])
 
     print("Total crossovers:", len([cx.distance for cx in cx_distances]))
     print("Total Distance (no inf):", sum(cx.distance for cx in cx_distances if cx.distance is not math.inf))
@@ -119,14 +118,14 @@ if __name__ == "__main__":
     print(f"Total past {ACCEPTABLE_DISTANCE}m difference:", len([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE]))
     print(f"Total distance past {ACCEPTABLE_DISTANCE}m difference:", sum([cx.distance for cx in cx_distances if cx.distance > ACCEPTABLE_DISTANCE and cx.distance is not math.inf]))
     
-    total_0m_points = 0
-    for segment in data["0m segments"]:
-        total_0m_points += int(segment["num_points"])
-    total_simp_points = 0
-    for segment in data[f"{SIMP_RES} segments"]:
-        total_simp_points += int(segment["num_points"])
+    total_A_points = 0
+    for segment in data[f"{TARGETA} segments"]:
+        total_A_points += int(segment["num_points"])
+    total_B_points = 0
+    for segment in data[f"{TARGETB} segments"]:
+        total_B_points += int(segment["num_points"])
     
-    print("Number of points reduced to", total_simp_points / total_0m_points)
+    print("Number of points reduced to", total_B_points / total_A_points)
 
     print("Unnacceptable differences:")
     print("{:^10} {:^20} {:^23}".format("Distance", "Angles", "Segments"), sep="|")
