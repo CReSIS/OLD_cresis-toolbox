@@ -64,8 +64,8 @@ def run_query_all_crossovers(current_resolution: float, system: str = "rds"):
         writer.writerows(crossovers)
 
 
-def run_query_segments(current_resolution: float, system: str = "rds", 
-                       segments: Tuple[str, str] = ('20190512_01', '20190516_01')):
+def run_query_segments(current_resolution: float, segments: Tuple[str, str],
+                       system: str = "rds"):
     """
     Retrieve the segments information for two provided segments from the database 
     and write to a CSV in the DATA_DIR.
@@ -91,8 +91,8 @@ def run_query_segments(current_resolution: float, system: str = "rds",
         writer.writerows(segments)
 
 
-def run_query_crossovers(current_resolution: float, system: str = "rds",
-                         segments: Tuple[str, str] = ('20190512_01', '20190516_01')):
+def run_query_crossovers(current_resolution: float, segments: Tuple[str, str],
+                         system: str = "rds"):
     """
     Retrieve the crossover information for two provided segments from the database
     and write to a CSV in the DATA_DIR.
@@ -123,6 +123,10 @@ def run_delete_crossovers(system: str = "rds"):
     
     system: the system from which to delete crossovers.
     """
+    if input("Are you sure you want to DELETE crossovers? (n/Y)") != "Y":
+        raise SystemExit("User cancelled")
+    if DB != "vbox":
+        raise RuntimeError(f"Trying to delete crossovers but connected to {DB} instead of vbox")
 
     print("Deleting crossovers")
     query(f"delete from {system}_crossovers;")
@@ -131,8 +135,12 @@ def run_delete_crossovers(system: str = "rds"):
 
 
 if __name__ == "__main__":
-    RESOLUTION = 0
-    DB = "ops0"
-    # run_delete_crossovers()
-    # run_query_segments(RESOLUTION)
-    # run_query_crossovers(RESOLUTION)
+    DB = "ops"
+    DATA_DIR = DATA_DIR / DB
+
+    resolution = 0
+    segments = ('20190512_01', '20190516_01')
+
+    if input("Run queries? (n/Y)") == "Y":
+        run_query_segments(resolution, segments)
+        run_query_crossovers(resolution, segments)
