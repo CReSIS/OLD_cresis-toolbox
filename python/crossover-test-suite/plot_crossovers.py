@@ -66,7 +66,7 @@ if Path(os.getcwd()).name == "cresis-toolbox":
 
 DATA_DIR = Path("data")
 WIDGETS = []
-TARGETA = "ops0/0m"
+TARGETA = "ops/0m"
 TARGETB = "ops0/0.1m"
 # TARGETA = "vbox/15m"
 # TARGETB = "vbox/1m"
@@ -355,37 +355,37 @@ class DistanceState():
         self.visibility_state.plot_pair(segs_A, segs_B)
 
         # Get info for annotation box
-        cx_1_pp1 = None
-        cx_1_pp2 = None
-        cx_2_pp1 = None
-        cx_2_pp2 = None
+        cx_A_pp1 = None
+        cx_A_pp2 = None
+        cx_B_pp1 = None
+        cx_B_pp2 = None
         if pair.cx_pair[0] is not None:
-            cx_1_pp1 = pair.cx_pair[0]["pp1_id"]
-            cx_1_pp2 = pair.cx_pair[0]["pp2_id"]
+            cx_A_pp1 = pair.cx_pair[0]["pp1_id"]
+            cx_A_pp2 = pair.cx_pair[0]["pp2_id"]
         if pair.cx_pair[1] is not None:
-            cx_2_pp1 = pair.cx_pair[1]["pp1_id"]
-            cx_2_pp2 = pair.cx_pair[1]["pp2_id"]
+            cx_B_pp1 = pair.cx_pair[1]["pp1_id"]
+            cx_B_pp2 = pair.cx_pair[1]["pp2_id"]
 
-        self.cx_text.txt.set_text(f"Crossover {self.selected_cx_idx}\nDistance {pair.distance:.3} m\nSegments {pair.segment_pair}\nFull Res point path ids {cx_1_pp1} {cx_1_pp2}\n1m point path ids {cx_2_pp1} {cx_2_pp2}")
+        self.cx_text.txt.set_text(f"Crossover {self.selected_cx_idx}\nDistance {pair.distance:.3} m\nSegments {pair.segment_pair}\n{TARGETA} point path ids {cx_A_pp1} {cx_A_pp2}\n{TARGETB} point path ids {cx_B_pp1} {cx_B_pp2}")
 
         # Set window viewport
-        cx_1_bounds = []
-        cx_2_bounds = []
+        cx_A_bounds = []
+        cx_B_bounds = []
         if pair.cx_pair[0] is not None and pair.cx_pair[1] is not None:
-            cx_1_bounds = pair.cx_pair[0]["cx_geom"].bounds
-            cx_2_bounds = pair.cx_pair[1]["cx_geom"].bounds
+            cx_A_bounds = pair.cx_pair[0]["cx_geom"].bounds
+            cx_B_bounds = pair.cx_pair[1]["cx_geom"].bounds
     
         elif pair.cx_pair[0] is not None:
-            cx_1_bounds = pair.cx_pair[0]["cx_geom"].bounds
-            cx_2_bounds = cx_1_bounds
+            cx_A_bounds = pair.cx_pair[0]["cx_geom"].bounds
+            cx_B_bounds = cx_A_bounds
         elif pair.cx_pair[1] is not None:
-            cx_2_bounds = pair.cx_pair[1]["cx_geom"].bounds
-            cx_1_bounds = cx_2_bounds
+            cx_B_bounds = pair.cx_pair[1]["cx_geom"].bounds
+            cx_A_bounds = cx_B_bounds
 
-        minx = min(cx_1_bounds[0], cx_2_bounds[0]) - 1
-        maxx = max(cx_1_bounds[2], cx_2_bounds[2]) + 1
-        miny = min(cx_1_bounds[1], cx_2_bounds[1]) - 1
-        maxy = max(cx_1_bounds[3], cx_2_bounds[3]) + 1
+        minx = min(cx_A_bounds[0], cx_B_bounds[0]) - 1
+        maxx = max(cx_A_bounds[2], cx_B_bounds[2]) + 1
+        miny = min(cx_A_bounds[1], cx_B_bounds[1]) - 1
+        maxy = max(cx_A_bounds[3], cx_B_bounds[3]) + 1
 
         width = maxx - minx
         height = maxy - miny
