@@ -139,14 +139,14 @@ def plot_map():
     return map_base
 
 
-def plot_geoms(geoms: List[str], base, color=None, zorder=1):
+def plot_geoms(geoms: List[str], base, color=None, zorder=1, **kwargs):
     """Plot a list of geoms string on the map base with the given color."""
 
     # Pandas plot method returns the base axes rather than the object plotted like Matplotlib does
     # Keep note of children of base axes before plotting so that we can find the new child after plotting
     old_children = set(base.get_children())
     df = geopandas.GeoDataFrame(geometry=geoms)
-    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=30)
+    ax = df.plot(ax=base, color=color, zorder=zorder, markersize=30, **kwargs)
 
     # Find the child we just plotted to return it
     plotted_child = list(set(ax.get_children()) - old_children)
@@ -261,14 +261,16 @@ def get_segments(name, data):
 def plot_pair(pair, map_base, data):
     """Plot a pair of crossovers."""
     elements = []
+    linestyles = ('solid', 'dotted')
     
     segments = pair.segment_pair.split(" ")
     for i, segment_name in enumerate(segments):
         segment_objs = get_segments(segment_name, data)
         for segment_file in segment_objs:
-            elements.append(plot_geoms([segment_objs[segment_file]["geom"]], map_base, COLORS[segment_file]))
-            if i == 0:
-                elements[-1].set_label(segment_file)
+
+            elements.append(plot_geoms([segment_objs[segment_file]["geom"]], map_base, 
+                                        COLORS[segment_file], linestyle=linestyles[i]))
+            elements[-1].set_label(f"{segment_file}: {segment_name}")
 
     if pair.cx_pair[0] is not None:
         elements.append(plot_geoms([pair.cx_pair[0]["cx_geom"]], map_base, COLORS[f"{TARGETA} crossovers"], 2))
