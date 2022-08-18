@@ -1,4 +1,8 @@
-"""Tools for determining the difference between two sets of crossovers."""
+"""
+Tools for determining the difference between two sets of crossovers.
+
+If this file is ran, it will produce some stats on the targets set in plot_crossovers.py.
+"""
 from collections import namedtuple
 from itertools import groupby, product, chain
 import math
