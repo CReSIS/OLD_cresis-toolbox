@@ -1,12 +1,34 @@
-"""Queries to obtain data for plotting."""
+"""
+Queries to produce CSVs from a databse for plotting crossover comparisons.
+
+Use the postgres-conn.sample.json to produce a postgres-conn.json file which points to 
+the database you wish to download crossovers from. Set the `RESOLUTION` to the simplification
+tolerance which the database is currently set to. This variable is only used to name the CSVs.
+Set DB to whichever connection dictionary you wish to use from the postgres-conn.json file.
+
+You can set the DATA_DIR variable in plot_crossovers to whereever you want to download 
+the files. At the bottom of this script, you can switch the calls from
+the run_query_segments and run_query_crossover variants to the 
+run_query_all_segments and run_query_all_crossovers versions if you wish to download all
+segments, rather than just specific ones (I do not recommend downloading all segments
+unless on a subset of the OPS DB on a Vbox).
+
+If you are using the not-all variants, you can set which segments to download in the
+SEGMENTS tuple.
+
+"""
 
 import csv
 import json
-from typing import List, Tuple
+from typing import Tuple
 
 from plot_crossovers import DATA_DIR
 
 import psycopg2
+
+DB = "ops"
+RESOLUTION = 0
+SEGMENTS = ('20190512_01', '20190516_01')
 
 
 def query(query_str, *args, **kwargs):
@@ -135,12 +157,8 @@ def run_delete_crossovers(system: str = "rds"):
 
 
 if __name__ == "__main__":
-    DB = "ops"
     DATA_DIR = DATA_DIR / DB
 
-    resolution = 0
-    segments = ('20190512_01', '20190516_01')
-
     if input("Run queries? (n/Y)") == "Y":
-        run_query_segments(resolution, segments)
-        run_query_crossovers(resolution, segments)
+        run_query_segments(RESOLUTION, SEGMENTS)
+        run_query_crossovers(RESOLUTION, SEGMENTS)

@@ -1,25 +1,11 @@
 """
 Load crossovers and flightlines from CSVs and plot them for comparison.
 
-This script was made to verify crossover calculation following the implementation of
-segment geom simplification in the database.
-
-# Dependencies
-
-A GDAL whl can be obtained from https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal.
-    Get the whl that matches your version of python and install it with
-    `pip install ./GDAL-3.4.2-cp37-cp37m-win32.whl`
-    replacing the file with the path to the one you downloaded.
-Likewise, a Fiona whl can obtained from https://www.lfd.uci.edu/~gohlke/pythonlibs/#fiona.
-    Install it in the same manner.
-Install the remaining dependencies with `pip install -r requirements.txt`
-
-Map shape files can be obtained from https://maps.princeton.edu/catalog/stanford-sd368wz2435
-GRL_adm0.shp and GRL_adm0.shx should be placed in a maps folder.
-
-The data files csvs can be obtained by running the data_queries.py file on virtual boxes 
-which are already simplified to the desired resolutions. Use the postgres-conn.sample.json
-to produce a postgres-conn.json file which points to the vbox DB.
+Use the data_queries.py script to download CSVs from a database and then list the targets 
+you wish to compare in `TARGETA` and `TARGETB`, below. For instance, if you have CSVs
+'data/ops/0m crossovers.csv' and 'data/ops/0m segments.csv' and CSVs 
+'data/vbox/1m crossovers.csv' and 'data/vbox/1m segments.csv' that you wish to compare,
+set `TARGETA='ops/0m'` and `TARGETB='vbox/1m'` and `DATA_DIR=Path("data")`
 
 Author: Reece Mathews
 """
@@ -35,6 +21,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib as mpl
 from matplotlib.offsetbox import AnchoredText
+from matplotlib.widgets import TextBox
 import fiona.errors
 
 from shapely import wkb
@@ -65,9 +52,8 @@ if Path(os.getcwd()).name == "cresis-toolbox":
 
 
 DATA_DIR = Path("data")
-WIDGETS = []
-TARGETA = "ops/0m"
-TARGETB = "ops0/0.1m"
+TARGETA = "vbox/15m"
+TARGETB = "vbox/1m"
 # TARGETA = "vbox/15m"
 # TARGETB = "vbox/1m"
 IGNORED_SEGMENTS = ['20190512_02', '20190515_01', '20190516_02', '20190508_01']
@@ -80,6 +66,7 @@ COLORS = {
     }
 
 DEFAULT_LIMITS = [-3.5e6, -3.5e6, 1e6, -0.5e6]
+WIDGETS = []
 
 wgs84 = pyproj.CRS('EPSG:4326')
 greenland = pyproj.CRS('EPSG:3413')
@@ -321,6 +308,16 @@ class DistanceState():
         self.bounds = None
         self.zoomed = False
 
+    def view_cx_num(self, num):
+        if self.selected_cx_idx is None:
+            self.zoomed = True
+        if num >= len(self.cx_distances):
+            num = len(self.cx_distances) - 1
+        elif num < 0:
+            num = 0
+        self.selected_cx_idx = num
+        self.show_cx()
+
     def view_prev(self, clk=None):
         if self.selected_cx_idx is None:
             self.zoomed = True
@@ -443,6 +440,22 @@ class DistanceState():
             self.zoom_out()
 
 
+def on_press(event):
+    if event.key == "right":
+        on_press.state.view_next()
+    if event.key == "left":
+        on_press.state.view_prev()
+
+
+def submit(text):
+    try:
+        cx = int(text)
+    except ValueError:
+        print("Invalid crossover num")
+        return
+    submit.state.view_cx_num(cx)
+
+
 def plot_dist_analyzer(map_base, data, cx_distances, visibility_state):
 
     ax_next_cx = plt.axes((0.9, 0.6, 0.1, 0.075))
@@ -473,6 +486,15 @@ def plot_dist_analyzer(map_base, data, cx_distances, visibility_state):
     state.home_button.set_visible(False)
     state.zoom_toggle_button = ax_zoom_toggle_cx
     state.zoom_toggle_button.set_visible(False)
+
+    ax_jump_cx = plt.axes((0.9, 0.2, 0.1, 0.075))
+    cx_text_box = TextBox(ax_jump_cx, 'Jump to crossover', initial="20")
+    cx_text_box.on_submit(submit)
+    WIDGETS.append(cx_text_box)
+    
+    on_press.state = state
+    map_base.get_figure().canvas.mpl_connect('key_press_event', on_press)
+    submit.state = state
 
     state.cx_text = cx_text
     state.view_next()
