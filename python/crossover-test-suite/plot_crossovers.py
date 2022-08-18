@@ -180,24 +180,39 @@ class VisibilityState():
         self.map_base.legend([self.plot_seg_B, self.plot_cx_B, self.plot_seg_A, self.plot_cx_A], 
                              [f"{TARGETB} Segments", f'{TARGETB} Crossovers', f'{TARGETA} Segments', f'{TARGETA} Crossovers',])
 
+    def plot_pair(self, segs_A, segs_B):
+        self.plot_seg_A = segs_A
+        self.plot_seg_B = segs_B
+        self.showing_A = True
+        self.showing_B = True
+        self.set_button_state(True)
 
     def toggle_A(self, clk=None):
         self.showing_A = not self.showing_A
         if self.plot_seg_A is not None:
-            self.plot_seg_A.set_visible(self.showing_A)
+            if type(self.plot_seg_A) is list:
+                for seg in self.plot_seg_A:
+                    seg.set_visible(self.showing_A)
+            else:
+                self.plot_seg_A.set_visible(self.showing_A)
         if self.plot_cx_A is not None:
             self.plot_cx_A.set_visible(self.showing_A)
 
     def toggle_B(self, clk=None):
         self.showing_B = not self.showing_B
         if self.plot_seg_B is not None:
-            self.plot_seg_B.set_visible(self.showing_B)
+            if type(self.plot_seg_B) is list:
+                for seg in self.plot_seg_B:
+                    seg.set_visible(self.showing_B)
+            else:
+                self.plot_seg_B.set_visible(self.showing_B)
         if self.plot_cx_B is not None:
             self.plot_cx_B.set_visible(self.showing_B)
 
     def set_state(self, state):
-        if self.plot_seg_A is None:
+        if self.plot_seg_A is None or type(self.plot_seg_A) is list:
             if not state:
+                # Plotting cx pair rather than all segments
                 return 
             self.first_plot()
         self.plot_seg_A.set_visible(state)
@@ -261,6 +276,8 @@ def get_segments(name, data):
 def plot_pair(pair, map_base, data):
     """Plot a pair of crossovers."""
     elements = []
+    segs_A = []
+    segs_B = []
     linestyles = ('solid', 'dotted')
     
     segments = pair.segment_pair.split(" ")
@@ -271,6 +288,11 @@ def plot_pair(pair, map_base, data):
             elements.append(plot_geoms([segment_objs[segment_file]["geom"]], map_base, 
                                         COLORS[segment_file], linestyle=linestyles[i]))
             elements[-1].set_label(f"{segment_file}: {segment_name}")
+            target = segment_file[:segment_file.index(" segments")]
+            if target == TARGETA:
+                segs_A.append(elements[-1])
+            else:
+                segs_B.append(elements[-1])
 
     if pair.cx_pair[0] is not None:
         elements.append(plot_geoms([pair.cx_pair[0]["cx_geom"]], map_base, COLORS[f"{TARGETA} crossovers"], 2))
@@ -280,7 +302,7 @@ def plot_pair(pair, map_base, data):
         elements[-1].set_label(f"{TARGETB} crossovers")
 
     map_base.legend()
-    return elements
+    return elements, segs_A, segs_B
     
 
 class DistanceState():
@@ -325,12 +347,12 @@ class DistanceState():
         self.visibility_state.set_state(False)
         self.home_button.set_visible(True)
         self.zoom_toggle_button.set_visible(True)
-        self.visibility_state.set_button_state(False)
         self.hide_cx()
 
         pair = self.cx_distances[self.selected_cx_idx]
 
-        self.cx_plot_elements = plot_pair(pair, self.map_base, self.data)
+        self.cx_plot_elements, segs_A, segs_B = plot_pair(pair, self.map_base, self.data)
+        self.visibility_state.plot_pair(segs_A, segs_B)
 
         # Get info for annotation box
         cx_1_pp1 = None
@@ -343,7 +365,7 @@ class DistanceState():
         if pair.cx_pair[1] is not None:
             cx_2_pp1 = pair.cx_pair[1]["pp1_id"]
             cx_2_pp2 = pair.cx_pair[1]["pp2_id"]
-        
+
         self.cx_text.txt.set_text(f"Crossover {self.selected_cx_idx}\nDistance {pair.distance:.3} m\nSegments {pair.segment_pair}\nFull Res point path ids {cx_1_pp1} {cx_1_pp2}\n1m point path ids {cx_2_pp1} {cx_2_pp2}")
 
         # Set window viewport
