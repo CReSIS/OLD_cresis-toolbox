@@ -1,16 +1,16 @@
-function data_map = default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map(day_seg)
-% data_map = default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map(day_seg)
+function data_map = default_radar_params_2022_Antarctica_GroundGHOST_rds_data_map(day_seg)
+% data_map = default_radar_params_2022_Antarctica_GroundGHOST_rds_data_map(day_seg)
 %
 % Used to create param.records.data_map.
 %
-% Support function for default_radar_params_2022_Antarctica_BaslerMKB_accum
+% Support function for default_radar_params_2022_Antarctica_GroundGHOST_rds
 % and in general for the dataset corresponding to
 %   season: 2022_Antarctica_BaslerMKB
-%   radar: accum
+%   radar: rds
 %
 % Author: John Paden
 %
-% See also: default_radar_params_2022_Antarctica_BaslerMKB_accum
+% See also: default_radar_params_2022_Antarctica_GroundGHOST_rds
 
 data_map = {...
     [0 0 0 1 1
