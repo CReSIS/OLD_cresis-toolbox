@@ -21,7 +21,6 @@ function success = preprocess_task_arena(param)
 base_dir = fullfile(param.config.base_dir);
 config_folder_name = fullfile(param.config.config_folder_name);
 reuse_tmp_files = param.config.reuse_tmp_files;
-mat_or_bin_hdr_output = param.config.mat_or_bin_hdr_output;
 
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
@@ -155,11 +154,7 @@ for config_idx = 1:length(configs)
         fullfile(board_folder_name, fn_name));
       [out_fn_dir,out_fn_name] = fileparts(out_fn);
       out_fn = fullfile(out_fn_dir,[out_fn_name,'.dat']);
-      if strcmpi(mat_or_bin_hdr_output,'.mat')
-        out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.mat']);
-      else
-        out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.hdr']);
-      end
+      out_hdr_fn = fullfile(out_fn_dir,[out_fn_name,'.mat']);
       
       % Print status
       fprintf('arena_pkt_strip %d/%d %d/%d %s (%s)\n    %s\n', config_idx, ...
@@ -579,8 +574,16 @@ if ~isempty(param.config.param_fn)
   read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
   fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
-  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   
   param_txt_fn = ct_filename_ct_tmp(param,'','param', [param.config.date_str,'.txt']);
@@ -614,8 +617,16 @@ if ~isempty(param.config.param_fn)
   fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
   fprintf(fid,'\n');
-  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  % Other sheets
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param.config.param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+  for sheet_idx = 1:length(sheets)
+    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+    end
+  end
   fprintf(fid,'\n');
   fclose(fid);
 end

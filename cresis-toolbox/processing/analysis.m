@@ -261,6 +261,15 @@ for cmd_idx = 1:length(param.analysis.cmd)
           param.analysis.block_size, cmd.block_ave);
       end
       
+      % distance_weight: default is false; if true, then the coherent
+      % averaging is weighted by the distance travelled. This is primarily
+      % useful for ground based traverses where long stops can bias the
+      % coherent noise estimate. Setting this to true will reduce the
+      % affect the long stops have on the estimated coherent noise mean.
+      if ~isfield(cmd,'distance_weight') || isempty(cmd.distance_weight)
+        cmd.distance_weight = false;
+      end
+      
       if ~isfield(cmd,'mag_en') || isempty(cmd.mag_en)
         % Default is to collect magnitude sums (coh_ave_mag) in addition to
         % phase-coherent sums (coh_ave)
