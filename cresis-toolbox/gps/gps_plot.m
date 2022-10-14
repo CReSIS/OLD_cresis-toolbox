@@ -33,7 +33,7 @@ function gps = gps_plot(fn, plot_color, plot_est_heading)
 %
 % Author: John Paden
 %
-% See also read_gps_*.m, gps_plot.m, gps_make.m
+% See also read_gps_*.m, gps_plot.m, gps_create.m
 
 if ~exist('plot_est_heading','var') || isempty(plot_est_heading)
   plot_est_heading = false;

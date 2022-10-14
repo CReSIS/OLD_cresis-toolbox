@@ -188,6 +188,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
         heading = waveform.heading;
         time_rng = waveform.time_rng;
         wf_data = waveform.wf_data;
+        layer_nan_mask = waveform.layer_nan_mask;
       else
         gps_time(end+1,:) = waveform.gps_time;
         lat(end+1,:) = waveform.lat;
@@ -198,6 +199,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
         heading(end+1,:) = waveform.heading;
         time_rng(:,:,end+1) = waveform.time_rng;
         wf_data(:,:,end+1) = waveform.wf_data;
+        layer_nan_mask(end+1,:) = waveform.layer_nan_mask;
       end
     end
   end
@@ -891,8 +893,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     equal.peak_val{wf} = peak_val;
     
     equal.Tsys_offset{wf} = nanmean(peak_offset(:,rlines),2)*dt;
-    equal.chan_equal_deg_offset{wf} = angle(nanmean(peak_val(:,rlines),2)) * 180/pi;
-    equal.chan_equal_dB_offset{wf} = db(nanmean(abs(peak_val(:,rlines)).^2,2),'power');
+    peak_val_masked = peak_val;
+    peak_val_masked(abs(peak_offset(:,rlines) - nanmedian(peak_offset(:,rlines),2))>1) = NaN;
+    equal.chan_equal_deg_offset{wf} = angle(nanmean(peak_val_masked(:,rlines),2)) * 180/pi;
+    equal.chan_equal_dB_offset{wf} = db(nanmean(abs(peak_val_masked(:,rlines)).^2,2),'power');
     
     equal.Tsys_offset_std{wf} = nanstd(peak_offset(:,rlines),[],2)*dt;
     equal.chan_equal_deg_offset_std{wf} = angle(nanstd(peak_val(:,rlines),[],2)) * 180/pi;

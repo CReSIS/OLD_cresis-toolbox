@@ -39,6 +39,7 @@ if nargin == 0
   assignin('caller','walltime_exceeded_error',2048);
   assignin('caller','max_mem_exceeded_error',4096);
   assignin('caller','insufficient_mcr_space',8192);
+  assignin('caller','matlab_task_out_of_memory',16384);
   assignin('caller','critical_error',2^10-1);
   
 elseif error_mask == 0
@@ -88,5 +89,8 @@ else
   end
   if bitand(error_mask,insufficient_mcr_space)
     fprintf('insufficient_mcr_space: Job failed because there was insufficient space for the Matlab Compiler Runtime files.\n'); 
+  end
+  if bitand(error_mask,matlab_task_out_of_memory)
+    fprintf('matlab_task_out_of_memory: Matlab returned out of memory error for this task.\n'); 
   end
 end
