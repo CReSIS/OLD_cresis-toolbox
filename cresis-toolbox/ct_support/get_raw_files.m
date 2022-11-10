@@ -1,4 +1,4 @@
-function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,rec_range_type,out_dir)
+function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,rec_range_type,out_dir,tape_list)
 % [load_info,gps_time,recs]= get_raw_files(param,frm_id,imgs,rec_range,rec_range_type)
 %
 % Get a list of raw data filenames for particular frames and images or
@@ -41,12 +41,25 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,imgs,rec_range,r
 % out_dir: Optional. May be left empty or not defined. Specifies an output
 % directory to copy raw files to.
 %
+% tape_list: The name of a file containing mappings between files and tapes.
+% Or a matrix containing this mapping. The matrix must be presorted, formatted
+% in the same manner as is done at the MATRIX SORT comment below. See run_get_raw_files.
+% If provided and not empty, load_info will contain a field, tapes,
+% containing the name of the tape each corresponding file is present in as
+% well as a field, stored_filenames, with the name of the file on the tape.
+%
 % Outputs
 % =========================================================================
 %
 % load_info: struct with file information for the range of data specified
 %
 %  .filenames: cell array of cells which contain the raw data filenames
+%
+%  .tapes: cell array of tapes corresponding to the filenames when
+%  tape_list is given
+%
+%  .stored_filenames: cell array of filenames on tapes corresponding to the
+%  filenames array when tape_list is given
 %
 %  .file_idx: cell array of integers which specify an index into .filenames
 %  for each record
@@ -122,6 +135,14 @@ end
 global gRadar;
 param = merge_structs(gRadar,param);
 
+for wf = 1:length(param.radar.wfs)
+  if isfield(param.radar.wfs(wf),'rx_paths') && ~isempty(param.radar.wfs(wf).rx_paths)
+    param.radar.wfs(wf).rx_paths   = param.radar.wfs(wf).rx_paths;
+  else
+    param.radar.wfs(wf).rx_paths   = 1;
+  end
+end
+
 % Populate imgs cell array with all wf-adc pairs if not specified
 if ~exist('imgs','var') || isempty(imgs)
   for wf = 1:length(param.radar.wfs)
@@ -170,7 +191,7 @@ if exist('rec_range','var') && ~isempty(rec_range)
 
 else
   % Use the provided frame ID to determine the records to get
-  
+
   param.cmd.frms = frm;
   frms = frames_param_cmd_frms(param,frames);
   recs = false(size(records.gps_time));
@@ -214,3 +235,46 @@ for idx = 1:length(load_info.filenames)
   end
 end
 
+%% Find Tape Locations
+% Determine the tape in which each file is present from the given tape_list
+
+% MATRIX SORT
+if exist('tape_list', 'var') && ~isempty(tape_list) && size(tape_list, 1) == 1
+  % Given a string as input, load the matrix
+  tape_list = readmatrix(tape_list, 'Delimiter', ' ', 'OutputType', 'string');
+  [~, file, ext] = fileparts(tape_list(:, 2));
+  tape_list = [tape_list file + ext];
+  tape_list = sortrows(tape_list, 3);
+end
+
+if exist('tape_list', 'var') && ~isempty(tape_list) && size(tape_list, 1) > 1
+  % We have a matrix of tape locations, match to filenames
+
+  load_info.stored_filenames = {};
+  load_info.tapes = {};
+  for filename_group_idx=1:length(load_info.filenames)
+    filename_group = load_info.filenames{filename_group_idx};
+    load_info.stored_filenames{filename_group_idx} = {};
+    load_info.tapes{filename_group_idx} = {};
+
+    for filename_idx=1:length(filename_group)
+      filepath = filename_group{filename_idx};
+      [~, file, ext] = fileparts(filepath);
+      filename = [file ext];
+
+      [lia, locb] = ismember(filename, tape_list(:, 3));
+
+      if ~lia
+        load_info.stored_filenames{filename_group_idx}{filename_idx} = nan;
+        load_info.tapes{filename_group_idx}{filename_idx} = nan;
+      else
+        if strcmp(tape_list{locb + 1, 3}, filename)
+          disp 'duplicate filenames in tape_list';
+          keyboard;
+        end
+        load_info.stored_filenames{filename_group_idx}{filename_idx} = tape_list{locb, 2};
+        load_info.tapes{filename_group_idx}{filename_idx} = tape_list{locb, 1};
+      end
+    end
+  end
+end
