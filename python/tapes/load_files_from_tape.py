@@ -7,6 +7,7 @@ to tapes.
 Author: Reece Mathews
 """
 from subprocess import check_output
+import subprocess
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from pathlib import Path
@@ -118,30 +119,34 @@ def load_tape(tape_barcode):
 
     if slot.slot_type == "Data Transfer":
         # tape already in drive
+        print("Tape " + slot.barcode + " already loaded in drive " + slot.slot_num)
         return slot.slot_num
 
     # Find open drive
-    drive_num = None
+    drive_slot = None
     for slot_ in inv:
         if slot_.slot_type == "Data Transfer":
-            drive_num = slot_.slot_num
+            drive_slot = slot_
             if slot_.full == "Empty":
                 break
     else:
         # All drives full, unload last drive found
-        if drive_num is None:
+        if drive_slot is None:
             raise RuntimeError("No drives found")
 
-        check_output(["mtx", "-f", TAPE_LIB_DEV, "unload", slot.original_slot_num, str(drive_num)])
+        print("Unloading " + drive_slot.barcode + " from drive " + drive_slot.slot_num + " to slot " + drive_slot.original_slot_num)
+        check_output(["mtx", "-f", TAPE_LIB_DEV, "unload", drive_slot.original_slot_num, drive_slot.slot_num])
 
-    check_output(["mtx", "-f", TAPE_LIB_DEV, "load", slot.slot_num, drive_num])
+    print("Loading " + slot.barcode + " from slot " + slot.slot_num + " to drive " + drive_slot.slot_num)
+    check_output(["mtx", "-f", TAPE_LIB_DEV, "load", slot.slot_num, drive_slot.slot_num])
 
-    return drive_num
+    return drive_slot.slot_num
 
 
 def unmount_drive():
     """Unmount the TAPE_MOUNT_PATH."""
     if os.path.ismount(TAPE_MOUNT_PATH):
+        print("Unmounting /mnt/ltfs")
         check_output(["umount", TAPE_MOUNT_PATH])
 
 
@@ -150,7 +155,9 @@ def mount_drive(drive_num):
     """Mount the given drive with LTFS."""
     unmount_drive()
     drive_dev = TAPE_DRIVE_DEVS[drive_num]
-    check_output(["ltfs", "-o", f"devname={drive_dev}", TAPE_MOUNT_PATH])
+    # TODO[reece]: Handle mount hanging forever
+    subprocess.call(["ltfs", "-o", f"devname={drive_dev}", TAPE_MOUNT_PATH],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     try:
         yield
     finally:
@@ -188,10 +195,7 @@ def copy_files(files, path_mapping):
         # Check if parent folder path exists
         fs_parent_path = Path(fs_file_path).parent
         if not fs_parent_path.exists():
-            if input("**Path to file does not exist**, create path (y) or skip (n)?") == "y":
-                os.makedirs(fs_parent_path, exist_ok=True)
-            else:
-                continue
+            os.makedirs(fs_parent_path, exist_ok=True)
 
         # Perform copy
         shutil.copy2(file_path, fs_file_path)
