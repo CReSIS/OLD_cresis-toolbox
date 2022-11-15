@@ -27,10 +27,28 @@ output_file = 'tapes.txt';
 
 %% AUTOMATED PART
 
+% Produce tape_list sorted by filenames
 tape_list = readmatrix(tape_list_path, 'Delimiter', ' ', 'OutputType', 'string');
 [~, file, ext] = fileparts(tape_list(:, 2));
 tape_list = [tape_list file + ext];
 tape_list = sortrows(tape_list, 3);
+
+% Map directories to the corresponding small file archives
+small_file_archives = string();
+for file_idx = 1:size(tape_list, 1)
+    filepath = tape_list{file_idx, 2};
+    tapes = tape_list(file_idx, 1);
+    if endsWith(filepath, "small_file_archive.tar")
+        [parent, file_name, ext] = fileparts(filepath);
+        file_name = [file_name ext];
+        archive_idx = size(small_file_archives, 1) + 1;
+        small_file_archives(archive_idx, 1) = tapes;
+        small_file_archives(archive_idx, 2) = convertCharsToStrings(parent);
+        small_file_archives(archive_idx, 3) = convertCharsToStrings(file_name);
+    end
+end
+small_file_archives = sortrows(small_file_archives, 2);
+
 
 output_fid = fopen(output_file,'w');
 
@@ -38,18 +56,14 @@ for season_idx=1:length(seasons)
     season_name = ct_filename_param(seasons{season_idx});
     frame_idxs = flight_lines{season_idx};
 
-    [load_info,gps_time,recs] = get_raw_files(season_name, frame_idxs, {}, {}, {}, {}, tape_list);
+    [load_info,gps_time,recs] = get_raw_files(season_name, frame_idxs, {}, {}, {}, {}, tape_list, small_file_archives);
 
     fprintf(output_fid, '%s\n', seasons{season_idx});
     for file_list=1:length(load_info.filenames)
-        tapes = cell2mat(load_info.tapes{file_list}');
-        filenames = cell2mat(load_info.filenames{file_list}');
-        stored = cell2mat(load_info.stored_filenames{file_list}');
-
         fprintf(output_fid, 'Filelist: %d\n', file_list);
         fprintf(output_fid, 'tapes filename stored_filename\n');
-        for file_idx=1:size(filenames, 1)
-          fprintf(output_fid, '%s %s %s\n', tapes(file_idx, :), filenames(file_idx, :), stored(file_idx, :));
+        for file_idx=1:length(load_info.filenames{file_list})
+          fprintf(output_fid, '%s %s %s\n', load_info.tapes{file_list}{file_idx}, load_info.filenames{file_list}{file_idx}, load_info.stored_filenames{file_list}{file_idx});
         end
     end
     fprintf(output_fid, '\n');
