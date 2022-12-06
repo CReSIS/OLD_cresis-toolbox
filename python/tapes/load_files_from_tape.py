@@ -184,7 +184,7 @@ def path_subs(path):
     """Perform each path substitution on the given path."""
     for sub in FS_PATH_SUBS:
         path = path.replace(sub, FS_PATH_SUBS[sub])
-    return path
+    return path.replace('\\', '/')
 
 
 def copy_file(file, path_mapping, attempts=1):
@@ -192,7 +192,7 @@ def copy_file(file, path_mapping, attempts=1):
     # Perform sanity checks on file and destination
     # fs = filesystem (destination) paths as opposed to tape (source) paths
 
-    file_path = Path(TAPE_MOUNT_PATH) / file
+    file_path = Path(TAPE_MOUNT_PATH) / file.replace('\\', '/').lstrip('/')
     file_exists = file_path.exists()
     file_size = os.path.getsize(file_path) / 1024 ** 2 if file_exists else None
     print("source (exists:)", file_exists, f"{file_size if file_size is not None else 0} MB", file_path)
