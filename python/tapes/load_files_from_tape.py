@@ -91,7 +91,7 @@ def parse_tapes_file():
     if SKIP_EXISTING:
         # Remove existing files from list
         for tape, file_list in tape_mapping.items():
-            files = [file for file in file_list if not os.path.exists(path_subs(path_mapping[file]))]
+            files = [file for file in file_list if not Path(path_subs(path_mapping[file])).exists()]
             tape_mapping[tape] = files
 
     return tape_mapping, path_mapping
@@ -192,13 +192,13 @@ def copy_file(file, path_mapping, attempts=1):
     # Perform sanity checks on file and destination
     # fs = filesystem (destination) paths as opposed to tape (source) paths
 
-    file_path = TAPE_MOUNT_PATH + file
-    file_exists = os.path.exists(file_path)
+    file_path = Path(TAPE_MOUNT_PATH) / file
+    file_exists = file_path.exists()
     file_size = os.path.getsize(file_path) / 1024 ** 2 if file_exists else None
     print("source (exists:)", file_exists, f"{file_size if file_size is not None else 0} MB", file_path)
 
-    fs_file_path = path_subs(path_mapping[file])
-    fs_file_exists = os.path.exists(fs_file_path)
+    fs_file_path = Path(path_subs(path_mapping[file]))
+    fs_file_exists = fs_file_path.exists()
     fs_file_size = os.path.getsize(fs_file_path) / 1024 ** 2 if fs_file_exists else None
     print("-> destination (exists:)", fs_file_exists, f"{fs_file_size if fs_file_size is not None else 0} MB", fs_file_path)
 
@@ -217,14 +217,14 @@ def copy_file(file, path_mapping, attempts=1):
         else:
             raise RuntimeError("File already exists on file system")
     # Check if parent folder path exists
-    fs_parent_path = Path(fs_file_path).parent
+    fs_parent_path = fs_file_path.parent
     if not fs_parent_path.exists():
         os.makedirs(fs_parent_path, exist_ok=True)
 
     # Perform copy
     shutil.copy2(file_path, fs_file_path)
 
-    if fs_file_path.endswith("small_file_archive.tar"):
+    if fs_file_path.name.endswith("small_file_archive.tar"):
         os.chdir(fs_parent_path)
         with tarfile.open(fs_file_path) as tar:
             tar.extractall()
@@ -249,7 +249,7 @@ def load_tapes(tape_mapping, path_mapping):
             drive_num = load_tape(tape)
         except RuntimeError:
             print("Skipping missing tape: " + tape)
-            print("Did not restore files")
+            print("- Did not restore files:")
             for file in tape_mapping[tape]:
                 print("* ", TAPE_MOUNT_PATH + file, "->", path_subs(path_mapping[file]))
             continue
