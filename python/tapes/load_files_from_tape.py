@@ -18,7 +18,7 @@ import shutil
 import tarfile
 import time
 
-TAPES_FILE = 'tapes.txt'  # Produced from run_get_raw_files.m
+TAPES_FILE = '/root/utilities/tapes.txt'  # Produced from run_get_raw_files.m
 TAPE_LIB_DEV = "/dev/sg4"
 TAPE_MOUNT_PATH = "/mnt/ltfs"
 
@@ -54,7 +54,7 @@ def parse_tapes_file():
     path_mapping = {}
     all_files = set()
 
-    with open("tapes.txt") as f:
+    with open(TAPES_FILE) as f:
         season = None
         for line in f:
             if season is None:
