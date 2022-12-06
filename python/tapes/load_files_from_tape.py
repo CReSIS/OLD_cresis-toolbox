@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 Automatically load tapes in the Qualstar Q40 and pull the files from the given list.
 
@@ -15,6 +16,7 @@ import re
 import os
 import shutil
 import tarfile
+import time
 
 TAPES_FILE = 'tapes.txt'  # Produced from run_get_raw_files.m
 TAPE_LIB_DEV = "/dev/sg4"
@@ -185,51 +187,53 @@ def path_subs(path):
     return path
 
 
-def copy_files(files, path_mapping):
-    """Copy all the given files to their original locations."""
-    for file in files:
-        # Perform sanity checks on file and destination
-        # fs = filesystem (destination) paths as opposed to tape (source) paths
+def copy_file(file, path_mapping, attempts=1):
+    """Copy the given file to its original locations."""
+    # Perform sanity checks on file and destination
+    # fs = filesystem (destination) paths as opposed to tape (source) paths
 
-        file_path = TAPE_MOUNT_PATH + file
-        file_exists = os.path.exists(file_path)
-        file_size = os.path.getsize(file_path) / 1024 ** 2 if file_exists else None
-        print("source (exists:)", file_exists, f"{file_size if file_size is not None else 0} MB", file_path)
+    file_path = TAPE_MOUNT_PATH + file
+    file_exists = os.path.exists(file_path)
+    file_size = os.path.getsize(file_path) / 1024 ** 2 if file_exists else None
+    print("source (exists:)", file_exists, f"{file_size if file_size is not None else 0} MB", file_path)
 
-        fs_file_path = path_subs(path_mapping[file])
-        fs_file_exists = os.path.exists(fs_file_path)
-        fs_file_size = os.path.getsize(fs_file_path) / 1024 ** 2 if fs_file_exists else None
-        print("-> destination (exists:)", fs_file_exists, f"{fs_file_size if fs_file_size is not None else 0} MB", fs_file_path)
+    fs_file_path = path_subs(path_mapping[file])
+    fs_file_exists = os.path.exists(fs_file_path)
+    fs_file_size = os.path.getsize(fs_file_path) / 1024 ** 2 if fs_file_exists else None
+    print("-> destination (exists:)", fs_file_exists, f"{fs_file_size if fs_file_size is not None else 0} MB", fs_file_path)
 
-        # Check if source exists on tape
-        if not file_exists:
-            input("**Could not find source file on tape, perhaps try remounting. Press enter to skip.**")
-            continue
+    # Check if source exists on tape
+    if not file_exists:
+        if attempts > 0:
+            print("Could not find source file on tape, waiting one second and retrying.")
+            time.sleep(1)
+            return copy_file(file, path_mapping, attempts=attempts-1)
+        input("**Could not find source file on tape, perhaps try remounting. Press enter to skip.**")
 
-        # Check if destination already exists on filesystem
-        if fs_file_exists:
-            if SKIP_EXISTING or input("**File already exists on file system**, skip (y) or halt (n)?") == "y":
-                continue
-            else:
-                raise RuntimeError("File already exists on file system")
-        # Check if parent folder path exists
-        fs_parent_path = Path(fs_file_path).parent
-        if not fs_parent_path.exists():
-            os.makedirs(fs_parent_path, exist_ok=True)
+    # Check if destination already exists on filesystem
+    if fs_file_exists:
+        if SKIP_EXISTING or input("**File already exists on file system**, skip (y) or halt (n)?") == "y":
+            return
+        else:
+            raise RuntimeError("File already exists on file system")
+    # Check if parent folder path exists
+    fs_parent_path = Path(fs_file_path).parent
+    if not fs_parent_path.exists():
+        os.makedirs(fs_parent_path, exist_ok=True)
 
-        # Perform copy
-        shutil.copy2(file_path, fs_file_path)
+    # Perform copy
+    shutil.copy2(file_path, fs_file_path)
 
-        if fs_file_path.endswith("small_file_archive.tar"):
-            os.chdir(fs_parent_path)
-            with tarfile.open(fs_file_path) as tar:
-                tar.extractall()
-            if os.path.exists("delete_this_zero_file"):
-                os.remove("delete_this_zero_file")
+    if fs_file_path.endswith("small_file_archive.tar"):
+        os.chdir(fs_parent_path)
+        with tarfile.open(fs_file_path) as tar:
+            tar.extractall()
+        if os.path.exists("delete_this_zero_file"):
+            os.remove("delete_this_zero_file")
 
-            os.remove(fs_file_path)
+        os.remove(fs_file_path)
 
-        os.chdir("/")
+    os.chdir("/")
 
 
 def load_tapes(tape_mapping, path_mapping):
@@ -252,7 +256,8 @@ def load_tapes(tape_mapping, path_mapping):
 
         files = tape_mapping[tape]
         with mount_drive(drive_num):
-            copy_files(files, path_mapping)
+            for file in files:
+                copy_file(file, path_mapping)
 
 
 if __name__ == "__main__":
