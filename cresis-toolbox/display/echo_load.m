@@ -70,7 +70,7 @@ elseif isstruct(param)
       echo_fn{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_%s_%03d.mat',param.day_seg,frms(frm_idx)));
     else
       % Image "_img_II" file
-      echo_fn{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_img_%02d_%s_%03d.mat',img, param.day_seg,param.cmd.frms(frm_idx)));
+      echo_fn{frm_idx} = fullfile(ct_filename_out(param,echogram_source),sprintf('Data_img_%02d_%s_%03d.mat',img, param.day_seg,frms(frm_idx)));
     end
   end
   

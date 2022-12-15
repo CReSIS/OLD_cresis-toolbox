@@ -19,7 +19,7 @@ function success = preprocess_task_arena(param)
 
 % Pull in the inputs from param struct
 base_dir = fullfile(param.config.base_dir);
-config_folder_name = fullfile(param.config.config_folder_name);
+config_folder_name = fullfile(param.config.config_folder_names);
 reuse_tmp_files = param.config.reuse_tmp_files;
 
 %% Read each config/system XML file pair into a configs structure
@@ -114,7 +114,7 @@ for config_idx = 1:length(configs)
   for board_idx = 1:length(param.config.board_map)
     board = param.config.board_map(board_idx);
     
-    board_folder_name = fullfile(param.config.board_folder_name);
+    board_folder_name = fullfile(param.config.board_folder_names);
     
     % Replace all "%b" in board_folder_name with the board number
     board_folder_name = regexprep(board_folder_name,'%b',board);
@@ -201,7 +201,7 @@ for config_idx = 1:length(configs)
       if fn_idx == 1 && board_idx == 1
         [out_config_fn_dir] = fileparts(configs(config_idx).config_fn);
         log_files = fullfile(out_config_fn_dir,'logs/*');
-        out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.config_folder_name);
+        out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.config_folder_names);
         try
           fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
           if ~exist(out_log_dir,'dir')
@@ -219,12 +219,12 @@ for config_idx = 1:length(configs)
         % UDP packet headers are in the raw data files and preprocess also
         % creates a copy of the data files without the packet header. Look
         % for this file in that case. Newer systems can override this check
-        % by setting param.config.arena.daq.udp_packet_headers = false.
+        % by setting oparams{end}.arena.daq.udp_packet_headers = false.
         if ~strcmpi(configs(config_idx).datastream_type,'udp') ...
             || exist(out_fn,'file') ...
-            || isfield(param.config.arena,'daq') ...
-               && isfield(param.config.arena.daq,'udp_packet_headers') ...
-               && ~param.config.arena.daq.udp_packet_headers
+            || isfield(oparams{end}.arena,'daq') ...
+               && isfield(oparams{end}.arena.daq,'udp_packet_headers') ...
+               && ~oparams{end}.arena.daq.udp_packet_headers
           % Load the file to ensure it is not corrupted:
           % * If not corrupted, then execution continues onto the next
           %   file.
@@ -238,14 +238,14 @@ for config_idx = 1:length(configs)
       
       %% Read in headers from data file and create network packet stripped data file
       if strcmpi(configs(config_idx).datastream_type,'udp') ...
-          && (~isfield(param.config.arena,'daq') ...
-          || ~isfield(param.config.arena.daq,'udp_packet_headers') ...
-          || param.config.arena.daq.udp_packet_headers)
+          && (~isfield(oparams{end}.arena,'daq') ...
+          || ~isfield(oparams{end}.arena.daq,'udp_packet_headers') ...
+          || oparams{end}.arena.daq.udp_packet_headers)
         % In old arena systems, choosing the UDP datastream created raw
         % data files with UDP packet headers in them and a copy of the raw
         % data file without the packet headers will be made in "out_fn". If
         % using a new system, then the UDP packet headers are not in the
-        % files, but param.config.arena.daq.udp_packet_headers must be set
+        % files, but oparams{end}.arena.daq.udp_packet_headers must be set
         % to true for preprocess to process them correctly.
         [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
           num_expected,pkt_counter,min_num_expected,max_num_expected, ...
@@ -259,6 +259,7 @@ for config_idx = 1:length(configs)
       end
       
       %% Write header output file
+      mat_or_bin_hdr_output = '.mat';
       if strcmpi(mat_or_bin_hdr_output,'.mat')
         if strcmpi(configs(config_idx).radar_name,'ku0001')
           offset = mod(hdr(1,:),2^32);
@@ -382,17 +383,24 @@ for config_idx = 1:length(configs)
   % Determine which default parameters to use
   % =======================================================================
   match_idx = [];
-  for default_idx = 1:length(param.config.defaults)
-    match = regexpi(configs(config_idx).psc.config_name, param.config.defaults{default_idx}.config_regexp);
-    if ~isempty(match)
-      match_idx = default_idx;
-      break;
-    end
-  end
-  if isempty(match_idx)
-    error('No match for psc config name %s.', configs(config_idx).psc.config_name);
-  end
-  oparams{end+1} = param.config.defaults{match_idx};
+  [~,defaults] = param.config.default();
+  default = default_radar_params_settings_match(defaults,configs(config_idx).psc.config_name);
+  default = merge_structs(param,default);
+  oparams{end+1} = default;
+  try; oparams{end} = rmfield(oparams{end},'config_regexp'); end;
+  try; oparams{end} = rmfield(oparams{end},'name'); end;
+  
+%   for default_idx = 1:length(param.config.defaults)
+%     match = regexpi(configs(config_idx).psc.config_name, param.config.defaults{default_idx}.config_regexp);
+%     if ~isempty(match)
+%       match_idx = default_idx;
+%       break;
+%     end
+%   end
+%   if isempty(match_idx)
+%     error('No match for psc config name %s.', configs(config_idx).psc.config_name);
+%   end
+%   oparams{end+1} = param.config.defaults{match_idx};
 
   % Create map from wfs to board_idx, mode, subchannel, adc
   % =======================================================================
@@ -431,16 +439,16 @@ for config_idx = 1:length(configs)
     oparams{end}.records.file.stop_idx(board_idx) = length(configs(config_idx).fns{board_idx});
   end
   if strcmpi(configs(config_idx).datastream_type,'udp') ...
-      || ~isfield(param.config.arena,'daq') ...
-      || ~isfield(param.config.arena.daq,'udp_packet_headers') ...
-      || param.config.arena.daq.udp_packet_headers
+      || ~isfield(oparams{end}.arena,'daq') ...
+      || ~isfield(oparams{end}.arena.daq,'udp_packet_headers') ...
+      || oparams{end}.arena.daq.udp_packet_headers
     % See earlier discussion on udp_packet_headers. The raw data files with
     % the UDP packet headers removed are stored in ct_tmp.
     oparams{end}.records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
   else
     oparams{end}.records.file.base_dir = base_dir;
   end
-  oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
+  oparams{end}.records.file.board_folder_name = param.config.board_folder_names;
   if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
     oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
   end
@@ -448,7 +456,7 @@ for config_idx = 1:length(configs)
   oparams{end}.records.gps.time_offset = 0;
   oparams{end}.records.gps.en = 1;
   [~,config_fn_name] = fileparts(configs(config_idx).config_fn);
-  oparams{end}.records.config_fn = fullfile(param.config.config_folder_name, [config_fn_name '.xml']);
+  oparams{end}.records.config_fn = fullfile(param.config.config_folder_names, [config_fn_name '.xml']);
   
   oparams{end}.radar.fs = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.sampFreq;
   oparams{end}.radar.prf = configs(config_idx).prf * configs(config_idx).total_presums;
@@ -545,11 +553,11 @@ for config_idx = 1:length(configs)
       adc_board_idx = board_idx_map(adc_idx);
       adc_mode = mode_map(adc_idx);
       adc_subchannel = subchannel_map(adc_idx);
-      oparams{end}.radar.wfs(wf).bit_shifts(adc) = configs(config_idx).adc{adc_board_idx,adc_mode+1,adc_subchannel+1}.shiftLSB - 2 - param.config.arena.adc(adc_board_idx).gain_dB(adc_subchannel+1)/6;
+      oparams{end}.radar.wfs(wf).bit_shifts(adc) = configs(config_idx).adc{adc_board_idx,adc_mode+1,adc_subchannel+1}.shiftLSB - 2 - oparams{end}.arena.adc(adc_board_idx).gain_dB(adc_subchannel+1)/6;
     end
     oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams{end}.radar.fs*oparams{end}.radar.wfs(wf).DDC_dec ...
-      - param.config.arena.param.ADC_time_delay - t_dac;
+      - oparams{end}.arena.param.ADC_time_delay - t_dac;
     
   end
 end
@@ -575,14 +583,18 @@ if ~isempty(param.config.param_fn)
   fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
   % Other sheets
-  warning off MATLAB:xlsfinfo:ActiveX
-  [status, sheets] = xlsfinfo(param.config.param_fn);
-  warning on MATLAB:xlsfinfo:ActiveX
-  for sheet_idx = 1:length(sheets)
-    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
-      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
-      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+  try
+    warning off MATLAB:xlsfinfo:ActiveX
+    [status, sheets] = xlsfinfo(param.config.param_fn);
+    warning on MATLAB:xlsfinfo:ActiveX
+    for sheet_idx = 1:length(sheets)
+      if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+        fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+        read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+      end
     end
+  catch ME
+    ME.getReport
   end
   fprintf(fid,'\n');
   
@@ -618,14 +630,18 @@ if ~isempty(param.config.param_fn)
   read_param_xls_print(param.config.param_fn,'post',oparams,fid);
   fprintf(fid,'\n');
   % Other sheets
-  warning off MATLAB:xlsfinfo:ActiveX
-  [status, sheets] = xlsfinfo(param.config.param_fn);
-  warning on MATLAB:xlsfinfo:ActiveX
-  for sheet_idx = 1:length(sheets)
-    if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
-      fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
-      read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+  try
+    warning off MATLAB:xlsfinfo:ActiveX
+    [status, sheets] = xlsfinfo(param.config.param_fn);
+    warning on MATLAB:xlsfinfo:ActiveX
+    for sheet_idx = 1:length(sheets)
+      if ~any(strcmpi(sheets{sheet_idx},{'cmd','records','qlook','sar','array','radar','post'}))
+        fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  %s\n', sheets{sheet_idx}); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+        read_param_xls_print(param.config.param_fn,sheets{sheet_idx},oparams,fid);
+      end
     end
+  catch ME
+    ME.getReport
   end
   fprintf(fid,'\n');
   fclose(fid);

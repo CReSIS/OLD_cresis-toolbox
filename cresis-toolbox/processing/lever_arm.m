@@ -132,6 +132,14 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_sourc
   gps.z = 0;
 end
 
+if (strcmpi(param.season_name,'2022_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
+  % Platform: Ground based sled (EAGER 1, EAGER 2, GHOST 1, GHOST 2)
+  %
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) %...
 %     && any(strcmpi(gps_source,{'nmea'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
@@ -1120,6 +1128,26 @@ if (strcmpi(param.season_name,'2013_Antarctica_Sled') && strcmpi(radar_name,'acc
   end
 end
 
+if (strcmpi(param.season_name,'2022_Antarctica_Ground') && strcmpi(radar_name,'accum'))
+  % Sled antennas EAGER 1 and EAGER 2
+  
+  % GPS Antenna to Antenna phase center
+  LArx = [0 0	-4 % along-track polarization/H-polarization
+    0 0	-4 % cross-track polarization/V-polarization
+    ].' * 2.54/100;
+  
+  LAtx = LArx(:,:);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 
 % =========================================================================
 %% Ka-band
@@ -1555,6 +1583,36 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(radar_name,'r
   
   if rxchannel == 0
     rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2022_Antarctica_Ground') && strcmpi(radar_name,'rds'))
+  % Sled antennas
+  % Center elements left to right
+  
+  % GPS Antenna to Antenna ports (top side of antenna glass to bottom center of GPS antenna)
+  LArx = [0 -83.24 0 % along-track polarization/H-polarization
+    0 -64.87  0
+    0 -46.54  0
+    0 -28.17 0
+    0 -9.84 0
+    0 8.53 0
+    0 -83.24 0 % cross-track polarization/V-polarization
+    0 -64.87 0
+    0 -46.54 0
+    0 -28.17 0
+    0 -9.84 0
+    0 8.53 0].' * 2.54/100;
+  
+  LAtx = LArx(:,:);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 3;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 3;
     tx_weights = ones(1,size(LAtx,2));
   end
 end

@@ -580,5 +580,5 @@ if trim_nan_en
   start_bin = min(start_bin);
   stop_bin = max(stop_bin);
   mdata.Data = mdata.Data(start_bin:stop_bin,:);
-  y_axis(start_bin:stop_bin);
+  y_axis = y_axis(start_bin:stop_bin);
 end
