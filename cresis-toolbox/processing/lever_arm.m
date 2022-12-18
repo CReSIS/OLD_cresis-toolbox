@@ -1130,6 +1130,9 @@ end
 
 if (strcmpi(param.season_name,'2022_Antarctica_Ground') && strcmpi(radar_name,'accum'))
   % Sled antennas EAGER 1 and EAGER 2
+  %
+  % Primary GPS antenna: GPS positions are relative to primary which is in the center of the radar antenna array.
+  % Secondary GPS antenna: 22.5" forward and 12" right of the primary. Align information will be relative to this.
   
   % GPS Antenna to Antenna phase center
   LArx = [0 0	-4 % along-track polarization/H-polarization

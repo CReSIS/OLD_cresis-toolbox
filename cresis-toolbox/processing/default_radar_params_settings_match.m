@@ -7,7 +7,15 @@ function default = default_radar_params_settings_match(defaults,settings)
 
 found = false;
 if isfield(settings,'XML_File_Path')
+  % MCoRDS NI
   settings_fn = settings.XML_File_Path{1}.values{1};
+elseif ischar(settings)
+  % Arena
+  settings_fn = settings;
+else
+  settings_fn = '';
+end
+if ~isempty(settings_fn)
   for default_idx = 1:length(defaults)
     if ~isempty(regexp(settings_fn, defaults{default_idx}.config_regexp))
       default = defaults{default_idx};
@@ -15,8 +23,6 @@ if isfield(settings,'XML_File_Path')
       break;
     end
   end
-else
-  settings_fn = '';
 end
 
 while ~found

@@ -373,6 +373,8 @@ end
 %% Print out segments
 % =========================================================================
 oparams = {};
+segment = 0;
+last_day_seg = '00000000';
 for config_idx = 1:length(configs)
   
   if isempty(configs(config_idx).fns{1})
@@ -428,7 +430,15 @@ for config_idx = 1:length(configs)
   % Parameter spreadsheet
   % =======================================================================
   [~,config_fn_name] = fileparts(configs(config_idx).config_fn);
-  oparams{end}.day_seg = sprintf('%s_%02d',config_fn_name(1:8),numel(oparams));
+  if strcmp(last_day_seg(1:8),config_fn_name(1:8))
+    % Same day
+    segment = segment + 1;
+  else
+    % New day
+    segment = 1;
+  end
+  oparams{end}.day_seg = sprintf('%s_%02d',config_fn_name(1:8),segment);
+  last_day_seg = oparams{end}.day_seg;
   oparams{end}.cmd.notes = configs(config_idx).psc.config_name(5:end);
   
   oparams{end}.records.file.version = 103;
@@ -553,7 +563,16 @@ for config_idx = 1:length(configs)
       adc_board_idx = board_idx_map(adc_idx);
       adc_mode = mode_map(adc_idx);
       adc_subchannel = subchannel_map(adc_idx);
-      oparams{end}.radar.wfs(wf).bit_shifts(adc) = configs(config_idx).adc{adc_board_idx,adc_mode+1,adc_subchannel+1}.shiftLSB - 2 - oparams{end}.arena.adc(adc_board_idx).gain_dB(adc_subchannel+1)/6;
+      if isfield(oparams{end}.radar.wfs(wf), 'bit_shifts')
+        % User bit shifts override
+        oparams{end}.radar.wfs(wf).bit_shifts(adc) = oparams{end}.radar.wfs(wf).bit_shifts(adc);
+      else
+        % Bit shifts from digital radar config file
+        oparams{end}.radar.wfs(wf).bit_shifts(adc) = configs(config_idx).adc{adc_board_idx,adc_mode+1,adc_subchannel+1}.shiftLSB;
+      end
+      % Note that receiver gain from radar config file should possibly be
+      % included:
+      %oparams{end}.arena.adc(adc_board_idx).gain_dB(adc_subchannel+1)
     end
     oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams{end}.radar.fs*oparams{end}.radar.wfs(wf).DDC_dec ...

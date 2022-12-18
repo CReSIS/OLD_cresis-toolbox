@@ -175,7 +175,7 @@ param.cmd.generic = 1;
 
 %% Records worksheet
 param.records.gps.time_offset = 0;
-param.records.frames.geotiff_fn = 'Antarctica\Landsat-7\mzl7geo_90m_lzw.tif';
+param.records.frames.geotiff_fn = 'antarctica\Landsat-7\Antarctica_LIMA.tif';
 param.records.frames.mode = 1;
 param.records.file.version = 103;
 param.records.file.prefix = param.radar_name;
@@ -243,24 +243,22 @@ param.array.Nsig = 2;
 
 %% Radar worksheet
 param.radar.adc_bits = 14;
-param.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
-param.radar.Tadc_adjust = -189e-9; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+param.radar.Vpp_scale = 1.5;
 param.radar.lever_arm_fh = @lever_arm;
-% param.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
-% param.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
-param.radar.wfs(1).adc_gains_dB = 32.7; % After radiometric calibration
-param.radar.wfs(2).adc_gains_dB = 50.7; % After radiometric calibration
-param.radar.wfs(3).adc_gains_dB = 32.7; % After radiometric calibration
-param.radar.wfs(4).adc_gains_dB = 50.7; % After radiometric calibration
-for wf = 1:4
-  param.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
-  param.radar.wfs(wf).gain_en = 1; % Enable fast-time gain correction
-  param.radar.wfs(wf).coh_noise_method = 'analysis'; % Coherent noise removal
-  param.radar.wfs(wf).Tadc_adjust = -0.0000003065;
+for wf = 1:4 
+  param.radar.wfs(wf).adc_gains_dB = [38 38]; % ADC gain
+  param.radar.wfs(wf).adcs = [1 2]; % ADC to rx path mapping
+  param.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
+  param.radar.wfs(wf).gain_en = [0 0]; % Disable fast-time gain correction
+  param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
+  param.radar.wfs(wf).Tadc_adjust = 0;
+  param.radar.wfs(wf).tx_paths = [1 2];
+  param.radar.wfs(wf).tx_paths = [1 2];
+  param.radar.wfs(wf).bit_shifts = [7 7];
 end
-Tsys = [0]/1e9;
-chan_equal_dB = [0];
-chan_equal_deg = [0];
+Tsys = [0 0]/1e9;
+chan_equal_dB = [0 0];
+chan_equal_deg = [0 0];
 
 %% Post worksheet
 param.post.data_dirs = {'qlook'};
@@ -284,7 +282,6 @@ param.post.ops.location = 'antarctic';
 
 %% Analysis worksheet
 param.analysis_noise.block_size = 10000;
-param.analysis_noise.imgs = {[1 1],[2 1],[3 1],[4 1]};
 cmd_idx = 0;
 cmd_idx = cmd_idx + 1;
 param.analysis_noise.cmd{cmd_idx}.method = 'coh_noise';
@@ -294,104 +291,26 @@ param.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighti
 
 defaults = {};
 
-% Deconvolution Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
+% Survey Mode Shallow Ice
+% Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
+% an error in the settings where mode 0 and mode 1 both acquired data that should have only
+% gone to mode 0.
+default.records.data_map = {[4 0 2 1;0 0 1 1;1 0 1 1],[4 0 2 2;0 0 1 2;1 0 1 2;]}
 default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
+default.qlook.imgs = {[1 1],[2 1],[1 2],[2 2]};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
+default.analysis_noise.imgs = default.qlook.imgs;
 default.radar.ref_fn = '';
-for wf = 1:4
+default.radar.wfs = param.radar.wfs(1:2);
+for wf = 1:2
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
 end
-
-default.config_regexp = '.*deconv.*';
-default.name = 'Deconv Mode 600-900 MHz';
-defaults{end+1} = default;
-
-% Noise Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
-end
-
-default.config_regexp = '.*noise.*';
-default.name = 'Noise Mode 600-900 MHz';
-defaults{end+1} = default;
-
-% Loopback Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
-end
-
-default.config_regexp = '.*loopback.*';
-default.name = 'Loopback Mode 600-900 MHz';
-defaults{end+1} = default;
-
-% Survey Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1],[1 2],[2 2],[3 2],[4 2]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1 2];
-  default.radar.wfs(wf).tx_paths = [1 2];
-  default.radar.wfs(wf).bit_shifts = [6 6];
-end
-
-default.config_regexp = '.*survey.*';
-default.name = 'Survey Mode 600-900 MHz';
-defaults{end+1} = default;
-
-%% Other settings
-
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
-end
-
-default.config_regexp = '.*';
-default.name = 'Default 600-900 MHz';
+default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+300]';
+% Note psc config name was incorrectly set, but it is for shallow ice:
+default.config_regexp = 'psc_survey_600-900MHz_0usDelay_2us_LOOPBACK';
+default.name = 'Survey Mode 600-900 MHz Shallow Ice';
 defaults{end+1} = default;

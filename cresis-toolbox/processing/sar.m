@@ -393,7 +393,7 @@ else
       for wf_adc = 1:size(param.sar.imgs{img},1)
         wf = param.sar.imgs{img}(wf_adc,1);
         adc = param.sar.imgs{img}(wf_adc,2);
-        [board,board_idx,profile] = wf_adc_to_board(param,[wf adc]);
+        [board,board_idx,~] = wf_adc_to_board(param,[wf adc]);
         
         if length(imgs_list) < board_idx
           imgs_list{board_idx} = {};

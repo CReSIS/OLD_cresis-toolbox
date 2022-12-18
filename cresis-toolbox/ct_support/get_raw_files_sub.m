@@ -4,7 +4,7 @@ function load_info = get_raw_files_sub(param,wf_adc_list,records,recs)
 % Support function for get_raw_files
 
 % boards_headers: the boards that the actual adc headers were loaded from
-[boards,board_idx,profile] = wf_adc_to_board(param,wf_adc_list);
+[boards,board_idx,~] = wf_adc_to_board(param,wf_adc_list);
 
 % Populate load_info struct
 load_info = [];

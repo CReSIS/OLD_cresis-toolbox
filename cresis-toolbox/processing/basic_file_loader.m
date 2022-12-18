@@ -171,7 +171,7 @@ if ~strncmpi(param.config.file_search_mode,'default',length('default'))
     global g_basic_file_loader_selection;
 
     adc = param.config.img(1,2);
-    [board,board_idx,profile] = wf_adc_to_board(param,param.config.img(1,:));
+    [board,board_idx,~] = wf_adc_to_board(param,param.config.img(1,:));
     board_folder_name = param.records.file.board_folder_name;
     board_folder_name = regexprep(board_folder_name,'%b',param.records.file.boards{board_idx});
     fns = get_filenames(fullfile(base_dir,board_folder_name),param.records.file.prefix,'','.bin',struct('recursive',true));
@@ -206,7 +206,7 @@ if ~strncmpi(param.config.file_search_mode,'default',length('default'))
     
   elseif strcmpi(param.config.file_search_mode,'specific')
     adc = param.config.img(1,2);
-    [board,board_idx,profile] = wf_adc_to_board(param,param.config.img(1,:));
+    [board,board_idx,~] = wf_adc_to_board(param,param.config.img(1,:));
     board_folder_name = param.records.file.board_folder_name;
     board_folder_name = regexprep(board_folder_name,'%b',param.records.file.boards{board_idx});
     data_fns = get_filenames(fullfile(base_dir,board_folder_name),param.records.file.prefix,'','.bin');
@@ -271,7 +271,7 @@ if ~strncmpi(param.config.file_search_mode,'default',length('default'))
         error('wf-adc pair (%d,%d) was not found in param.records.arena.data_map. Update default_radar_params_*.m or param.config.img.', wf, adc);
       end
       % Get raw data files associated with this directory
-      [board,board_idx,profile] = wf_adc_to_board(param,param.config.img(1,:));
+      [board,board_idx,~] = wf_adc_to_board(param,param.config.img(1,:));
       board_folder_name = param.records.file.board_folder_name;
       board_folder_name = regexprep(board_folder_name,'%b',param.records.file.boards{board_idx});
       fn_datenums = [];
@@ -291,7 +291,7 @@ if ~strncmpi(param.config.file_search_mode,'default',length('default'))
     else
       % NI based systems
       adc = param.config.img(1,2);
-      [board,board_idx,profile] = wf_adc_to_board(param,param.config.img(1,:));
+      [board,board_idx,~] = wf_adc_to_board(param,param.config.img(1,:));
       board_folder_name = param.records.file.board_folder_name;
       board_folder_name = regexprep(board_folder_name,'%b',param.records.file.boards{board_idx});
       data_fns = get_filenames(fullfile(base_dir,board_folder_name),param.records.file.prefix,'','.bin');

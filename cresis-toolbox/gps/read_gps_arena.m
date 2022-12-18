@@ -119,6 +119,25 @@ function gps = read_gps_arena(fn, param)
 % 9	The checksum data, always begins with *
 % 
 % =============================================================================
+% NMEA-0183 message: ZDA
+% Related Topics
+% NMEA-0183 messages: Overview
+% Date and time
+% The ZDA string is:
+% 
+% $GPZDA,034558.00,09,12,2022,,*61
+% 
+% GPZDA message fields
+% Field	Meaning
+% 0	Message ID $GPZDA
+% 1	UTC of position fix
+% 2 Day
+% 3	Month
+% 4	Year
+% 5	
+% 6	The checksum data, always begins with *
+% 
+% =============================================================================
 % NMEA-0183 message: VTG
 % Related Topics
 % NMEA-0183 messages: Overview
@@ -168,7 +187,11 @@ ppsCntr = [];
 gps_date = [];
 heading = [];
 
+% $GPZDA,034558.00,09,12,2022,,*61
+format_str_GPZDA = '%s%f%s%s%s%s%s';
+% $GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
 format_str_GPRMC = '%s%f%s%f%c%f%c%f%f%f%f%s%s';
+% $GPGGA,194325.010,3857.135037,N,09515.861757,W,1,9,0.88,311.412,M,-29.504,M,,*65
 format_str_GPGGA = '%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s';
 nmea_idx = 1;
 relTimeCntrTmp = NaN;
@@ -233,6 +256,31 @@ while ~feof(fid)
           heading_tmp = NaN;
         else
           fprintf(2, '    BAD LINE %d: %s\n', line_num, GPGGA_str(GPGGA_str ~= 10));
+        end
+      end
+    elseif numel(str)>=11 && strcmp(str(7:11),'GPZDA')
+      C = textscan(remain(2:end),format_str_GPZDA,'delimiter',', ','emptyvalue',NaN);
+      [tag,gps_date_time_tmp,day_tmp,month_tmp,year_tmp,unknown,checksum] = deal(C{:});
+      heading_tmp = NaN; % Do not use (low quality)
+      if nmea_idx > 1
+        % The GPZDA string may come before or after the corresponding GPZDA
+        % string with the same time stamp.
+        % 
+        % If it comes afterwards, this string is just updating fields that
+        % the GPGGA string already provided. The most important fields are
+        % the day, month, and year, which the GPGGA does not provide. We
+        % __think__ that all the other fields should be the same as what
+        % were in the GPGGA string.
+        %
+        % If GPZDA comes before the GPGGA string, we do nothing now, but
+        % use the gps_date_tmp and gps_date_time_tmp fields to update the
+        % next GPGGA string when it comes.
+        gps_date_tmp = str2double([day_tmp{1},month_tmp{1},year_tmp{1}(3:4)]);
+        if UTC_time_file(nmea_idx-1) == gps_date_time_tmp
+          gps_date(nmea_idx-1) = gps_date_tmp;
+          gps_date_tmp = NaN;
+          gps_date_time_tmp = NaN;
+          % fprintf(2, '    GPZDA WITH DIFFERENT TIME THAN LAST GPGGA LINE %d: %.14g  ~= %.14g\n', line_num, UTC_time_file_tmp, UTC_time_file(nmea_idx-1));
         end
       end
     elseif numel(str)>=11 && strcmp(str(7:11),'GPRMC')

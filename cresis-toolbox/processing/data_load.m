@@ -223,9 +223,9 @@ for state_idx = 1:length(states)
           adc = state.adc(ai);
           wf = state.wf(ai);
           img = state.img(ai);
-          mode_latch = state.mode(ai);
+          mode_latch = state.mode{ai};
           weight = state.weight(ai);
-          subchannel = state.subchannel(ai);
+          subchannel = state.subchannel{ai};
           
           % Determine which file has the current record
           file_idx = file_idxs(rec);
@@ -335,8 +335,9 @@ for state_idx = 1:length(states)
           adc = state.adc(ai);
           wf = state.wf(ai);
           img = state.img(ai);
-          mode_latch = state.mode(ai);
-          subchannel = state.subchannel(ai);
+          mode_latch = state.mode{ai};
+          subchannel = state.subchannel{ai};
+          mode_latch_subchannel = mode_latch*2^8 + subchannel; % Create unique number for each mode/subchannel pair (modes and subchannels limited to 0-255/8-bits)
           
           % Read in headers for this waveform
           % ---------------------------------------------------------------
@@ -548,7 +549,7 @@ for state_idx = 1:length(states)
               end
               
             case 1
-              % Read in RSS dynamic record
+              % Read in Arena dynamic record
               sub_rec_offset = 0;
               missed_wf_adc = true;
               while sub_rec_offset < rec_size
@@ -578,8 +579,8 @@ for state_idx = 1:length(states)
                   radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
                 end
                 if any(radar_header_type == [5 16 23])
-                  if mode_latch == typecast(file_data(total_offset+17),'uint8') ...
-                      && subchannel == typecast(file_data(total_offset+18),'uint8')
+                  if any(mode_latch_subchannel == double(typecast(file_data(total_offset+17),'uint8'))*2^8 ...
+                      + double(typecast(file_data(total_offset+18),'uint8')))
                     % This matches the mode and subchannel that we need
                     is_IQ = 0;
                     if length(file_data) < total_offset+24+radar_header_len+radar_profile_length

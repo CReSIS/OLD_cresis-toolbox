@@ -24,7 +24,7 @@ if ~isequal(pq(1,:),[1 1])
       end
     end
     if ~found
-      error('Resample values [%d %d] will result in non-aligned data samples.', pq(1,1:2));
+      error('Resample values [%d %d] will result in non-aligned data samples.', pq(1,1), pq(1,2));
     end
     offset = test_bin - start_bin;
     if offset > 20

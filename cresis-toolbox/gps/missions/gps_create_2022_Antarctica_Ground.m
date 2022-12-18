@@ -42,18 +42,32 @@ if strcmpi(gps_source_to_use,'arena')
   %% ARENA GPS SOURCE
   % =======================================================================
 
-  year = 2022; month = 12; day = 1;
+%   year = 2022; month = 12; day = 1;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+
+  year = 2022; month = 12; day = 9;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  date_str{file_idx} = '20221201';
+  date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
   file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+  params{file_idx} = struct('time_reference','utc');
   gps_source{file_idx} = 'arena-field';
   sync_flag{file_idx} = 1;
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+  sync_params{file_idx} = struct('time_reference','utc');
+
   
 elseif strcmpi(gps_source_to_use,'cresis')
   %% CReSIS GPS SOURCE
@@ -109,6 +123,19 @@ for idx = 1:length(file_type)
     end
   end
   
+  if ~isempty(regexpi(gps_source,'arena')) && ~isempty(regexpi(out_fn,'20221209'))
+    [out_fn_dir,out_fn_name,out_fn_ext] = fileparts(out_fn);
+    new_out_fn = fullfile(out_fn_dir,[out_fn_name(1:end-2),'10',out_fn_ext]);
+    warning('Copying 20221209 to 20221210:\n  %s\n  %s\n', out_fn, new_out_fn);
+    copyfile(out_fn,new_out_fn);
+    new_out_fn = fullfile(out_fn_dir,[out_fn_name(1:end-2),'11',out_fn_ext]);
+    warning('Copying 20221209 to 20221211:\n  %s\n  %s\n', out_fn, new_out_fn);
+    copyfile(out_fn,new_out_fn);
+    new_out_fn = fullfile(out_fn_dir,[out_fn_name(1:end-2),'12',out_fn_ext]);
+    warning('Copying 20221209 to 20221212:\n  %s\n  %s\n', out_fn, new_out_fn);
+    copyfile(out_fn,new_out_fn);
+  end
+ 
   if ~isempty(regexpi(out_fn,'20220419'))
     % Fix bad radar time 
     warning('Fixing bad radar_time: %s', out_fn);

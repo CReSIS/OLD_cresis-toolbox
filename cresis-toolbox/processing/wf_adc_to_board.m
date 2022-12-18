@@ -30,18 +30,18 @@ if any(param.records.file.version == [402 403])
   % NI systems with 4 adcs per board
   board = unique(floor((wf_adc_list(:,2).'-1)/4));
   board_idx = board+1;
-  profile = [];
+  profile = {};
   
 elseif any(param.records.file.version == [410])
   % MCRDS with all adcs on one board
   board = 1;
   board_idx = 1;
-  profile = [];
+  profile = {};
   
 elseif any(param.records.file.version == [9 10 103 412])
   % RSS which uses param.records.data_map
   board = zeros(1,size(wf_adc_list,1));
-  profile = zeros(size(wf_adc_list,1),2);
+  profile = cell(size(wf_adc_list,1),1);
   for wf_adc = 1:size(wf_adc_list,1)
     found = false;
     for board_idx = 1:length(param.records.data_map)
@@ -50,8 +50,10 @@ elseif any(param.records.file.version == [9 10 103 412])
         adc = param.records.data_map{board_idx}(profile_idx,4); % processing adc
         if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
           board(wf_adc) = board_idx;
-          profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % mode
-          profile(wf_adc,2) = param.records.data_map{board_idx}(profile_idx,2); % subchannel
+          % Add an entry (this approach allows multiple mode,subchannel
+          % combinations to be lumped into a single wf/adc pair).
+          profile{wf_adc}(end+1,1) = param.records.data_map{board_idx}(profile_idx,1); % mode
+          profile{wf_adc}(end,2) = param.records.data_map{board_idx}(profile_idx,2); % subchannel
           found = true;
         end
       end
@@ -67,7 +69,7 @@ elseif any(param.records.file.version == [8 11])
   % NI system
   if isfield(param.records,'data_map') && ~isempty(param.records.data_map)
     board = zeros(1,size(wf_adc_list,1));
-    profile = zeros(size(wf_adc_list,1),2);
+    profile = cell(size(wf_adc_list,1),1);
     for wf_adc = 1:size(wf_adc_list,1)
       found = false;
       for board_idx = 1:length(param.records.data_map)
@@ -78,14 +80,14 @@ elseif any(param.records.file.version == [8 11])
               && ( isnan(adc) || wf_adc_list(wf_adc,2) == adc )
             board(wf_adc) = board_idx;
             if isnan(param.records.data_map{board_idx}(profile_idx,1))
-              profile(wf_adc,1) = wf_adc_list(wf_adc,1); % hardware wf matches processing wf
+              profile{wf_adc}(1,1) = wf_adc_list(wf_adc,1); % hardware wf matches processing wf
             else
-              profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % hardware wf
+              profile{wf_adc}(1,1) = param.records.data_map{board_idx}(profile_idx,1); % hardware wf
             end
             if isnan(param.records.data_map{board_idx}(profile_idx,2))
-              profile(wf_adc,2) = wf_adc_list(wf_adc,2); % hardware adc matches processing adc
+              profile{wf_adc}(1,2) = wf_adc_list(wf_adc,2); % hardware adc matches processing adc
             else
-              profile(wf_adc,2) = param.records.data_map{board_idx}(profile_idx,2); % hardware adc
+              profile{wf_adc}(1,2) = param.records.data_map{board_idx}(profile_idx,2); % hardware adc
             end
             found = true;
           end
@@ -100,20 +102,20 @@ elseif any(param.records.file.version == [8 11])
   else
     board = unique(wf_adc_list(:,2).');
     board_idx = board;
-    profile = [];
+    profile = {};
   end
   
 elseif any(param.records.file.version == [413])
   % UTUA HFRDS
   board = 1;
   board_idx = board;
-  profile = [];
+  profile = {};
   
 elseif any(param.records.file.version == [414])
   % BAS Matlab RDS
   board = 12*(wf_adc_list(:,1)-1) + wf_adc_list(:,2);
   board_idx = ones(size(board));
-  profile = [];
+  profile = {};
   
 else
   % All other systems
@@ -130,14 +132,14 @@ else
               && ( isnan(adc) || wf_adc_list(wf_adc,2) == adc )
             board(wf_adc) = board_idx;
             if isnan(param.records.data_map{board_idx}(profile_idx,1))
-              profile(wf_adc,1) = wf_adc_list(wf_adc,1); % hardware wf matches processing wf
+              profile{wf_adc}(1,1) = wf_adc_list(wf_adc,1); % hardware wf matches processing wf
             else
-              profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % hardware wf
+              profile{wf_adc}(1,1) = param.records.data_map{board_idx}(profile_idx,1); % hardware wf
             end
             if isnan(param.records.data_map{board_idx}(profile_idx,2))
-              profile(wf_adc,2) = wf_adc_list(wf_adc,2); % hardware adc matches processing adc
+              profile{wf_adc}(1,2) = wf_adc_list(wf_adc,2); % hardware adc matches processing adc
             else
-              profile(wf_adc,2) = param.records.data_map{board_idx}(profile_idx,2); % hardware adc
+              profile{wf_adc}(1,2) = param.records.data_map{board_idx}(profile_idx,2); % hardware adc
             end
             found = true;
           end
@@ -152,7 +154,7 @@ else
   else
     board = unique(wf_adc_list(:,2).');
     board_idx = board;
-    profile = [];
+    profile = {};
   end
 end
 

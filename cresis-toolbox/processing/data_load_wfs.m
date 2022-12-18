@@ -63,8 +63,8 @@ for state_idx = 1:length(boards)
     states(state_idx).board_idx = board_idxs(state_idx);
     states(state_idx).adc = [];
     states(state_idx).wf = [];
-    states(state_idx).mode = [];
-    states(state_idx).subchannel = [];
+    states(state_idx).mode = {};
+    states(state_idx).subchannel = {};
     states(state_idx).wf_adc = [];
     states(state_idx).img = [];
     states(state_idx).ml_idx = [];
@@ -84,8 +84,8 @@ for state_idx = 1:length(boards)
           continue;
         end
         if any(param.records.file.version == [9 10 103 412])
-          mode_latch = profile(1);
-          subchannel = profile(2);
+          mode_latch = profile{1}(:,1);
+          subchannel = profile{1}(:,2);
         else
           mode_latch = 0;
           subchannel = 0;
@@ -99,8 +99,8 @@ for state_idx = 1:length(boards)
         % Create wf_adc_sum list from weight/next commands
         states(state_idx).adc(end+1) = adc;
         states(state_idx).wf(end+1) = wf;
-        states(state_idx).mode(end+1) = mode_latch;
-        states(state_idx).subchannel(end+1) = subchannel;
+        states(state_idx).mode{end+1} = mode_latch;
+        states(state_idx).subchannel{end+1} = subchannel;
         states(state_idx).wf_adc(end+1) = wf_adc;
         states(state_idx).img(end+1) = img;
         states(state_idx).ml_idx(end+1) = ml_idx;
@@ -119,8 +119,8 @@ for state_idx = 1:length(boards)
           [board,~,profile] = wf_adc_to_board(param,[wf adc]);
           next_state_idx = find(boards == board,1);
           if any(param.records.file.version == [9 10 103 412])
-            mode_latch = profile(1);
-            subchannel = profile(2);
+            mode_latch = profile{1}(:,1);
+            subchannel = profile{1}(:,2);
           else
             mode_latch = 0;
             subchannel = 0;
@@ -133,8 +133,8 @@ for state_idx = 1:length(boards)
             states(next_state_idx).board_idx = board_idxs(next_state_idx);
             states(next_state_idx).adc = [];
             states(next_state_idx).wf = [];
-            states(next_state_idx).mode = [];
-            states(next_state_idx).subchannel = [];
+            states(next_state_idx).mode = {};
+            states(next_state_idx).subchannel = {};
             states(next_state_idx).wf_adc = [];
             states(next_state_idx).img = [];
             states(next_state_idx).ml_idx = [];
@@ -144,8 +144,8 @@ for state_idx = 1:length(boards)
           end
           states(next_state_idx).adc(end+1) = adc;
           states(next_state_idx).wf(end+1) = wf;
-          states(next_state_idx).mode(end+1) = mode_latch;
-          states(next_state_idx).subchannel(end+1) = subchannel;
+          states(next_state_idx).mode{end+1} = mode_latch;
+          states(next_state_idx).subchannel{end+1} = subchannel;
           states(next_state_idx).wf_adc(end+1) = wf_adc;
           states(next_state_idx).img(end+1) = img;
           states(next_state_idx).ml_idx(end+1) = ml_idx;
@@ -773,8 +773,8 @@ end
 % 6	snow4, kuband4 (NI based, Spring 2015 NRL version of DDC code, multichannel)
 % 7	snow5 (NI based, AWI version of DDC code, multichannel, multiwaveform). Note this is a standard file type loaded by basic_load.m
 % 8	snow8 (NI based, Keysight waveform generator). Some files start with snow4 from the test flight.
-% 9	snow9 (RSS based, Arena Snow Radar).
-% 10	snow10 (RSS based, Arena Helicopter Snow Radar).
+% 9	snow9 (Arena based, Arena Snow Radar).
+% 10	snow10 (Arena based, Arena Helicopter Snow Radar).
 % 11	data_v11 (NI based, Mini-Snow Radar).
 % 101	accum (Leuschen/Ledford based)
 % 102	accum2 (Sundance, Paden/Rink based)
@@ -789,7 +789,7 @@ end
 % 409	icards (?/Akins Linux PCI card based, introduced 1993 Greenland P3)
 % 410	mcrds (Akins based, introduced 2006 Greenland P3, multichannel/waveforms)
 % 411	hfrds (Leuschen eval board based, 2013 Antarctica G1XB???, 2016 Greenland G1XB)
-% 412	hfrds2 (RSS based, Arena HF Sounder, 2016 Greenland TOdtu).
+% 412	hfrds2 (Arena based, Arena HF Sounder, 2016 Greenland TOdtu).
 %
 % wfs(wf).wf_offset: bytes of data before this data waveform
 % wfs(wf).num_sam: bytes of data in this record

@@ -181,7 +181,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
           data{adc,wf}(:,rec) = tmp;
         end
       else
-        warning('Invalid record size %d at %d record %d. Expected %d.', ...
+        warning('Invalid record size (size %d) at file byte %d on record number %d. Expected size %d.', ...
           length(tmp), ftell(fid), rec, 2*size(data{adc,wf},1));
       end
     end
