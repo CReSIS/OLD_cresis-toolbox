@@ -47,7 +47,7 @@ end
 if ~isfield(param.post,'csv_en') || isempty(param.post.csv_en)
   param.post.csv_en = 0;
 end
-if param.post.concat_en
+if param.post.concat_en && ~param.post.csv_en
   warning('post.csv_en must be true when post.concat_en is true since concatenation uses the CSV files. Setting post.csv_en to true.');
   param.post.csv_en = 1;
 end
