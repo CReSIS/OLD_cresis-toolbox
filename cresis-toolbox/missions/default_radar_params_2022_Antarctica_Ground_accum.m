@@ -18,7 +18,8 @@ param.radar_name = 'accum3';
 param.config.daq_type = 'arena';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_arena;
-param.config.board_map = {'digrx0','digrx1'};
+param.config.board_map = {'digrx0'}; % H only polarization
+% param.config.board_map = {'digrx0','digrx1'}; % HV polarization
 param.config.tx_map = {'awg0','awg1'};
 
 % Creating segments
@@ -180,7 +181,8 @@ param.records.frames.mode = 1;
 param.records.file.version = 103;
 param.records.file.prefix = param.radar_name;
 param.records.file.suffix = '.bin';
-param.records.file.boards = {'digrx0','digrx1'};
+param.records.file.boards = {'digrx0'}; % H only polarization
+% param.records.file.boards = {'digrx0','digrx1'}; % HV Polarization
 param.records.file.board_folder_name = '%b';
 param.records.file.clk = 10e6;
 
@@ -197,7 +199,6 @@ param.qlook.resample = [2 1];
 
 %% SAR worksheet
 param.sar.out_path = '';
-param.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 param.sar.frm_types = {0,[0 1],0,0,-1};
 param.sar.chunk_len = 5000;
 param.sar.chunk_overlap = 10;
@@ -252,9 +253,7 @@ for wf = 1:4
   param.radar.wfs(wf).gain_en = [0 0]; % Disable fast-time gain correction
   param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
   param.radar.wfs(wf).Tadc_adjust = 0;
-  param.radar.wfs(wf).tx_paths = [1 2];
-  param.radar.wfs(wf).tx_paths = [1 2];
-  param.radar.wfs(wf).bit_shifts = [7 7];
+  param.radar.wfs(wf).bit_shifts = [6 8];
 end
 Tsys = [0 0]/1e9;
 chan_equal_dB = [0 0];
@@ -295,7 +294,7 @@ defaults = {};
 % Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
 % an error in the settings where mode 0 and mode 1 both acquired data that should have only
 % gone to mode 0.
-default.records.data_map = {[4 0 2 1;0 0 1 1;1 0 1 1],[4 0 2 2;0 0 1 2;1 0 1 2;]}
+default.records.data_map = {[4 0 2 1;0 0 1 1;1 0 1 1],[4 0 2 2;0 0 1 2;1 0 1 2;]};
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1 1],[2 1],[1 2],[2 2]};
 default.sar.imgs = default.qlook.imgs;
@@ -308,9 +307,68 @@ for wf = 1:2
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  param.radar.wfs(wf).bit_shifts = [7 7];
+  param.radar.wfs(wf).tx_paths = [1 2];
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+300]';
 % Note psc config name was incorrectly set, but it is for shallow ice:
 default.config_regexp = 'psc_survey_600-900MHz_0usDelay_2us_LOOPBACK';
 default.name = 'Survey Mode 600-900 MHz Shallow Ice';
 defaults{end+1} = default;
+
+% Survey Mode Thick Ice Single Polarization
+% Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
+% an error in the settings where mode 0 and mode 1 both acquired data that should have only
+% gone to mode 0.
+default.records.arena.total_presums = 300;
+default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1 1],[2 1]};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.analysis_noise.imgs = default.qlook.imgs;
+default.radar.ref_fn = '';
+default.radar.wfs = param.radar.wfs(1:2);
+for wf = 1:2
+  default.radar.wfs(wf).Tsys = Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).bit_shifts = [6 8];
+  default.radar.wfs(wf).tx_paths = [1 inf];
+end
+default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
+% Note psc config name was incorrectly set, but it is for shallow ice:
+default.config_regexp = 'psc_eager_config';
+default.name = 'Survey Mode 600-900 MHz Thick Ice';
+defaults{end+1} = default;
+
+% Survey Mode Thick Ice Polarimetric
+% Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
+% an error in the settings where mode 0 and mode 1 both acquired data that should have only
+% gone to mode 0.
+default.records.arena.total_presums = 600;
+default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1;4 0 3 1;5 0 3 1;6 0 4 1;7 0 4 1], ...
+  [0 0 1 2;1 0 1 2;2 0 2 2;3 0 2 2;4 0 3 2;5 0 3 2;6 0 4 2;7 0 4 2]};
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1],[1 2],[2 2],[3 2],[4 2]};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.analysis_noise.imgs = default.qlook.imgs;
+default.radar.ref_fn = '';
+default.radar.wfs = param.radar.wfs(1:2);
+for wf = 1:4
+  default.radar.wfs(wf).Tsys = Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).bit_shifts = [6 8];
+  default.radar.wfs(wf).tx_paths = [1 2];
+end
+default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
+% Note psc config name was incorrectly set, but it is for shallow ice:
+default.config_regexp = 'psc_eager_configHV';
+default.name = 'Polarimetric Mode 600-900 MHz Thick Ice';
+defaults{end+1} = default;
+
+

@@ -98,7 +98,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_yaxis = sort(new_yaxis);
           % don't change the x limits in this case
-          new_xaxis = obj.ops.request.XLim/obj.map.scale;
+          new_xaxis = obj.map.xaxis;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         %end
@@ -121,7 +121,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_yaxis = sort(new_yaxis);
           % don't change the x limits in this case
-          new_xaxis = obj.ops.request.XLim/obj.map.scale;
+          new_xaxis = obj.map.xaxis;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         %end
@@ -144,7 +144,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_xaxis = sort(new_xaxis);
           % don't change the y limits in this case
-          new_yaxis = obj.ops.request.YLim/obj.map.scale;
+          new_yaxis = obj.map.yaxis;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         %end
@@ -168,7 +168,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_xaxis = sort(new_xaxis);
           % don't change the y limits in this case
-          new_yaxis = obj.ops.request.YLim/obj.map.scale;
+          new_yaxis = obj.map.yaxis;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         %end
