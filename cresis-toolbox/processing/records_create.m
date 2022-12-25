@@ -342,6 +342,10 @@ if any(param.records.file.version == [9 10 103 412])
       % Each row of param.records.data_map{board_idx} = [profile wf adc]
       epri_profile = param.records.data_map{board_idx}(1,1);
       
+      % Get the first row (which is always the EPRI row)
+      epri_mode = param.records.data_map{board_idx}(1,2);
+      epri_subchannel = param.records.data_map{board_idx}(1,3);
+      
       mask = profile == epri_profile;
     end
     % Data before first PPS reset may be incorrectly time tagged so we do not

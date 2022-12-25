@@ -26,7 +26,7 @@ if ~isempty(settings_fn)
 end
 
 while ~found
-  warning('Did not find a matching set of default parameters for %s.', settings_fn);
+  warning('Did not find a matching set of default parameters for "%s".', settings_fn);
   for default_idx = 1:length(defaults)
     fprintf(' (%d) %s\n', default_idx, defaults{default_idx}.name);
   end

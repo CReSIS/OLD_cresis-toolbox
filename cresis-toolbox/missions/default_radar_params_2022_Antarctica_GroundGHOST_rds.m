@@ -303,8 +303,33 @@ defaults = {};
 % Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
 % an error in the settings where mode 0 and mode 1 both acquired data that should have only
 % gone to mode 0.
-default.records.arena.total_presums = 300;
-default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
+default.records.arena.total_presums = 360;
+% default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
+  default.records.data_map = {[], ...
+    [0 4 0 1 1
+    1 0 0 2 1
+    2 2 0 3 1
+    3 4 1 1 2
+    4 0 1 2 2
+    5 2 1 3 2
+    6 4 2 1 3
+    7 0 2 2 3
+    8 2 2 3 3
+    9 4 3 1 4
+    10 0 3 2 4
+    11 2 3 3 4], ...
+    [0 4 0 1 5
+    1 0 0 2 5
+    2 2 0 3 5
+    3 4 1 1 6
+    4 0 1 2 6
+    5 2 1 3 6
+    6 4 2 1 7
+    7 0 2 2 7
+    8 2 2 3 7
+    9 4 3 1 8
+    10 0 3 2 8
+    11 2 3 3 8]}
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1 1],[2 1]};
 default.sar.imgs = default.qlook.imgs;
@@ -312,17 +337,18 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.analysis_noise.imgs = default.qlook.imgs;
 default.radar.ref_fn = '';
-default.radar.wfs = param.radar.wfs(1:2);
-for wf = 1:2
+default.radar.wfs = param.radar.wfs(1:3);
+for wf = 1:3
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).bit_shifts = [6 8];
+  default.radar.wfs(wf).bit_shifts = [0 0 0 0 0 0 0 0];
   default.radar.wfs(wf).tx_paths = [1 inf];
+  default.radar.wfs(wf).DDC_dec = 12;
 end
-default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
+default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4200]';
 % Note psc config name was incorrectly set, but it is for shallow ice:
-default.config_regexp = 'psc_GHOST_config';
-default.name = 'Survey Mode 600-900 MHz Thick Ice';
+default.config_regexp = 'ghost_config';
+default.name = 'Survey Mode 180-210 MHz Thick Ice';
 defaults{end+1} = default;
 

@@ -407,8 +407,40 @@ for config_idx = 1:length(configs)
 
   % Create map from wfs to board_idx, mode, subchannel, adc
   % =======================================================================
+  %    [profile mode subchannel wf adc]
+  oparams{end}.records.data_map = {[], ...
+    [0 4 0 1 1
+    1 0 0 2 1
+    2 2 0 3 1
+    3 4 1 1 2
+    4 0 1 2 2
+    5 2 1 3 2
+    6 4 2 1 3
+    7 0 2 2 3
+    8 2 2 3 3
+    9 4 3 1 4
+    10 0 3 2 4
+    11 2 3 3 4], ...
+    [0 4 0 1 5
+    1 0 0 2 5
+    2 2 0 3 5
+    3 4 1 1 6
+    4 0 1 2 6
+    5 2 1 3 6
+    6 4 2 1 7
+    7 0 2 2 7
+    8 2 2 3 7
+    9 4 3 1 8
+    10 0 3 2 8
+    11 2 3 3 8]}
+%   oparams{end}.records.data_map{2} = oparams{end}.records.data_map{2}(:,[1 3 2 4 5]);
+%   oparams{end}.records.data_map{3} = oparams{end}.records.data_map{3}(:,[1 3 2 4 5]);
+  
+%             param.processor_subchannel = [0 0 0 1 1 1 2 2 2 3 3 3];
+%         param.processor_mode = [4 0 2 4 0 2 4 0 2 4 0 2];
   data_map = oparams{end}.records.data_map;
   board_idx_map = [];
+  profile_map = [];
   mode_map = [];
   subchannel_map = [];
   wfs_map = [];
@@ -416,10 +448,19 @@ for config_idx = 1:length(configs)
   for board_idx = 1:length(data_map)
     for data_idx = 1:size(data_map{board_idx},1)
       board_idx_map(end+1) = board_idx;
-      mode_map(end+1) = data_map{board_idx}(data_idx,1);
-      subchannel_map(end+1) = data_map{board_idx}(data_idx,2);
-      wfs_map(end+1) = data_map{board_idx}(data_idx,3);
-      adc_map(end+1) = data_map{board_idx}(data_idx,4);
+      if size(data_map{board_idx},2) == 4
+        mode_map(end+1) = data_map{board_idx}(data_idx,1);
+        subchannel_map(end+1) = data_map{board_idx}(data_idx,2);
+        wfs_map(end+1) = data_map{board_idx}(data_idx,3);
+        adc_map(end+1) = data_map{board_idx}(data_idx,4);
+      else
+        % PROFILE
+        profile_map(end+1) = data_map{board_idx}(data_idx,1);
+        mode_map(end+1) = data_map{board_idx}(data_idx,2);
+        subchannel_map(end+1) = data_map{board_idx}(data_idx,3);
+        wfs_map(end+1) = data_map{board_idx}(data_idx,4);
+        adc_map(end+1) = data_map{board_idx}(data_idx,5);
+      end
     end
   end
   [wfs,unique_map] = unique(wfs_map);
@@ -427,6 +468,9 @@ for config_idx = 1:length(configs)
   mode_wfs = mode_map(unique_map);
   subchannel_wfs = subchannel_map(unique_map);
   adc_wfs = adc_map(unique_map);
+  if size(data_map{board_idx},2) == 5
+    profile_wfs = profile_map(unique_map);
+  end
   
   % Parameter spreadsheet
   % =======================================================================
@@ -450,9 +494,9 @@ for config_idx = 1:length(configs)
     oparams{end}.records.file.stop_idx(board_idx) = length(configs(config_idx).fns{board_idx});
   end
   if strcmpi(configs(config_idx).datastream_type,'udp') ...
-      || ~isfield(oparams{end}.arena,'daq') ...
-      || ~isfield(oparams{end}.arena.daq,'udp_packet_headers') ...
-      || oparams{end}.arena.daq.udp_packet_headers
+      && (~isfield(defaults{end}.arena,'daq') ...
+      || ~isfield(defaults{end}.arena.daq,'udp_packet_headers') ...
+      || defaults{end}.arena.daq.udp_packet_headers)
     % See earlier discussion on udp_packet_headers. The raw data files with
     % the UDP packet headers removed are stored in ct_tmp.
     oparams{end}.records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
@@ -501,7 +545,23 @@ for config_idx = 1:length(configs)
         end
       end
     end
-    
+
+    % GHOST HACK
+    for ww=1:3
+      for tt=1:4
+        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.centerFreq = 195;
+        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.bandwidth = 30;
+        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.alpha = 0.1;
+        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.scale = 1.0;
+        if ww==1
+          configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.numPoints = 480;
+        else
+          configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.numPoints = 4800;
+        end
+        configs(config_idx).dac{tt,mode_latch+1}.sampFreq = 480;
+      end
+    end
+
     fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq*1e6;
     BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth*1e6;
     if strcmpi(configs(config_idx).radar_name,'ku0002')
@@ -539,6 +599,24 @@ for config_idx = 1:length(configs)
           oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
           oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoFreq;
+      end
+    elseif subchannel_wfs(1) == 2
+      switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc2NcoMode)
+        case 0
+          oparams{end}.radar.wfs(wf).DDC_freq = 0;
+        case 1
+          oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
+        case 2
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc2NcoFreq;
+      end
+    elseif subchannel_wfs(1) == 3
+      switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc3NcoMode)
+        case 0
+          oparams{end}.radar.wfs(wf).DDC_freq = 0;
+        case 1
+          oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
+        case 2
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc3NcoFreq;
       end
     end
     

@@ -747,6 +747,14 @@ for adc_idx = 1:adcList.getLength
         digRx_RG = arena_convert_range(digRx_RG);
         processing(end).modes(end).digRx_RG = digRx_RG;
         
+        num_bins = length(digRx_RG);
+        if num_bins < configs.min_num_bins
+          configs.min_num_bins = num_bins;
+        end
+        if num_bins > configs.max_num_bins
+          configs.max_num_bins = num_bins;
+        end
+        
       end
     end
     
@@ -895,12 +903,20 @@ for adc_idx = 1:adcList.getLength
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_type = config_type;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoPhase = ncoPhase;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc2NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc3NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoFreq = ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoFreq = ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc2NcoFreq = ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc3NcoFreq = ncoFreq;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.cicDecimation = decimation;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.adcMode = NaN;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.sampFreq = sampFreq0;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.presums = accumulations;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.num_sam = profile_length;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.rg = digRx_RG;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.rg = sprintf('%d',digRx_RG(1));
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.shiftLSB = 0; % 32 bit float
         end
       end
