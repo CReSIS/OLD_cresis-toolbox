@@ -132,8 +132,11 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         mode = new_hdr.mode;
       elseif hdr_type == ghost_ku0001_radar_header_type
         new_hdr = basic_load_arena_ghost_ku0001(fid);
-        param.processor_subchannel = [0 0 1 1 2 2 3 3];
-        param.processor_mode = [0 2 0 2 0 2 0 2];
+%         new_hdr
+%         param.processor_subchannel = [0 0 1 1 2 2 3 3];
+%         param.processor_mode = [0 2 0 2 0 2 0 2];
+        param.processor_subchannel = [0 0 0 1 1 1 2 2 2 3 3 3];
+        param.processor_mode = [4 0 2 4 0 2 4 0 2 4 0 2];
         new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
         new_hdr.mode = param.processor_mode(new_hdr.processor+1);
         subchannel = new_hdr.subchannel;
@@ -197,6 +200,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
       end
     end
   catch ME
+    ME.getReport
     rec = rec - 1;
     hdr{adc,wf}.frame_sync = hdr{adc,wf}.frame_sync(1:rec);
     break;
