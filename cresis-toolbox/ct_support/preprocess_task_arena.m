@@ -22,6 +22,8 @@ base_dir = fullfile(param.config.base_dir);
 config_folder_name = fullfile(param.config.config_folder_names);
 reuse_tmp_files = param.config.reuse_tmp_files;
 
+[~,defaults] = param.config.default();
+
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
 % config_fns = get_filenames(fullfile(base_dir,config_folder_name),'','','config.xml',struct('recursive',true));
@@ -219,12 +221,12 @@ for config_idx = 1:length(configs)
         % UDP packet headers are in the raw data files and preprocess also
         % creates a copy of the data files without the packet header. Look
         % for this file in that case. Newer systems can override this check
-        % by setting oparams{end}.arena.daq.udp_packet_headers = false.
+        % by setting defaults{end}.arena.daq.udp_packet_headers = false.
         if ~strcmpi(configs(config_idx).datastream_type,'udp') ...
             || exist(out_fn,'file') ...
-            || isfield(oparams{end}.arena,'daq') ...
-               && isfield(oparams{end}.arena.daq,'udp_packet_headers') ...
-               && ~oparams{end}.arena.daq.udp_packet_headers
+            || isfield(defaults{end}.arena,'daq') ...
+               && isfield(defaults{end}.arena.daq,'udp_packet_headers') ...
+               && ~defaults{end}.arena.daq.udp_packet_headers
           % Load the file to ensure it is not corrupted:
           % * If not corrupted, then execution continues onto the next
           %   file.
@@ -238,9 +240,9 @@ for config_idx = 1:length(configs)
       
       %% Read in headers from data file and create network packet stripped data file
       if strcmpi(configs(config_idx).datastream_type,'udp') ...
-          && (~isfield(oparams{end}.arena,'daq') ...
-          || ~isfield(oparams{end}.arena.daq,'udp_packet_headers') ...
-          || oparams{end}.arena.daq.udp_packet_headers)
+          && (~isfield(defaults{end}.arena,'daq') ...
+          || ~isfield(defaults{end}.arena.daq,'udp_packet_headers') ...
+          || defaults{end}.arena.daq.udp_packet_headers)
         % In old arena systems, choosing the UDP datastream created raw
         % data files with UDP packet headers in them and a copy of the raw
         % data file without the packet headers will be made in "out_fn". If
@@ -385,7 +387,6 @@ for config_idx = 1:length(configs)
   % Determine which default parameters to use
   % =======================================================================
   match_idx = [];
-  [~,defaults] = param.config.default();
   default = default_radar_params_settings_match(defaults,configs(config_idx).psc.config_name);
   default = merge_structs(param,default);
   oparams{end+1} = default;

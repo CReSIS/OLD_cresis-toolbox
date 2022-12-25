@@ -319,6 +319,41 @@ for adc_idx = 1:adcList.getLength
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   adc_cfg = nodeList.item(0);
   
+  
+%         <config type="socket">
+%          <name>rds_digrx1_udp</name>
+%          <description></description>
+%          <multiFlag>0</multiFlag>
+%          <ip>172.16.0.121</ip>
+%          <port>55001</port>
+%          <payloadSize>8192</payloadSize>
+%       </config>
+%       <config type="socket">
+%          <name>rds_digrx2_udp</name>
+%          <description></description>
+%          <multiFlag>0</multiFlag>
+%          <ip>172.16.0.121</ip>
+%          <port>55002</port>
+%          <payloadSize>8192</payloadSize>
+%       </config>
+%       <config type="streamudp">
+%          <name>snow_udp</name>
+%          <description></description>
+%          <multiFlag>0</multiFlag>
+%          <ip>172.16.0.121</ip>
+%          <port>55000</port>
+%          <payloadSize>8192</payloadSize>
+%       </config>
+%          <dataStream type="udp">
+%             <id>0</id>
+%             <name>dataStream0</name>
+%             <stream>
+%                <interface type="nic">eth0</interface>
+%                <config type="streamudp">snow_udp</config>
+%             </stream>
+%          </dataStream>
+
+  
   % Get the datastream type
   expression = xpath.compile('dataStream/@type');
   nodeList = expression.evaluate(match,XPathConstants.NODESET);
@@ -345,7 +380,7 @@ for adc_idx = 1:adcList.getLength
     expression = xpath.compile('dataOutput');
     nodeList = expression.evaluate(match,XPathConstants.NODESET);
     if nodeList.getLength > 0
-      configs.datastream_type = 'socket';
+      configs.datastream_type = 'udp';
       if 0
         expression = xpath.compile('dataOutput/config');
         nodeList = expression.evaluate(match,XPathConstants.NODESET);
@@ -532,6 +567,345 @@ for adc_idx = 1:adcList.getLength
       end
     end
     
+   elseif strcmpi(config_type,'adc-ad9684_002D')
+    % =====================================================================
+    % GHOST RDS
+    % =====================================================================
+        
+    % Get the sampling frequencies in MHz
+    expression = xpath.compile('sampFreq0');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    sampFreq0 = nodeList.item(0);
+    sampFreq0 = sampFreq0.getTextContent.toCharArray;
+    sampFreq0 = str2double(sampFreq0(:).') * 1e6;
+
+    expression = xpath.compile('sampFreq1');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    sampFreq1 = nodeList.item(0);
+    sampFreq1 = sampFreq1.getTextContent.toCharArray;
+    sampFreq1 = str2double(sampFreq1(:).') * 1e6;
+
+    % Load each subchannel
+    % =====================================================================
+    expression = xpath.compile('subChannels/subChannel');
+    subchannel_nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    subchannels = [];
+    for subchannel_idx = 1:subchannel_nodeList.getLength
+      subchannel_cfg = subchannel_nodeList.item(subchannel_idx-1);
+      if isempty(subchannel_cfg)
+        continue;
+      end
+      
+      % Load the subchannel ID
+      expression = xpath.compile('id');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      subchannel = nodeList.item(0);
+      subchannel = subchannel.getTextContent.toCharArray;
+      subchannel = str2double(subchannel(:).');
+      subchannels(end+1).id = subchannel;
+      
+      % Load each subchannel's modes
+      expression = xpath.compile('mode');
+      mode_nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      subchannels(end).modes = [];
+      for mode_idx = 1:mode_nodeList.getLength
+        mode_cfg = mode_nodeList.item(mode_idx-1);
+        if isempty(mode_cfg)
+          continue;
+        end
+        
+        expression = xpath.compile('id');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        modes = nodeList.item(0);
+        modes = modes.getTextContent.toCharArray;
+        modes = arena_convert_range(modes);
+        subchannels(end).modes(end+1).modes = modes;
+        
+        expression = xpath.compile('adcChannel');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        adcChannel = nodeList.item(0);
+        adcChannel = adcChannel.getTextContent.toCharArray;
+        adcChannel = arena_convert_range(adcChannel);
+        subchannels(end).modes(end).adcChannel = adcChannel;
+        
+        expression = xpath.compile('zeroPi');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        zeroPi = nodeList.item(0);
+        zeroPi = zeroPi.getTextContent.toCharArray;
+        zeroPi = str2double(zeroPi);
+        subchannels(end).modes(end).zeroPi = zeroPi;
+        
+        expression = xpath.compile('adcDecimation');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        adcDecimation = nodeList.item(0);
+        adcDecimation = adcDecimation.getTextContent.toCharArray;
+        adcDecimation = str2double(adcDecimation);
+        subchannels(end).modes(end).adcDecimation = adcDecimation;
+        
+        expression = xpath.compile('route');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        route = nodeList.item(0);
+        subchannels(end).modes(end).route = route.getTextContent.toCharArray;
+        subchannels(end).modes(end).route = subchannels(end).modes(end).route(:).';
+        
+        expression = xpath.compile('ncoFreq');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        ncoFreq = nodeList.item(0);
+        ncoFreq = ncoFreq.getTextContent.toCharArray;
+        ncoFreq = str2double(ncoFreq);
+        subchannels(end).modes(end).ncoFreq = ncoFreq;
+        
+        expression = xpath.compile('ncoPhase');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        ncoPhase = nodeList.item(0);
+        ncoPhase = ncoPhase.getTextContent.toCharArray;
+        ncoPhase = str2double(ncoPhase);
+        subchannels(end).modes(end).ncoPhase = ncoPhase;
+        
+      end
+    end
+    
+    % Load each processing chain
+    % =====================================================================
+    expression = xpath.compile('processing/subChannel');
+    subchannel_nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    processing = [];
+    for subchannel_idx = 1:subchannel_nodeList.getLength
+      subchannel_cfg = subchannel_nodeList.item(subchannel_idx-1);
+      if isempty(subchannel_cfg)
+        continue;
+      end
+      
+      % Load the subchannel ID
+      expression = xpath.compile('id');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      subchannel = nodeList.item(0);
+      subchannel = subchannel.getTextContent.toCharArray;
+      subchannel = str2double(subchannel(:).');
+      processing(end+1).id = subchannel;
+      
+      % Load each subchannel's modes
+      expression = xpath.compile('mode');
+      mode_nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      processing(end).modes = [];
+      for mode_idx = 1:mode_nodeList.getLength
+        mode_cfg = mode_nodeList.item(mode_idx-1);
+        if isempty(mode_cfg)
+          continue;
+        end
+        
+        expression = xpath.compile('id');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        modes = nodeList.item(0);
+        modes = modes.getTextContent.toCharArray;
+        modes = arena_convert_range(modes);
+        processing(end).modes(end+1).modes = modes;
+        
+        expression = xpath.compile('digRx_RG');
+        nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+        if nodeList.getLength < 1 || isempty(nodeList.item(0))
+          continue;
+        end
+        digRx_RG = nodeList.item(0);
+        digRx_RG = digRx_RG.getTextContent.toCharArray;
+        digRx_RG = arena_convert_range(digRx_RG);
+        processing(end).modes(end).digRx_RG = digRx_RG;
+        
+      end
+    end
+    
+    % Load each profile input
+    % =====================================================================
+    expression = xpath.compile('profileProcessing/input');
+    subchannel_nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    profileInput = [];
+    for subchannel_idx = 1:subchannel_nodeList.getLength
+      subchannel_cfg = subchannel_nodeList.item(subchannel_idx-1);
+      if isempty(subchannel_cfg)
+        continue;
+      end
+      
+      % Load the profile name
+      expression = xpath.compile('name');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      name = nodeList.item(0);
+      profileInput(end+1).name = name.getTextContent.toCharArray;
+      profileInput(end).name = profileInput(end).name(:).';
+      
+      % Load the profile modes
+      expression = xpath.compile('profileMode');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      profileMode = nodeList.item(0);
+      profileMode = profileMode.getTextContent.toCharArray;
+      profileMode = arena_convert_range(profileMode);
+      profileInput(end).profileMode = profileMode;
+      
+      % Load the profile subchannels
+      expression = xpath.compile('profileSubChannel');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      profileSubChannel = nodeList.item(0);
+      profileSubChannel = profileSubChannel.getTextContent.toCharArray;
+      profileSubChannel = arena_convert_range(profileSubChannel(:).');
+      profileInput(end).profileSubChannel = profileSubChannel;
+    end
+
+    
+    % Load each profile processor
+    % =====================================================================
+    expression = xpath.compile('profileProcessing/processor');
+    subchannel_nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    profileProcessor = [];
+    for subchannel_idx = 1:subchannel_nodeList.getLength
+      subchannel_cfg = subchannel_nodeList.item(subchannel_idx-1);
+      if isempty(subchannel_cfg)
+        continue;
+      end
+      
+      % Load the subchannel ID
+      expression = xpath.compile('name');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      name = nodeList.item(0);
+      profileProcessor(end+1).name = name.getTextContent.toCharArray;
+      profileProcessor(end).name = profileProcessor(end).name(:).';
+      
+      % Load the subchannel ID
+      expression = xpath.compile('length');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      profile_length = nodeList.item(0);
+      profile_length = profile_length.getTextContent.toCharArray;
+      profile_length = str2double(profile_length(:).');
+      profileProcessor(end).profile_length = profile_length;
+      
+      expression = xpath.compile('accumulations');
+      nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      accumulations = nodeList.item(0);
+      accumulations = accumulations.getTextContent.toCharArray;
+      accumulations = arena_convert_range(accumulations);
+      profileProcessor(end).accumulations = accumulations;
+      
+    end
+
+    % Update adc configs for this integrator's modes and subchannel
+    for profile_idx = 1:length(profileInput)
+      for mode_latch = profileInput(profile_idx).profileMode
+        for subchannel = profileInput(profile_idx).profileSubChannel
+      
+          % Search for the particular mode/subchannel in the subchannels
+          found_mode = false;
+          for idx = 1:length(subchannels(subchannel+1).modes)
+            if any(subchannels(subchannel+1).modes(idx).modes == mode_latch)
+              ncoFreq = subchannels(subchannel+1).modes(idx).ncoFreq;
+              ncoPhase = subchannels(subchannel+1).modes(idx).ncoPhase;
+              found_mode = true;
+              break;
+            end
+          end
+          if ~found_mode
+            % Should not happen for a good config file
+            keyboard
+          end
+          
+          % Search for the particular mode/subchannel in the processing
+          found_mode = false;
+          for idx = 1:length(processing(subchannel+1).modes)
+            if any(processing(subchannel+1).modes(idx).modes == mode_latch)
+              digRx_RG = processing(subchannel+1).modes(idx).digRx_RG;
+              found_mode = true;
+              break;
+            end
+          end
+          if ~found_mode
+            % Should not happen for a good config file
+            keyboard
+          end
+          
+          % Search for the particular mode/subchannel in the 
+          found_mode = false;
+          for idx = 1:length(profileProcessor)
+            if strcmpi(profileProcessor(idx).name,profileInput(profile_idx).name)
+              profile_length = profileProcessor(idx).profile_length;
+              accumulations = profileProcessor(idx).accumulations;
+              found_mode = true;
+              break;
+            end
+          end
+          if ~found_mode
+            % Should not happen for a good config file
+            keyboard
+          end
+
+          decimation = 4;
+          
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.name = profileInput(profile_idx).name;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_name = config_name;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_type = config_type;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoPhase = ncoPhase;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.cicDecimation = decimation;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.adcMode = NaN;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.sampFreq = sampFreq0;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.presums = accumulations;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.num_sam = profile_length;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.rg = digRx_RG;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.shiftLSB = 0; % 32 bit float
+        end
+      end
+    end
+   
   elseif strcmpi(config_type,'adc-ad9680_0017')
     % =====================================================================
     % BAS Accumulation Radar, Dome Fuji RDS

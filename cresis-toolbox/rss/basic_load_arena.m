@@ -130,6 +130,14 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         new_hdr = basic_load_arena_ku0001(fid);
         subchannel = new_hdr.subchannel;
         mode = new_hdr.mode;
+      elseif hdr_type == ghost_ku0001_radar_header_type
+        new_hdr = basic_load_arena_ghost_ku0001(fid);
+        param.processor_subchannel = [0 0 1 1 2 2 3 3];
+        param.processor_mode = [0 2 0 2 0 2 0 2];
+        new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
+        new_hdr.mode = param.processor_mode(new_hdr.processor+1);
+        subchannel = new_hdr.subchannel;
+        mode = new_hdr.mode;
       else
         subchannel = 0;
         mode = fread(fid,1,'uint8');
@@ -151,7 +159,10 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
           tmp = fread(fid,profile_len/4,'int32');
           isIQ = 1;
         case 196608 % 0x30000
-          tmp = fread(fid,profile_len/4,'float32');
+          % OLD
+          %tmp = fread(fid,profile_len/4,'float32');
+          % NEW
+          tmp = fread(fid,profile_len*2,'float32');
           isIQ = 1;
         otherwise
           error('Unsupported profile type %d.', profile_type);
@@ -264,6 +275,23 @@ hdr.data_channel = floor(tmp/16);
 fseek(fid,6,0);
 hdr.encoder = fread(fid,1,'uint32');
 fseek(fid,4,0);
+hdr.rel_time_cntr_latch = fread(fid,1,'uint64');
+hdr.profile_cntr_latch = fread(fid,1,'uint64');
+hdr.pps_ftime_cntr_latch = fread(fid,1,'uint64');
+hdr.pps_cntr_latch = fread(fid,1,'uint64');
+
+end
+
+% =========================================================================
+%% Function for loading GHOST/ku0001 radar header
+function hdr = basic_load_arena_ghost_ku0001(fid)
+
+hdr.mode = fread(fid,1,'uint8');
+tmp = fread(fid,1,'uint8');
+hdr.subchannel = mod(tmp,16);
+hdr.data_channel = floor(tmp/16);
+hdr.processor = fread(fid,1,'uint8');
+fseek(fid,5+8,0); % RESERVED for future use
 hdr.rel_time_cntr_latch = fread(fid,1,'uint64');
 hdr.profile_cntr_latch = fread(fid,1,'uint64');
 hdr.pps_ftime_cntr_latch = fread(fid,1,'uint64');
