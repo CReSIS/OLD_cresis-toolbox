@@ -218,6 +218,7 @@ function hdr = basic_load_arena_snow(fid)
 
 hdr.mode = fread(fid,1,'uint8');
 hdr.subchannel = fread(fid,1,'uint8');
+hdr.processor = NaN;
 fseek(fid,2,0);
 hdr.wg_delay_latch = fread(fid,1,'uint16');
 fseek(fid,10,0);
@@ -233,6 +234,8 @@ end
 function hdr = basic_load_arena_doppler(fid)
 
 hdr.mode = fread(fid,1,'uint8');
+hdr.subchannel = NaN;
+hdr.processor = NaN;
 hdr.decimation_ratio = fread(fid,1,'uint8');
 hdr.num_pulses_in_burst = fread(fid,1,'uint8');
 fseek(fid,5,0);
@@ -258,6 +261,7 @@ hdr.mode = fread(fid,1,'uint8');
 tmp = fread(fid,1,'uint8');
 hdr.subchannel = mod(tmp,16);
 hdr.data_channel = floor(tmp/16);
+hdr.processor = NaN;
 fseek(fid,6,0);
 hdr.encoder = fread(fid,1,'uint32');
 fseek(fid,4,0);
@@ -276,6 +280,7 @@ hdr.mode = fread(fid,1,'uint8');
 tmp = fread(fid,1,'uint8');
 hdr.subchannel = mod(tmp,16);
 hdr.data_channel = floor(tmp/16);
+hdr.processor = NaN;
 fseek(fid,6,0);
 hdr.encoder = fread(fid,1,'uint32');
 fseek(fid,4,0);

@@ -1,4 +1,4 @@
-% script run_preprocess_2022_Antarctica_GroundGHOST.m
+% script run_preprocess_settings_2022_Antarctica_GroundGHOST.m
 %
 % Support script for run_preprocess.m
 %

@@ -140,6 +140,14 @@ if (strcmpi(param.season_name,'2022_Antarctica_Ground') && any(strcmpi(gps_sourc
   gps.z = 0;
 end
 
+if (strcmpi(param.season_name,'2022_Antarctica_GroundGHOST') && any(strcmpi(gps_source,{'arena','cresis'})))
+  % Platform: Ground based sled (EAGER 1, EAGER 2, GHOST 1, GHOST 2)
+  %
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) %...
 %     && any(strcmpi(gps_source,{'nmea'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
@@ -1408,6 +1416,29 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+
+if (strcmpi(param.season_name,'2022_Antarctica_GroundGHOST') && strcmpi(radar_name,'rds'))
+  % Sled antennas GHOST 1
+  %
+  % Primary GPS antenna: GPS positions are relative to primary which is in the center of the radar antenna array.
+  % Secondary GPS antenna: 6*30 = 180" (WILD GUESS!!!!) right of the primary. Align information will be relative to this.
+  
+  % GPS Antenna to Antenna phase center
+  LArx = [zeros(1,8);
+    28*[0 1 4 5 2 3 2 3];
+    zeros(1,8)] * 2.54/100;
+  
+  LAtx = LArx(:,:);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 4;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if any(strcmpi(param.season_name,{'2019_Antarctica_GV'})) ...
     && strcmpi(radar_name,'rds')

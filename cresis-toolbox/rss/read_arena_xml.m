@@ -775,8 +775,8 @@ for adc_idx = 1:adcList.getLength
       if nodeList.getLength < 1 || isempty(nodeList.item(0))
         continue;
       end
-      name = nodeList.item(0);
-      profileInput(end+1).name = name.getTextContent.toCharArray;
+      profile_input_name = nodeList.item(0);
+      profileInput(end+1).name = profile_input_name.getTextContent.toCharArray;
       profileInput(end).name = profileInput(end).name(:).';
       
       % Load the profile modes
@@ -820,8 +820,8 @@ for adc_idx = 1:adcList.getLength
       if nodeList.getLength < 1 || isempty(nodeList.item(0))
         continue;
       end
-      name = nodeList.item(0);
-      profileProcessor(end+1).name = name.getTextContent.toCharArray;
+      profile_processor_name = nodeList.item(0);
+      profileProcessor(end+1).name = profile_processor_name.getTextContent.toCharArray;
       profileProcessor(end).name = profileProcessor(end).name(:).';
       
       % Load the subchannel ID
@@ -898,7 +898,7 @@ for adc_idx = 1:adcList.getLength
 
           decimation = 4;
           
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.name = profileInput(profile_idx).name;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.name = name;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_name = config_name;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_type = config_type;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoPhase = ncoPhase;

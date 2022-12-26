@@ -235,7 +235,12 @@ for board_idx = 1:length(boards)
 
       board_hdrs{board_idx}.file_size(cur_idx + (1:length(hdr_tmp.mode_latch))) = dir_info.bytes;
       board_hdrs{board_idx}.file_idx(cur_idx + (1:length(hdr_tmp.mode_latch))) = file_num;
-      
+
+      if isfield(hdr_tmp,'profile')
+        board_hdrs{board_idx}.profile(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.profile;
+      else
+        board_hdrs{board_idx}.profile(cur_idx + (1:length(hdr_tmp.mode_latch))) = nan(size(hdr_tmp.mode_latch));
+      end
       board_hdrs{board_idx}.mode_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.mode_latch;
       board_hdrs{board_idx}.offset(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.offset;
       board_hdrs{board_idx}.subchannel(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.subchannel;
@@ -329,7 +334,7 @@ if any(param.records.file.version == [9 10 103 412])
     % =====================================================================
     if size(param.records.data_map{board_idx},2) == 4
       % No Profile Processor Digital System (use mode_latch,subchannel instead)
-      % Each row of param.records.data_map{board_idx} = [mode_latch channel wf adc]
+      % Each row of param.records.data_map{board_idx} = [mode_latch subchannel wf adc]
       
       % Get the first row (which is always the EPRI row)
       epri_mode = param.records.data_map{board_idx}(1,1);
@@ -337,16 +342,15 @@ if any(param.records.file.version == [9 10 103 412])
       
       mask = board_hdrs{board_idx}.mode_latch == epri_mode & board_hdrs{board_idx}.subchannel == epri_subchannel;
     else
-      error('Profile mode not supported.');
       % Profile Processor Digital System
-      % Each row of param.records.data_map{board_idx} = [profile wf adc]
-      epri_profile = param.records.data_map{board_idx}(1,1);
+      % Each row of param.records.data_map{board_idx} = [profile mode_latch subchannel wf adc]
       
       % Get the first row (which is always the EPRI row)
+      epri_profile = param.records.data_map{board_idx}(1,1);
       epri_mode = param.records.data_map{board_idx}(1,2);
       epri_subchannel = param.records.data_map{board_idx}(1,3);
       
-      mask = profile == epri_profile;
+      mask = board_hdrs{board_idx}.profile == epri_profile;
     end
     % Data before first PPS reset may be incorrectly time tagged so we do not
     % use it
@@ -415,15 +419,33 @@ if any(param.records.file.version == [9 10 103 412])
     % =====================================================================
     mask = zeros(size(board_hdrs{board_idx}.pps_cntr_latch));
     mask(epri_pri_idxs) = 1;
+    found_board = false;
     for idx = 1:length(epri_pri_idxs)-1
       %if ~mod(idx-1,1000000)
       %  fprintf('%d\n', idx);
       %end
       for pri_idx = epri_pri_idxs(idx):epri_pri_idxs(idx+1)-1
+        
+        if ~found_board
+          for configs_board_idx = 1:size(configs.adc,1)
+            if isfield(configs.adc{configs_board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1},'name') ...
+                && strcmpi(configs.adc{configs_board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1}.name, boards{board_idx});
+              found_board = true;
+              break;
+            end
+          end
+          if ~found_board
+            error('boards(%d)=%s not found in configs file\n', board_idx, boards(board_idx));
+          end
+        end
+
+        if mod(board_hdrs{board_idx}.mode_latch(pri_idx),2)
+          board_hdrs{board_idx}.mode_latch(pri_idx)=board_hdrs{board_idx}.mode_latch(pri_idx)-1;
+        end
         if board_hdrs{board_idx}.mode_latch(pri_idx) >= size(configs.adc,2) ...
             || board_hdrs{board_idx}.subchannel(pri_idx) >= size(configs.adc,3) ...
-            || ~isfield(configs.adc{board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1},'rg') ...
-            || isempty(configs.adc{board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1}.rg)
+            || ~isfield(configs.adc{configs_board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1},'rg') ...
+            || isempty(configs.adc{configs_board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1}.rg)
           fprintf('Bad record %d\n', pri_idx);
           mask(pri_idx) = 0;
           break;
@@ -473,15 +495,42 @@ if any(param.records.file.version == [9 10 103 412])
     board = boards(board_idx);
     
     for map_idx = 1:size(param.records.data_map{board_idx},1)
-      wf = param.records.data_map{board_idx}(map_idx,3);
-      % adc = param.records.data_map{board_idx}(map_idx,4);
-      mode_latch = param.records.data_map{board_idx}(map_idx,1);
-      subchannel = param.records.data_map{board_idx}(map_idx,2);
+      if size(param.records.data_map{board_idx},2) == 4
+        % No Profile Processor Digital System (use mode_latch,subchannel instead)
+        % Each row of param.records.data_map{board_idx} = [mode_latch channel wf adc]
+        
+        wf = param.records.data_map{board_idx}(map_idx,3);
+        % adc = param.records.data_map{board_idx}(map_idx,4);
+        mode_latch = param.records.data_map{board_idx}(1,1);
+        subchannel = param.records.data_map{board_idx}(1,2);
+        
+      else
+        % Profile mode
+        % Each row of param.records.data_map{board_idx} = [profile mode_latch channel wf adc]
+        
+        wf = param.records.data_map{board_idx}(map_idx,4);
+        % adc = param.records.data_map{board_idx}(map_idx,5);
+        mode_latch = param.records.data_map{board_idx}(map_idx,2);
+        subchannel = param.records.data_map{board_idx}(map_idx,3);
+        profile = param.records.data_map{board_idx}(map_idx,1);
+      end
       
-      wfs(wf).num_sam = configs.adc{board_idx,mode_latch+1,subchannel+1}.num_sam;
+      found_board = false;
+      for configs_board_idx = 1:size(configs.adc,1)
+        if isfield(configs.adc{configs_board_idx,mode_latch+1,subchannel+1},'name') ...
+            && strcmpi(configs.adc{configs_board_idx,mode_latch+1,subchannel+1}.name, boards{board_idx});
+          found_board = true;
+          break;
+        end
+      end
+      if ~found_board
+        error('boards(%d)=%s not found in configs file\n', board_idx, boards(board_idx));
+      end
+      
+      wfs(wf).num_sam = configs.adc{configs_board_idx,mode_latch+1,subchannel+1}.num_sam;
       wfs(wf).bit_shifts = param.radar.wfs(wf).bit_shifts;
       wfs(wf).t0 = param.radar.wfs(wf).Tadc;
-      wfs(wf).presums = configs.adc{board_idx,mode_latch+1,subchannel+1}.presums;
+      wfs(wf).presums = configs.adc{configs_board_idx,mode_latch+1,subchannel+1}.presums;
     end
   end
 

@@ -46,15 +46,28 @@ elseif any(param.records.file.version == [9 10 103 412])
     found = false;
     for board_idx = 1:length(param.records.data_map)
       for profile_idx = 1:size(param.records.data_map{board_idx},1)
-        wf = param.records.data_map{board_idx}(profile_idx,3); % processing wf
-        adc = param.records.data_map{board_idx}(profile_idx,4); % processing adc
-        if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
-          board(wf_adc) = board_idx;
-          % Add an entry (this approach allows multiple mode,subchannel
-          % combinations to be lumped into a single wf/adc pair).
-          profile{wf_adc}(end+1,1) = param.records.data_map{board_idx}(profile_idx,1); % mode
-          profile{wf_adc}(end,2) = param.records.data_map{board_idx}(profile_idx,2); % subchannel
-          found = true;
+        if size(param.records.data_map{board_idx},2) == 4
+          wf = param.records.data_map{board_idx}(profile_idx,3); % processing wf
+          adc = param.records.data_map{board_idx}(profile_idx,4); % processing adc
+          if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
+            board(wf_adc) = board_idx;
+            % Add an entry (this approach allows multiple mode,subchannel
+            % combinations to be lumped into a single wf/adc pair).
+            profile{wf_adc}(end+1,1) = param.records.data_map{board_idx}(profile_idx,1); % mode
+            profile{wf_adc}(end,2) = param.records.data_map{board_idx}(profile_idx,2); % subchannel
+            found = true;
+          end
+        else
+          wf = param.records.data_map{board_idx}(profile_idx,4); % processing wf
+          adc = param.records.data_map{board_idx}(profile_idx,5); % processing adc
+          if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
+            board(wf_adc) = board_idx;
+            % Add an entry (this approach allows multiple mode,subchannel
+            % combinations to be lumped into a single wf/adc pair).
+            profile{wf_adc}(end+1,1) = param.records.data_map{board_idx}(profile_idx,2); % mode
+            profile{wf_adc}(end,2) = param.records.data_map{board_idx}(profile_idx,3); % subchannel
+            found = true;
+          end
         end
       end
     end
