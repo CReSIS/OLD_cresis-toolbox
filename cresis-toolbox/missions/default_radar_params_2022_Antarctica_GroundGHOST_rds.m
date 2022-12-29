@@ -270,7 +270,7 @@ chan_equal_deg = [0 0 0 0 0 0 0 0];
 
 %% Post worksheet
 param.post.data_dirs = {'qlook'};
-param.post.img = 1;
+param.post.img = 0;
 param.post.layer_dir = 'layerData';
 param.post.maps_en = 1;
 param.post.echo_en = 1;

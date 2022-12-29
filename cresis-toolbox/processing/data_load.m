@@ -599,8 +599,8 @@ for state_idx = 1:length(states)
                     profile = double(typecast(file_data(total_offset+19),'uint8'));
 %                     mode2 = double(typecast(file_data(total_offset+17),'uint8'));
 %                     subchannel2 = double(typecast(file_data(total_offset+18),'uint8'));
-                    mode = param.records.data_map{board_idx}(profile+1,2);
-                    subchannel = param.records.data_map{board_idx}(profile+1,3);
+                    mode = param.records.data_map{board_idx}(param.records.data_map{board_idx}(:,1)==profile,2);
+                    subchannel = param.records.data_map{board_idx}(param.records.data_map{board_idx}(:,1)==profile,3);
 %                     fprintf('%2d %d %d %d %d\n', profile, mode, subchannel, mode2, subchannel2);
                   else
                     mode = double(typecast(file_data(total_offset+17),'uint8'));
