@@ -408,37 +408,6 @@ for config_idx = 1:length(configs)
 
   % Create map from wfs to board_idx, mode, subchannel, adc
   % =======================================================================
-  %    [profile mode subchannel wf adc]
-  oparams{end}.records.data_map = {[], ...
-    [0 4 0 1 1
-    1 0 0 2 1
-    2 2 0 3 1
-    3 4 1 1 2
-    4 0 1 2 2
-    5 2 1 3 2
-    6 4 2 1 3
-    7 0 2 2 3
-    8 2 2 3 3
-    9 4 3 1 4
-    10 0 3 2 4
-    11 2 3 3 4], ...
-    [0 4 0 1 5
-    1 0 0 2 5
-    2 2 0 3 5
-    3 4 1 1 6
-    4 0 1 2 6
-    5 2 1 3 6
-    6 4 2 1 7
-    7 0 2 2 7
-    8 2 2 3 7
-    9 4 3 1 8
-    10 0 3 2 8
-    11 2 3 3 8]}
-%   oparams{end}.records.data_map{2} = oparams{end}.records.data_map{2}(:,[1 3 2 4 5]);
-%   oparams{end}.records.data_map{3} = oparams{end}.records.data_map{3}(:,[1 3 2 4 5]);
-  
-%             param.processor_subchannel = [0 0 0 1 1 1 2 2 2 3 3 3];
-%         param.processor_mode = [4 0 2 4 0 2 4 0 2 4 0 2];
   data_map = oparams{end}.records.data_map;
   board_idx_map = [];
   profile_map = [];
@@ -450,12 +419,15 @@ for config_idx = 1:length(configs)
     for data_idx = 1:size(data_map{board_idx},1)
       board_idx_map(end+1) = board_idx;
       if size(data_map{board_idx},2) == 4
+        % NON-PROFILE MODE
+        % data_map rows: [mode subchannel wf adc]  
         mode_map(end+1) = data_map{board_idx}(data_idx,1);
         subchannel_map(end+1) = data_map{board_idx}(data_idx,2);
         wfs_map(end+1) = data_map{board_idx}(data_idx,3);
         adc_map(end+1) = data_map{board_idx}(data_idx,4);
       else
         % PROFILE
+        % data_map rows: [profile mode subchannel wf adc]  
         profile_map(end+1) = data_map{board_idx}(data_idx,1);
         mode_map(end+1) = data_map{board_idx}(data_idx,2);
         subchannel_map(end+1) = data_map{board_idx}(data_idx,3);
@@ -514,7 +486,24 @@ for config_idx = 1:length(configs)
   [~,config_fn_name] = fileparts(configs(config_idx).config_fn);
   oparams{end}.records.config_fn = fullfile(param.config.config_folder_names, [config_fn_name '.xml']);
   
-  oparams{end}.radar.fs = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.sampFreq;
+  found_board = false;
+  adc_list_str = '';
+  for search_idx = 1:size(configs(config_idx).adc,1)
+    if ~isfield(configs(config_idx).adc{search_idx},'name')
+      adc_list_str = [adc_list_str '"",'];
+    else
+      adc_list_str = [adc_list_str '"' configs(config_idx).adc{search_idx}.name '",'];
+      if strcmpi(configs(config_idx).adc{search_idx}.name,param.config.board_map{board_idx})
+        adc_board_idx = search_idx;
+        found_board = true;
+        break;
+      end
+    end
+  end
+  if ~found_board
+    error('Board %s was not found in adc list (%s) from config file %s.',param.config.board_map{board_idx},adc_list_str(1:end-1),configs.config_fn);
+  end
+  oparams{end}.radar.fs = configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.sampFreq;
   oparams{end}.radar.prf = configs(config_idx).prf * configs(config_idx).total_presums;
   
   % Usually the default.radar.wfs structure only has one waveform
@@ -530,13 +519,13 @@ for config_idx = 1:length(configs)
     mode_latch = mode_wfs(wf_idx);
     subchannel = subchannel_wfs(wf_idx);
     if strcmpi(param.season_name,'2022_Greenland_P3')
-      % Delete This After AITT 2022 done
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq = 10e9/1e6; % TEMP FIX
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth = 15e9/1e6; % TEMP FIX
+      % Delete This After AITT 2022 done <-- BROKEN NOW???
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq = 10e9/1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth = 15e9/1e6; % TEMP FIX
       configs(config_idx).dac{1,mode_latch+1}.sampFreq = 2400; % TEMP FIX
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints = 240e-6*configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.numPoints = 240e-6*configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6; % TEMP FIX
       configs(config_idx).dac{1}.delay = 0; % TEMP FIX
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha = 15e9/240e-6;
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.alpha = 15e9/240e-6;
       for tx = 1:length(oparams{end}.radar.wfs(wf).tx_paths)
         tx_idx = oparams{end}.radar.wfs(wf).tx_paths(tx);
         if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
@@ -547,34 +536,44 @@ for config_idx = 1:length(configs)
       end
     end
 
-    % GHOST HACK
-    for ww=1:3
-      for tt=1:4
-        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.centerFreq = 195;
-        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.bandwidth = 30;
-        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.alpha = 0.1;
-        configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.scale = 1.0;
-        if ww==1
-          configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.numPoints = 480;
-        else
-          configs(config_idx).dac{tt,mode_latch+1}.wfs{ww}.numPoints = 4800;
-        end
-        configs(config_idx).dac{tt,mode_latch+1}.sampFreq = 480;
-      end
-    end
-
-    fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq*1e6;
-    BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth*1e6;
+    % Explanation of how ADC and DAC map to cresis-toolbox values (e.g.
+    % wf, adc, rx_paths, tx_paths
+    
+    % param.config.board_map <-- maps board_idx to config entry
+    %   multiple adc channels per board, handled by param.records.data_map
+    
+    % param.config.tx_map <-- maps tx_idx to config entry
+    %   multiple transmit channels per tx, handled by
+    %   param.records.tx_paths
+    % If mapping is simple with one DAC/tx_path per tx_map entry then the mapping should be automatic
+    % {entry 1--> tx_path 1, entry 2 --> tx_path 2, etc.}
+    %
+    %   This can be assumed tx_path when tx_path not specified.
+    %   tx_paths = {1,2,3,4,5,6,7,8} <-- POLAR 6 (default tx_paths)
+    %   tx_paths = {[1 2 5 6]} <-- GHOST RDS
+    %   tx_weights gets generated as [1 1 0 0 1 1]
+    %
+    %   Eventually should allow tx_paths to change on a per wf basis
+    %   tx_paths = {[1 2 3 4; 5 6 7 8]} <-- SWITCHING left/right for wf 1
+    %   and 2 and using the same transmitter for both left and right
+    %   elements with an analog switch to choose which side
+    %
+    %   Eventually should also have tx_pol and rx_pol with the same size as
+    %   tx_paths and rx_paths except populated with 'H', 'V', 'L', 'R', 'U'
+    %   for horizontal, vertical, left-circular, right-circular, unknown
+    
+    fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq*1e6;
+    BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth*1e6;
     if strcmpi(configs(config_idx).radar_name,'ku0002')
       fc = fc*param.config.defaults{1}.radar.wfs(wf).fmult + param.config.defaults{1}.radar.wfs(wf).fLO;
       BW = BW*param.config.defaults{1}.radar.wfs(wfs).fmult;
     end
-    Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints;
-    fs = configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6;
+    Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.numPoints;
+    fs = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.sampFreq*1e6;
     Tpd = Nt/fs;
     t_dac = (configs(config_idx).dac{1}.delay) * 1e-6;
     
-    switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.adcMode)
+    switch (configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.adcMode)
       case 0
         oparams{end}.radar.wfs(wf).DDC_dec = 1;
       case 1
@@ -584,59 +583,60 @@ for config_idx = 1:length(configs)
     end
     
     if subchannel_wfs(1) == 0
-      switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoMode)
+      switch (configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoMode)
         case 0
           oparams{end}.radar.wfs(wf).DDC_freq = 0;
         case 1
           oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
-          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoFreq;
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoFreq;
       end
     elseif subchannel_wfs(1) == 1
-      switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoMode)
+      switch (configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoMode)
         case 0
           oparams{end}.radar.wfs(wf).DDC_freq = 0;
         case 1
           oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
-          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoFreq;
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoFreq;
       end
     elseif subchannel_wfs(1) == 2
-      switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc2NcoMode)
+      switch (configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc2NcoMode)
         case 0
           oparams{end}.radar.wfs(wf).DDC_freq = 0;
         case 1
           oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
-          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc2NcoFreq;
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc2NcoFreq;
       end
     elseif subchannel_wfs(1) == 3
-      switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc3NcoMode)
+      switch (configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc3NcoMode)
         case 0
           oparams{end}.radar.wfs(wf).DDC_freq = 0;
         case 1
           oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
-          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc3NcoFreq;
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.ddc3NcoFreq;
       end
     end
     
     oparams{end}.radar.wfs(wf).f0 = fc-BW/2;
     oparams{end}.radar.wfs(wf).f1 = fc+BW/2;
-    oparams{end}.radar.wfs(wf).tukey = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha;
+    oparams{end}.radar.wfs(wf).tukey = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.alpha;
     oparams{end}.radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
     oparams{end}.radar.wfs(wf).Tpd = Tpd;
     scale = [];
-    for tx = 1:length(oparams{end}.radar.wfs(wf).tx_paths)
-      if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
-        tx_idx = oparams{end}.radar.wfs(wf).tx_paths(tx);
-        scale(tx) = configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale;
-      else
-        scale(tx) = 0;
+
+    for tx_map_idx = 1:length(param.config.tx_map)
+      for tx_paths_idx = 1:length(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx})
+        if isfinite(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx))
+          tx = oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx);
+          scale(tx) = configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx}.pulse{1}.scale;
+        end
       end
     end
     oparams{end}.radar.wfs(wf).tx_weights = scale;
-    oparams{end}.radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
+    oparams{end}.radar.wfs(wf).presums = configs(config_idx).adc{adc_board_idx,mode_latch+1,subchannel+1}.presums;
     adc_idxs = find(wfs_map == wf);
     for adc_idx = adc_idxs
       adc = adc_map(adc_idx);
@@ -654,7 +654,7 @@ for config_idx = 1:length(configs)
       % included:
       %oparams{end}.arena.adc(adc_board_idx).gain_dB(adc_subchannel+1)
     end
-    oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
+    oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{adc_board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams{end}.radar.fs*oparams{end}.radar.wfs(wf).DDC_dec ...
       - oparams{end}.arena.param.ADC_time_delay - t_dac;
     

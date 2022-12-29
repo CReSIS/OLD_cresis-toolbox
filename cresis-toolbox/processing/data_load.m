@@ -322,7 +322,23 @@ for state_idx = 1:length(states)
         if rec < length(file_idxs) && file_idxs(rec+1) == file_idxs(rec)
           % Next record is in this file, rec size is set to the offset to
           % the next record
-          rec_size = records.offset(board_idx,rec+1) - records.offset(board_idx,rec);
+          start_rec = -1;
+          test_rec = rec-1;
+          while start_rec < 0
+            test_rec = test_rec + 1;
+            if records.offset(board_idx,test_rec) > 0
+              start_rec = test_rec;
+            end
+          end
+          next_rec = -1;
+          test_rec = start_rec;
+          while next_rec < 0
+            test_rec = test_rec + 1;
+            if records.offset(board_idx,test_rec) > 0
+              next_rec = test_rec;
+            end
+          end
+          rec_size = records.offset(board_idx,next_rec) - records.offset(board_idx,start_rec);
         else
           % Next record is in the next file, rec_size is set to the rest of
           % the data in this file
@@ -578,18 +594,38 @@ for state_idx = 1:length(states)
                   end
                   radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
                 end
-                if any(radar_header_type == [5 16 23])
-                  if any(mode_latch_subchannel == double(typecast(file_data(total_offset+17),'uint8'))*2^8 ...
-                      + double(typecast(file_data(total_offset+18),'uint8')))
+                if any(radar_header_type == [5 16 23 45])
+                  if radar_header_type == 45;
+                    profile = double(typecast(file_data(total_offset+19),'uint8'));
+%                     mode2 = double(typecast(file_data(total_offset+17),'uint8'));
+%                     subchannel2 = double(typecast(file_data(total_offset+18),'uint8'));
+                    mode = param.records.data_map{board_idx}(profile+1,2);
+                    subchannel = param.records.data_map{board_idx}(profile+1,3);
+%                     fprintf('%2d %d %d %d %d\n', profile, mode, subchannel, mode2, subchannel2);
+                  else
+                    mode = double(typecast(file_data(total_offset+17),'uint8'));
+                    subchannel = double(typecast(file_data(total_offset+18),'uint8'));
+                  end
+                  if swap_bytes_en
+                    radar_profile_format = swapbytes(typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32'));
+                    if radar_profile_format == 196608 % 0x30000
+                      radar_profile_length = radar_profile_length*8;
+                    end
+                  else
+                    radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
+                    if radar_profile_format == 196608 % 0x30000
+                      radar_profile_length = radar_profile_length*8;
+                    end
+                  end
+                  if length(file_data) < total_offset+24+radar_header_len+radar_profile_length
+                    % Unexpected end of file, so we missed the record
+                    missed_wf_adc = true;
+                    break;
+                  end
+                  if any(mode_latch_subchannel == mode*2^8 + subchannel)
                     % This matches the mode and subchannel that we need
                     is_IQ = 0;
-                    if length(file_data) < total_offset+24+radar_header_len+radar_profile_length
-                      % Unexpected end of file, so we missed the record
-                      missed_wf_adc = true;
-                      break;
-                    end
                     if swap_bytes_en
-                      radar_profile_format = swapbytes(typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32'));
                       switch radar_profile_format
                         case 0 % 0x00000
                           tmp_data{adc,wf} = single(swapbytes(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16')));
@@ -604,7 +640,6 @@ for state_idx = 1:length(states)
                           is_IQ = 1;
                       end
                     else
-                      radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
                       switch radar_profile_format
                         case 0 % 0x00000
                           tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));

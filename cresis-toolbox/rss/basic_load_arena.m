@@ -9,11 +9,22 @@ function [hdr,data] = basic_load_arena(fn,param)
 %
 % fn: string containing filename of arena data
 % param: struct controlling loading of data
-%   .clk = scalar clock (Hz), default 10 MHz, used to interpret
+%   .clk: scalar clock (Hz), default 10 MHz, used to interpret
 %     counts in the header fields
-%   .recs = 2 element vector for records to load [start_rec num_rec]
+%   .recs: 2 element vector for records to load [start_rec num_rec]
 %     start_rec uses zero-indexing, num_rec can be set to inf to load
 %     all remaining records. Default is [0 inf].
+%   .processor_subchannel: vector which maps processor (the index into the
+%   vector) into subchannel. Arena digital receiver "processors" are
+%   zero-indexes, but are 1-indexed in matlab. A value of [0 0 1 1] would
+%   indicate processor's 0 and 1 are subchannel 0 and processor's 2 and 3
+%   are subchannel 1.
+%
+%   .processor_mode: vector which maps processor (the index into the
+%   vector) into mode. Arena digital receiver "processors" are
+%   zero-indexes, but are 1-indexed in matlab. A value of [2 0 2 0] would
+%   indicate processor's 1 and 3 are mode 2 and processor's 2 and 4 are
+%   mode 2.
 %
 % hdr: cell vector of structs with fields for each file header
 %   corresponding to the entries in data. Standard fields:
@@ -34,6 +45,10 @@ function [hdr,data] = basic_load_arena(fn,param)
 %   fn = '20170411_183357_Default0_0001.tst';
 %   param = struct('recs',[0 inf]);
 %   [hdr,data] = basic_load_arena(fn,param);
+%
+%   GHOST radar example:
+%   [hdr,data] = basic_load_arena('/data/20221225/digrx1/20221224_234423_digrx1_0000.dat',...
+%     struct('processor_subchannel',[0 0 0 1 1 1 2 2 2 3 3 3],'processor_mode',[4 0 2 4 0 2 4 0 2 4 0 2]))
 %
 % Authors: John Paden
 %
@@ -132,11 +147,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         mode = new_hdr.mode;
       elseif hdr_type == ghost_ku0001_radar_header_type
         new_hdr = basic_load_arena_ghost_ku0001(fid);
-%         new_hdr
-%         param.processor_subchannel = [0 0 1 1 2 2 3 3];
-%         param.processor_mode = [0 2 0 2 0 2 0 2];
-        param.processor_subchannel = [0 0 0 1 1 1 2 2 2 3 3 3];
-        param.processor_mode = [4 0 2 4 0 2 4 0 2 4 0 2];
+        %fprintf('%3d %10d\n', new_hdr.processor, new_hdr.profile_cntr_latch);
         new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
         new_hdr.mode = param.processor_mode(new_hdr.processor+1);
         subchannel = new_hdr.subchannel;

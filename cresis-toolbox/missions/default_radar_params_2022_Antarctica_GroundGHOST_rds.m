@@ -19,7 +19,7 @@ param.config.daq_type = 'arena';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_arena;
 param.config.board_map = {'digrx1','digrx2'};
-param.config.tx_map = {'awg0'};
+param.config.tx_map = {'awg1'};
 
 % Creating segments
 param.config.max_time_gap = 10;
@@ -127,7 +127,7 @@ arena.system.name = 'ku0001';
 arena.param.tx_max = [1 1];
 arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
 arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
-arena.param.ADC_time_delay = 2e-6; % ADC time delay relative to transmit start
+arena.param.ADC_time_delay = -2e-6; % ADC time delay relative to transmit start
 
 arena.psc.type = 'psc_0003';
 
@@ -257,8 +257,8 @@ param.radar.Vpp_scale = 1.5;
 param.radar.lever_arm_fh = @lever_arm;
 for wf = 1:4 
   param.radar.wfs(wf).adc_gains_dB = [38 38 38 38 38 38 38 38]; % ADC gain
-  param.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8]; % ADC to rx path mapping
-  param.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8]; % ADC to rx path mapping
+  param.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8]; % ADCs
+  param.radar.wfs(wf).rx_paths = [1 2 5 6 3 4 3 4]; % ADC to rx path mapping
   param.radar.wfs(wf).gain_en = [0 0 0 0 0 0 0 0]; % Disable fast-time gain correction
   param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
   param.radar.wfs(wf).Tadc_adjust = 0;
@@ -305,9 +305,9 @@ defaults = {};
 % gone to mode 0.
 default.records.arena.total_presums = 240;
 % default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
-  default.records.data_map = {[], ...
-    [0 4 0 1 1
-    1 0 0 2 1
+  default.records.data_map = {...
+    [1 0 0 2 1
+    0 4 0 1 1
     2 2 0 3 1
     3 4 1 1 2
     4 0 1 2 2
@@ -318,8 +318,8 @@ default.records.arena.total_presums = 240;
     9 4 3 1 4
     10 0 3 2 4
     11 2 3 3 4], ...
-    [0 4 0 1 5
-    1 0 0 2 5
+    [1 0 0 2 5
+    0 4 0 1 5
     2 2 0 3 5
     3 4 1 1 6
     4 0 1 2 6
@@ -330,7 +330,7 @@ default.records.arena.total_presums = 240;
     9 4 3 1 8
     10 0 3 2 8
     11 2 3 3 8]}
-default.qlook.img_comb = [3e-06 -inf 1e-06];
+default.qlook.img_comb = [11e-06 -inf 1e-06];
 default.qlook.imgs = {[1 1; 1 2; 1 3; 1 4; 1 5; 1 6],[2 1; 2 2; 2 3; 2 4; 2 5; 2 6]};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
@@ -343,7 +343,7 @@ for wf = 1:3
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).bit_shifts = [0 0 0 0 0 0 0 0];
-  default.radar.wfs(wf).tx_paths = [1 1 0 0 0 0 0 0];
+  default.radar.wfs(wf).tx_paths = {[1 2 5 6]}; % awg1-CH0-->ANT1, awg1-CH1-->ANT2, awg1-CH2-->ANT5, awg1-CH3-->ANT6
   default.radar.wfs(wf).DDC_dec = 12;
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4200]';

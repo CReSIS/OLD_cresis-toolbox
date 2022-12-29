@@ -133,7 +133,7 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_sourc
 end
 
 if (strcmpi(param.season_name,'2022_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
-  % Platform: Ground based sled (EAGER 1, EAGER 2, GHOST 1, GHOST 2)
+  % Platform: Ground based sled (EAGER 1, EAGER 2)
   %
   gps.x = 0;
   gps.y = 0;
@@ -141,7 +141,7 @@ if (strcmpi(param.season_name,'2022_Antarctica_Ground') && any(strcmpi(gps_sourc
 end
 
 if (strcmpi(param.season_name,'2022_Antarctica_GroundGHOST') && any(strcmpi(gps_source,{'arena','cresis'})))
-  % Platform: Ground based sled (EAGER 1, EAGER 2, GHOST 1, GHOST 2)
+  % Platform: Ground based sled (GHOST 1, GHOST 2)
   %
   gps.x = 0;
   gps.y = 0;
@@ -1424,9 +1424,9 @@ if (strcmpi(param.season_name,'2022_Antarctica_GroundGHOST') && strcmpi(radar_na
   % Secondary GPS antenna: 6*30 = 180" (WILD GUESS!!!!) right of the primary. Align information will be relative to this.
   
   % GPS Antenna to Antenna phase center
-  LArx = [zeros(1,8);
-    28*[0 1 4 5 2 3 2 3];
-    zeros(1,8)] * 2.54/100;
+  LArx = [zeros(1,6);
+    28*[0 1 2 3 4 5];
+    zeros(1,6)] * 2.54/100;
   
   LAtx = LArx(:,:);
   

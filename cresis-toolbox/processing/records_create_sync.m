@@ -131,7 +131,8 @@ if any(param.records.file.version == [9 10 103 412])
     offsets = 0:diff_epri(board_idx);
     for offset_idx = 1:length(offsets)
       offset = offsets(offset_idx);
-      offset_scores{board_idx}(offset_idx) = sum(mod((epri_pri_idxs - offset)/diff_epri(board_idx),1) ~= 0);
+      GUARD = 4;
+      offset_scores{board_idx}(offset_idx) = sum(abs(mod((epri_pri_idxs - offset)/diff_epri(board_idx),1)) > GUARD);
       if offset_scores{board_idx}(offset_idx) < min_score
         min_score = offset_scores{board_idx}(offset_idx);
         best_offset = offset;
@@ -148,7 +149,7 @@ if any(param.records.file.version == [9 10 103 412])
     if min_score > 0
       warning('%d of %d records show slipped EPRI values.', min_score, length(epri_pri_idxs));
       if length(good_offsets{board_idx}) > 1
-        warning('An ADC link error probably occured since PRI-numbers do not fall a regular interval. Special generation of the EPRI vector is now enabled.')
+        warning('An ADC link error probably occured or incorrect pulse sequence radar settings were used since PRI-numbers do not follow a regular interval. Special generation of the EPRI vector is now enabled.')
         special_epri_generation = true;
       end
     end
@@ -201,7 +202,22 @@ if any(param.records.file.version == [9 10 103 412])
   records.raw.profile_cntr_latch = nan(size(epri));
   records.raw.rel_time_cntr_latch = nan(size(epri));
   for board_idx = 1:length(boards)
-    [~,out_idxs,in_idxs] = intersect(epri,board_hdrs{board_idx}.profile_cntr_latch);
+    if GUARD == 0
+      [~,out_idxs,in_idxs] = intersect(epri,board_hdrs{board_idx}.profile_cntr_latch);
+    else
+      out_idxs = nan(size(epri));
+      in_idxs = nan(size(epri));
+      out_idx = 0;
+      for idx = 1:length(epri)
+        [offset,min_idx] = min(abs(epri(idx) - board_hdrs{board_idx}.profile_cntr_latch));
+        if offset < GUARD
+          out_idx = out_idx + 1;
+          out_idxs(out_idx) = idx;
+          in_idxs(out_idx) = min_idx;
+        end
+      end
+    end
+    
     fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
     
     % offset: Missing records filled in with -2^31
