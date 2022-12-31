@@ -216,6 +216,8 @@ if any(param.records.file.version == [9 10 103 412])
           in_idxs(out_idx) = min_idx;
         end
       end
+      out_idxs = out_idxs(1:out_idx);
+      in_idxs = in_idxs(1:out_idx);
     end
     
     fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));

@@ -55,7 +55,7 @@ arena.subsystem(subsystem_idx).subSystem{1} = 'digrx1';
 subsystem_idx = subsystem_idx + 1;
 arena.subsystem(subsystem_idx).name = 'RDS_AWG_RX2';
 arena.subsystem(subsystem_idx).subSystem{1} = 'awg1';
-arena.subsystem(subsystem_idx).subSystem{1} = 'digrx2';
+arena.subsystem(subsystem_idx).subSystem{2} = 'digrx2';
 subsystem_idx = subsystem_idx + 1;
 arena.subsystem(subsystem_idx).name = 'Data Server';
 
@@ -300,9 +300,8 @@ param.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighti
 defaults = {};
 
 % Survey Mode Thick Ice Single Polarization
-% Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
-% an error in the settings where mode 0 and mode 1 both acquired data that should have only
-% gone to mode 0.
+% Note data_map has unusual ordering with profile 1 first instead of
+% profile 0. Profile 1 corresponds to mode 0 which was transmitted first.
 default.records.arena.total_presums = 240;
 % default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
   default.records.data_map = {...

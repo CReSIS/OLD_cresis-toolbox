@@ -93,7 +93,15 @@ for idx = 1:length(file_type)
       
       gps.elev = fir_dec(gps.elev,ones(1,101)/101,1);
       
-      save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
+      good_idxs = gps.radar_time~=0;
+      gps.radar_time = gps.radar_time(good_idxs);
+      gps.comp_time = gps.comp_time(good_idxs);
+      gps.sync_elev = gps.sync_elev(good_idxs);
+      gps.sync_gps_time = gps.sync_gps_time(good_idxs);
+      gps.sync_lat = gps.sync_lat(good_idxs);
+      gps.sync_lon = gps.sync_lon(good_idxs);
+      
+      save(out_fn,'-struct','gps');
     end
   end
   
