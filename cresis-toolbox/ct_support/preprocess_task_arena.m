@@ -94,7 +94,7 @@ for config_idx = 1:length(configs)
     default_num_expected = int32(512);
     num_header_fields = int32(33);
     length_field_offset = int32(260);
-  elseif strcmpi(configs(config_idx).radar_name,'ku0001') || strcmpi(configs(config_idx).radar_name,'ku0002')
+  elseif strcmpi(configs(config_idx).radar_name,'ku0001') || strcmpi(configs(config_idx).radar_name,'ku0002') || strcmpi(configs(config_idx).radar_name,'extsyncarena5xx')
     radar_header_type = ku0001_radar_header_type; % arena_radar_header_type
     min_num_expected = int32(0);
     max_num_expected = int32(configs(config_idx).max_num_bins);
@@ -289,6 +289,21 @@ for config_idx = 1:length(configs)
           pps_cntr_latch = hdr{1}.pps_cntr_latch;
           
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
+            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
+          
+        elseif strcmpi(configs(config_idx).radar_name,'extsyncarena5xx') 
+          offset = mod(hdr(1,:),2^32);
+          mode_latch = mod(hdr(3,:),2^8);
+          subchannel = mod(bitshift(hdr(3,:),-8),2^8);
+          profile = mod(bitshift(hdr(3,:),-16),2^8);
+          wg_delay_latch = mod(hdr(4,:),2^16);
+          rel_time_cntr_latch = double(hdr(5,:));
+          profile_cntr_latch = double(hdr(6,:));
+          pps_ftime_cntr_latch = double(hdr(7,:));
+          pps_cntr_latch = double(hdr(8,:));
+          
+          save(out_hdr_fn, 'offset','mode_latch','subchannel','profile','wg_delay_latch', ...
             'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
             'last_bytes','last_bytes_len','num_expected','pkt_counter');
           

@@ -50,6 +50,10 @@ function [hdr,data] = basic_load_arena(fn,param)
 %   [hdr,data] = basic_load_arena('/data/20221225/digrx1/20221224_234423_digrx1_0000.dat',...
 %     struct('processor_subchannel',[0 0 0 1 1 1 2 2 2 3 3 3],'processor_mode',[4 0 2 4 0 2 4 0 2 4 0 2]))
 %
+%   COLDEX radar example:
+%   [hdr,data] = basic_load_arena('/scratch/ct_tmp/headers/accum/2022_Antarctica_BaslerMKB/20221225a/digrx1/20221224_152350_accum_digrx1_0003.dat',...
+%     struct('processor_subchannel',[0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7],'processor_mode',[0 0 0 0 0 0 0 0 2 2 2 2 2 2 2 2]))
+%
 % Authors: John Paden
 %
 % See also: basic_load_arena.m, run_arena_packet_strip.m,
@@ -152,6 +156,12 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         new_hdr.mode = param.processor_mode(new_hdr.processor+1);
         subchannel = new_hdr.subchannel;
         mode = new_hdr.mode;
+      elseif hdr_type == coldex_arena5xx_radar_header_type
+        new_hdr = basic_load_arena_ghost_ku0001(fid);
+        new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
+        new_hdr.mode = param.processor_mode(new_hdr.processor+1);
+        subchannel = new_hdr.subchannel;
+        mode = new_hdr.mode;
       else
         subchannel = 0;
         mode = fread(fid,1,'uint8');
@@ -173,10 +183,11 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
           tmp = fread(fid,profile_len/4,'int32');
           isIQ = 1;
         case 196608 % 0x30000
-          % OLD
-          %tmp = fread(fid,profile_len/4,'float32');
-          % NEW
-          tmp = fread(fid,profile_len*2,'float32');
+          if hdr_type == ghost_ku0001_radar_header_type
+            tmp = fread(fid,profile_len*2,'float32');
+          else
+            tmp = fread(fid,profile_len/4,'float32');
+          end
           isIQ = 1;
         otherwise
           error('Unsupported profile type %d.', profile_type);
