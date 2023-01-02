@@ -286,6 +286,11 @@ for frm_idx = 1:length(param.cmd.frms)
   block_size = param.qlook.block_size(1);
   blocks = 1:block_size:length(recs)-0.5*block_size;
   if isempty(blocks)
+    warning('%s: The frame is smaller than usual. For best results, it is often best to have frames with a number of records that is more than or equal to half the block size (%d), but there are only %d records in this frame. If this is unexpected it may 1) be due to GPS errors since these can create artifically long paths over very short time periods; 2) the frame generation process needs to be revised with run_frames_create to make the frames longer; or 3) the param.qlook.block_size=%d needs to be reduced. qlook will try to process the frame, but it may fail.', mfilename, 0.5*block_size, length(recs), block_size);
+    if length(recs) < 50
+      warning('This frame is unusually short (<50 records). This is usually caused by a too short data segment (in which case it should be marked "do not process" in the param.cmd.notes field and not enabled) or an error in preprocessing, GPS, or records generation. Unless you know the frame is very short (e.g. lab calibration measurement where only a very small amount of data was needed), it is probably best to dbquit and fix the situation. Type "dbcont" to continue and ignore the issue. qlook processing may fail for this frame.');
+      keyboard
+    end
     blocks = 1;
   end
   

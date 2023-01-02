@@ -18,8 +18,8 @@ param.radar_name = 'accum3';
 param.config.daq_type = 'arena';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_arena;
-param.config.board_map = {'digrx0'}; % H only polarization
-% param.config.board_map = {'digrx0','digrx1'}; % HV polarization
+%param.config.board_map = {'digrx0'}; % H only polarization
+param.config.board_map = {'digrx0','digrx1'}; % HV polarization
 param.config.tx_map = {'awg0','awg1'};
 
 % Creating segments
@@ -181,8 +181,8 @@ param.records.frames.mode = 1;
 param.records.file.version = 103;
 param.records.file.prefix = param.radar_name;
 param.records.file.suffix = '.bin';
-param.records.file.boards = {'digrx0'}; % H only polarization
-% param.records.file.boards = {'digrx0','digrx1'}; % HV Polarization
+%param.records.file.boards = {'digrx0'}; % H only polarization
+param.records.file.boards = {'digrx0','digrx1'}; % HV Polarization
 param.records.file.board_folder_name = '%b';
 param.records.file.clk = 10e6;
 
