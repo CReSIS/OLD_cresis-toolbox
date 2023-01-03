@@ -5,7 +5,7 @@
 %
 
 % SET AN OUTPUT DIRECTORY FOR MAT FILE/S
-output_dir = 'C:\Users\kpurdon\Documents\Projects\Other\crossovers\output';
+output_dir = 'C:\users\mathe\Documents\Code\Matlab\CReSIS\crossovers';
 %output_dir = '/cresis/scratch2/paden/mdce_tmp/crossovers/';
 
 % SET THE SYSTEM
