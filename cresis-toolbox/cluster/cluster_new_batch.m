@@ -96,6 +96,14 @@ if ~isfield(ctrl.cluster,'job_complete_pause') || isempty(ctrl.cluster.job_compl
   ctrl.cluster.job_complete_pause = 5;
 end
 
+% Matlab cluster number of workers to set for the job manager, default is
+% empty which lets Matlab choose.
+if ~isfield(ctrl.cluster,'matlab_NumWorkers') || isempty(ctrl.cluster.matlab_NumWorkers)
+  ctrl.cluster.matlab_NumWorkers = [];
+end
+
+% Matlab runtime compiler (MCR) path used by torque and slurm to run matlab
+% compiler (mcc)
 if ~isfield(ctrl.cluster,'matlab_mcr_path') || isempty(ctrl.cluster.matlab_mcr_path)
   ctrl.cluster.matlab_mcr_path = matlabroot;
 end

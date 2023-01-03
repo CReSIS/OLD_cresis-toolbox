@@ -1,5 +1,5 @@
-function [proj,h_fig] = geotiff_plot(geotiff_fn, lat, lon, h_fig, varargin)
-% [proj,h_fig] = geotiff_plot(geotiff_fn, lat, lon, h_fig, varargin)
+function [proj,h_fig,h_axes,h_image,h_plot,h_plot_start] = geotiff_plot(geotiff_fn, lat, lon, h_fig, varargin)
+% [proj,h_fig,h_axes,h_image,h_plot,h_plot_start] = geotiff_plot(geotiff_fn, lat, lon, h_fig, varargin)
 %
 % Function for quickly plotting a geotiff and optionally plotting
 % some points/vectors on top of that.  The first point is plotted
@@ -73,12 +73,14 @@ if 0
   % DEBUG
   RGB(RGB<0) = NaN;
 end
-imagesc(R(3,1) + R(2,1)*(1:size(RGB,2)), R(3,2) + R(1,2)*(1:size(RGB,1)), RGB,'parent',h_axes);
+h_image = imagesc(R(3,1) + R(2,1)*(1:size(RGB,2)), R(3,2) + R(1,2)*(1:size(RGB,1)), RGB,'parent',h_axes);
 if isa(RGB,'uint8')
   colormap(h_axes,gray(256));
 end
 set(h_axes,'YDir','normal');
 
+h_plot = [];
+h_plot_start = [];
 if exist('lat','var') && ~isempty(lat)
   switch lower(proj.ModelType)
     case {'modeltypeprojected'}
@@ -91,11 +93,9 @@ if exist('lat','var') && ~isempty(lat)
   end
   cur_hold = ishold(h_axes);
   hold(h_axes,'on');
-  plot(h_axes,X,Y,varargin{:});
-  plot(h_axes,X(1),Y(1),'bo');
+  h_plot = plot(h_axes,X,Y,varargin{:});
+  h_plot_start = plot(h_axes,X(1),Y(1),'bo');
   if ~cur_hold
     hold(h_axes,'off');
   end
 end
-
-return;

@@ -791,7 +791,8 @@ if ~param.load.raw_data
       % - IMPORTANT: Only works for radars with constant length records.
       % Apply fast-time varying gain if enabled
       if wfs(wf).gain_en
-        gain_fn = fullfile(param.radar.gain_dir,sprintf('gain_wf_%d_adc_%d.mat',wf,adc));
+        gain_dir = ct_filename_out(param, wfs(wf).gain_dir, 'analysis',1);
+        gain_fn = fullfile(gain_dir,sprintf('gain_wf_%d_adc_%d.mat',wf,adc));
         if exist(gain_fn, 'file')
           ftg = load(gain_fn);
           fprintf('Applying fast time gain compensation %d-%d\n',wf,adc);
