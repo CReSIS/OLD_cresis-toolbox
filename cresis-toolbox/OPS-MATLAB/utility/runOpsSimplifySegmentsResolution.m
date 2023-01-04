@@ -6,18 +6,18 @@
 % To use this script manually edit the input fileds under USER INPUT.
 %
 % Data inputs required:
-%   paramFn: param sheet. Generic column flags segments to alter. 
+%   paramFn: param sheet. Generic column flags segments to alter.
 %   sysName: System ('rds','accum', 'kuband', 'snow')
 %   resolution: the along-track path resolution (meters)
 %
 
-% Authors: Trey Stafford
+% Authors: Reece Mathews
 %
 % see also opsAlterPathResolution.m
 %
 % =========================================================================
 
-clear alterParam params 
+clear alterParam params
 % sysName: SYSTEM NAME ('rds','snow','accum','kuband')
 sysName = 'rds';
 
@@ -25,7 +25,7 @@ sysName = 'rds';
 % resolution: the resolution in meters to which to simplify the segments using the Postgis
 % command, ST_SimplifyPreserveTopology. This removes any points which can be removed while
 % maintaining the original line within resolution meters. -1 is full resolution.
-resolution = 15;
+resolution = 1;
 
 alterParam.properties.resolution = resolution;
 
@@ -80,4 +80,4 @@ else
   fprintf('\n');
 end
 
-clear alterParam params 
+clear alterParam params
