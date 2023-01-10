@@ -523,7 +523,7 @@ for adc_idx = 1:adcList.getLength
         end
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
-        ncoFreq = str2double(ncoFreq(:).');
+        ncoFreq = str2double(ncoFreq(:).') * 1e6;
         configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
         
         expression = xpath.compile('cicDecimation');
@@ -711,7 +711,7 @@ for adc_idx = 1:adcList.getLength
       end
       ncoFreq = nodeList.item(0);
       ncoFreq = ncoFreq.getTextContent.toCharArray;
-      ncoFreq = arena_convert_range(ncoFreq);
+      ncoFreq = str2double(ncoFreq(:).') * 1e6;
       ncoFreq_list(end).ncoFreq = ncoFreq;
     end
     
@@ -805,7 +805,7 @@ for adc_idx = 1:adcList.getLength
       end
       ncoFreq = nodeList.item(0);
       ncoFreq = ncoFreq.getTextContent.toCharArray;
-      ncoFreq = str2double(ncoFreq);
+      ncoFreq = str2double(ncoFreq)*1e6;
       subchannels(end).ncoFreq = ncoFreq;
       
       expression = xpath.compile('ncoPhase');
@@ -1181,7 +1181,7 @@ for adc_idx = 1:adcList.getLength
         end
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
-        ncoFreq = str2double(ncoFreq);
+        ncoFreq = str2double(ncoFreq)*1e6;
         subchannels(end).modes(end).ncoFreq = ncoFreq;
         
         expression = xpath.compile('ncoPhase');
@@ -1543,7 +1543,7 @@ for adc_idx = 1:adcList.getLength
         end
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
-        ncoFreq = str2double(ncoFreq(:).');
+        ncoFreq = str2double(ncoFreq(:).') * 1e6;
         
         expression = xpath.compile('decimation');
         nodeList = expression.evaluate(digRx_cfg,XPathConstants.NODESET);
