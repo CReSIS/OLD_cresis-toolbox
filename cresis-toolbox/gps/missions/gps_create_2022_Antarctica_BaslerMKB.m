@@ -35,26 +35,23 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 %% <== CHOOSE WHICH GPS SOURCE TO PROCESS
-gps_source_to_use = 'arena';
+gps_source_to_use = 'novatelraw';
 % gps_source_to_use = 'cresis';
 
-if strcmpi(gps_source_to_use,'arena')
-  %% ARENA GPS SOURCE
+if strcmpi(gps_source_to_use,'novatelraw')
+  %% sonntag_nav GPS SOURCE
   % =======================================================================
 
-  year = 2022; month = 12; day = 25;
-  datestr_year = 2022; datestr_month = 12; datestr_day = 24; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+  year = 2023; month = 1; day = 10;
+  datestr_year = 2023; datestr_month = 1; datestr_day = 9; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', datestr_year, datestr_month, datestr_day);
   date_str{file_idx} = sprintf('%04d%02d%02d', datestr_year, datestr_month, datestr_day);
-  file_type{file_idx} = 'arena';
+  file_type{file_idx} = 'novatelraw';
   params{file_idx} = struct('time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
+  gps_source{file_idx} = 'novatelraw-field';
+  sync_flag{file_idx} = 0;
   
 elseif strcmpi(gps_source_to_use,'cresis')
   %% CReSIS GPS SOURCE

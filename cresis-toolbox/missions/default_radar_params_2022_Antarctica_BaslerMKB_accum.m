@@ -104,7 +104,7 @@ arena.daq(daq_idx).auxDir = '/data/';
 arena.daq(daq_idx).fileStripe = '/data/%b/';
 arena.daq(daq_idx).fileName = 'accum_%b';
 arena.daq.udp_packet_headers = false;
-arena.daq.udp_packet_headers = true; % HACK FOR TEST DATASET
+% arena.daq.udp_packet_headers = true; % HACK FOR TEST DATASET
 
 arena.system.name = 'extsyncarena5xx';
 
