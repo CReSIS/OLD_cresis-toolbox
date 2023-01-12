@@ -137,7 +137,8 @@ if ~isempty(regexpi(configs.radar_name,'arena5xx', 'once'))
     config_type = 'psc_0008';
     expression = xpath.compile(sprintf('config[@type="%s"]', config_type));
     config_name = expression.evaluate(arena522_cfg,XPathConstants.NODESET);
-    config_name = config_name.item(0).getTextContent;
+    config_name = config_name.item(0).getTextContent.toCharArray;
+    config_name = config_name(:).';
     
     % Get the Arena 522 CTU configs
     expression = xpath.compile(sprintf('//configs/config[@type="%s" and name="%s"]',config_type,config_name));

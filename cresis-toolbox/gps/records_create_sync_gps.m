@@ -137,8 +137,13 @@ elseif any(param.records.file.version == [9 10 103 412])
   
   % Interpolate gps.sync_gps_time to radar gps_time using gps.radar_time
   % and radar_time
-  radar_gps_time = interp1(gps.radar_time, gps.sync_gps_time, ...
-    radar_time + max(param.records.gps.time_offset),'linear','extrap');
+  if 0 % COLDEX HACK
+    radar_gps_time = interp1(gps.radar_time, gps.sync_gps_time, ...
+      radar_time + max(param.records.gps.time_offset),'linear','extrap');
+  else
+    radar_gps_time = interp1(gps.gps_time, gps.gps_time, ...
+      radar_time + max(param.records.gps.time_offset),'linear','extrap');
+  end
   
 else
   % NI based, Ledford systems

@@ -42,8 +42,19 @@ if strcmpi(gps_source_to_use,'novatelraw')
   %% sonntag_nav GPS SOURCE
   % =======================================================================
 
-  year = 2023; month = 1; day = 10;
-  datestr_year = 2023; datestr_month = 1; datestr_day = 9; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+%   year = 2023; month = 1; day = 10;
+%   datestr_year = 2023; datestr_month = 1; datestr_day = 9; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', datestr_year, datestr_month, datestr_day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', datestr_year, datestr_month, datestr_day);
+%   file_type{file_idx} = 'novatelraw';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'novatelraw-field';
+%   sync_flag{file_idx} = 0;
+
+  year = 2023; month = 1; day = 11;
+  datestr_year = 2023; datestr_month = 1; datestr_day = 10; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', datestr_year, datestr_month, datestr_day);
