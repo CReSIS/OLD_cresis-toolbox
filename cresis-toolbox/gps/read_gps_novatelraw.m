@@ -1,8 +1,17 @@
 function gps = read_gps_novatelraw(fn, param)
 % gps = read_gps_novatelraw(fn, param)
 %
-% Parses Novatel binary commands BESTPOS,TIME
-% See Novatel OEM6 or OEM7 command manuals
+% Parses Novatel binary commands BESTPOSB,TIMEB,INSATTB
+% See Novatel OEM6 or OEM7 command manuals.
+%
+% GPS+INS:
+% LOG USB1 BESTPOSB ONTIME 0.2
+% LOG USB1 TIMEB ONTIME 0.2
+% LOG USB1 INSATTB ONTIME 0.2
+%
+% GPS ONLY:
+% LOG USB1 BESTPOSB ONTIME 0.05
+% LOG USB1 TIMEB ONTIME 0.05
 %
 % Example:
 %
@@ -60,8 +69,12 @@ have_time = false;
 for frame = 1:length(frame_start_idxs)
   %fprintf('FRAME %10d of %10d\n', frame, length(frame_start_idxs));
   
+  % Check to see if this 3-byte frame sync occurs where we think it should
+  % based on the last frame sync and the length of that record. If it does
+  % not, then ignore this 3-byte frame sync since it may have randomly
+  % occurred.
   if frame_start_idxs(frame) ~= next_start_idx
-    fprintf('Unexpected frame position at byte offset %d. Skipping frame.\n', frame_start_idxs(frame));
+    fprintf('Unexpected frame position at byte offset %d. Skipping 3-byte frame sync.\n', frame_start_idxs(frame));
     if frame == length(frame_start_idxs)
       break;
     end

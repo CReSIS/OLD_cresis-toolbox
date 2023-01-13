@@ -9,6 +9,8 @@ function [param,defaults] = default_radar_params_2022_Antarctica_BaslerMKB_accum
 % Set the param.season_name to the correct season before running.
 %
 % Author: John Paden
+%
+% See also: default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map
 
 %% Preprocess parameters
 param.season_name = '2022_Antarctica_BaslerMKB';
@@ -284,23 +286,7 @@ defaults = {};
 
 % Survey Mode Thick Ice Single Polarization
 default.records.arena.total_presums = 240;
-% --------------------  START default.records.data_map --------------------
-default.records.data_map = {};
-for board_idx = 1:2
-  default.records.data_map{board_idx} = [];
-  profile = 0;
-  wf_list = [1 2 3 4];
-  mode = 0;
-  for wf = wf_list
-    for subchannel=0:7
-      default.records.data_map{board_idx}(end+1,1:5) = [profile mode subchannel wf subchannel+1+(board_idx-1)*8];
-      default.records.data_map{board_idx}(end+1,1:5) = [profile mode+1 subchannel wf subchannel+1+(board_idx-1)*8];
-      profile = profile+1;
-    end
-    mode = mode+2;
-  end
-end
-% --------------------  END default.records.data_map ----------------------
+default.records.data_map = default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map();
 default.qlook.img_comb = [11e-06 -inf 1e-06];
 default.qlook.imgs = {[ones(16,1) (1:16).'],[3*ones(16,1) (1:16).']};
 default.sar.imgs = default.qlook.imgs;

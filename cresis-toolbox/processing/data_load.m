@@ -625,13 +625,13 @@ for state_idx = 1:length(states)
                   end
                   if swap_bytes_en
                     radar_profile_format = swapbytes(typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32'));
-                    if radar_profile_format == 196608 % 0x30000
-                      %radar_profile_length = radar_profile_length*8; % COLDEX HACK
+                    if radar_profile_format == 196608 && radar_header_type ~= 8194 % 0x30000
+                      radar_profile_length = radar_profile_length*8;
                     end
                   else
                     radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
-                    if radar_profile_format == 196608 % 0x30000
-                      %radar_profile_length = radar_profile_length*8; % COLDEX HACK
+                    if radar_profile_format == 196608 && radar_header_type ~= 8194 % 0x30000
+                      radar_profile_length = radar_profile_length*8;
                     end
                   end
                   if length(file_data) < total_offset+24+radar_header_len+radar_profile_length
