@@ -53,8 +53,19 @@ if strcmpi(gps_source_to_use,'novatelraw')
 %   gps_source{file_idx} = 'novatelraw-field';
 %   sync_flag{file_idx} = 0;
 
-  year = 2023; month = 1; day = 11;
-  datestr_year = 2023; datestr_month = 1; datestr_day = 10; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+%   year = 2023; month = 1; day = 11;
+%   datestr_year = 2023; datestr_month = 1; datestr_day = 10; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', datestr_year, datestr_month, datestr_day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', datestr_year, datestr_month, datestr_day);
+%   file_type{file_idx} = 'novatelraw';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'novatelraw-field';
+%   sync_flag{file_idx} = 0;
+
+  year = 2023; month = 1; day = 14;
+  datestr_year = 2023; datestr_month = 1; datestr_day = 13; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', datestr_year, datestr_month, datestr_day);
@@ -83,7 +94,17 @@ for idx = 1:length(file_type)
   
   gps = load(out_fn);
 
-  % Arena 500's radar_time is gps_time
+  if ~isempty(regexpi(gps_source,'novatelraw')) && ~isempty(regexpi(out_fn,'20230113'))
+    gps.roll(:) = 0;
+    gps.pitch(:) = 0;
+    [est_heading,along_track,speed] = trajectory_coord_system(gps);
+    gps.heading = est_heading;
+    
+    save(out_fn,'-append','-struct','gps','roll','pitch','heading');
+  end
+  
+  % Arena 500's radar_time is gps_time, fill in sync fields with this
+  % information.
   gps.radar_time = gps.gps_time;
   gps.sync_gps_time = gps.gps_time;
   gps.sync_lat = gps.lat;

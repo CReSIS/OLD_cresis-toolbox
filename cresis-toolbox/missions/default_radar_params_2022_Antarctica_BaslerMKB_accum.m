@@ -285,7 +285,7 @@ param.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighti
 defaults = {};
 
 % Survey Mode Thick Ice Single Polarization
-default.records.arena.total_presums = 240;
+default.records.arena.total_presums = 80;
 default.records.data_map = default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map();
 default.qlook.img_comb = [11e-06 -inf 1e-06];
 default.qlook.imgs = {[ones(16,1) (1:16).'],[3*ones(16,1) (1:16).']};
@@ -300,7 +300,7 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).tx_paths = {[4 3 2 1 inf inf inf inf],[16 15 14 13 inf inf inf inf]}; % dac1-ch1->Ant4, dac1-ch2->Ant3, dac1-ch3->Ant2, dac1-ch4->Ant1, dac2-ch1->Ant16, dac2-ch2->Ant15, dac2-ch3->Ant14, dac2-ch4->Ant13
-  default.radar.wfs(wf).DDC_dec = 128;
+  default.radar.wfs(wf).DDC_dec = 8; % 280 MHz / 8 = 35 MHz
   default.radar.wfs(wf).bit_shifts = zeros(1,16);
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4200]';

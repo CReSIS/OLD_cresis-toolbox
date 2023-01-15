@@ -66,6 +66,7 @@ gps.heading = zeros(1,floor(length(frame_start_idxs)/2));
 next_start_idx = frame_start_idxs(1);
 out_idx = 0;
 have_time = false;
+have_ins = false;
 for frame = 1:length(frame_start_idxs)
   %fprintf('FRAME %10d of %10d\n', frame, length(frame_start_idxs));
   
@@ -130,7 +131,21 @@ for frame = 1:length(frame_start_idxs)
     gps.lat(out_idx) = lat;
     gps.lon(out_idx) = lon;
     gps.elev(out_idx) = elev;
+    gps.roll(out_idx) = roll;
+    gps.pitch(out_idx) = pitch;
+    gps.heading(out_idx) = heading;
     have_time = false;
+    have_ins = false;
+    
+  elseif message_ID==263
+    % INSATT MESSAGE
+    %fprintf('%4d %4d %5d %6.1f\n', header_length, message_ID, gps_week, gps_msec/1000);
+    roll = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(12:19))),'double') / 180*pi;
+    pitch = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(20:27))),'double') / 180*pi;
+    heading = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(28:35))),'double') / 180*pi;
+    %fprintf('%8.4f %8.4f %8.4f\n', roll, pitch, heading);
+    have_ins = true;
+    
   end
 end
 

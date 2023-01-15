@@ -1922,7 +1922,7 @@ for dac_idx = 1:dacList.getLength
         nodeList = expression.evaluate(dac_wf_cfg,XPathConstants.NODESET);
         sampFreq = nodeList.item(0);
         sampFreq = sampFreq.getTextContent.toCharArray;
-        sampFreq = str2double(sampFreq(:).');
+        sampFreq = str2double(sampFreq(:).') * 1e6;
         configs.dac{tx_idx,mode_latch+1}.sampFreq = sampFreq;
         
         % Get each subchannel
@@ -2074,7 +2074,7 @@ for dac_idx = 1:dacList.getLength
         nodeList = expression.evaluate(dac_wf_cfg,XPathConstants.NODESET);
         sampFreq = nodeList.item(0);
         sampFreq = sampFreq.getTextContent.toCharArray;
-        sampFreq = str2double(sampFreq(:).');
+        sampFreq = str2double(sampFreq(:).') * 1e6;
         configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.sampFreq = sampFreq;
         
         % Get each pulse
@@ -2188,7 +2188,7 @@ for dac_idx = 1:dacList.getLength
     sampFreq = expression.evaluate(dac_cfg,XPathConstants.NODESET);
     sampFreq = sampFreq.item(0);
     sampFreq = sampFreq.getTextContent.toCharArray;
-    sampFreq = str2double(sampFreq(:).') / 32;
+    sampFreq = str2double(sampFreq(:).')*1e6;
     
     expression = xpath.compile('waveformSetting');
     wf_setting_list = expression.evaluate(dac_cfg,XPathConstants.NODESET);
@@ -2286,7 +2286,7 @@ for dac_idx = 1:dacList.getLength
       numPoints = expression.evaluate(wf_cfg,XPathConstants.NODESET);
       numPoints = numPoints.item(0);
       numPoints = numPoints.getTextContent.toCharArray;
-      numPoints = str2double(numPoints(:).') / (sampFreq*32);
+      numPoints = str2double(numPoints(:).');
       
       % Set modes
         pulse_idx = 1;
