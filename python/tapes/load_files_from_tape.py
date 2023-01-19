@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!.venv/bin/python
 """
 Automatically load tapes in the Qualstar Q40 and pull the files from the given list.
 
@@ -17,10 +17,12 @@ import os
 import shutil
 import tarfile
 import time
+from getpass import getpass
 
 TAPES_FILE = '/root/utilities/tapes.txt'  # Produced from run_get_raw_files.m
 TAPE_LIB_DEV = "/dev/sg4"
 TAPE_MOUNT_PATH = "/mnt/ltfs"
+RESFS_TAPE_LIST = "resfs_tapes.txt"
 
 # Determine with `lsscsi -g`
 TAPE_DRIVE_DEVS = {
@@ -32,6 +34,9 @@ FS_PATH_SUBS = {  # Path subsitutions for destinations on the filesystem
    "/N/dc2/projects/cresis/": "/cresis/snfs1/data/Accum_Data/",
    "/N/dcwan/projects/cresis/": "/cresis/snfs1/data/Accum_Data/"
 }
+
+SSH_SERVER = "dtn.ku.edu"
+SSH_PORT = 22
 
 
 def removeprefix(string, prefix):
@@ -76,14 +81,15 @@ def parse_tapes_file():
             path_mapping[tape_path] = original_path
 
             if tape_path in all_files:
-                input("Duplicate file " + tape_path)
+                print("Ignoring duplicate file " + tape_path)
             all_files |= {tape_path}
 
             for tape in tapes:
                 tape_num = get_tape_num(tape)
 
                 if tape_num % 2 == 0:  # We have even tapes
-                    tape_mapping[tape].append(tape_path)
+                    if tape_path not in tape_mapping[tape]:
+                        tape_mapping[tape].append(tape_path)
                     break
             else:
                 raise RuntimeError("No even tape for " + tape_path)
@@ -187,42 +193,117 @@ def path_subs(path):
     return path.replace('\\', '/')
 
 
-def copy_file(file, path_mapping, attempts=1):
+def get_ssh_client():
+    """Prompt the user for login details for the ssh server."""
+    import paramiko
+    from scp import SCPClient
+
+    try:
+        # See if we have a previous connection
+        return get_ssh_client.scp_client
+
+    except AttributeError:
+        pass # No previous connection, make a new one
+
+    while True:
+        try:
+            # See if credentials are still stored (as in when a timeout occurs)
+            ssh_user = get_ssh_client.ssh_user
+            ssh_password = get_ssh_client.ssh_password
+        except AttributeError:
+            # Ask for credentials instead
+            ssh_user = input(f"Enter your SSH username for {SSH_SERVER}: ")
+            ssh_password = getpass(f"Enter your SSH password for {SSH_SERVER}: ")
+
+        # Create the client
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Attempt to connect to the SSH Server
+        print(f"Attempting to connect to scp server {SSH_SERVER}")
+        try:
+            ssh_client.connect(SSH_SERVER, port=SSH_PORT, username=ssh_user, password=ssh_password)
+            get_ssh_client.ssh_user = ssh_user
+            get_ssh_client.ssh_password = ssh_password
+            break
+
+        except paramiko.AuthenticationException:
+            print("Username or password incorrect")
+
+    scp_client = SCPClient(ssh_client.get_transport())
+    get_ssh_client.scp_client = scp_client
+
+    return scp_client
+
+
+def scp_file_from_server(remote_file_path, fs_file_path, attempts=3):
+    """Copy a file not on our tapes from the ssh server."""
+    from scp import SCPException
+
+    scp_client = get_ssh_client()
+
+    try:
+        time.sleep(.1)
+        scp_client.get(remote_path=remote_file_path, local_path=fs_file_path)
+    except SCPException as e:
+        # Try connecting again if there is a timeout
+        if attempts < 0:
+            input(f"**Failed to copy {e.args} file from server: (press enter to skip)" + remote_file_path)
+            return
+
+        print("Timeout during SCP, waiting and trying again")
+        time.sleep(.5)
+        get_ssh_client.scp_client.close()
+        del get_ssh_client.scp_client  # Reset stored connection
+        return scp_file_from_server(remote_file_path, fs_file_path, attempts=attempts-1)
+
+
+def copy_file(file, path_mapping, attempts=1, remote=False):
     """Copy the given file to its original locations."""
     # Perform sanity checks on file and destination
     # fs = filesystem (destination) paths as opposed to tape (source) paths
 
-    file_path = Path(TAPE_MOUNT_PATH) / file.replace('\\', '/').lstrip('/')
-    file_exists = file_path.exists()
-    file_size = os.path.getsize(file_path) / 1024 ** 2 if file_exists else None
-    print("source (exists:)", file_exists, f"{file_size if file_size is not None else 0} MB", file_path)
+    # Source checks
+    if remote:
+        remote_file_path = "/" + file.replace('\\', '/').lstrip('/')
+        print(f"\nsource {SSH_SERVER}:{remote_file_path}")
+    else:
+        tape_file_path = Path(TAPE_MOUNT_PATH) / file.replace('\\', '/').lstrip('/')
+        tape_file_exists = tape_file_path.exists()
+        tape_file_size = os.path.getsize(tape_file_path) / 1024 ** 2 if tape_file_exists else None
+        print("\nsource (exists:)", tape_file_exists, f"{tape_file_size if tape_file_size is not None else 0} MB", tape_file_path)
 
+        if not tape_file_exists:
+            if attempts > 0:
+                print("Could not find source file on tape, waiting one second and retrying.")
+                time.sleep(1)
+                return copy_file(file, path_mapping, attempts=attempts-1, remote=remote)
+            input("**Could not find source file on tape, perhaps try remounting. Press enter to skip.**")
+
+    # Destination checks
     fs_file_path = Path(path_subs(path_mapping[file]))
     fs_file_exists = fs_file_path.exists()
     fs_file_size = os.path.getsize(fs_file_path) / 1024 ** 2 if fs_file_exists else None
     print("-> destination (exists:)", fs_file_exists, f"{fs_file_size if fs_file_size is not None else 0} MB", fs_file_path)
 
-    # Check if source exists on tape
-    if not file_exists:
-        if attempts > 0:
-            print("Could not find source file on tape, waiting one second and retrying.")
-            time.sleep(1)
-            return copy_file(file, path_mapping, attempts=attempts-1)
-        input("**Could not find source file on tape, perhaps try remounting. Press enter to skip.**")
-
     # Check if destination already exists on filesystem
-    if fs_file_exists:
+    if fs_file_exists and (fs_file_size is not None and fs_file_size > 0):
         if SKIP_EXISTING or input("**File already exists on file system**, skip (y) or halt (n)?") == "y":
+            print("Already exists, skipping")
             return
         else:
             raise RuntimeError("File already exists on file system")
+
     # Check if parent folder path exists
     fs_parent_path = fs_file_path.parent
     if not fs_parent_path.exists():
         os.makedirs(fs_parent_path, exist_ok=True)
 
     # Perform copy
-    shutil.copy2(file_path, fs_file_path)
+    if remote:
+        scp_file_from_server(remote_file_path, fs_file_path)
+    else:
+        shutil.copy2(tape_file_path, fs_file_path)
 
     if fs_file_path.name.endswith("small_file_archive.tar"):
         os.chdir(fs_parent_path)
@@ -236,7 +317,7 @@ def copy_file(file, path_mapping, attempts=1):
     os.chdir("/")
 
 
-def load_tapes(tape_mapping, path_mapping):
+def load_tapes(tape_mapping, path_mapping, resfs_tapes):
     """Load each tape and retrieve the files back to their original location."""
     for tape in tape_mapping:
 
@@ -245,19 +326,34 @@ def load_tapes(tape_mapping, path_mapping):
             print("Skipping tape with no files: " + tape)
             continue
 
+        files = tape_mapping[tape]
+
+        if tape in resfs_tapes:
+            print("Tape in ResFS: " + tape, f"will attempt to retrieve from {SSH_SERVER}")
+            for file in files:
+                copy_file(file, path_mapping, remote=True)
+
+            continue
+
+        # Load files from tape
         try:
             drive_num = load_tape(tape)
         except RuntimeError:
             print("Skipping missing tape: " + tape)
             print("- Did not restore files:")
-            for file in tape_mapping[tape]:
+            for file in files:
                 print("* ", TAPE_MOUNT_PATH + file, "->", path_subs(path_mapping[file]))
             continue
 
-        files = tape_mapping[tape]
         with mount_drive(drive_num):
             for file in files:
                 copy_file(file, path_mapping)
+
+
+def read_resfs_tapes():
+    """Read the list of tapes still in ResFS into a set."""
+    with open(RESFS_TAPE_LIST) as f:
+        return set(l.strip() for l in f.readlines())
 
 
 if __name__ == "__main__":
@@ -265,4 +361,12 @@ if __name__ == "__main__":
         raise RuntimeError("Must be ran as root to access tape device")
 
     tape_mapping, path_mapping = parse_tapes_file()
-    load_tapes(tape_mapping, path_mapping)
+    resfs_tapes = read_resfs_tapes()
+    load_tapes(tape_mapping, path_mapping, resfs_tapes)
+
+    try:
+        # Close scp connection if it was opened
+        get_ssh_client.scp_client.close()
+
+    except AttributeError:
+        pass
