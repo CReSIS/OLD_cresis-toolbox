@@ -97,7 +97,13 @@ def parse_tapes_file():
     if SKIP_EXISTING:
         # Remove existing files from list
         for tape, file_list in tape_mapping.items():
-            files = [file for file in file_list if not Path(path_subs(path_mapping[file])).exists()]
+
+            files = []
+            for file in file_list:
+                # Keep files that don't exist or are 0 bytes
+                file_path = Path(path_subs(path_mapping[file]))
+                if not file_path.exists() or os.path.getsize(file_path) == 0:
+                    files.append(file)
             tape_mapping[tape] = files
 
     return tape_mapping, path_mapping
@@ -218,6 +224,7 @@ def get_ssh_client():
         # Create the client
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        get_ssh_client.ssh_client = ssh_client
 
         # Attempt to connect to the SSH Server
         print(f"Attempting to connect to scp server {SSH_SERVER}")
@@ -239,21 +246,23 @@ def get_ssh_client():
 def scp_file_from_server(remote_file_path, fs_file_path, attempts=3):
     """Copy a file not on our tapes from the ssh server."""
     from scp import SCPException
+    import paramiko
 
     scp_client = get_ssh_client()
 
     try:
         time.sleep(.1)
         scp_client.get(remote_path=remote_file_path, local_path=fs_file_path)
-    except SCPException as e:
+    except (SCPException, paramiko.buffered_pipe.PipeTimeout) as e:
         # Try connecting again if there is a timeout
         if attempts < 0:
-            input(f"**Failed to copy {e.args} file from server: (press enter to skip)" + remote_file_path)
+            print(f"**Failed to copy {e.args} file from server: " + remote_file_path)
             return
 
         print("Timeout during SCP, waiting and trying again")
         time.sleep(.5)
         get_ssh_client.scp_client.close()
+        get_ssh_client.ssh_client.close()
         del get_ssh_client.scp_client  # Reset stored connection
         return scp_file_from_server(remote_file_path, fs_file_path, attempts=attempts-1)
 
