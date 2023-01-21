@@ -114,9 +114,9 @@ for idx = 1:length(file_type)
     save(out_fn,'-append','-struct','gps','roll','pitch','heading');
   end
   
-  % Arena 500's radar_time is gps_time, fill in sync fields with this
+  % Arena 500's radar_time is UTC time, fill in sync fields with this
   % information.
-  gps.radar_time = gps.gps_time;
+  gps.radar_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1));
   gps.sync_gps_time = gps.gps_time;
   gps.sync_lat = gps.lat;
   gps.sync_lon = gps.lon;

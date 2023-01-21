@@ -1148,10 +1148,11 @@ if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && strcmpi(radar_name
   % These values need to be updated with actual values.
     
   % Measurements, X,Y,Z are in aircraft coordinates, not IMU coordinates
-  LArx(1,1:16) = 1.5859;
-  LArx(2,1:16) = [9.2102*(0:15)];% * 2.54/100;
+  %LArx(1,1:16) = 1.5859;
+  LArx(1,1:16) = -1.5; % GUESS
+  LArx(2,1:16) = [-9.2102*(0:15)] * 2.54/100;
   LArx(2,1:16) = LArx(2,1:16) - mean(LArx(2,1:16));
-  LArx(3,1:16) = -3.4609;
+  LArx(3,1:16) = -3.4609; % GUESS
   warning('This file needs to be updated with actual values for 2022.');
   
   LAtx = LArx(:,1:16);

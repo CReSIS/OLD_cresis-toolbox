@@ -135,7 +135,11 @@ for img = param.collate_burst_noise.imgs
     % For the detection of burst noise in a particular wf-adc channel, any
     % number of wf-adc channels can be loaded, but the default is to just
     % load the wf-adc channel in question
-    if isempty(param.collate_burst_noise.test_wf_adcs)
+    if isempty(param.collate_burst_noise.test_wf_adcs) ...
+      || length(param.collate_burst_noise.test_wf_adcs) < img ...
+      || isempty(param.collate_burst_noise.test_wf_adcs{img}) ...
+      || length(param.collate_burst_noise.test_wf_adcs{img}) < wf_adc ...
+      || isempty(param.collate_burst_noise.test_wf_adcs{img}{wf_adc})
       param.collate_burst_noise.test_wf_adcs{img}{wf_adc} = [wf adc];
     end
     % Load each of the wf-adc channels that are to be loaded to detect
@@ -152,7 +156,7 @@ for img = param.collate_burst_noise.imgs
     cmd = noise{1}.param_analysis.analysis.cmd{param.collate_burst_noise.cmd_idx};
     
     % Optionally update bad_recs field
-    if ~isempty(param.collate_burst_noise.threshold_fh)
+    if ~isempty(param.collate_burst_noise.threshold_fh{img})
       bad_recs = find(param.collate_burst_noise.threshold_fh{img}{wf_adc}(noise,wfs));
     else
       bad_recs = noise{1}.bad_recs;

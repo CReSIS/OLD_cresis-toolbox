@@ -137,6 +137,8 @@ elseif any(param.records.file.version == [9 10 103 412])
   
   % Interpolate gps.sync_gps_time to radar gps_time using gps.radar_time
   % and radar_time
+  % Note: radar_time is relative on older Arena systems
+  % radar_time is UTC time from NMEA GPRMC message on newer Arena systems
   radar_gps_time = interp1(gps.radar_time, gps.sync_gps_time, ...
     radar_time + max(param.records.gps.time_offset),'linear','extrap');
   

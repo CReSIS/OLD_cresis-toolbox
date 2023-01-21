@@ -67,6 +67,9 @@ next_start_idx = frame_start_idxs(1);
 out_idx = 0;
 have_time = false;
 have_ins = false;
+roll = 0;
+pitch = 0;
+heading = 0;
 for frame = 1:length(frame_start_idxs)
   %fprintf('FRAME %10d of %10d\n', frame, length(frame_start_idxs));
   
@@ -105,6 +108,7 @@ for frame = 1:length(frame_start_idxs)
   
   if message_ID==101
     % TIME MESSAGE
+    % Contain UTC time
     %fprintf('%4d %4d %5d %6.1f\n', header_length, message_ID, gps_week, gps_msec/1000);
     year = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(28:31))),'uint32');
     month = A(frame_start_idxs(frame)+header_length+32);
@@ -127,6 +131,8 @@ for frame = 1:length(frame_start_idxs)
     elev = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(24:31))),'double');
     %fprintf('%8.4f %8.4f %6.1f\n', lat, lon, elev);
     out_idx = out_idx + 1;
+    % NOTE: gps.gps_time is actually UTC time from the TIME field. Will add
+    % leap seconds in to convert UTC to GPS time once finished loading.
     gps.gps_time(out_idx) = datenum([double([year,month,day,hour,minute]),sec]);
     gps.lat(out_idx) = lat;
     gps.lon(out_idx) = lon;
@@ -153,7 +159,7 @@ end
 
 % Only keep the records that we filled:
 gps.gps_time = datenum_to_epoch(gps.gps_time(1:out_idx)); % Convert from Matlab datenum to ANSI-C standard time of seconds since Jan 1, 1970
-gps.gps_time = gps.gps_time + utc_leap_seconds(gps.gps_time(1)); % Convert from UTC to GPS time
+gps.gps_time = gps.gps_time + utc_leap_seconds(gps.gps_time(1)); % Convert gps.gps_time from UTC to GPS time
 gps.lat = gps.lat(1:out_idx);
 gps.lon = gps.lon(1:out_idx);
 gps.elev = gps.elev(1:out_idx);
