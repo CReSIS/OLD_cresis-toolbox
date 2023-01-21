@@ -54,6 +54,10 @@ function [hdr,data] = basic_load_arena(fn,param)
 %   [hdr,data] = basic_load_arena('/scratch/ct_tmp/headers/accum/2022_Antarctica_BaslerMKB/20221225a/digrx1/20221224_152350_accum_digrx1_0003.dat',...
 %     struct('processor_subchannel',[0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7],'processor_mode',[0 0 0 0 0 0 0 0 2 2 2 2 2 2 2 2]))
 %
+%   COLDEX radar example:
+%   [hdr,data] = basic_load_arena('/data/digrx0/20221206_084442_accum_digrx0_0000.dat',...
+%     struct('processor_subchannel',mod(0:63,8),'processor_mode',repmat(1:8,[8 1])))
+%
 % Authors: John Paden
 %
 % See also: basic_load_arena.m, run_arena_packet_strip.m,
@@ -162,6 +166,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         new_hdr.mode = param.processor_mode(new_hdr.processor+1);
         subchannel = new_hdr.subchannel;
         mode = new_hdr.mode;
+        %fprintf('%3d %10d %4d %4d\n', new_hdr.processor, new_hdr.profile_cntr_latch, subchannel, mode);
       else
         subchannel = 0;
         mode = fread(fid,1,'uint8');
