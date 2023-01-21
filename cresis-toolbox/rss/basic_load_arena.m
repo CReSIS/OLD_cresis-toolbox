@@ -1,5 +1,5 @@
-function [hdr,data] = basic_load_arena(fn,param)
-% [hdr,data] = basic_load_arena(fn, param)
+function [hdr,data,hdr_debug] = basic_load_arena(fn,param)
+% [hdr,data,hdr_debug] = basic_load_arena(fn, param)
 %
 % Loads a single arena radar file after the network headers have been
 % removed by run_arena_packet_strip.m. This loader will NOT work on arena
@@ -98,6 +98,10 @@ fseek(fid,0,-1);
 lock_state = 0;
 rec_in = 0;
 rec = 0;
+hdr_debug.mode = [];
+hdr_debug.subchannel = [];
+hdr_debug.profile = [];
+profile = 0;
 while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
   
   if ~lock_state
@@ -177,6 +181,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         end
         subchannel = new_hdr.subchannel;
         mode = new_hdr.mode;
+        profile = new_hdr.processor;
         %fprintf('%3d %10d %4d %4d\n', new_hdr.processor, new_hdr.profile_cntr_latch, subchannel, mode);
       else
         subchannel = 0;
@@ -184,6 +189,9 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         fseek(fid,hdr_len-1,0);
         new_hdr = struct();
       end
+      hdr_debug.mode(end+1) = mode;
+      hdr_debug.subchannel(end+1) = subchannel;
+      hdr_debug.profile(end+1) = profile;
       
       %% Read in data
       profile_type = fread(fid,1,'uint32');
