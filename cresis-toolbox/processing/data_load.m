@@ -318,27 +318,44 @@ for state_idx = 1:length(states)
         % file_data memory block
         rec_offset = records.offset(board_idx,rec) - file_data_offset;
         
-        % record_mode==1: Find the size of the current record
+        % record_mode==1: Find the size of the current record. This is used
+        % with the arena which has a dynamic record where the ordering of
+        % the contents of each record can change. If the sub-header fields
+        % have digital errors in them, especially in the length field, this
+        % can cause large erroneous reads from the file that break stuff.
+        % This field prevents the large erroneous reads. This code
+        % currently assumes that all records are the same length; the
+        % individual header-waveforms inside a record can all be different
+        % in size, but their sizes need to always add up to the same value
+        % for this code to work in all cases.
         if rec < length(file_idxs) && file_idxs(rec+1) == file_idxs(rec)
           % Next record is in this file, rec size is set to the offset to
           % the next record
           start_rec = -1;
           test_rec = rec-1;
-          while start_rec < 0
+          while start_rec < 0 && test_rec < size(records.offset,2)
             test_rec = test_rec + 1;
-            if records.offset(board_idx,test_rec) > 0
+            if records.offset(board_idx,test_rec) ~= -2^31
               start_rec = test_rec;
             end
           end
           next_rec = -1;
           test_rec = start_rec;
-          while next_rec < 0
+          while next_rec < 0 && test_rec < size(records.offset,2)
             test_rec = test_rec + 1;
-            if records.offset(board_idx,test_rec) > 0
+            if records.offset(board_idx,test_rec) ~= -2^31
               next_rec = test_rec;
             end
           end
-          rec_size = records.offset(board_idx,next_rec) - records.offset(board_idx,start_rec);
+          if next_rec ~= -1
+            % Found two good records to estimate the maximum record size
+            % from.
+            rec_size = records.offset(board_idx,next_rec) - records.offset(board_idx,start_rec);
+          else
+            % Did not find two good records, so choose a very loose value
+            % for the maximum record size
+            rec_size = (length(file_data)+file_data_offset) - records.offset(board_idx,rec);
+          end
         else
           % Next record is in the next file, rec_size is set to the rest of
           % the data in this file
@@ -594,8 +611,8 @@ for state_idx = 1:length(states)
                   end
                   radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
                 end
-                if any(radar_header_type == [5 16 23 45])
-                  if radar_header_type == 45;
+                if any(radar_header_type == [5 16 23 45 8194])
+                  if radar_header_type == 45 || radar_header_type == 8194
                     profile = double(typecast(file_data(total_offset+19),'uint8'));
 %                     mode2 = double(typecast(file_data(total_offset+17),'uint8'));
 %                     subchannel2 = double(typecast(file_data(total_offset+18),'uint8'));
@@ -608,12 +625,12 @@ for state_idx = 1:length(states)
                   end
                   if swap_bytes_en
                     radar_profile_format = swapbytes(typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32'));
-                    if radar_profile_format == 196608 % 0x30000
+                    if radar_profile_format == 196608 && radar_header_type ~= 8194 % 0x30000
                       radar_profile_length = radar_profile_length*8;
                     end
                   else
                     radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
-                    if radar_profile_format == 196608 % 0x30000
+                    if radar_profile_format == 196608 && radar_header_type ~= 8194 % 0x30000
                       radar_profile_length = radar_profile_length*8;
                     end
                   end
@@ -622,7 +639,13 @@ for state_idx = 1:length(states)
                     missed_wf_adc = true;
                     break;
                   end
-                  if any(mode_latch_subchannel == mode*2^8 + subchannel)
+                  found_mode_match = false;
+                  for mode_idx = 1:length(mode)
+                    if any(mode_latch_subchannel == mode(mode_idx)*2^8 + subchannel(mode_idx))
+                      found_mode_match = true;
+                    end
+                  end
+                  if found_mode_match
                     % This matches the mode and subchannel that we need
                     is_IQ = 0;
                     if swap_bytes_en

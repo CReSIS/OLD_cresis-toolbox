@@ -295,17 +295,12 @@ mexFunction( int nlhs,
         //num_expected_bins = num_expected_bins >> 3; // con't from previous line.
         break;
       case 0x00020000:
-        // num_expected is in units of bytes
-        // num_expected_bins needs to be adjusted for 8 byte bins:
-        //   >>3 = /8, 2 IQ channels, 4 bynum_expectedte samples or 2*4 = 8
-        num_expected_bins = num_expected_bins >> 3;
-        //*num_expected = *num_expected << 3; // This line replaced the above line for temporary hack
-        break;
       case 0x00030000:
         // num_expected is in units of samples, needs to be in units of bytes
         // num_expected_bins is in units of samples, no adjustment needed
         //   <<3 = *8, 2 IQ channels, 4 byte samples or 2*4 = 8
-        *num_expected = *num_expected << 3;
+        num_expected_bins = num_expected_bins >> 3;
+        //*num_expected = *num_expected << 3; // This line replaced the above line for temporary hack
         break;
     }
     if (num_expected_bins < *min_num_expected || num_expected_bins > *max_num_expected)
@@ -420,17 +415,12 @@ mexFunction( int nlhs,
             //num_expected_bins = num_expected_bins >> 3; // con't from previous line.
             break;
           case 0x00020000:
-            // num_expected is in units of bytes
-            // num_expected_bins needs to be adjusted for 8 byte bins:
-            //   >>3 = /8, 2 IQ channels, 4 byte samples or 2*4 = 8
-            num_expected_bins = num_expected_bins >> 3;
-            //*num_expected = *num_expected << 3; // This line replaced the above line for temporary hack
-            break;
           case 0x00030000:
             // num_expected is in units of samples, needs to be in units of bytes
             // num_expected_bins is in units of samples, no adjustment needed
             //   <<3 = *8, 2 IQ channels, 4 byte samples or 2*4 = 8
-            *num_expected = *num_expected << 3;
+            num_expected_bins = num_expected_bins >> 3;
+            //*num_expected = *num_expected << 3; // This line replaced the above line for temporary hack
             break;
         }
         idx += 4 + *num_expected; // Skip to the end of the record

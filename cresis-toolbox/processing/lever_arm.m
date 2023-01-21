@@ -132,6 +132,14 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_sourc
   gps.z = 0;
 end
 
+if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && any(strcmpi(gps_source,{'arena','cresis','novatelraw'})))
+  % Platform: Ground based sled (COLDEX 1, COLDEX 2)
+  %
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2022_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
   % Platform: Ground based sled (EAGER 1, EAGER 2)
   %
@@ -1132,6 +1140,30 @@ if (strcmpi(param.season_name,'2013_Antarctica_Sled') && strcmpi(radar_name,'acc
   
   if rxchannel == 0
     rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && strcmpi(radar_name,'accum'))
+  % These values need to be updated with actual values.
+    
+  % Measurements, X,Y,Z are in aircraft coordinates, not IMU coordinates
+  %LArx(1,1:16) = 1.5859;
+  LArx(1,1:16) = -1.5; % GUESS
+  LArx(2,1:16) = [-9.2102*(0:15)] * 2.54/100;
+  LArx(2,1:16) = LArx(2,1:16) - mean(LArx(2,1:16));
+  LArx(3,1:16) = -3.4609; % GUESS
+  warning('This file needs to be updated with actual values for 2022.');
+  
+  LAtx = LArx(:,1:16);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1:16;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 8;
     tx_weights = ones(1,size(LAtx,2));
   end
 end

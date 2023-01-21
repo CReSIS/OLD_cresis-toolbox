@@ -37,6 +37,10 @@ switch (lower(cur_file_type))
     gps_fh = @read_gps_txt;
   case 'csv'
     gps_fh = @read_gps_csv;
+  case 'novatelraw'
+    gps_fh = @read_gps_novatelraw;
+  case 'utig'
+    gps_fh = @read_gps_utig;
   otherwise
     error('Unrecognized GPS file type %s', cur_file_type);
 end

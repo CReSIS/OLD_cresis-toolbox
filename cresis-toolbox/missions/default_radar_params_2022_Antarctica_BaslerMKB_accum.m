@@ -9,6 +9,8 @@ function [param,defaults] = default_radar_params_2022_Antarctica_BaslerMKB_accum
 % Set the param.season_name to the correct season before running.
 %
 % Author: John Paden
+%
+% See also: default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map
 
 %% Preprocess parameters
 param.season_name = '2022_Antarctica_BaslerMKB';
@@ -104,7 +106,7 @@ arena.daq(daq_idx).auxDir = '/data/';
 arena.daq(daq_idx).fileStripe = '/data/%b/';
 arena.daq(daq_idx).fileName = 'accum_%b';
 arena.daq.udp_packet_headers = false;
-arena.daq.udp_packet_headers = true; % HACK FOR TEST DATASET
+% arena.daq.udp_packet_headers = true; % HACK FOR TEST DATASET
 
 arena.system.name = 'extsyncarena5xx';
 
@@ -212,7 +214,7 @@ param.sar.mocomp.type = 2;
 param.sar.mocomp.filter = {@butter  [2]  [0.1000]};
 param.sar.mocomp.uniform_en = 1;
 param.sar.sar_type = 'fk';
-param.sar.sigma_x = 2.5;
+param.sar.sigma_x = 1;
 param.sar.sub_aperture_steering = 0;
 param.sar.st_wind = @hanning;
 param.sar.start_eps = 3.15;
@@ -224,9 +226,9 @@ param.array.out_path = '';
 param.array.method = 'standard';
 param.array.window = @hanning;
 param.array.bin_rng = 0;
-param.array.rline_rng = -5:5;
+param.array.line_rng = -51:51;
 param.array.dbin = 1;
-param.array.dline = 6;
+param.array.dline = 26;
 param.array.DCM = [];
 param.array.Nsv = 1;
 param.array.theta_rng = [0 0];
@@ -283,59 +285,27 @@ param.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighti
 defaults = {};
 
 % Survey Mode Thick Ice Single Polarization
-default.records.arena.total_presums = 240;
-% default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
-  default.records.data_map = {...
-    [0 0 0 1 1
-    1 0 1 1 2
-    2 0 2 1 3
-    3 0 3 1 4
-    4 0 4 1 5
-    5 0 5 1 6
-    6 0 6 1 7
-    7 0 7 1 8
-    8 1 0 2 1
-    9 1 1 2 2
-    10 1 2 2 3
-    11 1 3 2 4
-    12 1 4 2 5
-    13 1 5 2 6
-    14 1 6 2 7
-    15 1 7 2 8], ...
-    [0 0 0 1 9
-    1 0 1 1 10
-    2 0 2 1 11
-    3 0 3 1 12
-    4 0 4 1 13
-    5 0 5 1 14
-    6 0 6 1 15
-    7 0 7 1 16
-    8 1 0 2 9
-    9 1 1 2 10
-    10 1 2 2 11
-    11 1 3 2 12
-    12 1 4 2 13
-    13 1 5 2 14
-    14 1 6 2 15
-    15 1 7 2 16]}
-default.qlook.img_comb = [11e-06 -inf 1e-06];
-default.qlook.imgs = {[ones(16,1) (1:16).'],[2*ones(16,1) (1:16).']};
+default.records.arena.total_presums = 80;
+default.records.data_map = default_radar_params_2022_Antarctica_BaslerMKB_accum_data_map();
+default.qlook.img_comb = [9e-06 -inf 1e-06];
+default.qlook.imgs = {[ones(16,1) (1:16).'],[3*ones(16,1) (1:16).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.analysis_noise.imgs = default.qlook.imgs;
 default.radar.ref_fn = '';
-default.radar.wfs = param.radar.wfs(1:2);
-for wf = 1:2
+default.radar.wfs = param.radar.wfs(1:4);
+for wf = 1:4
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).tx_paths = {[4 3 2 1 inf inf inf inf],[16 15 14 13 inf inf inf inf]}; % dac1-ch1->Ant4, dac1-ch2->Ant3, dac1-ch3->Ant2, dac1-ch4->Ant1, dac2-ch1->Ant16, dac2-ch2->Ant15, dac2-ch3->Ant14, dac2-ch4->Ant13
-  default.radar.wfs(wf).DDC_dec = 128;
+  default.radar.wfs(wf).DDC_dec = 8; % 280 MHz / 8 = 35 MHz
+  default.radar.wfs(wf).bit_shifts = zeros(1,16);
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4200]';
 % Note psc config name was incorrectly set, but it is for shallow ice:
-default.config_regexp = 'psc1';
+default.config_regexp = 'psc_survey';
 default.name = 'Survey Mode 675-725 MHz Thick Ice';
 defaults{end+1} = default;
 

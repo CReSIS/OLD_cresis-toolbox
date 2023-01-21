@@ -9,9 +9,9 @@ found = false;
 if isfield(settings,'XML_File_Path')
   % MCoRDS NI
   settings_fn = settings.XML_File_Path{1}.values{1};
-elseif ischar(settings)
+elseif ischar(settings) || isa(settings,'java.lang.String')
   % Arena
-  settings_fn = settings;
+  settings_fn = char(settings);
 else
   settings_fn = '';
 end

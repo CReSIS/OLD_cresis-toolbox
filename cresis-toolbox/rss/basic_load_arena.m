@@ -71,11 +71,17 @@ arena_frame_sync = uint64(uint64(hex2dec('7F800000'))*2^32 + hex2dec('80000000')
 if ~exist('param','var') || isempty(param)
   param = [];
 end
-if ~isfield(param,'clk');
+if ~isfield(param,'clk')
   param.clk = 10e6;
 end
-if ~isfield(param,'recs');
+if ~isfield(param,'recs')
   param.recs = [0 inf];
+end
+if ~isfield(param,'processor_subchannel')
+  param.processor_subchannel = [];
+end
+if ~isfield(param,'processor_mode')
+  param.processor_mode = [];
 end
 
 %% Open file little-endian for reading
@@ -162,8 +168,13 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         mode = new_hdr.mode;
       elseif hdr_type == coldex_arena5xx_radar_header_type
         new_hdr = basic_load_arena_ghost_ku0001(fid);
-        new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
-        new_hdr.mode = param.processor_mode(new_hdr.processor+1);
+        if isempty(param.processor_subchannel)
+          new_hdr.subchannel = 0;
+          new_hdr.mode = new_hdr.processor;
+        else
+          new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
+          new_hdr.mode = param.processor_mode(new_hdr.processor+1);
+        end
         subchannel = new_hdr.subchannel;
         mode = new_hdr.mode;
         %fprintf('%3d %10d %4d %4d\n', new_hdr.processor, new_hdr.profile_cntr_latch, subchannel, mode);

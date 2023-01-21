@@ -20,6 +20,7 @@ param_fns = {};
 % param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'accum_param_2022_Greenland_Ground.xls';
 % param_fns{end+1} = 'accum_param_2022_Antarctica_Ground.xls';
+% param_fns{end+1} = 'accum_param_2022_Antarctica_BaslerMKB.xls';
 
 %% CReSIS Kuband Radar
 % param_fns{end+1} = 'kuband_param_2009_Antarctica_DC8.xls';

@@ -147,7 +147,7 @@ if ~isfield(param.collate_equal,'zero_surf_bin') || isempty(param.collate_equal.
   param.collate_equal.zero_surf_bin = [];
 end
 
-% Other Setup
+%% Other Setup
 % =========================================================================
 physical_constants;
 
@@ -155,6 +155,8 @@ if ~isempty(param.collate_equal.debug_plots)
   h_fig = get_figures(3,enable_visible_plot);
 end
 
+%% img Loop ---------------------------------------------------------------
+% =========================================================================
 for img_lists_idx = 1:length(param.collate_equal.img_lists)
   %% Load waveform data
   % =====================================================================

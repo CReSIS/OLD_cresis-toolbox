@@ -50,8 +50,9 @@ tmp_param = param;
 % Determine which frames have the records that are needed
 frms = find(task_recs(1) >= frames.frame_idxs,1,'last') : find(task_recs(2) >= frames.frame_idxs,1,'last');
 tmp_param.cmd.frms = max(1,min(frms)-1) : min(length(frames.frame_idxs),max(frms)+1);
+% Load the surface layer
 surf_layer = opsLoadLayers(tmp_param,param.analysis.surf_layer);
-if isempty(surf_layer.gps_time)
+if isempty(surf_layer.gps_time) || any(~isfinite(surf_layer.gps_time))
   records.surface = zeros(size(records.gps_time));
 elseif length(surf_layer.gps_time) == 1;
   records.surface = surf_layer.twtt*ones(size(records.gps_time));

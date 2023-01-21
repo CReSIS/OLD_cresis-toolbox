@@ -535,12 +535,12 @@ for config_idx = 1:length(configs)
     subchannel = subchannel_wfs(wf_idx);
     if strcmpi(param.season_name,'2022_Greenland_P3')
       % Delete This After AITT 2022 done <-- BROKEN NOW???
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq = 10e9/1e6; % TEMP FIX
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth = 15e9/1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq = 10e9; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth = 15e9; % TEMP FIX
       configs(config_idx).dac{1,mode_latch+1}.sampFreq = 2400; % TEMP FIX
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.numPoints = 240e-6*configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6; % TEMP FIX
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.numPoints = 240e-6*configs(config_idx).dac{1,mode_latch+1}.sampFreq; % TEMP FIX
       configs(config_idx).dac{1}.delay = 0; % TEMP FIX
-      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.alpha = 15e9/240e-6;
+      configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.alpha = 15e9;
       for tx = 1:length(oparams{end}.radar.wfs(wf).tx_paths)
         tx_idx = oparams{end}.radar.wfs(wf).tx_paths(tx);
         if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
@@ -577,14 +577,14 @@ for config_idx = 1:length(configs)
     %   tx_paths and rx_paths except populated with 'H', 'V', 'L', 'R', 'U'
     %   for horizontal, vertical, left-circular, right-circular, unknown
     
-    fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq*1e6;
-    BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth*1e6;
+    fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq;
+    BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth;
     if strcmpi(configs(config_idx).radar_name,'ku0002')
       fc = fc*param.config.defaults{1}.radar.wfs(wf).fmult + param.config.defaults{1}.radar.wfs(wf).fLO;
       BW = BW*param.config.defaults{1}.radar.wfs(wfs).fmult;
     end
     Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.numPoints;
-    fs = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.sampFreq*1e6;
+    fs = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.sampFreq;
     Tpd = Nt/fs;
     t_dac = (configs(config_idx).dac{1}.delay) * 1e-6;
     

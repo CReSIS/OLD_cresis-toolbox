@@ -137,7 +137,8 @@ if ~isempty(regexpi(configs.radar_name,'arena5xx', 'once'))
     config_type = 'psc_0008';
     expression = xpath.compile(sprintf('config[@type="%s"]', config_type));
     config_name = expression.evaluate(arena522_cfg,XPathConstants.NODESET);
-    config_name = config_name.item(0).getTextContent;
+    config_name = config_name.item(0).getTextContent.toCharArray;
+    config_name = config_name(:).';
     
     % Get the Arena 522 CTU configs
     expression = xpath.compile(sprintf('//configs/config[@type="%s" and name="%s"]',config_type,config_name));
@@ -523,7 +524,7 @@ for adc_idx = 1:adcList.getLength
         end
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
-        ncoFreq = str2double(ncoFreq(:).');
+        ncoFreq = str2double(ncoFreq(:).') * 1e6;
         configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
         
         expression = xpath.compile('cicDecimation');
@@ -711,7 +712,7 @@ for adc_idx = 1:adcList.getLength
       end
       ncoFreq = nodeList.item(0);
       ncoFreq = ncoFreq.getTextContent.toCharArray;
-      ncoFreq = arena_convert_range(ncoFreq);
+      ncoFreq = str2double(ncoFreq(:).') * 1e6;
       ncoFreq_list(end).ncoFreq = ncoFreq;
     end
     
@@ -805,7 +806,7 @@ for adc_idx = 1:adcList.getLength
       end
       ncoFreq = nodeList.item(0);
       ncoFreq = ncoFreq.getTextContent.toCharArray;
-      ncoFreq = str2double(ncoFreq);
+      ncoFreq = str2double(ncoFreq)*1e6;
       subchannels(end).ncoFreq = ncoFreq;
       
       expression = xpath.compile('ncoPhase');
@@ -1050,14 +1051,14 @@ for adc_idx = 1:adcList.getLength
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_type = config_type;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoPhase = ncoPhase;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq_list(1).ncoFreq;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoMode = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoMode = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc2NcoMode = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc3NcoMode = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoFreq = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoFreq = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc2NcoFreq = 0;
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc3NcoFreq = 0;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc2NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc3NcoMode = 2;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoFreq = ncoFreq_list(1).ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoFreq = ncoFreq_list(1).ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc2NcoFreq = ncoFreq_list(1).ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc3NcoFreq = ncoFreq_list(1).ncoFreq;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.cicDecimation = adcDecimation;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.adcMode = NaN;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.sampFreq = sampFreq;
@@ -1181,7 +1182,7 @@ for adc_idx = 1:adcList.getLength
         end
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
-        ncoFreq = str2double(ncoFreq);
+        ncoFreq = str2double(ncoFreq)*1e6;
         subchannels(end).modes(end).ncoFreq = ncoFreq;
         
         expression = xpath.compile('ncoPhase');
@@ -1543,7 +1544,7 @@ for adc_idx = 1:adcList.getLength
         end
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
-        ncoFreq = str2double(ncoFreq(:).');
+        ncoFreq = str2double(ncoFreq(:).') * 1e6;
         
         expression = xpath.compile('decimation');
         nodeList = expression.evaluate(digRx_cfg,XPathConstants.NODESET);
@@ -1921,7 +1922,7 @@ for dac_idx = 1:dacList.getLength
         nodeList = expression.evaluate(dac_wf_cfg,XPathConstants.NODESET);
         sampFreq = nodeList.item(0);
         sampFreq = sampFreq.getTextContent.toCharArray;
-        sampFreq = str2double(sampFreq(:).');
+        sampFreq = str2double(sampFreq(:).') * 1e6;
         configs.dac{tx_idx,mode_latch+1}.sampFreq = sampFreq;
         
         % Get each subchannel
@@ -2073,7 +2074,7 @@ for dac_idx = 1:dacList.getLength
         nodeList = expression.evaluate(dac_wf_cfg,XPathConstants.NODESET);
         sampFreq = nodeList.item(0);
         sampFreq = sampFreq.getTextContent.toCharArray;
-        sampFreq = str2double(sampFreq(:).');
+        sampFreq = str2double(sampFreq(:).') * 1e6;
         configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.sampFreq = sampFreq;
         
         % Get each pulse
@@ -2187,7 +2188,7 @@ for dac_idx = 1:dacList.getLength
     sampFreq = expression.evaluate(dac_cfg,XPathConstants.NODESET);
     sampFreq = sampFreq.item(0);
     sampFreq = sampFreq.getTextContent.toCharArray;
-    sampFreq = str2double(sampFreq(:).') / 32;
+    sampFreq = str2double(sampFreq(:).')*1e6;
     
     expression = xpath.compile('waveformSetting');
     wf_setting_list = expression.evaluate(dac_cfg,XPathConstants.NODESET);
@@ -2285,7 +2286,7 @@ for dac_idx = 1:dacList.getLength
       numPoints = expression.evaluate(wf_cfg,XPathConstants.NODESET);
       numPoints = numPoints.item(0);
       numPoints = numPoints.getTextContent.toCharArray;
-      numPoints = str2double(numPoints(:).') / (sampFreq*32);
+      numPoints = str2double(numPoints(:).');
       
       % Set modes
         pulse_idx = 1;
