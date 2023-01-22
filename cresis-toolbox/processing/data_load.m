@@ -528,6 +528,8 @@ for state_idx = 1:length(states)
             end
             % Map any hardware nyquist_zones >= 4 to [0 1 2 3]
             nyquist_zone_hw{img}(num_accum(ai)+1) = mod(nyquist_zone_hw{img}(num_accum(ai)+1),4);
+          elseif any(param.records.file.version == [415])
+            Nt{img}(num_accum(ai)+1) = 3200;
           end
           if isfield(records,'nyquist_zone_hw') && ~isnan(records.nyquist_zone_hw(rec))
 %             if nyquist_zone_hw{img}(num_accum(ai)+1) ~= records.nyquist_zone_hw(rec)
@@ -580,6 +582,34 @@ for state_idx = 1:length(states)
                 tmp_data{adc,wf}(4:8:length(tmp)) = tmp(4:8:end);
                 tmp_data{adc,wf}(8:8:length(tmp)) = tmp(8:8:end);
               end
+              
+            case 2
+              % UTIG MARFA/HICARS fixed length
+              start_bin = 1+rec_offset + wfs(wf).offset + wfs(wf).time_raw_trim(1)*wfs(wf).sample_size;
+              if file_data(1+rec_offset+12800+68+5) == 2
+                % file_data(12800+68+6) choff (channel offset) field
+                % indicates that adc 0 and 1 come first
+                if adc == 2
+                  start_bin = start_bin + 6400;
+                elseif adc == 3
+                  start_bin = start_bin + 12800 + 138;
+                elseif adc == 4
+                  start_bin = start_bin + 19200 + 138;
+                end
+              else
+                % file_data(12800+68+6) choff (channel offset) field
+                % indicates that adc 3 and 4 come first
+                if adc == 4
+                  start_bin = start_bin + 6400;
+                elseif adc == 1
+                  start_bin = start_bin + 12800 + 138;
+                elseif adc == 2
+                  start_bin = start_bin + 19200 + 138;
+                end
+              end
+              stop_bin = start_bin + (1+wfs(wf).complex)*Nt{img}(1)*wfs(wf).sample_size-1;
+              
+              tmp_data{adc,wf} = single(swapbytes(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type)));
               
             case 1
               % Read in Arena dynamic record
@@ -765,8 +795,8 @@ for state_idx = 1:length(states)
             if state.reset_sum(ai)
               data{img}(1:Nt{img}(1),out_rec,wf_adc) = state.weight(ai)*state.data{ai} / num_accum(ai);
             else
-            data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
-              data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
+              data{img}(1:Nt{img}(1),out_rec,wf_adc) = ...
+                data{img}(1:Nt{img}(1),out_rec,wf_adc) + state.weight(ai)*state.data{ai} / num_accum(ai);
             end
             data{img}(Nt{img}(1)+1:end,out_rec,wf_adc) = wfs(wf).bad_value;
             

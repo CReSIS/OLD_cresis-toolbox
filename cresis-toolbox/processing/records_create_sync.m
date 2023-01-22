@@ -296,6 +296,9 @@ elseif any(param.records.file.version == [413 414])
   %% Align/UTUA RDS: Nothing required
   %% Align/BAS RDS: Nothing required
   
+elseif any(param.records.file.version == [415])
+  %% Align/UTIG RDS MARFA/HICARS: Nothing required
+  
 else
   %% Align/CReSIS: Create output EPRI vector
   min_epri = inf;
@@ -434,6 +437,13 @@ elseif any(param.records.file.version == [413 414])
   % Nothing to be done
   board_idx = 1;
   radar_time = board_hdrs{board_idx}.gps_time;
+  comp_time = [];
+  
+elseif any(param.records.file.version == [415])
+  %% Radar time: UTIG RDS
+  % Nothing to be done
+  board_idx = 1;
+  radar_time = board_hdrs{board_idx}.radar_time;
   comp_time = [];
   
 elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408])

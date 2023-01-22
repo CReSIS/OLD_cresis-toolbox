@@ -77,7 +77,7 @@ for frame = 1:length(frame_start_idxs)
   % based on the last frame sync and the length of that record. If it does
   % not, then ignore this 3-byte frame sync since it may have randomly
   % occurred.
-  if frame_start_idxs(frame) ~= next_start_idx
+  if frame_start_idxs(frame) < next_start_idx
     fprintf('Unexpected frame position at byte offset %d. Skipping 3-byte frame sync.\n', frame_start_idxs(frame));
     if frame == length(frame_start_idxs)
       break;
@@ -152,6 +152,13 @@ for frame = 1:length(frame_start_idxs)
     %fprintf('%8.4f %8.4f %8.4f\n', roll, pitch, heading);
     have_ins = true;
     
+%   elseif message_ID==1465
+%     lat = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(8:15))),'double');
+%     lon = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(16:23))),'double');
+%     elev = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(24:31))),'double');
+%     ext_sol_stat = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(120:123))),'uint32');
+%     time_since_update = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(124:125))),'uint16');
+%     CRC = typecast(swapbytes(A(frame_start_idxs(frame)+header_length+(126:129))),'uint32');
   end
 end
 

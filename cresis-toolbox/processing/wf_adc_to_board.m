@@ -130,6 +130,12 @@ elseif any(param.records.file.version == [414])
   board_idx = ones(size(board));
   profile = {};
   
+elseif any(param.records.file.version == [415])
+  % BAS Matlab RDS
+  board = 1;
+  board_idx = ones(size(board));
+  profile = {};
+  
 else
   % All other systems
   if isfield(param.records,'data_map') && ~isempty(param.records.data_map)

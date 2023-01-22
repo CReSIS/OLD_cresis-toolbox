@@ -132,6 +132,11 @@ elseif any(param.records.file.version == [413 414])
   % UTUA RDS based systems
   radar_gps_time = radar_time + max(param.records.gps.time_offset);
   
+elseif any(param.records.file.version == [415])
+  % UTUA RDS based systems
+  radar_gps_time = interp1(gps.radar_time, gps.gps_time, ...
+    radar_time + max(param.records.gps.time_offset),'linear','extrap');
+  
 elseif any(param.records.file.version == [9 10 103 412])
   % Arena based systems
   

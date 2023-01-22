@@ -111,8 +111,10 @@ rseq = fread(fid,1,'uint32');
 scount = fread(fid,1,'uint16');
 % Bytes: 34
 tscount = fread(fid,1,'uint16');
-% Bytes: 36
-rtime = fread(fid,tscount,'double');
+if ~isempty(tscount)
+  % Bytes: 36
+  rtime = fread(fid,tscount,'double');
+end
 % Bytes: 36 + 8*tscount
 
 if param.bxds_en
@@ -123,6 +125,13 @@ else
 end
 data_rec_size = 2*nsamp*nchan;
 rec_size = header_rec_size + data_rec_size;
+if isempty(rec_size)
+  % This happens when the file is not even big enough to contain a single
+  % header.
+  data = {};
+  hdr = {};
+  return;
+end
 if nchan ~= 2
   error('This file has nchan=%d. Only nchan=2 supported.', nchan);
 end
@@ -145,6 +154,7 @@ hdr = cell(Nc,1);
 rec = zeros(Nc,1);
 for chan = 1:Nc
   data{chan} = zeros(nsamp,param.recs(2));
+  hdr{chan}.offset = zeros(1,param.recs(2));
   hdr{chan}.nsamp = zeros(1,param.recs(2));
   hdr{chan}.choff = zeros(1,param.recs(2));
   hdr{chan}.tscount = zeros(1,param.recs(2));
@@ -172,7 +182,7 @@ while any(rec < param.recs(2))
     % -----------------------------------------------------------------------
     % HEADER[0:47]
     choff = 0;
-    dr{choff+1}.marker = char(fread(fid,8,'char').');
+    hdr{choff+1}.marker = char(fread(fid,8,'char').');
     hdr{choff+1}.project = char(fread(fid,8,'char').');
     hdr{choff+1}.set = char(fread(fid,8,'char').');
     hdr{choff+1}.transect = char(fread(fid,8,'char').');
@@ -252,6 +262,8 @@ while any(rec < param.recs(2))
   hdr{choff+1}.rtime{rec(choff+1)} = fread(fid,tscount,'double');
   % Odd stuff
   fread(fid,17,'uint16');
+  
+  hdr{choff+1}.offset(rec(choff+1)) = ftell(fid);
 
   data{choff+1}(:,rec(choff+1)) = fread(fid,hdr{choff+1}.nsamp(rec(choff+1)),'int16');
   data{choff+2}(:,rec(choff+2)) = fread(fid,hdr{choff+1}.nsamp(rec(choff+1)),'int16');

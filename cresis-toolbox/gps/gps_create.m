@@ -203,10 +203,6 @@ for file_idx = 1:length(in_fns)
       fprintf('-- %s\t%s\t\t\t\n', fn_dir,fn_name);
     end
     
-    try
-      gps_tmp = rmfield(gps_tmp,'radar_time');
-    end
-    
     if in_fn_idx == 1
       gps.gps_time = gps_tmp.gps_time;
       gps.lat = gps_tmp.lat;
@@ -215,6 +211,9 @@ for file_idx = 1:length(in_fns)
       gps.roll = gps_tmp.roll;
       gps.pitch = gps_tmp.pitch;
       gps.heading = gps_tmp.heading;
+      if isfield(gps_tmp,'radar_time')
+        gps.radar_time = gps_tmp.radar_time;
+      end
     else
       gps.gps_time = [gps.gps_time, gps_tmp.gps_time];
       gps.lat = [gps.lat, gps_tmp.lat];
@@ -223,6 +222,9 @@ for file_idx = 1:length(in_fns)
       gps.roll = [gps.roll, gps_tmp.roll];
       gps.pitch = [gps.pitch, gps_tmp.pitch];
       gps.heading = [gps.heading, gps_tmp.heading];
+      if isfield(gps_tmp,'radar_time')
+        gps.radar_time = [gps.radar_time, gps_tmp.radar_time];
+      end
     end
   end
   
@@ -241,6 +243,9 @@ for file_idx = 1:length(in_fns)
   gps.roll = gps.roll(good_mask);
   gps.pitch = gps.pitch(good_mask);
   gps.heading = gps.heading(good_mask);
+  if isfield(gps,'radar_time')
+    gps.radar_time = gps.radar_time(good_mask);
+  end
   gps.gps_source = gps_source{file_idx};
   
   %% Interpolate through NaN attitude data
@@ -430,6 +435,9 @@ for file_idx = 1:length(in_fns)
     gps.roll = gps.roll(good_mask);
     gps.pitch = gps.pitch(good_mask);
     gps.heading = gps.heading(good_mask);
+    if isfield(gps,'radar_time')
+      gps.radar_time = gps.radar_time(good_mask);
+    end
     gps.gps_source = gps_source{file_idx};
     
     %% Interpolate through NaN attitude data
@@ -482,7 +490,11 @@ for file_idx = 1:length(in_fns)
       ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version','file_type','season_name','date_str');
     end
   else
-    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type','season_name','date_str');
+    if isfield(gps,'radar_time')
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','radar_time','sw_version','file_version','file_type','season_name','date_str');
+    else
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version','file_type','season_name','date_str');
+    end
   end
   
 end

@@ -52,7 +52,7 @@ end
 % boards: List of subdirectories containing the files for each board (a
 % board is a data stream stored to disk and often contains the data stream
 % from multiple ADCs)
-if any(param.records.file.version == [1:5 8 11 101:102 405:406 409:411 413 414])
+if any(param.records.file.version == [1:5 8 11 101:102 405:406 409:411 413 414 415])
   if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
     % Assume a single channel system
     param.records.file.boards = {''};
@@ -175,6 +175,11 @@ for board_idx = 1:length(boards)
     board_hdrs{board_idx}.file_idx = zeros([0 0],'int32');
     board_hdrs{board_idx}.offset = zeros([0 0],'int32');
     
+  elseif any(param.records.file.version == [415])
+    board_hdrs{board_idx}.file_idx = zeros([0 0],'int32');
+    board_hdrs{board_idx}.radar_time = zeros([0 0],'double');
+    board_hdrs{board_idx}.offset = zeros([0 0],'int32');
+    
   else
     % NI, Rink, Paden, Leuschen, and Ledford systems
     board_hdrs{board_idx}.seconds = zeros([0 0],'uint32');
@@ -214,6 +219,13 @@ for board_idx = 1:length(boards)
     
     fprintf('  %i/%i %s (%s)\n', ...
       file_idx,length(file_idxs), fn, datestr(now,'HH:MM:SS'));
+    
+    if any(param.records.file.version == [415])
+      % Files may be empty, these are skipped in preprocessing
+      if dir_info.bytes == 0
+        continue
+      end
+    end
     
     % Load temporary files
     tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
@@ -257,6 +269,13 @@ for board_idx = 1:length(boards)
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.gps_time)) = file_num;
       board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 1:length(hdr_tmp.gps_time);
       wfs = hdr_tmp.wfs;
+      
+    elseif any(param.records.file.version == [415])
+      % UTIG RDS 60 MHZ MARFA/HICARS
+      board_hdrs{board_idx}.radar_time(end+1:end+length(hdr_tmp.radar_time)) = hdr_tmp.radar_time;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.radar_time)) = int32(hdr_tmp.offset);
+      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.radar_time)) = file_num;
+      wfs = [];
       
     else
       % NI, Rink, Paden, Leuschen, and Ledford systems
@@ -537,6 +556,9 @@ if any(param.records.file.version == [9 10 103 412])
 elseif any(param.records.file.version == [413 414])
   % UTUA RDS systems
   % BAS RDS systems
+  
+elseif any(param.records.file.version == [415])
+  % UTIG RDS systems
   
 else
   % NI, Rink, Paden, Leuschen, and Ledford systems

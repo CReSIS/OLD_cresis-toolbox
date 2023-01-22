@@ -32,7 +32,11 @@ for img = 1:length(param.load.imgs)
       if ~isfield(param.radar.wfs(wf),'next') || size(param.radar.wfs(wf).next,1) < adc || isnan(param.radar.wfs(wf).next(adc,1))
         % if next is not specified, then this wf-adc pair is the last to be
         % loaded in the next chain.
-        param.radar.wfs(wf).next(adc,1:2) = [NaN NaN];
+        if isfield(param.radar.wfs(wf),'next') && size(param.radar.wfs(wf).next,1) < adc
+          param.radar.wfs(wf).next(end+1:adc,1:2) = NaN;
+        else
+          param.radar.wfs(wf).next(adc,1:2) = NaN;
+        end
       end
       next = param.radar.wfs(wf).next(adc,1:2);
       while ~isnan(next)
@@ -91,10 +95,12 @@ for state_idx = 1:length(boards)
           subchannel = 0;
         end
         
-        if ~isfield(param.radar.wfs(wf),'weight') || length(param.radar.wfs(wf).weight) < adc
+        if ~isfield(param.radar.wfs(wf),'weight')
           % if weight is not specified, then this wf-adc pair is loaded with a
           % weight of one
           param.radar.wfs(wf).weight(adc) = 1;
+        elseif length(param.radar.wfs(wf).weight) < adc
+          param.radar.wfs(wf).weight(end+1:adc) = 1;
         end
         % Create wf_adc_sum list from weight/next commands
         states(state_idx).adc(end+1) = adc;
@@ -347,6 +353,8 @@ for wf = 1:length(param.radar.wfs)
   end
   if any(param.records.file.version == [405 406 410]) % acords and mcrds
     wfs(wf).Nt_raw = records.settings.wfs(1).wfs(wf).num_sam(1) - sum(wfs(wf).time_raw_trim);
+  elseif any(param.records.file.version == [415])
+    wfs(wf).Nt_raw = 3200;
   elseif isfield(records.settings.wfs,'num_sam')
     if numel(records.settings.wfs) >= wf
       wfs(wf).Nt_raw = records.settings.wfs(wf).num_sam(1);
@@ -558,7 +566,7 @@ for wf = 1:length(param.radar.wfs)
   end
   wfs(wf).quantization_to_V ...
     = param.radar.Vpp_scale * 2.^wfs(wf).bit_shifts ...
-    / (2^param.radar.adc_bits*wfs(wf).presums);
+    ./ (2^param.radar.adc_bits*wfs(wf).presums);
   
   if strcmpi(radar_type,'deramp')
     %% FMCW: Create time and frequency axis information
@@ -829,6 +837,18 @@ for wf = 1:length(param.radar.wfs)
           + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
           + HEADER_SIZE + WF_HEADER_SIZE;
       end
+    
+    case {415}
+      % UTIG MARFA/HICARS 60 MHz
+      HEADER_SIZE = 0;
+      WF_HEADER_SIZE = 0;
+      wfs(wf).wf_header_size = WF_HEADER_SIZE;
+      wfs(wf).record_mode = 2;
+      wfs(wf).complex = 0;
+      wfs(wf).sample_size = 2;
+      wfs(wf).adc_per_board = 4;
+      wfs(wf).sample_type = 'int16';
+      wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       
     case {9,10,103,412}
       wfs(wf).record_mode = 1;

@@ -166,4 +166,3 @@ gps.pitch = gps.pitch(1:gps_rec);
 gps.heading = gps.heading(1:gps_rec);
 
 gps.radar_time = gps.radar_time(1:gps_rec);
-gps.sync_gps_time = gps.gps_time;

@@ -132,8 +132,8 @@ if (strcmpi(param.season_name,'2019_Antarctica_Ground') && any(strcmpi(gps_sourc
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && any(strcmpi(gps_source,{'arena','cresis','novatelraw'})))
-  % Platform: Ground based sled (COLDEX 1, COLDEX 2)
+if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && any(strcmpi(gps_source,{'arena','cresis','novatelraw','utig'})))
+  % Platform: Airborne Radar Kenn Borek Air Basler call sign MKB (COLDEX 1, COLDEX 2, UTIG)
   %
   gps.x = 0;
   gps.y = 0;
@@ -1145,6 +1145,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_Sled') && strcmpi(radar_name,'acc
 end
 
 if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && strcmpi(radar_name,'accum'))
+  % Platform: Airborne Radar Kenn Borek Air Basler call sign MKB (COLDEX 1, COLDEX 2, UTIG)
   % These values need to be updated with actual values.
     
   % Measurements, X,Y,Z are in aircraft coordinates, not IMU coordinates
@@ -1448,6 +1449,30 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+
+if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && strcmpi(radar_name,'rds'))
+  % Platform: Airborne Radar Kenn Borek Air Basler call sign MKB (COLDEX 1, COLDEX 2, UTIG)
+  % These values need to be updated with actual values.
+    
+  % Measurements, X,Y,Z are in aircraft coordinates, not IMU coordinates
+  LArx = [];
+  LArx(1,1:2) = [-1.5 -1.5]; % GUESS
+  LArx(2,1:2) = [-9 9]; % GUESS
+  LArx(3,1:2) = [1.5 1.5]; % GUESS
+  warning('This file needs to be updated with actual values for 2022.');
+  
+  LAtx = [-1.5; 0; 1.5];
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1:2;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2022_Antarctica_GroundGHOST') && strcmpi(radar_name,'rds'))
   % Sled antennas GHOST 1

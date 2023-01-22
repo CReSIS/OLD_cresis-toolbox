@@ -74,6 +74,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2022_Antarctica_GroundGHOST.xls';
+% param_fns{end+1} = 'rds_param_2022_Antarctica_BaslerMKB.xls';
 
 %% CReSIS Snow Radar
 % param_fns{end+1} = 'snow_param_2009_Antarctica_DC8.xls';
