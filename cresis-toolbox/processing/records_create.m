@@ -178,6 +178,7 @@ for board_idx = 1:length(boards)
   elseif any(param.records.file.version == [415])
     board_hdrs{board_idx}.file_idx = zeros([0 0],'int32');
     board_hdrs{board_idx}.radar_time = zeros([0 0],'double');
+    board_hdrs{board_idx}.comp_time = zeros([0 0],'double');
     board_hdrs{board_idx}.offset = zeros([0 0],'int32');
     
   else
@@ -273,6 +274,7 @@ for board_idx = 1:length(boards)
     elseif any(param.records.file.version == [415])
       % UTIG RDS 60 MHZ MARFA/HICARS
       board_hdrs{board_idx}.radar_time(end+1:end+length(hdr_tmp.radar_time)) = hdr_tmp.radar_time;
+      board_hdrs{board_idx}.comp_time(end+1:end+length(hdr_tmp.radar_time)) = datenum_to_epoch(hdr_tmp.comp_time);
       board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.radar_time)) = int32(hdr_tmp.offset);
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.radar_time)) = file_num;
       wfs = [];

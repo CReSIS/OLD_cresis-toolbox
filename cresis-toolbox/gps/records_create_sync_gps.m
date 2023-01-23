@@ -133,8 +133,9 @@ elseif any(param.records.file.version == [413 414])
   radar_gps_time = radar_time + max(param.records.gps.time_offset);
   
 elseif any(param.records.file.version == [415])
-  % UTUA RDS based systems
-  radar_gps_time = interp1(gps.radar_time, gps.gps_time, ...
+  % UTIG RDS based systems
+  good_mask = gps.comp_time >= comp_time(1) & gps.comp_time <= comp_time(end);
+  radar_gps_time = interp1(gps.radar_time(good_mask), gps.gps_time(good_mask), ...
     radar_time + max(param.records.gps.time_offset),'linear','extrap');
   
 elseif any(param.records.file.version == [9 10 103 412])

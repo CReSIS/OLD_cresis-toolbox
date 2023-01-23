@@ -1,4 +1,4 @@
-function [gps,error_flag] = gps_force_monotonic(gps)
+function [gps,error_flag,monotonic_idxs] = gps_force_monotonic(gps)
 % [gps,error_flag] = gps_force_monotonic(gps)
 %
 % Check gps structure for non-monotonically increasing GPS time and return
@@ -73,6 +73,7 @@ if ~all(good_mask)
   end
   error_flag = true;
 end
+monotonic_idxs = sort_idxs(good_mask);
 
 %% Remove nonmonotonically increasing records from gps.radar_time
 if isfield(gps,'radar_time')
@@ -109,6 +110,8 @@ if isfield(gps,'radar_time')
     end
     error_flag = true;
   end
+  
+  monotonic_idxs = monotonic_idxs(good_mask);
 end
 
 end

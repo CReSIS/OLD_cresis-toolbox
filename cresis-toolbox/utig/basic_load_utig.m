@@ -78,7 +78,7 @@ if ~param.bxds_en
   transect = char(fread(fid,8,'char').');
   stream_name = char(fread(fid,8,'char').');
   sequence_number = fread(fid,1,'uint32',0,'ieee-le');
-  rec_length = fread(fid,1,'uint32',0,'ieee-le');
+  rec_length = fread(fid,1,'uint32',0,'ieee-le')+48; % Record length in bytes including the 68 byte CX header
   ct_clk_packed = fread(fid,1,'uint64',0,'ieee-le');
   ct_time = fread(fid,1,'uint32',0,'ieee-le');
   fseek(fid,8,0);
@@ -133,7 +133,9 @@ if isempty(rec_size)
   return;
 end
 if nchan ~= 2
-  error('This file has nchan=%d. Only nchan=2 supported.', nchan);
+  warning('This file has nchan=%d. Only nchan=2 supported.', nchan);
+  % Find the next good record
+  keyboard
 end
 fseek(fid,0,1);
 file_size = ftell(fid);

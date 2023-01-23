@@ -2,7 +2,10 @@ function gps = read_gps_utig(fn, param)
 % gps = read_gps_utig(fn, param)
 %
 % Read in UTIG ELSA raw file and extract GPS data from GPSnc1 packets.
-% Ignores all other packets. Uses CX headers for radar_time.
+% Ignores all other packets. Uses CX headers for radar_time (ct_time) and
+% comp_time (ct_clk). ct_clk is not precise enough, but is absolute time
+% and therefore monotonically increasing. ct_time is more precise than
+% ct_clk, but it resets when the radar is reset so timing is ambiguous.
 %
 % Example:
 %
@@ -38,6 +41,7 @@ gps.roll = zeros(1,Nx_max);
 gps.pitch = zeros(1,Nx_max);
 gps.heading = zeros(1,Nx_max);
 gps.radar_time = zeros(1,Nx_max);
+gps.comp_time = zeros(1,Nx_max);
 
 state = 0;
 locked = false;
@@ -135,6 +139,7 @@ while ~feof(fid)
           gps.elev(gps_rec) = fread(fid,1,'float',0,'ieee-be'); % vert_cor
           
           gps.radar_time(gps_rec) = ct_time;
+          gps.comp_time(gps_rec) = ct_clk;
           
           gps_state = fread(fid,1,'uint8',0,'ieee-be');
           state = fread(fid,1,'uint8',0,'ieee-be');
@@ -166,3 +171,4 @@ gps.pitch = gps.pitch(1:gps_rec);
 gps.heading = gps.heading(1:gps_rec);
 
 gps.radar_time = gps.radar_time(1:gps_rec);
+gps.comp_time = datenum_to_epoch(gps.comp_time(1:gps_rec));

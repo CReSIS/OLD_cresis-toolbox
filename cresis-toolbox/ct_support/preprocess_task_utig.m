@@ -42,7 +42,10 @@ board_folder_name = regexprep(board_folder_name,'%b',board);
 
 % =========================================================================
 %% Get Data File list for this board
-fns = get_filenames(fullfile(base_dir,board_folder_name),'','','.dat',struct('recursive',true,'regexp','[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'));
+get_filenames_param = struct('regexp',param.config.file.regexp);
+fns = get_filenames(fullfile(param.config.base_dir,board_folder_name), ...
+  param.config.file.prefix, param.config.file.midfix, ...
+  param.config.file.suffix, get_filenames_param);
 fns_datenum = zeros(size(fns));
 for fn_idx = 1:length(fns)
   config_fname_info = fname_info_utig(fns{fn_idx});
@@ -52,6 +55,7 @@ end
 %% Iterate packet_strip through file list
 old_fn_dir = [];
 board_hdrs{1}.radar_time = [];
+board_hdrs{1}.comp_time = [];
 board_hdrs{1}.file_idxs = [];
 for fn_idx = 1:length(fns)
   fn = fullfile(fns{fn_idx});
@@ -104,9 +108,11 @@ for fn_idx = 1:length(fns)
   
   % Check to see if outputs already exist
   if reuse_tmp_files && exist(out_hdr_fn,'file')
-    load(out_hdr_fn,'radar_time');
+    load(out_hdr_fn,'radar_time','comp_time');
     board_hdrs{1}.radar_time(end+(1:length(radar_time))) = radar_time;
-    board_hdrs{1}.file_idxs(end+(1:length(radar_time))) = finfo.file_idx*ones([1 length(radar_time)]);
+    board_hdrs{1}.comp_time(end+(1:length(radar_time))) = comp_time;
+    %board_hdrs{1}.file_idxs(end+(1:length(radar_time))) = finfo.file_idx*ones([1 length(radar_time)]);
+    board_hdrs{1}.file_idxs(end+(1:length(radar_time))) = fn_idx*ones([1 length(radar_time)]);
     continue;
   end
   
@@ -117,6 +123,7 @@ for fn_idx = 1:length(fns)
   
   %% Write header output file
   radar_time = hdr{1}.ct_time;
+  comp_time = hdr{1}.ct_clk;
   offset = zeros(size(hdr{1}.offset));
   for idx = 1:length(hdr{1}.offset)
     if hdr{1}.rseq(idx) ~= hdr{3}.rseq(idx)
@@ -129,10 +136,12 @@ for fn_idx = 1:length(fns)
     pri{chan}.rseq = hdr{chan}.rseq;
   end
   
-  save(out_hdr_fn, 'offset', 'radar_time');
+  save(out_hdr_fn, 'offset', 'radar_time', 'comp_time');
   
   board_hdrs{1}.radar_time(end+(1:length(radar_time))) = radar_time;
-  board_hdrs{1}.file_idxs(end+(1:length(radar_time))) = finfo.file_idx*ones([1 length(radar_time)]);
+  board_hdrs{1}.comp_time(end+(1:length(radar_time))) = comp_time;
+  %board_hdrs{1}.file_idxs(end+(1:length(radar_time))) = finfo.file_idx*ones([1 length(radar_time)]);
+  board_hdrs{1}.file_idxs(end+(1:length(radar_time))) = fn_idx*ones([1 length(radar_time)]);
 
   if 0
     %% Debug outputs
@@ -141,14 +150,18 @@ for fn_idx = 1:length(fns)
   
 end
 
+% Convert comp_time from Matlab's datenum format to ANSI C seconds since
+% Jan 1 1970 epoch
+board_hdrs{1}.comp_time = datenum_to_epoch(board_hdrs{1}.comp_time);
+
 % No heading information, break segments based on time, epri, or radar
 % counter information (param.config.field_time_gap and
 % param.config.max_time_gap determine which field and gap size to use).
 counters = {};
 file_idxs = {};
-param.config.field_time_gap = 'radar_time';
+param.config.field_time_gap = 'comp_time';
 for board_idx = 1:numel(param.records.file.boards)
-  counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap))/1e5;
+  counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap));
   file_idxs{board_idx} = board_hdrs{board_idx}.file_idxs;
   day_wrap_offset{board_idx} = zeros(size(board_hdrs{board_idx}.file_idxs))
 end

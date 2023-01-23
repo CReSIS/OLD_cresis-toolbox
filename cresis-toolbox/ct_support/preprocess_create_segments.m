@@ -89,6 +89,7 @@ if length(all_counters) < 2
   return;
 end
 dcounters = diff(all_counters);
+overall_mask = false(size(counters));
 % segs_idxs: list of all the segments (gaps in counter >= threshold)
 segs_idxs = [0 find(dcounters(1:end-1) > threshold)];
 for seg_idx = 1:length(segs_idxs)
@@ -110,7 +111,7 @@ for seg_idx = 1:length(segs_idxs)
   % Find the file range for each board
   for board_idx = 1:num_boards
     % Find files for this segment
-    mask = counters{board_idx} >= start_counter & counters{board_idx} <= stop_counter;
+    mask = ~overall_mask & (counters{board_idx} >= start_counter & counters{board_idx} <= stop_counter);
     match_files = file_idxs{board_idx}(mask);
     if isempty(match_files) || (seg_idx>1 && max(file_idxs{board_idx}) - min(match_files) < segment_end_file_trim)
       segs(seg_idx).start_idxs(board_idx) = 0;
@@ -166,6 +167,8 @@ for seg_idx = 1:length(segs_idxs)
     else
       stats.board_time(seg_idx,board_idx) = counters_board(end)-counters_board(1);
     end
+    
+    overall_mask = overall_mask | mask;
     
     % Debug: Test Code
     if debug_test_code

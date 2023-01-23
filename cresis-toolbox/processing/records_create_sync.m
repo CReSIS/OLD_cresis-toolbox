@@ -444,7 +444,7 @@ elseif any(param.records.file.version == [415])
   % Nothing to be done
   board_idx = 1;
   radar_time = board_hdrs{board_idx}.radar_time;
-  comp_time = [];
+  comp_time = board_hdrs{board_idx}.comp_time;
   
 elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408])
   %% Radar time: CReSIS
