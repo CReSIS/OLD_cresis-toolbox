@@ -27,15 +27,16 @@ physical_constants;
 
 % geotiff_fn: String containing file path for geotiff file for map
 % geotiff_fn = fullfile(gRadar.gis_path,'arctic','NaturalEarth_Data\Arctic_NaturalEarth.tif'); % For Sea Ice
-geotiff_fn = fullfile(gRadar.gis_path,'arctic','Landsat-7','arctic_natural_90m.tif'); % For Land Ice
+% geotiff_fn = fullfile(gRadar.gis_path,'arctic','Landsat-7','arctic_natural_90m.tif'); % For Land Ice
 % geotiff_fn = fullfile(gRadar.gis_path,'arctic','ArcticDEM','arcticdem_mosaic_500m_v3.0.tif'); % For Land Ice
-% geotiff_fn = fullfile(gRadar.gis_path,'antarctica','Landsat-7','Antarctica_LIMA.tif'); % For Land Ice
+geotiff_fn = fullfile(gRadar.gis_path,'antarctica','Landsat-7','Antarctica_LIMA.tif'); % For Land Ice
 
 % dem_fn: String containing file path for DEM
-dem_fn = fullfile(gRadar.gis_path,'arctic','ArcticDEM','arcticdem_mosaic_500m_v3.0.tif');
+% dem_fn = fullfile(gRadar.gis_path,'arctic','ArcticDEM','arcticdem_mosaic_500m_v3.0.tif');
+dem_fn = fullfile(gRadar.gis_path,'antarctica','DEM','REMA','REMA_1km_dem_filled.tif');
 
 % gps_input_type: String containing GPS source
-gps_input_type = 'file_mcords'; % 'file_mcords', 'file_accum', or 'serial'
+gps_input_type = 'file_novatelraw'; % 'file_novatelraw', 'file_mcords', 'file_accum', or 'serial'
 
 % serial_dev: String containing the name of the serial device for 'serial'
 % gps_input_type.
@@ -53,13 +54,14 @@ serial_baud_rate = 115200; % e.g. 9600, 57600, 115200, etc.
 % gps_input_fn_dir: string containing the file path to the directory
 % containing the GPS file for 'file_mcords' and 'file_accum'
 % gps_input_type.
-gps_input_fn_dir = '\\192.168.1.100\d\awi';
+% gps_input_fn_dir = '\\192.168.1.100\d\awi';
+gps_input_fn_dir = '/data/';
 % gps_input_fn_dir = '\\ground1\O\UWB\20220607';
-gps_input_fn_prefix = 'GPS';
+gps_input_fn_prefix = 'GPS_Novatel_raw_aq-field22_20230124';
 
 % gps_input_geoid_en: logical scaler. If true, the EGM-96 geoid is
 % subtracted from GPS information that is read in.
-gps_input_geoid_en = true;
+gps_input_geoid_en = false;
 
 % gps_input_fn_skip: logical scaler for 'file_mcords' and 'file_accum'
 % gps_input_type. Normally false. If true, all information in existing GPS
@@ -76,7 +78,7 @@ gps_record_en = false;
 
 % gps_record_fn_dir: String containing the path to the directory of where
 % to store the GPS information. Only used if gps_record_en is true.
-gps_record_fn_dir = '/scratch/metadata/2022_Greenland_Polar5/';
+gps_record_fn_dir = '/home/cresis1/tmp/';
 
 % year,month,day: Usually do not need to modify this
 [year,month,day] = datevec(now);
@@ -92,7 +94,7 @@ debug_start_line = inf; % <== Set to "inf" to disable debug mode
 % false if no desired flight track exists.
 gps_desire = struct('en',true);
 if gps_desire.en
-  gps_desire_source = 'kml_simple'; % <== CHOOSE A DESIRED FLIGHT TRACK SOURCE
+  gps_desire_source = 'sonntagsequence2'; % <== CHOOSE A DESIRED FLIGHT TRACK SOURCE
 
   if strcmpi(gps_desire_source,'records')
     %% User Settings: Desired flight track: records
@@ -103,6 +105,39 @@ if gps_desire.en
     gps_desire.lon = gps_desire.lon(decim_idxs);
     gps_desire.elev = gps_desire.elev(decim_idxs);
     [gps_desire.ecef_x,gps_desire.ecef_y,gps_desire.ecef_z] = geodetic2ecef(gps_desire.lat/180*pi,gps_desire.lon/180*pi,gps_desire.elev, WGS84.ellipsoid);
+
+  elseif strcmpi(gps_desire_source,'sonntagsequence2')
+    gps_desire = read_gps_sonntagsequence2(fullfile(gRadar.data_support_path,'2022_Antarctica_BaslerMKB','F16','CLX_EAST02A_5HR.sequence2'));
+    gps_desire.along_track = geodetic_to_along_track(gps_desire.lat,gps_desire.lon,gps_desire.elev);
+    decim_idxs = get_equal_alongtrack_spacing_idxs(gps_desire.along_track,50);
+    gps_desire.lat = gps_desire.lat(decim_idxs);
+    gps_desire.lon = gps_desire.lon(decim_idxs);
+    gps_desire.elev = gps_desire.elev(decim_idxs);
+
+    [gps_desire.ecef_x,gps_desire.ecef_y,gps_desire.ecef_z] = geodetic2ecef(gps_desire.lat/180*pi,gps_desire.lon/180*pi,gps_desire.elev, WGS84.ellipsoid);
+
+    orig_lat = gps_desire.lat;
+    orig_lon = gps_desire.lon;
+    [gps_desire.lat,gps_desire.lon] = interpm(gps_desire.lat,gps_desire.lon,450/(2*pi*earthRadius),'gc');
+    % Find original points
+    gps_desire.orig_pnt = false(size(gps_desire.lat));
+    for idx = 1:length(orig_lat)
+      match_idx = find(gps_desire.lat == orig_lat(idx) & gps_desire.lon == orig_lon(idx));
+      gps_desire.orig_pnt(match_idx) = true;
+    end
+    gps_desire.along_track = geodetic_to_along_track(gps_desire.lat,gps_desire.lon);
+    %     decim_idxs = get_equal_alongtrack_spacing_idxs(gps_desire.along_track,50);
+    %     gps_desire.along_track = gps_desire.along_track(decim_idxs);
+    %     gps_desire.lat = gps_desire.lat(decim_idxs);
+    %     gps_desire.lon = gps_desire.lon(decim_idxs);
+
+    % gps_desire.constant_AGL_en: logical scaler. If true, then dem_fn will
+    % be used to set the elevation according to constant_AGL_ft.
+    constant_AGL_en = true;
+    % gps_desire.constant_AGL_ft: double scaler. The gps_desire.elev will
+    % be set to be this many feet above the dem_fn surface if
+    % constant_AGL_en is true.
+    constant_AGL_ft = 2000;
 
   elseif strcmpi(gps_desire_source,'kml_simple')
     %% User Settings: Desired flight track: kml_simple
@@ -354,6 +389,29 @@ end
 
 %% Plot existing flight track data
 % =========================================================================
+if any(strcmpi(gps_input_type,{'file_novatelraw'}))
+  gflight_tracker.lat = [];
+  gflight_tracker.lon = [];
+  gflight_tracker.elev = [];
+  gflight_tracker.gps_time = [];
+  gflight_tracker.x = [];
+  gflight_tracker.y = [];
+
+  gps_in_fns = get_filenames(gps_input_fn_dir,gps_input_fn_prefix,'','.gps');
+  gps_in_fn = gps_in_fns{end};
+  gps_input = read_gps_novatelraw(gps_in_fn);
+  gflight_tracker.lat = gps_input.lat;
+  gflight_tracker.lon = gps_input.lon;
+  gflight_tracker.elev = gps_input.elev;
+  gflight_tracker.gps_time = gps_input.gps_time;
+  [gflight_tracker.x,gflight_tracker.y] = projfwd(gflight_tracker.proj, gflight_tracker.lat, gflight_tracker.lon);
+  gflight_tracker.x = gflight_tracker.x/1e3;
+  gflight_tracker.y = gflight_tracker.y/1e3;
+
+  gps_in_fn_pos = dir(gps_in_fn);
+  gps_in_fn_pos = gps_in_fn_pos.bytes;
+
+end
 if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
   gflight_tracker.lat = [];
   gflight_tracker.lon = [];
@@ -491,6 +549,48 @@ while ~done
 
   %% Loop for new data: Load GPS data from file
   % =====================================================================
+  if any(strcmpi(gps_input_type,{'file_novatelraw'}))
+    % Load in the last BESTPOSB record in the file
+    gps_in_fns = get_filenames(gps_input_fn_dir,gps_input_fn_prefix,'','.gps');
+    if ~isempty(gps_in_fns)
+      if ~strcmpi(gps_in_fn,gps_in_fns{end})
+        gps_in_fn = gps_in_fns{end};
+        gps_in_fn_pos = 0;
+      end
+      gps = read_gps_novatelraw(gps_in_fn,struct('first_byte',gps_in_fn_pos));
+
+      if ~isempty(gps.gps_time)
+        gps_in_fn_pos = dir(gps_in_fn);
+        gps_in_fn_pos = gps_in_fn_pos.bytes;
+        gflight_tracker.lat(end+(1:length(gps.gps_time))) = gps.lat;
+        gflight_tracker.lon(end+(1:length(gps.gps_time))) = gps.lon;
+        gflight_tracker.elev(end+(1:length(gps.gps_time))) = gps.elev;
+        if gps_input_geoid_en
+          gflight_tracker.elev(end) = gflight_tracker.elev(end) ...
+            + interp2(gflight_tracker.egm96_lon,gflight_tracker.egm96_lat,gflight_tracker.egm96_elev, ...
+            mod(gflight_tracker.lon(end),360),gflight_tracker.lat(end));
+        end
+        gflight_tracker.gps_time(end+(1:length(gps.gps_time))) = gps.gps_time;
+        [x,y] = projfwd(gflight_tracker.proj,gps.lat,gps.lon);
+        gflight_tracker.x(end+(1:length(gps.gps_time))) = x/1e3;
+        gflight_tracker.y(end+(1:length(gps.gps_time))) = y/1e3;
+        set(gflight_tracker.h_line,'XData',gflight_tracker.x,'YData',gflight_tracker.y);
+        set(gflight_tracker.h_plot,'XData',gflight_tracker.x(end),'YData',gflight_tracker.y(end));
+        drawnow;
+      end
+
+      %       if length(lat) > 10
+      %         along_track = geodetic_to_along_track(lat(end-9:end),lon(end-9:end),elev(end-9:end));
+      %         speed = along_track(end) / abs(utc_time(end)-utc_time(end-9));
+      %       end
+      %       fprintf('%9.6f N %11.6f E | %6.1f m | %6.1f m AGL | %3.0f m/s %3.0f kn\n', lat, lon, elev, elev-dem_elev, speed, speed/0.5144444);
+
+      if gps_record_en
+        fprintf(fid_out,'%04d,%02d,%02d,%f,%f,%f,%f\n', year, month, day, utc_sod, lat, lon, elev);
+      end
+    end
+  end
+
   if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
     % Look for, load, and plot all GPS files
     if strcmpi(gps_input_type,'file_accum')
@@ -590,7 +690,8 @@ while ~done
 
   %% Loop for new data: Interpret NMEA string
   % =====================================================================
-  if length(A) >= 10 && strcmpi(A{1},'$GPGGA')
+  if ~strcmpi(gps_input_type,'file_novatelraw') ...
+      && length(A) >= 10 && strcmpi(A{1},'$GPGGA')
     lat_deg = floor(A{3}/100);
     lat_min = A{3}-lat_deg*100;
     lat = lat_deg + lat_min/60;
@@ -677,10 +778,11 @@ while ~done
     set(gflight_tracker.h_plot_dem_all,'XData',gps_desire.along_track(min_idx)/1852*[1 1], ...
       'YData', [-50e3 50e3]);
 
-    % Generate FCS on previous trajectory using next 5 positions
-    fcs_x = [gps_desire.ecef_x(min_idx+9) - gps_desire.ecef_x(min_idx);
-      gps_desire.ecef_y(min_idx+9) - gps_desire.ecef_y(min_idx);
-      gps_desire.ecef_z(min_idx+9) - gps_desire.ecef_z(min_idx)];
+    % Generate FCS on previous trajectory using next N_lookahead positions
+    N_lookahead = 1;
+    fcs_x = [gps_desire.ecef_x(min_idx+N_lookahead) - gps_desire.ecef_x(min_idx);
+      gps_desire.ecef_y(min_idx+N_lookahead) - gps_desire.ecef_y(min_idx);
+      gps_desire.ecef_z(min_idx+N_lookahead) - gps_desire.ecef_z(min_idx)];
     fcs_z = [up.ecef_x(1) - gps_desire.ecef_x(min_idx);
       up.ecef_y(1) - gps_desire.ecef_y(min_idx);
       up.ecef_z(1) - gps_desire.ecef_z(min_idx)];
@@ -766,6 +868,7 @@ while ~done
     ylims(2) = max([future_elev_ft,future_dem_elev_ft]);
     ylim(gflight_tracker.h_axes_dem, ylims);
 
+    [year,month,day,hour,minute,sec] = datevec(epoch_to_datenum(gflight_tracker.gps_time(end) - utc_leap_seconds(gflight_tracker.gps_time(end))));
     title(sprintf('UTC %02d:%02d:%05.2f %.0f m/%.0f ft, %.0f m / %.0f ft AGL',hour,minute,sec, ...
       elev(end), elev(end)*100/2.54/12, elev(end)-future_dem_elev(4), (elev(end)-future_dem_elev(4))*100/2.54/12),'parent',gflight_tracker.h_axes,'color','white');
   end
