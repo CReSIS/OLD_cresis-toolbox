@@ -403,7 +403,7 @@ for img = 1:length(store_param.load.imgs)
         % defined and depends on how user plans to use data_signal in
         % test_fh and threshold_fh. Set the function to return [] if not
         % used.
-        data_noise = cmd.noise_fh{cmd_img}(raw_data{1}(:,:,wf_adc),wfs(wf));
+        data_noise = cmd.noise_fh{cmd_img}(raw_data{1}(:,:,wf_adc),wfs(wf),data_signal);
         % test_metric: create the output "test_metric" variable Format is
         % user defined and depends on how user plans to use data_signal in
         % threshold_fh. Format is restricted by the concatenation operation
@@ -465,7 +465,11 @@ for img = 1:length(store_param.load.imgs)
             imagesc(bad_samples);
           end
           axis tight
-          link_figures(1,'x');
+          if size(data_noise,1) < 2 || size(data_noise,1) < 10
+            link_figures(1,'x');
+          else
+            link_figures(1,'xy');
+          end
           keyboard;
         end
         
@@ -474,7 +478,8 @@ for img = 1:length(store_param.load.imgs)
           figure(1); clf;
           plot(bad_recs, bad_bins, 'x')
           figure(2); clf;
-          imagesc(lp(data_signal))
+          imagesc(data_signal)
+          set(gca,'YDir','normal')
           link_figures([2 1],'xy');
         end
         
@@ -489,6 +494,9 @@ for img = 1:length(store_param.load.imgs)
           file_version = '1';
         end
         file_type = 'analysis_noise_tmp';
+        if size(bad_samples,1) >= 2
+          test_metric = test_metric(find(bad_samples));
+        end
         ct_save(out_fn, 'bad_recs', 'bad_bins', 'bad_waveforms', 'test_metric', 'param_analysis', 'param_records','file_type','file_version');
       end
       

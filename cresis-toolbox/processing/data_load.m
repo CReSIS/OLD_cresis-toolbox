@@ -960,9 +960,9 @@ if ~param.load.raw_data
                 % record
                 dt = wfs(wf).time_raw(2)-wfs(wf).time_raw(1);
                 start_bin = max(1, ...
-                  (burst.burst_noise_table(2,idx)-wfs(wf).time_raw(1))/dt);
+                  round((burst.burst_noise_table(2,idx)-wfs(wf).time_raw(1))/dt));
                 stop_bin = min(hdr.Nt{img}(rec_rel), ...
-                  (burst.burst_noise_table(3,idx)-wfs(wf).time_raw(1))/dt);
+                  round((burst.burst_noise_table(3,idx)-wfs(wf).time_raw(1))/dt));
                 
                 if start_bin == 1 && stop_bin == hdr.Nt{img}(rec_rel)
                   data{img}(:,rec_rel,wf_adc) = wfs(wf).bad_value;

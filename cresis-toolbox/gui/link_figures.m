@@ -22,10 +22,12 @@ end
 % Get all the axes children of each figure that is passed in
 h_axes = [];
 for fig_idx = 1:length(h_fig)
-  h_children = get(h_fig(fig_idx),'children');
-  for child_idx = 1:length(h_children)
-    if isa(h_children(child_idx),'matlab.graphics.axis.Axes')
-      h_axes(end+1) = h_children(child_idx);
+  try
+    h_children = get(h_fig(fig_idx),'children');
+    for child_idx = 1:length(h_children)
+      if isa(h_children(child_idx),'matlab.graphics.axis.Axes')
+        h_axes(end+1) = h_children(child_idx);
+      end
     end
   end
 end

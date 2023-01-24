@@ -363,7 +363,7 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).bit_shifts = [6 8];
-  default.radar.wfs(wf).tx_paths = [1 2];
+  default.radar.wfs(wf).tx_paths = {[1],[2]};
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
 % Note psc config name was incorrectly set, but it is for shallow ice:

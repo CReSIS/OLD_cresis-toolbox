@@ -459,6 +459,9 @@ if ~(~ismcc && isdeployed)
   %     2: check this file and its dependencies only if "fun" is not
   %        specified in call to torque_compile.m (all functions called
   %        by torque_compile)
+  % =======================================================================
+  % REMINDER: Run cluster_compile after making changes to this list!
+  % =======================================================================
   gRadar.cluster.hidden_depend_funs = {};
   gRadar.cluster.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
@@ -488,6 +491,11 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'array_proc_sv.m' 1};
   gRadar.cluster.hidden_depend_funs{end+1} = {'lever_arm.m' 1};
   gRadar.cluster.hidden_depend_funs{end+1} = {'doa_nonlcon.m' 1};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'burst_noise_corr.m' 1};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'burst_noise_bad_samples.m' 1};
+  % =======================================================================
+  % REMINDER: Run cluster_compile after making changes to this list!
+  % =======================================================================
 
   % .path = used by the scheduler to build the file dependency path
   %   typically this is the same at .path

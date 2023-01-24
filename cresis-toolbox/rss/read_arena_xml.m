@@ -1862,7 +1862,7 @@ for dac_idx = 1:dacList.getLength
   
   % Find the longest possible record size
   if strcmpi(config_type,'dac-ad9129_0012') || strcmpi(config_type,'dac-ad9129_0032')
-    % TOHFSounder
+    % TOHFSounder, EAGER, MELT, Vanilla, AWI MCoRDS
     
     % Get each subchannel
     expression = xpath.compile('mode');
@@ -1916,14 +1916,14 @@ for dac_idx = 1:dacList.getLength
         name = nodeList.item(0);
         name = name.getTextContent.toCharArray;
         name = name(:).';
-        configs.dac{tx_idx,mode_latch+1}.name = name;
+        configs.dac{tx_idx,mode_latch+1}.wfs{1}.name = name;
         
         expression = xpath.compile('sampFreq');
         nodeList = expression.evaluate(dac_wf_cfg,XPathConstants.NODESET);
         sampFreq = nodeList.item(0);
         sampFreq = sampFreq.getTextContent.toCharArray;
         sampFreq = str2double(sampFreq(:).') * 1e6;
-        configs.dac{tx_idx,mode_latch+1}.sampFreq = sampFreq;
+        configs.dac{tx_idx,mode_latch+1}.wfs{1}.sampFreq = sampFreq;
         
         % Get each subchannel
         expression = xpath.compile('pulse');
@@ -1939,70 +1939,70 @@ for dac_idx = 1:dacList.getLength
           name = nodeList.item(0);
           name = name.getTextContent.toCharArray;
           name = name(:).';
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.name = name;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.name = name;
           
           expression = xpath.compile('centerFreq');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           centerFreq = nodeList.item(0);
           centerFreq = centerFreq.getTextContent.toCharArray;
           centerFreq = str2double(centerFreq(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.centerFreq = centerFreq;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.centerFreq = centerFreq;
           
           expression = xpath.compile('bandwidth');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           bandwidth = nodeList.item(0);
           bandwidth = bandwidth.getTextContent.toCharArray;
           bandwidth = str2double(bandwidth(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.bandwidth = bandwidth;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.bandwidth = bandwidth;
           
           expression = xpath.compile('initialDelay');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           initialDelay = nodeList.item(0);
           initialDelay = initialDelay.getTextContent.toCharArray;
           initialDelay = str2double(initialDelay(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.initialDelay = initialDelay;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.initialDelay = initialDelay;
           
           expression = xpath.compile('initialPhase');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           initialPhase = nodeList.item(0);
           initialPhase = initialPhase.getTextContent.toCharArray;
           initialPhase = str2double(initialPhase(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.initialPhase = initialPhase;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.initialPhase = initialPhase;
           
           expression = xpath.compile('afterPulseDelay');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           afterPulseDelay = nodeList.item(0);
           afterPulseDelay = afterPulseDelay.getTextContent.toCharArray;
           afterPulseDelay = str2double(afterPulseDelay(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.afterPulseDelay = afterPulseDelay;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.afterPulseDelay = afterPulseDelay;
           
           expression = xpath.compile('taper');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           taper = nodeList.item(0);
           taper = taper.getTextContent.toCharArray;
           taper = taper(:).';
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.taper = taper;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.taper = taper;
           
           expression = xpath.compile('alpha');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           alpha = nodeList.item(0);
           alpha = alpha.getTextContent.toCharArray;
           alpha = str2double(alpha(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.alpha = alpha;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.alpha = alpha;
           
           expression = xpath.compile('scale');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           scale = nodeList.item(0);
           scale = scale.getTextContent.toCharArray;
           scale = str2double(scale(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.scale = scale;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.scale = scale;
           
           expression = xpath.compile('numPoints');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           numPoints = nodeList.item(0);
           numPoints = numPoints.getTextContent.toCharArray;
           numPoints = str2double(numPoints(:).');
-          configs.dac{tx_idx,mode_latch+1}.wfs{pulse_idx}.numPoints = numPoints;
+          configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.numPoints = numPoints;
         end
       end
       

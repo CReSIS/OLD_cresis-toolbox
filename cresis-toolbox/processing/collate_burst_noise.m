@@ -193,16 +193,38 @@ for img = param.collate_burst_noise.imgs
       % burst_noise_table(2,:): The start time of the burst
       %
       % burst_noise_table(3,:): The stop of the burst
-      burst_noise_table = zeros(3,length(bad_recs_unique));
+      if 0
+        burst_noise_table = zeros(3,length(bad_recs_unique));
+      else
+        burst_noise_table = zeros(3,0);
+      end
       for col = 1:length(bad_recs_unique)
         fasttime0 = -inf;
         fasttime1 = inf;
         if ~isempty(noise{1}.bad_bins)
           mask = noise{1}.bad_recs == bad_recs_unique(col);
-          fasttime0 = wfs(wf).time_raw(min(noise{1}.bad_bins(mask)));
-          fasttime1 = wfs(wf).time_raw(max(noise{1}.bad_bins(mask)));
+          if 0
+            % Combine all burst detections into one and mask out everything
+            % from the first detection bin to the last detection bin.
+            fasttime0 = wfs(wf).time_raw(min(noise{1}.bad_bins(mask)));
+            fasttime1 = wfs(wf).time_raw(max(noise{1}.bad_bins(mask)));
+            burst_noise_table(:,col) = [bad_recs_unique(col) fasttime0 fasttime1].';
+          else
+            % Parse detections into individual events
+            bad_bins = noise{1}.bad_bins(mask);
+            while ~isempty(bad_bins)
+              cur_bad_bin = bad_bins(1);
+              fasttime0 = wfs(wf).time_raw(cur_bad_bin);
+              bad_bins = bad_bins(2:end);
+              while ~isempty(bad_bins) && bad_bins(1) == cur_bad_bin + 1
+                cur_bad_bin = bad_bins(1);
+                bad_bins = bad_bins(2:end);
+              end
+              fasttime1 = wfs(wf).time_raw(cur_bad_bin);
+              burst_noise_table(:,end+1) = [bad_recs_unique(col) fasttime0 fasttime1].';
+            end
+          end
         end
-        burst_noise_table(:,col) = [bad_recs_unique(col) fasttime0 fasttime1].';
       end
       
     else
@@ -291,7 +313,7 @@ for img = param.collate_burst_noise.imgs
         xlabel(h_axes(3), 'Record');
         ylabel(h_axes(3), 'test_metric output', 'interpreter','none');
         h_axes(4) = subplot(2,1,2,'parent',h_fig(3));
-        plot(frm_id, noise{1}.test_metric, '.-', 'parent', h_axes(4));
+        plot(frm_id(noise{1}.bad_recs), noise{1}.test_metric, '.-', 'parent', h_axes(4));
         grid(h_axes(4),'on');
         xlabel(h_axes(4), 'Frame');
         ylabel(h_axes(4), 'test_metric output', 'interpreter','none');
