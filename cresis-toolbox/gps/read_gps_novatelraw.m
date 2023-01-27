@@ -72,6 +72,10 @@ gps.roll = zeros(1,floor(length(frame_start_idxs)/2));
 gps.pitch = zeros(1,floor(length(frame_start_idxs)/2));
 gps.heading = zeros(1,floor(length(frame_start_idxs)/2));
 
+if isempty(frame_start_idxs)
+  return;
+end
+
 next_start_idx = frame_start_idxs(1);
 out_idx = 0;
 have_time = false;

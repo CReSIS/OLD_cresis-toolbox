@@ -313,7 +313,11 @@ for img = param.collate_burst_noise.imgs
         xlabel(h_axes(3), 'Record');
         ylabel(h_axes(3), 'test_metric output', 'interpreter','none');
         h_axes(4) = subplot(2,1,2,'parent',h_fig(3));
-        plot(frm_id(noise{1}.bad_recs), noise{1}.test_metric, '.-', 'parent', h_axes(4));
+        if length(noise{1}.bad_recs) == length(noise{1}.test_metric)
+          plot(frm_id(noise{1}.bad_recs), noise{1}.test_metric, '.-', 'parent', h_axes(4));
+        else
+          plot(frm_id, noise{1}.test_metric, '.-', 'parent', h_axes(4));
+        end
         grid(h_axes(4),'on');
         xlabel(h_axes(4), 'Frame');
         ylabel(h_axes(4), 'test_metric output', 'interpreter','none');

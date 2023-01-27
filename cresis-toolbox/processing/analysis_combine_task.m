@@ -249,7 +249,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           bad_recs_unique = unique(noise.bad_recs);
           bad_waveforms_recs{block_idx} = rec_load_start + bad_recs_unique(1:size(noise.bad_waveforms,2)) - 1;
           bad_waveforms{block_idx} = noise.bad_waveforms;
-          test_metric(end+(1:length(noise.bad_bins))) = noise.test_metric(:).';
+          test_metric(end+(1:length(noise.test_metric))) = noise.test_metric(:).';
         end
 
         % Constant noise fields carried over from last file loaded:
