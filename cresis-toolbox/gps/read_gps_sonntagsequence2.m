@@ -32,4 +32,5 @@ fclose(fid);
 wp.name = A{1};
 wp.lat = A{2};
 wp.lon = A{3};
-wp.elev = A{4};
+% Convert from feet to meters
+wp.elev = A{4} * 12*2.54/100;

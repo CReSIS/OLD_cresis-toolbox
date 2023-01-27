@@ -29,7 +29,7 @@ NI_calval_dir = fullfile(NI_base_dir, 'calval');
 
 % Specify a list of start/stop frequencies that you want to generate
 % settings for. THIS OFTEN NEEDS TO BE CHANGED FOR A CAMPAIGN.
-if 1
+if 0
   f0_list = [180e6];
   f1_list = [210e6];
 else
@@ -122,7 +122,7 @@ arena = defaults{1}.arena;
 % thick ice, 1200 +/- 700 ft AGL
 % =========================================================================
 ice_thickness = 3250;
-for freq_idx = [1]
+for freq_idx = []
   param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
   param = merge_structs(param,param_defaults);
   param.arena = arena;
@@ -138,7 +138,7 @@ for freq_idx = [1]
   cal_used_idx = -1;
   fc = abs(f0_list+f1_list)/2;
   for cal_idx = 1:length(final_cal_fc)
-    if abs(final_cal_fc(cal_idx) - fc) < 1e6
+    if abs(final_cal_fc(cal_idx) - fc(freq_idx)) < 1e6
       cal_used_idx = cal_idx;
       break;
     end
@@ -219,6 +219,102 @@ for freq_idx = [1]
   end
 end
 
+%% Survey Mode + loopback, noise, and deconv modes
+% thin ice, 1200 +/- 700 ft AGL
+% =========================================================================
+ice_thickness = 1800;
+for freq_idx = [2]
+  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
+  param = merge_structs(param,param_defaults);
+  param.arena = arena;
+  param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 755; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
+  BW = abs(f1_list(freq_idx)-f0_list(freq_idx));
+  if BW <= 170e6
+    param.DDC_select = 2; % 200 MHz sampling mode
+  elseif BW <= 370e6
+    param.DDC_select = 1; % 400 MHz sampling mode
+  else
+    error('Bandwidth (%g MHz) is too large. Must be less than or equal to 370 MHz.', BW/1e6)
+  end
+  cal_used_idx = -1;
+  fc = abs(f0_list+f1_list)/2;
+  for cal_idx = 1:length(final_cal_fc)
+    if abs(final_cal_fc(cal_idx) - fc(freq_idx)) < 1e6
+      cal_used_idx = cal_idx;
+      break;
+    end
+  end
+  if cal_used_idx == -1
+    error('The center frequency %g MHz does not match any of the cal setting center frequencies specified in final_cal_fc. Either change the f0_list and f1_list or add a calibration setting with this center frequency.', fc/1e6);
+  end
+  param.max_duty_cycle = 0.12;
+  param.create_IQ = false;
+  param.tg.staged_recording = [1 2];
+  param.tg.altitude_guard = 700*12*2.54/100;
+  param.tg.Haltitude = 1200*12*2.54/100;
+  param.tg.Hice_thick = ice_thickness;
+  param.tg.rg_stop_offset = [300 300];
+  param.prf = prf;
+  param.presums = [4 presums(freq_idx)-4];
+  param.wfs(1).atten = 37;
+  param.wfs(2).atten = 0;
+  DDS_amp = final_DDS_amp{cal_used_idx};
+  param.tx_weights = DDS_amp;
+  param.tukey = 0.08;
+  param.wfs(1).Tpd = 1e-6;
+  param.wfs(2).Tpd = 3e-6;
+  param.wfs(1).phase = final_DDS_phase{cal_used_idx};
+  param.wfs(2).phase = final_DDS_phase{cal_used_idx};
+  param.delay = final_DDS_time{cal_used_idx};
+  param.f0 = f0_list(freq_idx);
+  param.f1 = f1_list(freq_idx);
+  param.DDC_freq = (param.f0+param.f1)/2;
+  [param.wfs(1:2).tx_mask] = deal([0 0 0 0 0 0 0 0]);
+  param.fn = fullfile(NI_base_dir,sprintf('thinsurvey_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6,param.tg.Hice_thick));
+  write_cresis_xml(param);
+  if freq_idx == 2
+    % Default Mode
+    param.fn = fullfile(NI_base_dir,'default.xml');
+    write_cresis_xml(param);
+  end
+  % Loopback Mode without delay line
+  param.tg.staged_recording = false;
+  param.tg.altitude_guard = 1000*12*2.54/100;
+  param.tg.Haltitude = 0e-6 * c/2;
+  param.tg.Hice_thick = 0; % Long enough for 10 us delay line
+  param.fn = fullfile(NI_calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fus_LOOPBACK_NO_DELAY.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
+  write_cresis_xml(param);
+  % Loopback Mode (10e-6 delay line)
+  param.tg.staged_recording = false;
+  param.tg.altitude_guard = 1000*12*2.54/100;
+  param.tg.Haltitude = 10e-6 * c/2;
+  param.tg.Hice_thick = 0; % Long enough for 10 us delay line
+  param.fn = fullfile(NI_calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fus_LOOPBACK.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
+  write_cresis_xml(param);
+  % Deconvolution Mode (for over calm lake or sea ice lead)
+  param.wfs(1).atten = 43;
+  param.wfs(2).atten = 43;
+  param.tg.staged_recording = false;
+  param.tg.altitude_guard = 3000*12*2.54/100;
+  param.tg.Haltitude = 4000*12*2.54/100;
+  param.tg.Hice_thick = 0 * 12*2.54/100/sqrt(er_ice);
+  param.fn = fullfile(NI_calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_DECONV.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6));
+  write_cresis_xml(param);
+  if 1
+    % Noise Mode
+    param.tx_weights = [0 0 0 0 0 0 0 0];
+    [param.wfs(1:2).tx_mask] = deal([1 1 1 1 1 1 1 1]);
+    param.wfs(1).atten = 37;
+    param.wfs(2).atten = 0;
+    param.tg.staged_recording = [1 2];
+    param.tg.altitude_guard = 500*12*2.54/100;
+    param.tg.Haltitude = 1400*12*2.54/100;
+    param.tg.Hice_thick = 3250;
+    param.fn = fullfile(NI_calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fus_NOISE.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
+    write_cresis_xml(param);
+  end
+end
+
 %% Equalization (Using Ocean)
 % Haltitude +/- 2000 ft
 % For lower altitude, increase attenuation
@@ -233,7 +329,7 @@ attenuation = [62 45 43 61 55];
 fn_hint = {'WATER','ICE','NO_DELAY','WATER','WATER'};
 for Tpd_idx = 1:length(Tpd_list)
   Tpd = Tpd_list(Tpd_idx);
-  for freq_idx = [1]
+  for freq_idx = [2]
     param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
     param = merge_structs(param,param_defaults);
     param.arena = arena;
@@ -249,7 +345,7 @@ for Tpd_idx = 1:length(Tpd_list)
     cal_used_idx = -1;
     fc = abs(f0_list+f1_list)/2;
     for cal_idx = 1:length(final_cal_fc)
-      if abs(final_cal_fc(cal_idx) - fc) < 1e6
+      if abs(final_cal_fc(cal_idx) - fc(freq_idx)) < 1e6
         cal_used_idx = cal_idx;
         break;
       end
@@ -297,7 +393,7 @@ end
 ice_thickness = 3250;
 polarimetric_f0_list = f0_list;
 polarimetric_f1_list = f1_list;
-for freq_idx = 1
+for freq_idx = []
   param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
   param = merge_structs(param,param_defaults);
   param.arena = arena;
@@ -313,7 +409,7 @@ for freq_idx = 1
   cal_used_idx = -1;
   fc = abs(polarimetric_f0_list+polarimetric_f1_list)/2;
   for cal_idx = 1:length(final_cal_fc)
-    if abs(final_cal_fc(cal_idx) - fc) < 1e6
+    if abs(final_cal_fc(cal_idx) - fc(freq_idx)) < 1e6
       cal_used_idx = cal_idx;
       break;
     end
@@ -364,7 +460,7 @@ end
 % <3250 m thick ice, 1200 +/- 700 ft AGL
 % =========================================================================
 ice_thickness = 3250;
-for freq_idx = 1
+for freq_idx = []
   param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
   param = merge_structs(param,param_defaults);
   param.arena = arena;
@@ -380,7 +476,7 @@ for freq_idx = 1
   cal_used_idx = -1;
   fc = abs(f0_list+f1_list)/2;
   for cal_idx = 1:length(final_cal_fc)
-    if abs(final_cal_fc(cal_idx) - fc) < 1e6
+    if abs(final_cal_fc(cal_idx) - fc(freq_idx)) < 1e6
       cal_used_idx = cal_idx;
       break;
     end
@@ -420,7 +516,7 @@ end
 %% Image Mode (EGRIP Low Altitude, Thick Ice)
 % Ice thickness "param.tg.Hice_thick_min" m to "param.tg.Hice_thick" m, "param.tg.Haltitude" +/- "param.tg.altitude_guard" ft AGL
 % =========================================================================
-for freq_idx = 1
+for freq_idx = []
   param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'arena_base_dir',arena_base_dir);
   param = merge_structs(param,param_defaults);
   param.arena = arena;
@@ -436,7 +532,7 @@ for freq_idx = 1
   cal_used_idx = -1;
   fc = abs(f0_list+f1_list)/2;
   for cal_idx = 1:length(final_cal_fc)
-    if abs(final_cal_fc(cal_idx) - fc) < 1e6
+    if abs(final_cal_fc(cal_idx) - fc(freq_idx)) < 1e6
       cal_used_idx = cal_idx;
       break;
     end
