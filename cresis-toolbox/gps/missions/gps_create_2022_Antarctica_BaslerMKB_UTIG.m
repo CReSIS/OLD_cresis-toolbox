@@ -54,16 +54,27 @@ if strcmpi(gps_source_to_use,'utig')
 %   gps_source{file_idx} = 'utig-field';
 %   sync_flag{file_idx} = 0;
 
-  year = 2023; month = 1; day = 20;
-  datestr_year = 2023; datestr_month = 1; datestr_day = 20; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day),'ELSA'),'serial','','');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d_utig.mat', datestr_year, datestr_month, datestr_day);
-  date_str{file_idx} = sprintf('%04d%02d%02d', datestr_year, datestr_month, datestr_day);
-  file_type{file_idx} = 'utig';
-  params{file_idx} = struct('time_reference','utc');
-  gps_source{file_idx} = 'utig-field';
-  sync_flag{file_idx} = 0;
+%   year = 2023; month = 1; day = 20;
+%   datestr_year = 2023; datestr_month = 1; datestr_day = 20; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day),'ELSA'),'serial','','');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d_utig.mat', datestr_year, datestr_month, datestr_day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', datestr_year, datestr_month, datestr_day);
+%   file_type{file_idx} = 'utig';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'utig-field';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2023; month = 1; day = 25;
+%   datestr_year = 2023; datestr_month = 1; datestr_day = 25; % <--- UPDATE TO MATCH WHAT PREPROCESS PRINTS OUT
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day),'ELSA'),'serial','','');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d_utig.mat', datestr_year, datestr_month, datestr_day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', datestr_year, datestr_month, datestr_day);
+%   file_type{file_idx} = 'utig';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'utig-field';
+%   sync_flag{file_idx} = 0;
   
 elseif strcmpi(gps_source_to_use,'cresis')
   %% CReSIS GPS SOURCE

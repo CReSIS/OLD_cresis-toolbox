@@ -246,7 +246,7 @@ for wf = 1:4
   param.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16]; % ADC to rx path mapping
   param.radar.wfs(wf).gain_en = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; % Disable fast-time gain correction
   param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
-  param.radar.wfs(wf).Tadc_adjust = 0;
+  param.radar.wfs(wf).Tadc_adjust = -1.5e-6;
   param.radar.wfs(wf).bit_shifts = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
 end
 Tsys = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9;
