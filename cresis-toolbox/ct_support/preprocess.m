@@ -52,6 +52,7 @@ for config_idx = 1:numel(param.config.default)
   if isfield(param.config,'regexp')
     cparam.config.file.regexp = param.config.regexp{config_idx};
   end
+  cparam = merge_structs(cparam, param_override);
   
   %% Input checks
   % =========================================================================

@@ -669,6 +669,35 @@ for state_idx = 1:length(states)
                     missed_wf_adc = true;
                     break;
                   end
+                  if swap_bytes_en
+                    if swapbytes(typecast(file_data(total_offset+(1:8)),'uint64')) ~= 9187343241983295488
+                      % This record has a bad frame sync header so probably
+                      % contains bad data.
+                      missed_wf_adc = true;
+                      break;
+                    end
+                    if length(file_data) >= total_offset+24+radar_header_len+radar_profile_length+8 ...
+                        && swapbytes(typecast(file_data(total_offset+ 24 + radar_header_len + radar_profile_length +(1:8)),'uint64')) ~= 9187343241983295488
+                      % This record has a bad frame sync header so probably
+                      % contains bad data.
+                      missed_wf_adc = true;
+                      break;
+                    end
+                  else
+                    if typecast(file_data(total_offset+(1:8)),'uint64') ~= 9187343241983295488
+                      % This record has a bad frame sync header so probably
+                      % contains bad data.
+                      missed_wf_adc = true;
+                      break;
+                    end
+                    if length(file_data) >= total_offset+24+radar_header_len+radar_profile_length+8 ...
+                        && typecast(file_data(total_offset+ 24 + radar_header_len + radar_profile_length +(1:8)),'uint64') ~= 9187343241983295488
+                      % This record has a bad frame sync header so probably
+                      % contains bad data.
+                      missed_wf_adc = true;
+                      break;
+                    end
+                  end
                   found_mode_match = false;
                   for mode_idx = 1:length(mode)
                     if any(mode_latch_subchannel == mode(mode_idx)*2^8 + subchannel(mode_idx))

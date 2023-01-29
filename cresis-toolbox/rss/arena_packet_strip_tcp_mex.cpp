@@ -231,6 +231,7 @@ mexFunction( int nlhs,
       }
       hdr = hdr_tmp;
     }
+    unsigned int hdr_type = (*((unsigned int *)(hdr+8))) & 0x7FFFFFFF;
     memcpy(hdr+num_hdr*header_size,last_bytes,*last_bytes_len);
     memcpy(hdr+num_hdr*header_size+*last_bytes_len,data,header_size-*last_bytes_len);
     //mexPrintf("%d: %lld %d 0x%016llx\n", __LINE__, idx, num_hdr+1, ((unsigned long long int *)(hdr+num_hdr*header_size))[0]);
@@ -299,8 +300,12 @@ mexFunction( int nlhs,
         // num_expected is in units of samples, needs to be in units of bytes
         // num_expected_bins is in units of samples, no adjustment needed
         //   <<3 = *8, 2 IQ channels, 4 byte samples or 2*4 = 8
-        num_expected_bins = num_expected_bins >> 3;
-        //*num_expected = *num_expected << 3; // This line replaced the above line for temporary hack
+        if (hdr_type==45) {
+          // GHOST radar header
+          *num_expected = *num_expected << 3;
+        } else {
+          num_expected_bins = num_expected_bins >> 3;
+        }
         break;
     }
     if (num_expected_bins < *min_num_expected || num_expected_bins > *max_num_expected)
@@ -373,6 +378,8 @@ mexFunction( int nlhs,
           }
           hdr = hdr_tmp;
         }
+        unsigned int hdr_type = (*((unsigned int *)(data+idx+8))) & 0x7FFFFFFF;
+
         memcpy(hdr+num_hdr*header_size,(void*)(data+idx),header_size);
         // Uncomment next line for debugging
         //mexPrintf("%d: %lld %d 0x%016llx\n", __LINE__, idx, num_hdr+1, ((unsigned long long int *)(hdr+num_hdr*header_size))[0]);
@@ -419,8 +426,12 @@ mexFunction( int nlhs,
             // num_expected is in units of samples, needs to be in units of bytes
             // num_expected_bins is in units of samples, no adjustment needed
             //   <<3 = *8, 2 IQ channels, 4 byte samples or 2*4 = 8
-            num_expected_bins = num_expected_bins >> 3;
-            //*num_expected = *num_expected << 3; // This line replaced the above line for temporary hack
+            if (hdr_type==45) {
+              // GHOST radar header
+              *num_expected = *num_expected << 3;
+            } else {
+              num_expected_bins = num_expected_bins >> 3;
+            }
             break;
         }
         idx += 4 + *num_expected; // Skip to the end of the record
@@ -462,6 +473,9 @@ mexFunction( int nlhs,
               mexPrintf("  %d 0x%016llx\n", header_idx, ((unsigned long long int *)(hdr+(num_hdr-2)*header_size))[header_idx]);
             }
           }
+          // Remove the last header
+          mexPrintf("  Marking record %d as bad\n", num_hdr);
+          ((unsigned int *)(hdr+(num_hdr-1)*header_size))[0] = -2^31;
         }
         else
         {
