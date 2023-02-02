@@ -2097,14 +2097,14 @@ for dac_idx = 1:dacList.getLength
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           centerFreq = nodeList.item(0);
           centerFreq = centerFreq.getTextContent.toCharArray;
-          centerFreq = str2double(centerFreq(:).');
+          centerFreq = str2double(centerFreq(:).') * 1e6;
           configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.pulse{pulse_idx}.centerFreq = centerFreq;
           
           expression = xpath.compile('bandwidth');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           bandwidth = nodeList.item(0);
           bandwidth = bandwidth.getTextContent.toCharArray;
-          bandwidth = str2double(bandwidth(:).');
+          bandwidth = str2double(bandwidth(:).') * 1e6;
           configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.pulse{pulse_idx}.bandwidth = bandwidth;
           
           configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.pulse{pulse_idx}.initialDelay = 0;
