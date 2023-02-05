@@ -546,7 +546,7 @@ for config_idx = 1:length(configs)
         if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
           configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale = 1;
         else
-          scale(tx) = 0;
+          configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale = 0;
         end
       end
     end
@@ -646,7 +646,12 @@ for config_idx = 1:length(configs)
       for tx_paths_idx = 1:length(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx})
         if isfinite(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx))
           tx = oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx);
-          scale(tx) = configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx}.pulse{1}.scale;
+          if tx_paths_idx > length(configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs) ...
+              || isempty(configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx})
+            scale(tx) = 0;
+          else
+            scale(tx) = configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx}.pulse{1}.scale;
+          end
         end
       end
     end

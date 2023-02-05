@@ -351,7 +351,7 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).bit_shifts = [0 0 0 0 0 0 0 0];
-  default.radar.wfs(wf).tx_paths = {[1 2 3 4]}; % awg1-CH0-->ANT1, awg1-CH1-->ANT2, awg1-CH2-->ANT5, awg1-CH3-->ANT6
+  default.radar.wfs(wf).tx_paths = {[1 2 3 4 5 6]}; % awg1-CH0-->ANT1, awg1-CH1-->ANT2, awg1-CH2-->ANT5, awg1-CH3-->ANT6
   default.radar.wfs(wf).DDC_dec = 4;
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+1200]';
