@@ -1,3 +1,4 @@
+function run_load_data(varargin)
 % Script run_load_data
 %
 % Several examples of using load_data
@@ -6,7 +7,18 @@
 %
 % See also load_data, pulse_compress, sim.input_full_sim
 
-run_example = 7;
+param_fn = [];
+
+switch nargin
+  case 1
+    run_example = varargin{1};
+  case 2
+    run_example = varargin{1};
+    param_fn = varargin{2};
+  otherwise
+    run_example = 1;
+end
+
 clear data;
 
 if run_example == 1
@@ -16,16 +28,18 @@ if run_example == 1
   %    freq-wavenumber domains
   % =======================================================================
   
-  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181014_02');
+%   param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181014_02');
+  param = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'20120330_04');
   
   % Determine which records you want to load:
   frames = frames_load(param);
-  frm = 1;
+  frm = 62;
   param.load_data.recs = frames.frame_idxs(frm) + 0 + [0 0];
   
   %   param.load_data.imgs = {[-1j 5]};
   %   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14; 2 15; 2 16]};
   param.load_data.imgs                  = {[2 5]};
+  param.load_data.imgs                  = {[1 1]};
   param.load_data.pulse_comp            = false;
   param.load_data.raw_data              = false;
   %param.load_data.ft_wind               = @hanning;
@@ -702,14 +716,21 @@ elseif run_example == 7
   
   [c, WGS84] = physical_constants('c', 'WGS84');
   
-  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
-  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
-  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
-  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
-  %   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
-  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+  if isempty(param_fn)
+    % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
+    % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
+    % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
+    % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
+    % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
+    param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+    param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+  end
   
   load(param_fn);
+  
+  param.radar.wfs(1).tukey = 0;
+  param.radar.wfs(2).tukey = 0;
+  %param.radar.wfs(3).tukey = 0;
   
   %% FullSim load data
   
@@ -723,6 +744,23 @@ elseif run_example == 7
     for wf_adc = 1:size(param.load_data.imgs{img},1)
       wf = param.load_data.imgs{img}(wf_adc,1);
       adc = param.load_data.imgs{img}(wf_adc,2);
+      %       rx = param.radar.wfs(wf).rx_paths(adc);
+      %%
+      alpha_oversampling = param.radar.fs / abs(diff(param.radar.wfs(wf).BW_window))
+      TBP = abs(diff(param.radar.wfs(wf).BW_window)) * param.radar.wfs(wf).Tpd
+      N_cycles = TBP/4
+      N_zero_xings = TBP/2
+      
+      IRW_or_Resolution_3db = [1 0.886]./ (abs(diff(param.radar.wfs(wf).BW_window)));
+      Compression_Ratio = TBP./ [1 0.886]
+      
+      %window_broadening_factor, beta = 0 (rectangular)
+      IRW_broadening_factor = 1.18 % for PSLR of -21 dB (beta = 2.5);
+      
+      IRW_or_Resolution_3db_w_windowing = [1 0.886] .* IRW_broadening_factor ./ (abs(diff(param.radar.wfs(wf).BW_window)))
+      
+      alpha_oversampling_check = IRW_or_Resolution_3db_w_windowing * param.radar.fs
+           
       
       %% FullSim hdr checks
       
@@ -800,14 +838,15 @@ elseif run_example == 7
       
       if 1
         
-        oversample = 32;
+        oversample = 1;
         NOS = oversample * size(data,1);
         % To reduce steps in time(data max in each rline) vs expected TWTT
         data    = interpft(data, NOS, 1); % Oversample in fast-time
         
         % figure; plot(time, ones(size(time)),'s'); hold on
-        dt    = ( time(2)-time(1) ) /oversample;
-        time  = time(1) + dt * (0:NOS-1)';
+        dt = time(2)-time(1);
+        dt_OS = dt /oversample;
+        time  = time(1) + dt_OS * (0:NOS-1)';
         % plot(time, ones(size(time)),'.-');
         
         % figure; plot(freq, ones(size(freq)),'s'); hold on
@@ -834,12 +873,7 @@ elseif run_example == 7
       [Nt,Nx] = size(data);
       x       = 1:Nx;
       
-      % To compare data_max with expected phase
-      wave_number = 4*pi/ (c/hdr.param_load_data.radar.wfs(wf).fc);
-      expected_phase = exp(1i * wave_number * bsxfun(@plus, -range, range(twtt_min_idx)) );
-      % expected phase is data dependent % find the reason for this offset
-      %   expected_phase = exp(1i * wave_number * (-range + range(twtt_min_idx)) ) * data_max(twtt_min_idx);
-      
+      %% FullSim Time Domain
       for compressing_this = 1  %continue; % FullSim Time Domain
         
         if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
@@ -887,6 +921,7 @@ elseif run_example == 7
         
       end % for compressing_this % FullSim Time Domain
       
+      %% FullSim Freq Domain
       for compressing_this = 1  %continue; % FullSim Freq Domain
         
         if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
@@ -917,7 +952,17 @@ elseif run_example == 7
         
       end % for compressing_this % FullSim Freq Domain
       
-      for compressing_this = 1  %continue; % FullSim Time Phase checks
+      %% FullSim Time checks
+      for compressing_this = 1  %continue; % FullSim Time checks
+        
+        time_error = time(data_max_idx) - twtt.';
+        if any(abs(time_error)>dt)
+          warning('Time+Phase Analysis found something bad.. Breaking bad!!');
+        end
+        
+        err_ceil = time_error>=0;
+        err_floor = time_error<0;
+        err_bars = dt.*(err_ceil - err_floor);
         
         if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
           continue;
@@ -926,30 +971,36 @@ elseif run_example == 7
         call_sign = sprintf('FullSim Time Phase checks wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
         fig_h = figure('Name',fig_title);
+        
         subplot(311);
-        plot(x, time(data_max_idx)/1e-6, '.-'); hold on;
+        plot(x, time(data_max_idx)/1e-6, '.-b'); hold on;
         plot(x, twtt.'/1e-6, 's')
         xlabel('Along-track position, rlines');
         ylabel('Fast-time, us');
         legend('fast-time(max(data))', 'TWTT');
         grid on; axis tight;
         title('Time checks');
+        
         subplot(312);
-        plot(x, unwrap(angle(data_max)),'.'); hold on;
-        plot(x, unwrap(angle(expected_phase.')),'s');
+        plot(x, time_error/1e-9, '.-b'); hold on;
+        plot(x, dt*err_ceil/1e-9, '-');
+        plot(x, -dt*err_floor/1e-9, '-');
         xlabel('Along-track position, rlines');
-        ylabel('Radians');
-        legend('UnwrapPhase(max(data))', 'Expected');
+        ylabel('Fast-time [+dt, -dt], ns');
+        legend('fast-time(max(data)) - TWTT','ceil (+dt)','floor (-dt)');
         grid on; axis tight;
-        title('Phase Checks');
+        title(sprintf('Time error for dt = %0.3f ns',dt/1e-9));
+       
         subplot(313);
-        plot(x, angle(data_max),'.'); hold on;
-        plot(x, angle(expected_phase.'),'s');
+        hold on;
+        errorbar(x, twtt.'/1e-6, -dt*err_floor/1e-6, dt*err_ceil/1e-6, [], [], ":.g");
+        plot(x, time(data_max_idx)/1e-6, '.-b'); 
         xlabel('Along-track position, rlines');
-        ylabel('Radians');
-        legend('Phase(max(data))', 'Expected');
+        ylabel('Fast-time, us');
+        legend('TWTT error bars', 'fast-time(max(data))');
         grid on; axis tight;
-        title('Phase Checks');
+        title('Time error bars');
+        
         try
           sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
         end
@@ -957,8 +1008,66 @@ elseif run_example == 7
         set(fig_h, 'Position', get(0, 'Screensize'));
         %     print(gcf, '-dpng', fig_title, '-r300');
         
-      end % for compressing_this % FullSim Time Phase checks
+      end % for compressing_this % FullSim Time checks
       
+      %% FullSim Phase checks
+      for compressing_this = 1  %continue; % FullSim Phase checks
+        
+        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
+          continue;
+        end
+        
+        % To compare data_max with expected phase
+        wave_number = 2*pi/ (c/hdr.param_load_data.radar.wfs(wf).fc);
+        expected_phase = exp(1i * wave_number * bsxfun(@plus, -range, range(twtt_min_idx)) );
+        expected_phase = exp(1i * wave_number * bsxfun(@plus, -range, 0) );
+        % expected phase is data dependent % find the reason for this offset
+        %   expected_phase = exp(1i * wave_number * (-range + range(twtt_min_idx)) ) * data_max(twtt_min_idx);
+        phase_error = angle(data_max) - angle(expected_phase);
+        phase_error_unwrap = unwrap(angle(data_max)) - unwrap(angle(expected_phase));
+        
+        corrected_phase = exp(1i * hdr.param_load_data.radar.wfs(wf).fc * time_error );
+        
+        call_sign = sprintf('FullSim Phase checks wfs_%02d_adc_%02d',wf,adc);
+        fig_title = sprintf('%s_%s',mfilename, call_sign);
+        fig_h = figure('Name',fig_title);
+        
+        subplot(311);
+        plot(x, unwrap(angle(data_max)),'.'); hold on;
+        plot(x, unwrap(angle(expected_phase.')),'s');
+        plot(x, unwrap(angle(expected_phase.' ./ corrected_phase)),'o');
+        xlabel('Along-track position, rlines');
+        ylabel('Radians');
+        legend('UnwrapPhase(max(data))', 'Expected', 'Corrected');
+        grid on; axis tight;
+        
+        subplot(312);
+        plot(x, angle(data_max),'.'); hold on;
+        plot(x, angle(expected_phase.'),'s');
+        plot(x, angle(expected_phase.' ./ corrected_phase),'o');
+        xlabel('Along-track position, rlines');
+        ylabel('Radians');
+        legend('Phase(max(data))', 'Expected', 'Corrected');
+        grid on; axis tight;
+        
+        subplot(313);
+        plot(x, unwrap(angle(data_max)),'.'); hold on;
+        plot(x, unwrap(angle(expected_phase.')),'s');
+        xlabel('Along-track position, rlines');
+        ylabel('Radians');
+        legend('UnwrapPhase(max(data))', 'Expected', 'Corrected');
+        grid on; axis tight;
+        
+        try
+          sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+        end
+        set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+        set(fig_h, 'Position', get(0, 'Screensize'));
+        %     print(gcf, '-dpng', fig_title, '-r300');
+        
+      end % for compressing_this % FullSim Phase checks
+      
+      %% FullSim TD FD windows
       for compressing_this = 1  %continue; % FullSim TD FD windows
         
         if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4

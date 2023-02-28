@@ -141,18 +141,23 @@ for state_idx = 1:length(states)
   elseif param.records.file.version == 1000
     % for the full simulator
     raw_data_file = load(param.sim.out_fn_raw_data); % has raw_data and param
-%     wf = 1;
-%     img = 1;
-    data = raw_data_file.raw_data;
-%     hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
-%     hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};
-%     hdr.nyquist_zone_signal{img}  = raw_data_file.hdr.nyquist_zone_signal{img};
-%     hdr.DDC_dec{img}              = raw_data_file.hdr.DDC_dec{img};
-%     hdr.DDC_freq{img}             = raw_data_file.hdr.DDC_freq{img};
-%     hdr.Nt{img}                   = raw_data_file.hdr.Nt{img};
-%     hdr.t0_raw{img}               = raw_data_file.hdr.t0_raw{img};
-%     hdr.t_ref{img}                = raw_data_file.hdr.t_ref{img};
     
+    for img = 1:length(param.load.imgs)
+      for wf_adc = 1:size(param.load.imgs{img},1)
+        wf = param.load.imgs{img}(wf_adc,1);
+        adc = param.load.imgs{img}(wf_adc,2);
+        
+        data{img}(1:Nt{img}(1),:,wf_adc) = raw_data_file.raw_data{img}(:, param.load.recs(1):param.load.recs(end), wf_adc);
+        %     hdr.bad_rec{img}              = raw_data_file.hdr.bad_rec{img};
+        %     hdr.nyquist_zone_hw{img}      = raw_data_file.hdr.nyquist_zone_hw{img};
+        %     hdr.nyquist_zone_signal{img}  = raw_data_file.hdr.nyquist_zone_signal{img};
+        %     hdr.DDC_dec{img}              = raw_data_file.hdr.DDC_dec{img};
+        %     hdr.DDC_freq{img}             = raw_data_file.hdr.DDC_freq{img};
+        %     hdr.Nt{img}                   = raw_data_file.hdr.Nt{img};
+        %     hdr.t0_raw{img}               = raw_data_file.hdr.t0_raw{img};
+        %     hdr.t_ref{img}                = raw_data_file.hdr.t_ref{img};
+      end
+    end
     rec = total_rec+1;
     
   else

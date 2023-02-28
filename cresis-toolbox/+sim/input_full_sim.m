@@ -1,3 +1,4 @@
+function param_fn = input_full_sim()
 % Script sim.input_full_sim
 %
 % Generates simulated data from an extracted flightline
@@ -7,7 +8,10 @@
 %
 % See also sim.run_full_sim sim.flightline_extract, run_load_data (example 7)
 
-try; hara; end;
+% try; hara; end;
+
+param_fn = [];
+global gRadar;
 
 param=[];
 data = [];
@@ -45,12 +49,12 @@ records = [];
 % param.sim.imgs        = {[1 5]};
 % param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 
-param.sim.radar_name  = 'rds';
-param.sim.season_name = '2014_Greenland_P3';
-param.sim.day_seg     = '20140410_01';
-param.sim.frame_idx   = [];
-param.sim.imgs        = {[1 5]};
-param.sim.imgs        = {[1 5], [2 5] , [3 5]};
+% param.sim.radar_name  = 'rds';
+% param.sim.season_name = '2014_Greenland_P3';
+% param.sim.day_seg     = '20140410_01';
+% param.sim.frame_idx   = 1;
+% param.sim.imgs        = {[1 5]};
+% param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 % %
 % param.sim.imgs        = {[ones(3,1), (4:6).'], [2*ones(3,1), (4:6).'] , [3*ones(3,1), (4:6).']};
 % param.sim.imgs        = {[ones(3,1), (4:6).']};
@@ -61,6 +65,34 @@ param.sim.imgs        = {[1 5], [2 5] , [3 5]};
 % param.sim.day_seg     = '20180429_01';
 % param.sim.imgs        = {[1 9]};
 % param.sim.imgs        = {[1 9], [3 9], [5 9]};
+
+if 0
+  param.sim.radar_name  = 'rds';
+  param.sim.season_name = '2014_Greenland_P3';
+  param.sim.day_seg     = '20140502_01';
+  param.sim.frame_idx   = 41;
+  if 0
+    param.sim.imgs        = {[1 10]};
+  else
+    channels = [2:16];
+    N_channels = length(channels);
+    param.sim.imgs        = {[ones([N_channels, 1]), channels.'], [2*ones([N_channels, 1]), channels.'], [3*ones([N_channels, 1]), channels.']};
+  end
+end
+
+if 1
+  param.sim.radar_name  = 'rds';
+  param.sim.season_name = '2012_Greenland_P3';
+  param.sim.day_seg     = '20120330_03';
+  param.sim.frame_idx   = 8;
+  if 0
+    param.sim.imgs        = {[1 5]};
+  else
+    channels = [2:16];
+    N_channels = length(channels);
+    param.sim.imgs        = {[ones([N_channels, 1]), channels.'], [2*ones([N_channels, 1]), channels.']};
+  end
+end
 
 % =========================================================================
 % Optional
@@ -87,6 +119,14 @@ if 1
   param.target.offsets.z = -base2dec('KU', 36); % about  5 us TWTT for 750 meter
   % param.target.offsets.z = -base2dec('157', 36); % about 9.89 us TWTT for 1483 meter
   
+elseif 1
+  % Northward flight instead of actual trajectory
+  % multiple targets in the center rline
+  param.sim.north_along_track_en = 1;
+  param.target.offsets.x = @(Lsar) [Lsar/2; Lsar/2; Lsar/2];  % for any distance <Lsar
+  param.target.offsets.y = [0; 0; 0];
+  param.target.offsets.z = -base2dec({'KU';'157';'17A'}, 36);
+  % about 5 us TWTT for 750 meter, 9.89 us TWTT for 1483 meter, 1558 meter
   
 elseif 0
   % Northward flight instead of actual trajectory
@@ -122,7 +162,7 @@ fprintf('=====================================================================\n
 
 if ~exec_good
   fprintf('flightline_extract executed incompletely\n');
-  return;
+  keyboard;
 else
   fprintf('(%s) FullSim Flightline \t--EXTRACTED\n',  datestr(now));
   fprintf('=====================================================================\n');
@@ -165,6 +205,10 @@ for img = 1:length(param.sim.imgs)
     adc = param.sim.imgs{img}(wf_adc,2);
     rx = param.radar.wfs(wf).rx_paths(adc);
     
+    if ~isfinite(rx)
+      continue;
+    end
+    
     % Create actual trajectory #### from data_load %% Create traj
     trajectory_param = struct('gps_source',records.gps_source, ...
       'season_name',param.season_name,'radar_name',param.radar_name, ...
@@ -182,45 +226,47 @@ for img = 1:length(param.sim.imgs)
       legend(leg_str);
     end
     
-    % for phase centers
-    lever_arm_val = [+1; -1; -1] .* lever_arm_val;
-    xx = lever_arm_val(1);
-    yy = lever_arm_val(2);
-    zz = lever_arm_val(3);
-    
-    % figure('Name', 'Phase Centers'); hold on;
-    %permute( [max(param.la.pc(1,:,:)) - min(param.la.pc(1,:,:))]/10 ,[3,2,1])
-    if img == 1 &&  wf_adc == 1
-      h_fig = get(groot, 'Children');
-      h_fig = figure(h_fig(find(strcmpi({h_fig.Name}, 'Phase Centers'),1)));
-      %set(gca,'ColorOrderIndex',1);
-      marker_color = colororder; % get 7x3 (colors)x(RGB)
-      marker_color = zeros(7,3);
-      marker_color_N = size(marker_color,1);
+    try
+      % for phase centers
+      lever_arm_val = [+1; -1; -1] .* lever_arm_val;
+      xx = lever_arm_val(1);
+      yy = lever_arm_val(2);
+      zz = lever_arm_val(3);
+      
+      % figure('Name', 'Phase Centers'); hold on;
+      %permute( [max(param.la.pc(1,:,:)) - min(param.la.pc(1,:,:))]/10 ,[3,2,1])
+      if ~exist('h_fig', 'var')
+        % if img == 1 &&  wf_adc == 1
+        h_fig = get(groot, 'Children');
+        h_fig = figure(h_fig(find(strcmpi({h_fig.Name}, 'Phase Centers'),1)));
+        %set(gca,'ColorOrderIndex',1);
+        marker_color = colororder; % get 7x3 (colors)x(RGB)
+        marker_color = zeros(7,3);
+        marker_color_N = size(marker_color,1);
+      end
+      
+      figure(h_fig);
+      marker_color_idx = rem(rx-1, 7) +1; % fixed color for a rx path
+      subplot(221);
+      plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
+      subplot(222); hold on;
+      plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
+      subplot(223); hold on;
+      plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
+      subplot(224); hold on;
+      plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
+      text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
     end
-    
-    figure(h_fig);
-    marker_color_idx = rem(rx-1, 7) +1; % fixed color for a rx path
-    subplot(221);
-    plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
-    text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
-    subplot(222); hold on;
-    plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
-    text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
-    subplot(223); hold on;
-    plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
-    text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
-    subplot(224); hold on;
-    plot3(xx,yy,zz, '+', 'Color', marker_color(marker_color_idx,:), 'LineWidth', 1.5);
-    text(xx+0.0004,yy,zz-0.03, sprintf('%d',rx), 'FontSize',8, 'Color', marker_color(marker_color_idx,:) );
-    
     
     time_raw    = wfs(wf).time_raw;
     Tpd         = wfs(wf).Tpd;
     f0          = wfs(wf).f0;
     fc          = wfs(wf).fc;
     chirp_rate  = wfs(wf).chirp_rate;
-    rx_tukey    = wfs(wf).tukey;
+    rx_tukey    = 0; %wfs(wf).tukey;
     fs          = param.radar.fs;
     dt          = 1/fs;
     if ( time_raw(2)-time_raw(1) ) - 1/fs > 1e-18
@@ -255,14 +301,17 @@ for img = 1:length(param.sim.imgs)
       % atan2d range =[-180, 180], but num>=0 because of vecnorm
       % atan2d range in this case = [0, 180];
       theta_num     = vecnorm( cross(-fcs.Z.', squeeze(vect_target(tgt,:,:)), 2), 2, 2);
-      phi_num       = vecnorm( cross(+fcs.Y.', squeeze(vect_target(tgt,:,:)), 2), 2, 2);
-      gamma_num     = vecnorm( cross(+fcs.X.', squeeze(vect_target(tgt,:,:)), 2), 2, 2);
       theta_den     = dot(-fcs.Z.', squeeze(vect_target(tgt,:,:)), 2);
-      phi_den       = dot(+fcs.Y.', squeeze(vect_target(tgt,:,:)), 2);
-      gamma_den     = dot(+fcs.X.', squeeze(vect_target(tgt,:,:)), 2);
       theta(tgt,:)  = atan2d(theta_num, theta_den);
+      clear theta_num theta_den;
+      phi_num       = vecnorm( cross(+fcs.Y.', squeeze(vect_target(tgt,:,:)), 2), 2, 2);
+      phi_den       = dot(+fcs.Y.', squeeze(vect_target(tgt,:,:)), 2);
       phi(tgt,:)    = atan2d(phi_num, phi_den);
+      
+      gamma_num     = vecnorm( cross(+fcs.X.', squeeze(vect_target(tgt,:,:)), 2), 2, 2);
+      gamma_den     = dot(+fcs.X.', squeeze(vect_target(tgt,:,:)), 2);
       gamma(tgt,:)  = atan2d(gamma_num, gamma_den);
+      
     end
     
     clear fcs vect_target theta_num phi_num theta_den phi_den
@@ -413,7 +462,10 @@ else
   fprintf('=====================================================================\n');
 end
 
+param_fn = param.fn;
+
 %% FIGURES (work best for single target case)
+% return;
 
 if strcmpi(param.target.type, 'point')
   point_target = 1;

@@ -95,11 +95,12 @@ end
 
 % override default variables in frames
 if isfield(param.sim,'frame_idx') && ~isempty(param.sim.frame_idx) % select frame
-  frames.frame_idxs = param.sim.frame_idx;
+%   param.sim.frame_idx = 1; %%% needs a revamp, how to deal with overlapping frames
 else
   param.sim.frame_idx = 1;
-  frames.frame_idxs = 1;
 end
+
+frames.frame_idxs = 1;
 frames.nyquist_zone = NaN; %1
 frames.proc_mode = 0;
 frames.quality = 1;
@@ -211,6 +212,7 @@ for wf = 1:length(wfs)
     % 10*log10(Pt*Gt*Gr*lambda_c^2 / (8*pi)^2 * Z0)
     lambda_c = c * 2 / (wfs(wf).f0+wfs(wf).f1) ;
     wfs(wf).system_dB = 10*log10( 7000*1*1* lambda_c^2 / (8*pi)^2 * 50);
+    % For 7-tx P3 platform
   end
   
   % override because we load simulated data direcly in data_load.m

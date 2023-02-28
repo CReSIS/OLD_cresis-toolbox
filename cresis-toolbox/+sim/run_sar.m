@@ -9,22 +9,29 @@ function run_sar(varargin)
 % See also: run_master.m, master.m, run_sar.m, sar.m, sar_task.m,
 %   sar_coord_task.m
 
+param_fn = [];
+
 switch nargin
   case 1
     run_en = varargin{1};
+  case 2
+    run_en = varargin{1};
+    param_fn = varargin{2};
   otherwise
     run_en = 0;
 end
 
 %% User Setup
 % =====================================================================
-
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
-param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+if isempty(param_fn)
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+end
 
 % Load parameters from the mat file
 load(param_fn);
@@ -32,9 +39,16 @@ load(param_fn);
 %  Overrides
 param_override = [];
 param_override.sar.imgs           = param.sim.imgs;
-param_override.sar.sigma_x        = 5; %2*param.sar.sigma_x;
-% param_override.sar.surf_filt_dist = 300; % default 3000m
-% param_override.sar.chunk_len      = 250; % default 2500m
+if 0
+  param_override.sar.sigma_x        = 5; %2*param.sar.sigma_x;
+  param_override.sar.surf_filt_dist = 50; % default 3000m
+  param_override.sar.chunk_len      = 50; % default 2500m
+else
+  param_override.sar.sigma_x        = param.sar.sigma_x;
+  param_override.sar.surf_filt_dist = 3000; % default 3000m
+  param_override.sar.chunk_len      = 2500; % default 2500m
+end
+
 param_override.sar.wf_adc_pair_task_group_method = 'board'; % default 'img'
 % default 'img' causes error  in DDC in data_pulse_compress because if the
 % simulation uses more than 1 image, then the second image in simulation

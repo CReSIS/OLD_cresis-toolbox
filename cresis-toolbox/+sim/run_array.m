@@ -9,22 +9,29 @@ function run_array(varargin)
 % See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
 % array_proc.m, array_task.m, array_combine_task.m
 
+param_fn = [];
+
 switch nargin
   case 1
     run_en = varargin{1};
+  case 2
+    run_en = varargin{1};
+    param_fn = varargin{2};
   otherwise
     run_en = 0;
 end
 
 %% User Setup
 % =====================================================================
-
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
-% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
-param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+if isempty(param_fn)
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2012_Greenland_P3sim/20120330/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2013_Greenland_P3sim/20130327/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/snow/2018_Antarctica_DC8sim/20181010/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140325/param.mat';
+  % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+end
 
 % Load parameters from the mat file
 load(param_fn);
@@ -32,8 +39,14 @@ load(param_fn);
 %  Overrides
 param_override = [];
 param_override.array.imgs           = param.sim.imgs;
-% param_override.sar.surf_filt_dist = 10; % default 3000m
-% param_override.array.chunk_len      = 250; % default 2500m
+
+if 0
+  param_override.sar.surf_filt_dist   = 50; % default 3000m
+  param_override.array.chunk_len      = 50; % default 2500m
+else
+  param_override.sar.surf_filt_dist   = 3000; % default 3000m
+  param_override.array.chunk_len      = 2500; % default 2500m
+end
 
 param_override.sar.imgs             = param.sim.imgs;
 
@@ -90,7 +103,8 @@ else
   [c, WGS84] = physical_constants('c', 'WGS84');
   
   if isfield(param.sim,'frame_idx')
-    frm = param.sim.frame_idx;
+    %     frm = param.sim.frame_idx;
+    frm = 1;
   else
     frm = 1;
   end
@@ -119,7 +133,7 @@ else
   for idx = 1:N_imgs+1
     img = idx-1;
     
-    if img == 0 % Combined image
+    if img == 0 || N_imgs ==1 % Combined image
       out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', param.day_seg, frm));
       full = load(out_fn);
       
