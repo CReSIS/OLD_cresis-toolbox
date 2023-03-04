@@ -47,11 +47,19 @@ GearthMassProd = 398600.5e9;
 
 % WGS84 ellipsoid parameters [semimajor sqrt(e2)] for geodetic2ecef
 WGS84.semimajor = 6378137;
-WGS84.semiminor = 6356752.314245;
+WGS84.semiminor = 6356752.31424518;
 WGS84.flattening = 298.257223563;
-% WGS84.eccentricity = sqrt(0.00669437999013);
-WGS84.eccentricity = 0.081819190842552;
+WGS84.eccentricity = 0.0818191908426215;
 WGS84.ellipsoid = [WGS84.semimajor WGS84.eccentricity];
+WGS84.spheroid = wgs84Ellipsoid('meter');
+% wgs84Ellipsoid = referenceEllipsoid with defining properties:
+%                  Code: 7030
+%                  Name: 'WGS 84'
+%            LengthUnit: 'meter'
+%         SemimajorAxis: 6378137
+%         SemiminorAxis: 6356752.31424518
+%     InverseFlattening: 298.257223563
+%          Eccentricity: 0.0818191908426215
 
 % GRS80 ellipsoid parameters [semimajor sqrt(e2)] for geodetic2ecef
 GRS80.semimajor = 6378137;

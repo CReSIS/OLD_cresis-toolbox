@@ -212,7 +212,7 @@ fseek(fid,0,1);
 hdr.file_size = ftell(fid);
 
 if hdr.rec_size ~= median(diff(hdr.sync_offsets))/2
-  error('Estimated header size is wrong');
+  error('Estimated header size (%d) does not appear to match the header size found in the file (%d)', hdr.rec_size, median(diff(hdr.sync_offsets))/2);
   % keyboard;
   % For badly recorded files (e.g. DDS settings not matching ADC settings)
   % you can try uncommenting the following line:

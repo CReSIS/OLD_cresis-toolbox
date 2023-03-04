@@ -1,7 +1,7 @@
 function [est_heading,along_track,speed,origin,x,y,z,pos] = trajectory_coord_system(gps)
 % [est_heading,along_track,speed,origin,x,y,z,pos] = trajectory_coord_system(gps)
 
-physical_constants;
+physical_constants; % Load WGS84.spheroid
 
 %% Along-track vector
 along_track = geodetic_to_along_track(gps.lat,gps.lon,gps.elev);
@@ -22,17 +22,17 @@ for rline_idx = 1:length(rlines)-1
   end
   
   %% Estimate heading
-  [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
-  [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.lat(rline_end)/180*pi,gps.lon(rline_end)/180*pi,gps.elev(rline_end),WGS84.ellipsoid);
+  [origin(1),origin(2),origin(3)] = geodetic2ecef(WGS84.spheroid,gps.lat(rline),gps.lon(rline),gps.elev(rline));
+  [heading(1),heading(2),heading(3)] = geodetic2ecef(WGS84.spheroid,gps.lat(rline_end),gps.lon(rline_end),gps.elev(rline_end));
   heading = heading - origin;
   % Determine east vector
-  [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+  [east(1) east(2) east(3)] = enu2ecef(1,0,0,gps.lat(rline),gps.lon(rline),gps.elev(rline),WGS84.spheroid);
   east = east - origin;
   % Determine north vector
-  [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+  [north(1) north(2) north(3)] = enu2ecef(0,1,0,gps.lat(rline),gps.lon(rline),gps.elev(rline),WGS84.spheroid);
   north = north - origin;
   % Determine up vector
-  [up(1) up(2) up(3)] = lv2ecef(0,0,1,gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+  [up(1) up(2) up(3)] = enu2ecef(0,0,1,gps.lat(rline),gps.lon(rline),gps.elev(rline),WGS84.spheroid);
   up = up - origin;
   % Determine heading (North is zero, positive towards east)
   est_heading(rline:rline_end) = pi/2-atan2(dot(north,heading),dot(east,heading));
@@ -53,7 +53,7 @@ end
 
 %% Complete local coordinate system: origin, pos
 origin = zeros(3,length(gps.lat));
-[origin(1,:),origin(2,:),origin(3,:)] = geodetic2ecef(gps.lat*(pi/180),gps.lon*(pi/180),gps.elev,WGS84.ellipsoid);
+[origin(1,:),origin(2,:),origin(3,:)] = geodetic2ecef(WGS84.spheroid,gps.lat,gps.lon,gps.elev);
 pos = zeros(3,length(gps.lat));
 
 %% Calculate speed and interpolate heading through low-speed sections
