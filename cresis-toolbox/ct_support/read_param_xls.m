@@ -61,7 +61,8 @@ warning('on','MATLAB:xlsread:Mode');
 if exist('day_seg_filter','var') && ~isempty(day_seg_filter)
   good_mask = logical(zeros(size(params)));
   for idx = 1:length(params)
-    if ~isempty(regexp(params(idx).day_seg, day_seg_filter))
+    %if ~isempty(regexp(params(idx).day_seg, day_seg_filter))
+    if any(~cellfun(@isempty,regexp(params(idx).day_seg, day_seg_filter)))
       good_mask(idx) = 1;
     end
   end

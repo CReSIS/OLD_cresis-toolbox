@@ -9,6 +9,11 @@ function run_sar(varargin)
 % See also: run_master.m, master.m, run_sar.m, sar.m, sar_task.m,
 %   sar_coord_task.m
 
+% =========================================================================
+fprintf('=====================================================================\n');
+fprintf('%s: (%s)\n', mfilename, datestr(now));
+fprintf('=====================================================================\n');
+
 param_fn = [];
 
 switch nargin
@@ -31,15 +36,18 @@ if isempty(param_fn)
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20120330/param.mat';
 end
 
 % Load parameters from the mat file
+fprintf('(%s) param_fn: %s\n Loading \t', datestr(now), param_fn);
 load(param_fn);
+fprintf('-- Loaded\n');
 
 %  Overrides
 param_override = [];
 param_override.sar.imgs           = param.sim.imgs;
-if 0
+if 1
   param_override.sar.sigma_x        = 5; %2*param.sar.sigma_x;
   param_override.sar.surf_filt_dist = 50; % default 3000m
   param_override.sar.chunk_len      = 50; % default 2500m
@@ -60,9 +68,9 @@ param_override.sar.start_eps = 1; % for now
 
 
 % dbstop if error;
-% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.type = 'slurm';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;

@@ -724,9 +724,13 @@ elseif run_example == 7
     % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
     param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
     param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+    param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20120330/param.mat';
   end
   
+  % Load parameters from the mat file
+  fprintf('(%s) param_fn: %s\n Loading \t', datestr(now), param_fn);
   load(param_fn);
+  fprintf('-- Loaded\n');
   
   param.radar.wfs(1).tukey = 0;
   param.radar.wfs(2).tukey = 0;
@@ -762,7 +766,7 @@ elseif run_example == 7
       alpha_oversampling_check = IRW_or_Resolution_3db_w_windowing * param.radar.fs
            
       
-      %% FullSim hdr checks
+      %% FullSim hdr
       
       % Expected values for traj, range, twtt, time axis
       traj = hdr.records{img};
@@ -792,47 +796,7 @@ elseif run_example == 7
       if any(test_twtt(:)); warning('!!! twtt mismatch sum:%f ns\n', sum(abs(test_twtt(:)))/1e-9); end
       if any(test_time(:)); warning('!!! time mismatch sum:%f ns\n', sum(abs(test_time(:)))/1e-9); end
       
-      for compressing_this = 1  %continue; % FullSim hdr checks
-        
-        if 1 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
-          continue;
-        end
-        
-        call_sign = sprintf('FullSim hdr checks wfs_%02d_adc_%02d',wf,adc);
-        fig_title = sprintf('%s_%s',mfilename, call_sign);
-        fig_h = figure('Name',fig_title);
-        subplot(131);
-        plot(param.traj{img,wf_adc}.lon, param.traj{img,wf_adc}.lat, 'x'); hold on; grid on;
-        plot(traj.lon, traj.lat, 'o');
-        plot(param.gps.lon, param.gps.lat, '+', 'LineWidth', 2);
-        xlabel('Longitude, Degrees');
-        ylabel('Latitude, Degrees');
-        legend('Simulated', 'Loaded', 'Reference');
-        title('Trajectories');
-        subplot(132);
-        plot(param.sim.range{img,wf_adc}.', '.'); hold on; grid on;
-        plot(range.', 'o');
-        xlabel('Along-track position, rlines');
-        ylabel('Range, meters');
-        legend('... Simulated', 'ooo Calculated');
-        title('Range to target');
-        subplot(133);
-        plot(param.sim.twtt{img,wf_adc}.'./1e-6, '.'); hold on; grid on;
-        plot(twtt.'./1e-6, 'o');
-        xlabel('Along-track position, rlines');
-        ylabel('TWTT, us');
-        legend('... Simulated', 'ooo Calculated');
-        title('TWTT to target');
-        try
-          sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
-        end
-        set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
-        set(fig_h, 'Position', get(0, 'Screensize'));
-        %     print(gcf, '-dpng', fig_title, '-r300');
-        
-      end % for compressing_this % FullSim hdr checks
-      
-      %% FullSim data checks
+      %% FullSim data oversampling
       
       data    = loaded_data{img}(:,:,wf_adc);
       
@@ -873,12 +837,57 @@ elseif run_example == 7
       [Nt,Nx] = size(data);
       x       = 1:Nx;
       
+      %% Checks + debug figures
+      
+      if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4 % || length(param.target.x) > 4
+        skip_figures = 1;  
+      else
+        skip_figures = 0;  
+      end
+      
+      %% FullSim hdr checks
+      for compressing_this = 1  %continue; % FullSim hdr checks
+        
+        if 0 || skip_figures; continue; end
+        
+        call_sign = sprintf('FullSim hdr checks wfs_%02d_adc_%02d',wf,adc);
+        fig_title = sprintf('%s_%s',mfilename, call_sign);
+        fig_h = figure('Name',fig_title);
+        subplot(131);
+        plot(param.traj{img,wf_adc}.lon, param.traj{img,wf_adc}.lat, 'x'); hold on; grid on;
+        plot(traj.lon, traj.lat, 'o');
+        plot(param.gps.lon, param.gps.lat, '+', 'LineWidth', 2);
+        xlabel('Longitude, Degrees');
+        ylabel('Latitude, Degrees');
+        legend('Simulated', 'Loaded', 'Reference');
+        title('Trajectories');
+        subplot(132);
+        plot(param.sim.range{img,wf_adc}.', '.'); hold on; grid on;
+        plot(range.', 'o');
+        xlabel('Along-track position, rlines');
+        ylabel('Range, meters');
+        legend('... Simulated', 'ooo Calculated');
+        title('Range to target');
+        subplot(133);
+        plot(param.sim.twtt{img,wf_adc}.'./1e-6, '.'); hold on; grid on;
+        plot(twtt.'./1e-6, 'o');
+        xlabel('Along-track position, rlines');
+        ylabel('TWTT, us');
+        legend('... Simulated', 'ooo Calculated');
+        title('TWTT to target');
+        try
+          sgtitle(fig_title,'FontWeight','Bold','FontSize',14,'Interpreter','None');
+        end
+        set(findobj(fig_h,'type','axes'),'FontWeight', 'Bold', 'FontSize',14);
+        set(fig_h, 'Position', get(0, 'Screensize'));
+        %     print(gcf, '-dpng', fig_title, '-r300');
+        
+      end % for compressing_this % FullSim hdr checks
+      
       %% FullSim Time Domain
       for compressing_this = 1  %continue; % FullSim Time Domain
         
-        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
-          continue;
-        end
+        if 0 || skip_figures; continue; end
         
         call_sign = sprintf('FullSim Time Domain wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -924,9 +933,7 @@ elseif run_example == 7
       %% FullSim Freq Domain
       for compressing_this = 1  %continue; % FullSim Freq Domain
         
-        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
-          continue;
-        end
+        if 0 || skip_figures; continue; end
         
         call_sign = sprintf('FullSim Freq Domain wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
@@ -955,6 +962,8 @@ elseif run_example == 7
       %% FullSim Time checks
       for compressing_this = 1  %continue; % FullSim Time checks
         
+        if 0 || skip_figures; continue; end
+        
         time_error = time(data_max_idx) - twtt.';
         if any(abs(time_error)>dt)
           warning('Time+Phase Analysis found something bad.. Breaking bad!!');
@@ -964,11 +973,7 @@ elseif run_example == 7
         err_floor = time_error<0;
         err_bars = dt.*(err_ceil - err_floor);
         
-        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
-          continue;
-        end
-        
-        call_sign = sprintf('FullSim Time Phase checks wfs_%02d_adc_%02d',wf,adc);
+        call_sign = sprintf('FullSim Time checks wfs_%02d_adc_%02d',wf,adc);
         fig_title = sprintf('%s_%s',mfilename, call_sign);
         fig_h = figure('Name',fig_title);
         
@@ -1013,9 +1018,7 @@ elseif run_example == 7
       %% FullSim Phase checks
       for compressing_this = 1  %continue; % FullSim Phase checks
         
-        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
-          continue;
-        end
+        if 0 || skip_figures; continue; end
         
         % To compare data_max with expected phase
         wave_number = 2*pi/ (c/hdr.param_load_data.radar.wfs(wf).fc);
@@ -1070,13 +1073,9 @@ elseif run_example == 7
       %% FullSim TD FD windows
       for compressing_this = 1  %continue; % FullSim TD FD windows
         
-        if 0 || sum(cellfun(@numel,param.sim.imgs))/2 > 4
-          continue;
-        end
+        if 0 || skip_figures; continue; end
         
-        if 0 || length(param.target.x) > 4
-          continue;
-        end
+        if 0 || skip_figures || length(param.target.x) > 4; continue; end
         
         if ~exist('fig_h_windows', 'var')
           call_sign = sprintf('FullSim TD FD windows');

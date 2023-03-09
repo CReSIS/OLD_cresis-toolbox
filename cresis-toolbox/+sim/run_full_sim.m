@@ -5,10 +5,21 @@
 % Authors: John Paden, Hara Madhav Talasila
 hara;
 
+% =========================================================================
+fprintf('=====================================================================\n');
+fprintf('%s: (%s)\n', mfilename, datestr(now));
+fprintf('=====================================================================\n');
+
+
+% param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+%   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20120330/param.mat';
+  
 if 1 % enable this to rerun everything
   
   param_fn = sim.input_full_sim;
-  %run_load_data(7, param_fn); % example 7
+  
+  run_load_data(7, param_fn); % example 7
   
   sim.run_qlook(1, param_fn);
   sim.run_qlook(0, param_fn);

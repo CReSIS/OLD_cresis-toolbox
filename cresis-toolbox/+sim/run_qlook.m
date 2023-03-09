@@ -9,6 +9,11 @@ function run_qlook(varargin)
 % See also: run_master.m, master.m, run_qlook.m, qlook.m,
 %   qlook_task.m
 
+% =========================================================================
+fprintf('=====================================================================\n');
+fprintf('%s: (%s)\n', mfilename, datestr(now));
+fprintf('=====================================================================\n');
+
 param_fn = [];
 
 switch nargin
@@ -31,10 +36,13 @@ if isempty(param_fn)
   % param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2018_Greenland_P3sim/20180429/param.mat';
   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140410/param.mat';
   param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20140502/param.mat';
+  param_fn = '/cresis/snfs1/dataproducts/ct_data/ct_tmp/sim3D/rds/2014_Greenland_P3sim/20120330/param.mat';
 end
 
 % Load parameters from the mat file
+fprintf('(%s) param_fn: %s\n Loading \t', datestr(now), param_fn);
 load(param_fn);
+fprintf('-- Loaded\n');
 
 %  Overrides
 param_override = [];
