@@ -522,8 +522,8 @@ if any(param.records.file.version == [9 10 103 412])
         
         wf = param.records.data_map{board_idx}(map_idx,3);
         % adc = param.records.data_map{board_idx}(map_idx,4);
-        mode_latch = param.records.data_map{board_idx}(1,1);
-        subchannel = param.records.data_map{board_idx}(1,2);
+        mode_latch = param.records.data_map{board_idx}(map_idx,1);
+        subchannel = param.records.data_map{board_idx}(map_idx,2);
         
       else
         % Profile mode
