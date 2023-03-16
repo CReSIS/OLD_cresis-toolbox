@@ -1,10 +1,12 @@
-function param = default_radar_params_2022_Greenland_Ground_accum
-% param = default_radar_params_2022_Greenland_Ground_accum
+function [param,defaults] = default_radar_params_2022_Greenland_Ground_accum
+% [param,defaults] = default_radar_params_2022_Greenland_Ground_accum
 %
 % Accum: 2022_Greenland_Ground
 %
-% Creates base "param" struct
-% Creates defaults cell array for each type of radar setting
+% * Creates "param" struct for preprocess.m
+% * Creates "defaults" cell array for each type of radar setting. Each cell
+% array element contains the default "param" struct for a particular radar
+% setting.
 %
 % Set the param.season_name to the correct season before running.
 %
@@ -14,18 +16,18 @@ function param = default_radar_params_2022_Greenland_Ground_accum
 param.season_name = '2022_Greenland_Ground';
 param.radar_name = 'accum3';
 
+% Reading in files
 param.config.daq_type = 'arena';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_arena;
 param.config.board_map = {'digrx0','digrx1'};
 param.config.tx_map = {'awg0'};
 
-param.config.file.version = 103;
-param.config.file.prefix = param.radar_name;
-param.config.file.suffix = '.bin';
+% Creating segments
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 1;
 
+% Creating settings files
 param.config.max_data_rate = 60;
 param.config.max_duty_cycle = 0.1;
 param.config.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
@@ -158,127 +160,134 @@ arena.ctu.out.bit_group(idx).pri = [1 1];
 
 arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
-param.config.arena = arena;
-
 %% Command worksheet
-default.cmd.records = 1;
-default.cmd.qlook = 1;
-default.cmd.generic = 1;
+param.cmd.records = 1;
+param.cmd.qlook = 1;
+param.cmd.generic = 1;
 
 %% Records worksheet
-default.records.gps.time_offset = 0;
-default.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
-default.records.frames.mode = 1;
+param.records.gps.time_offset = 0;
+param.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
+param.records.frames.mode = 1;
+param.records.file.version = 103;
+param.records.file.prefix = param.radar_name;
+param.records.file.suffix = '.bin';
+param.records.file.boards = {'digrx0','digrx1'};
+param.records.file.board_folder_name = '%b';
+param.records.file.clk = 10e6;
 
 %% Qlook worksheet
-default.qlook.out_path = '';
-default.qlook.block_size = 5000;
-default.qlook.motion_comp = 0;
-default.qlook.dec = 20;
-default.qlook.inc_dec = 10;
-default.qlook.surf.en = 1;
-default.qlook.surf.method = 'fixed';
-default.qlook.surf.fixed_value = 0;
-default.qlook.resample = [2 1];
+param.qlook.out_path = '';
+param.qlook.block_size = 5000;
+param.qlook.motion_comp = 0;
+param.qlook.dec = 20;
+param.qlook.inc_dec = 10;
+param.qlook.surf.en = 1;
+param.qlook.surf.method = 'fixed';
+param.qlook.surf.fixed_value = 0;
+param.qlook.resample = [2 1];
 
 %% SAR worksheet
-default.sar.out_path = '';
-default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
-default.sar.frm_types = {0,[0 1],0,0,-1};
-default.sar.chunk_len = 5000;
-default.sar.chunk_overlap = 10;
-default.sar.frm_overlap = 0;
-default.sar.coh_noise_removal = 0;
-default.sar.combine_rx = 0;
-default.sar.time_of_full_support = inf;
-default.sar.pulse_rfi.en = [];
-default.sar.pulse_rfi.inc_ave= [];
-default.sar.pulse_rfi.thresh_scale = [];
-default.sar.trim_vals = [];
-default.sar.pulse_comp = 1;
-default.sar.ft_dec = 1;
-default.sar.ft_wind = @hanning;
-default.sar.ft_wind_time = 0;
-default.sar.lever_arm_fh = @lever_arm;
-default.sar.mocomp.en = 1;
-default.sar.mocomp.type = 2;
-default.sar.mocomp.filter = {@butter  [2]  [0.1000]};
-default.sar.mocomp.uniform_en = 1;
-default.sar.sar_type = 'fk';
-default.sar.sigma_x = 2.5;
-default.sar.sub_aperture_steering = 0;
-default.sar.st_wind = @hanning;
-default.sar.start_eps = 3.15;
+param.sar.out_path = '';
+param.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
+param.sar.frm_types = {0,[0 1],0,0,-1};
+param.sar.chunk_len = 5000;
+param.sar.chunk_overlap = 10;
+param.sar.frm_overlap = 0;
+param.sar.coh_noise_removal = 0;
+param.sar.combine_rx = 0;
+param.sar.time_of_full_support = inf;
+param.sar.pulse_rfi.en = [];
+param.sar.pulse_rfi.inc_ave= [];
+param.sar.pulse_rfi.thresh_scale = [];
+param.sar.trim_vals = [];
+param.sar.pulse_comp = 1;
+param.sar.ft_dec = 1;
+param.sar.ft_wind = @hanning;
+param.sar.ft_wind_time = 0;
+param.sar.lever_arm_fh = @lever_arm;
+param.sar.mocomp.en = 1;
+param.sar.mocomp.type = 2;
+param.sar.mocomp.filter = {@butter  [2]  [0.1000]};
+param.sar.mocomp.uniform_en = 1;
+param.sar.sar_type = 'fk';
+param.sar.sigma_x = 2.5;
+param.sar.sub_aperture_steering = 0;
+param.sar.st_wind = @hanning;
+param.sar.start_eps = 3.15;
 
 %% Array worksheet
-default.array.in_path = '';
-default.array.array_path = '';
-default.array.out_path = '';
-default.array.method = 'standard';
-default.array.window = @hanning;
-default.array.bin_rng = 0;
-default.array.rline_rng = -5:5;
-default.array.dbin = 1;
-default.array.dline = 6;
-default.array.DCM = [];
-default.array.Nsv = 1;
-default.array.theta_rng = [0 0];
-default.array.sv_fh = @array_proc_sv;
-default.array.diag_load = 0;
-default.array.Nsig = 2;
+param.array.in_path = '';
+param.array.array_path = '';
+param.array.out_path = '';
+param.array.method = 'standard';
+param.array.window = @hanning;
+param.array.bin_rng = 0;
+param.array.rline_rng = -5:5;
+param.array.dbin = 1;
+param.array.dline = 6;
+param.array.DCM = [];
+param.array.Nsv = 1;
+param.array.theta_rng = [0 0];
+param.array.sv_fh = @array_proc_sv;
+param.array.diag_load = 0;
+param.array.Nsig = 2;
 
 %% Radar worksheet
-default.radar.adc_bits = 14;
-default.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
-default.radar.Tadc_adjust = -189e-9; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
-default.radar.lever_arm_fh = @lever_arm;
-% default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
-% default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
-default.radar.wfs(1).adc_gains_dB = 32.7; % After radiometric calibration
-default.radar.wfs(2).adc_gains_dB = 50.7; % After radiometric calibration
-default.radar.wfs(3).adc_gains_dB = 32.7; % After radiometric calibration
-default.radar.wfs(4).adc_gains_dB = 50.7; % After radiometric calibration
+param.radar.adc_bits = 14;
+param.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
+param.radar.Tadc_adjust = -189e-9; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+param.radar.lever_arm_fh = @lever_arm;
+% param.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
+% param.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
+param.radar.wfs(1).adc_gains_dB = 32.7; % After radiometric calibration
+param.radar.wfs(2).adc_gains_dB = 50.7; % After radiometric calibration
+param.radar.wfs(3).adc_gains_dB = 32.7; % After radiometric calibration
+param.radar.wfs(4).adc_gains_dB = 50.7; % After radiometric calibration
 for wf = 1:4
-  default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
-  default.radar.wfs(wf).gain_en = 1; % Enable fast-time gain correction
-  default.radar.wfs(wf).coh_noise_method = 'analysis'; % Coherent noise removal
-  default.radar.wfs(wf).Tadc_adjust = -0.0000003065;
+  param.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
+  param.radar.wfs(wf).gain_en = 1; % Enable fast-time gain correction
+  param.radar.wfs(wf).coh_noise_method = 'analysis'; % Coherent noise removal
+  param.radar.wfs(wf).Tadc_adjust = -0.0000003065;
 end
 Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
 
 %% Post worksheet
-default.post.data_dirs = {'qlook'};
-default.post.img = 1;
-default.post.layer_dir = 'layerData';
-default.post.maps_en = 1;
-default.post.echo_en = 1;
-default.post.layers_en = 0;
-default.post.data_en = 0;
-default.post.csv_en = 1;
-default.post.concat_en = 1;
-default.post.pdf_en = 1;
-default.post.map.location = 'Greenland';
-default.post.map.type = 'combined';
-default.post.echo.elev_comp = 2;
-default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+2900]';
-% default.post.echo.elev_comp = 3;
-% default.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
-default.post.echo.er_ice = 3.15;
-default.post.ops.location = 'arctic';
+param.post.data_dirs = {'qlook'};
+param.post.img = 1;
+param.post.layer_dir = 'layerData';
+param.post.maps_en = 1;
+param.post.echo_en = 1;
+param.post.layers_en = 0;
+param.post.data_en = 0;
+param.post.csv_en = 1;
+param.post.concat_en = 1;
+param.post.pdf_en = 1;
+param.post.map.location = 'Greenland';
+param.post.map.type = 'combined';
+param.post.echo.elev_comp = 2;
+param.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+2900]';
+% param.post.echo.elev_comp = 3;
+% param.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
+param.post.echo.er_ice = 3.15;
+param.post.ops.location = 'arctic';
 
 %% Analysis worksheet
-default.analysis_noise.block_size = 10000;
-default.analysis_noise.imgs = {[1 1],[2 1],[3 1],[4 1]};
+param.analysis_noise.block_size = 10000;
+param.analysis_noise.imgs = {[1 1],[2 1],[3 1],[4 1]};
 cmd_idx = 0;
 cmd_idx = cmd_idx + 1;
-default.analysis_noise.cmd{cmd_idx}.method = 'coh_noise';
-default.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighting of the average
+param.analysis_noise.cmd{cmd_idx}.method = 'coh_noise';
+param.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighting of the average
 
 %% Radar Settings
 
 defaults = {};
+
+default = param;
+default.arena = arena;
 
 % Deconvolution Mode
 default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
@@ -293,7 +302,8 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
+  default.radar.wfs(wf).bit_shifts = [8];
+  default.radar.wfs(wf).tx_paths = {[1]};
 end
 
 default.config_regexp = '.*deconv.*';
@@ -313,7 +323,8 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
+  default.radar.wfs(wf).bit_shifts = [8];
+  default.radar.wfs(wf).tx_paths = {[1]};
 end
 
 default.config_regexp = '.*noise.*';
@@ -333,7 +344,8 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
+  default.radar.wfs(wf).bit_shifts = [8];
+  default.radar.wfs(wf).tx_paths = {[1]};
 end
 
 default.config_regexp = '.*loopback.*';
@@ -353,7 +365,8 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
+  default.radar.wfs(wf).bit_shifts = [8];
+  default.radar.wfs(wf).tx_paths = {[1]};
 end
 
 default.config_regexp = '.*survey.*';
@@ -374,13 +387,10 @@ for wf = 1:4
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).tx_paths = [1];
+  default.radar.wfs(wf).bit_shifts = [8];
+  default.radar.wfs(wf).tx_paths = {[1]};
 end
 
 default.config_regexp = '.*';
 default.name = 'Default 600-900 MHz';
 defaults{end+1} = default;
-
-%% Add default settings
-
-param.config.defaults = defaults;
