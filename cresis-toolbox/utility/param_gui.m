@@ -3,6 +3,7 @@ function params = param_gui
 % an utility gui to select params
 % Author: Hara Madhav Talasila
 %
+% support multiple seasons.. add a for loop after "if okay"
 
 global gRadar;
 N_irritation  = 3;
