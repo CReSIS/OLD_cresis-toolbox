@@ -1,5 +1,5 @@
 function [param,defaults] = default_radar_params_2022_Antarctica_Ground_accum
-% param = default_radar_params_2022_Antarctica_Ground_accum
+% [param,defaults] = default_radar_params_2022_Antarctica_Ground_accum
 %
 % Accum: 2022_Antarctica_Ground
 %
@@ -167,8 +167,6 @@ arena.ctu.out.bit_group(idx).pri = [1 1];
 
 arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2e-6+param.wfs(wf).Tpd+0.1e-6' '2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
-default.arena = arena;
-
 %% Command worksheet
 param.cmd.records = 1;
 param.cmd.qlook = 1;
@@ -289,6 +287,10 @@ param.analysis_noise.cmd{cmd_idx}.distance_weight = 1; % Enable distance weighti
 %% Radar Settings
 
 defaults = {};
+
+default = param;
+default.arena = arena;
+
 
 % % Survey Mode Shallow Ice
 % % Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
