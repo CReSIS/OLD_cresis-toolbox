@@ -13,7 +13,8 @@ function [ status,data ] = opsGetCrossoversWithinPolygon( sys, param )
 %     properties.seasons = string of season list (optional)
 % Output:
 %   status: integer (0:Error,1:Success,2:Warning)
-%   data: structure with fields (or error message)
+%   data: structure with fields
+%     properties = string Location of CSV on server
 %
 % Author: Reece Mathews
 
