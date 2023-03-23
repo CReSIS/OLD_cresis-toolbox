@@ -74,6 +74,7 @@ diary(log_fn);
 fprintf('Logs will be saved to: %s\n',log_fn);
 
 % FOR EACH SEGMENT PROCESS THE INPUT AND PUSH THE DATA TO THE SERVER
+start_all = tic;
 for param_idx = 1:length(params)
   
   try
@@ -190,6 +191,9 @@ for param_idx = 1:length(params)
     
   end
 end
+
+mstop_all = toc(start_all);
+fprintf('\n\t-> All time: Matlab %2.2fs\n',mstop_all);
 
 %% REPORT FAILED SEGMENTS
 if ~isempty(failed_segments)

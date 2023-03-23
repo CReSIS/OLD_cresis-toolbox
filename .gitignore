@@ -9,4 +9,10 @@
 /cresis-toolbox/cluster/run_cluster_job.sh
 /cresis-toolbox/cluster/cluster_job
 *~
-
+**/.venv/
+python/crossover-test-suite/postgres-conn.json
+**/__pycache__/
+*.pyc
+python/crossover-test-suite/data
+python/crossover-test-suite/maps
+matplotlib_tools.py
