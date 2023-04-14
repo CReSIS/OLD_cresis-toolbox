@@ -111,35 +111,35 @@ elseif strcmpi(gps_source_to_use,'cresis')
   %% CRESIS GPS SOURCE
   % =======================================================================
   
-  year = 2022; month = 5; day = 24;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-final_20230304';
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
-  
-  year = 2022; month = 6; day = 2;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-final_20230304';
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
+%   year = 2022; month = 5; day = 24;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final_20230304';
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2022; month = 6; day = 2;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final_20230304';
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
   
   year = 2022; month = 6; day = 7;
   file_idx = file_idx + 1;
@@ -156,35 +156,35 @@ elseif strcmpi(gps_source_to_use,'cresis')
   sync_file_type{file_idx} = 'arena';
   sync_params{file_idx} = struct('time_reference','utc');
   
-  year = 2022; month = 6; day = 13;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-final_20230304';
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
-  
-  year = 2022; month = 6; day = 27;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'cresis-final_20230304';
-  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('time_reference','utc');
+%   year = 2022; month = 6; day = 13;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final_20230304';
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2022; month = 6; day = 27;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('ie_%04d%02d%02d',year,month,day)),sprintf('ie_%04d%02d%02d',year,month,day),'','*.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'General_ASCII';
+%   params{file_idx} = struct('time_reference','gps','headerlines',16,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+%   params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','tmp_1','tmp_2','tmp_3'};
+%   params{file_idx}.textscan = {};
+%   gps_source{file_idx} = 'cresis-final_20230304';
+%   date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
   
   
 end
