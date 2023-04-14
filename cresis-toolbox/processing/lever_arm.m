@@ -140,7 +140,7 @@ if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && any(strcmpi(gps_so
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2022_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','cresis'})))
+if any(strcmpi(param.season_name,{'2022_Antarctica_Ground','2023_Greenland_Ground'})) && any(strcmpi(gps_source,{'arena','cresis'}))
   % Platform: Ground based sled (EAGER 1, EAGER 2)
   %
   gps.x = 0;
@@ -1169,7 +1169,7 @@ if (strcmpi(param.season_name,'2022_Antarctica_BaslerMKB') && strcmpi(radar_name
   end
 end
 
-if (strcmpi(param.season_name,'2022_Antarctica_Ground') && strcmpi(radar_name,'accum'))
+if any(strcmpi(param.season_name,{'2022_Antarctica_Ground','2023_Greenland_Ground'})) && strcmpi(radar_name,'accum')
   % Sled antennas EAGER 1 and EAGER 2
   %
   % Primary GPS antenna: GPS positions are relative to primary which is in the center of the radar antenna array.
