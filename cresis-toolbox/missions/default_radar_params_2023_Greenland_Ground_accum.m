@@ -10,6 +10,8 @@ function [param,defaults] = default_radar_params_2023_Greenland_Ground_accum
 %
 % Author: John Paden
 
+physical_constants;
+
 %% Preprocess parameters
 param.season_name = '2023_Greenland_Ground';
 param.radar_name = 'accum3';
@@ -177,7 +179,7 @@ param.records.gps.time_offset = 0;
 param.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
 param.records.frames.mode = 1;
 param.records.file.version = 103;
-param.records.file.prefix = param.radar_name;edit 
+param.records.file.prefix = param.radar_name; 
 param.records.file.suffix = '.bin';
 %param.records.file.boards = {'digrx0'}; % H only polarization
 param.records.file.boards = {'digrx0','digrx1'}; % HV Polarization
@@ -250,7 +252,7 @@ for wf = 1:4
   param.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
   param.radar.wfs(wf).gain_en = [0 0]; % Disable fast-time gain correction
   param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
-  param.radar.wfs(wf).Tadc_adjust = 0;
+  param.radar.wfs(wf).Tadc_adjust = -150e-9 - 2*((2+2+1.5+0.5)/0.695+2/3+41/0.85)*12*2.54/100 / c; % Remove system delay plus cabling to antennas
   param.radar.wfs(wf).bit_shifts = [6 8];
 end
 Tsys = [0 0]/1e9;
