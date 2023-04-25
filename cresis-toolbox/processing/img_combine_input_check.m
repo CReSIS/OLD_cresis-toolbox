@@ -4,6 +4,11 @@ function param = img_combine_input_check(param, param_mode)
 % Support function for img_combine. Checks inputs and adds missing fields
 % to parameter structure. Also called by qlook.m and array.m to ensure the
 % img_comb fields are populated.
+%
+% param: parameter structure
+%
+% param_mode: string containing the name of the field in the param
+% structure that contains the img_comb_* fields. Usually "qlook" or "array".
 
 [~,radar_type,~] = ct_output_dir(param.radar_name);
 

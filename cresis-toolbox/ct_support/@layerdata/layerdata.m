@@ -1461,12 +1461,6 @@ classdef layerdata < handle
           layer_params = struct('source', 'layerdata', 'name', {'surface'});
           
         elseif strcmpi(layer_profile, 'rds_ops_layers')
-          layer_params = struct('source', 'ops', 'name',{'surface'});
-          
-        elseif strcmpi(layer_profile, 'rds_layers')
-          layer_params = struct('source', 'layerdata', 'name', {'surface'});
-          
-        elseif strcmpi(layer_profile, 'rds_ops_layers')
           layer_params = struct('source', 'ops', 'name',{'surface', 'bottom'});
           
         elseif strcmpi(layer_profile, 'rds_layers')
