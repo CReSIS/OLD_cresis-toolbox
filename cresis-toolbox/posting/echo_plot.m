@@ -94,6 +94,9 @@ end
 % =========================================================================
 % h: output GUI handles
 h = [];
+if ~echo_plot_param.plot_en
+  return;
+end
 if isempty(echo_plot_param.h_fig)
   h.fig = get_figures(1,true);
 else
