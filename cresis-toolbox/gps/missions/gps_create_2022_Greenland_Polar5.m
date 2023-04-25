@@ -35,9 +35,9 @@ file_idx = 0; in_fns = {}; in_fns_ins = {}; out_fns = {}; file_type = {}; params
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 %% <== CHOOSE WHICH GPS SOURCE TO PROCESS
-gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'AWI';
-% gps_source_to_use = 'AWI_final';
+gps_source_to_use = 'AWI_final';
 
 if strcmpi(gps_source_to_use,'NMEA')
   %% NMEA
@@ -187,13 +187,14 @@ elseif strcmpi(gps_source_to_use,'AWI_final')
   % =======================================================================
   
   file_idx = file_idx + 1;
-  year = 2022; month = 6; day = 9;
+  year = 2022; month = 6; day = 8;
   in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
   gps_source{file_idx} = 'awi-final_20161109';
   sync_flag{file_idx} = 0;
+  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   params{file_idx} = struct('time_reference','utc');
   params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
   params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
