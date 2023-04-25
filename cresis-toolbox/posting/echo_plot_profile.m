@@ -44,6 +44,10 @@ if ischar(profile_str)
   elseif strcmpi(profile_str, 'RANGE')
     echo_plot_param.mode_y_axis = 'range';
     
+  elseif strcmpi(profile_str, 'NONE')
+    echo_plot_param.mode_y_axis = 'twtt';
+    echo_plot_param.plot_en = false;
+    
   elseif strcmpi(profile_str, 'TWTT')
     echo_plot_param.mode_y_axis = 'twtt';
     
@@ -80,4 +84,10 @@ end
 % 'RANGE', 'TWTT', or 'WGS84'.
 if ~isfield(echo_plot_param, 'mode_y_axis') || isempty(echo_plot_param.mode_y_axis)
   echo_plot_param.mode_y_axis = 'TWTT';
+end
+
+% plot_en: logical to enable plotting or not, default is true. If false,
+% echo_plot just loads the variables and prepares them for plotting.
+if ~isfield(echo_plot_param, 'plot_en') || isempty(echo_plot_param.plot_en)
+  echo_plot_param.plot_en = true;
 end
