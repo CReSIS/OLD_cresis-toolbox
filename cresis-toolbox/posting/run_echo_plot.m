@@ -13,8 +13,7 @@
 % test_case_str = 'no_layers_twtt_fn';
 % test_case_str = 'default_layers';
 % test_case_str = 'nonstandard_surface';
-% test_case_str = 'update_surface';
-% test_case_str = 'filter_surface';
+% test_case_str = 'no_plot';
 % test_case_str = 'posted_layers';
 % test_case_str = 'arbitrary_layers';
 test_case_str = 'uniform_sampling';
@@ -28,29 +27,34 @@ param = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'20
 [mdata,echo_fn] = echo_load(param,'CSARP_post/qlook',3);
 
 if strcmpi(test_case_str,'no_layers')
-  [data, layers_comp, h] = echo_plot(mdata);
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(mdata);
 end
 
 if strcmpi(test_case_str,'no_layers_fn')
-  [data, layers_comp, h] = echo_plot(echo_fn);
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn);
 end
 
 if strcmpi(test_case_str,'no_layers_twtt_fn')
-  [data, layers_comp, h] = echo_plot(echo_fn,'TWTT');
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn,'TWTT');
 end
 
 if strcmpi(test_case_str,'default_layers')
-  [data, layers_comp, h] = echo_plot(echo_fn, [], 'rds_layers');
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, [], 'rds_layers');
 end
 
 if strcmpi(test_case_str,'nonstandard_surface')
   echo_plot_param = echo_plot_profile('DEPTH');
   echo_plot_param.surf.source = 0;
   echo_plot_param.h_fig = 1;
-  [data, layers_comp, h] = echo_plot(echo_fn, echo_plot_param, 'rds_layers');
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, echo_plot_param, 'rds_layers');
   echo_plot_param.surf.source = 1;
   echo_plot_param.h_fig = 2;
-  [data, layers_comp, h] = echo_plot(echo_fn, echo_plot_param, 'rds_layers');
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, echo_plot_param, 'rds_layers');
+end
+
+if strcmpi(test_case_str,'no_plot')
+  % Just loads the data (twtt) and provides all the variables to plot
+  [mdata,x_axis,y_axis,surf_comp,layers_comp] = echo_plot(mdata,'NONE','rds_layers');
 end
 
 if strcmpi(test_case_str,'posted_layers')
@@ -60,28 +64,28 @@ end
 
 if strcmpi(test_case_str,'arbitrary_layers')
   layer_names = {'surface','bottom','layer_01'};
-  [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('DEPTH'),'h_fig',1), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
-  [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('RANGE'),'h_fig',2), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
-  [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('TWTT'),'h_fig',3), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
-  [data, layers_comp, h] = echo_plot(echo_fn, setfield(echo_plot_profile('WGS84'),'h_fig',4), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, setfield(echo_plot_profile('DEPTH'),'h_fig',1), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, setfield(echo_plot_profile('RANGE'),'h_fig',2), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, setfield(echo_plot_profile('TWTT'),'h_fig',3), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, setfield(echo_plot_profile('WGS84'),'h_fig',4), struct('name',layer_names, 'source', 'layerdata','existence_check',false));
 end
 
 if strcmpi(test_case_str,'uniform_sampling')
-  [data, layers_comp, h] = echo_plot(echo_fn, setfield(setfield(echo_plot_profile('WGS84'),'h_fig',4),'mode_x_axis','ALONG_TRACK'));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, setfield(setfield(echo_plot_profile('WGS84'),'h_fig',4),'mode_x_axis','ALONG_TRACK'));
 end
 
 if strcmpi(test_case_str,'layer_params')
   layer_params = struct('source','layerdata','name','surface');
-  [data, layers_comp, h] = echo_plot(echo_fn, [], layer_params);
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, [], layer_params);
 end
 
 if strcmpi(test_case_str,'wildcard_layers')
   layer_params = struct('source','layerdata','name',{'surface',''},'regexp',{[],'layer.*'},'existence_check',false);
-  [data, layers_comp, h] = echo_plot(echo_fn, 'TWTT', layer_params);
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(echo_fn, 'TWTT', layer_params);
 end
 
 if strcmpi(test_case_str,'surface_nan')
-  [data, layers_comp, h] = echo_plot(mdata, setfield(echo_plot_profile('DEPTH'),'h_fig',1), struct('name',{'surface', 'bottom'}, 'source', 'layerdata'));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(mdata, setfield(echo_plot_profile('DEPTH'),'h_fig',1), struct('name',{'surface', 'bottom'}, 'source', 'layerdata'));
   mdata.Surface(:) = NaN;
-  [data, layers_comp, h] = echo_plot(mdata, setfield(echo_plot_profile('DEPTH'),'h_fig',2), struct('name',{'surface', 'bottom'}, 'source', 'layerdata'));
+  [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(mdata, setfield(echo_plot_profile('DEPTH'),'h_fig',2), struct('name',{'surface', 'bottom'}, 'source', 'layerdata'));
 end
