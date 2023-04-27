@@ -339,9 +339,8 @@ for file_idx = 1:length(in_fns)
     
     if isempty(ins.gps_time)
       warning('INS data specified, but no good INS data found.');
-
+      
     else
-
       % Check for large time gaps in INS data and fill with level flight
       if 0
         figure(1); clf;
@@ -362,7 +361,7 @@ for file_idx = 1:length(in_fns)
         hold off;
         ylim([-20 20])
         grid on
-
+        
         figure(3); clf;
         plot(gps.gps_time,est_heading*180/pi,'g.');
         hold on
@@ -371,7 +370,7 @@ for file_idx = 1:length(in_fns)
         hold off;
         grid on
       end
-
+      
       bad_idxs = find(diff(ins.gps_time) > 20);
       if ins.gps_time(1) - gps.gps_time(1) > 10
         bad_idxs = [0 bad_idxs];
@@ -381,7 +380,7 @@ for file_idx = 1:length(in_fns)
       end
       for bad_idxs_idx = 1:length(bad_idxs)
         idx = bad_idxs(bad_idxs_idx);
-
+        
         % Find gps indices in this gap
         if idx == 0
           new_gps_times = gps.gps_time(1):ins.gps_time(idx+1)-10;
@@ -398,13 +397,12 @@ for file_idx = 1:length(in_fns)
         end
         bad_idxs(bad_idxs_idx+1:end) = bad_idxs(bad_idxs_idx+1:end) + length(new_gps_times);
         fprintf('  Inserting %d level flight records due to missing INS data\n', length(new_gps_times));
-
+        
         ins.roll = [ins.roll(1:idx) zeros(size(new_gps_times)) ins.roll(idx+1:end)];
         ins.pitch = [ins.pitch(1:idx) zeros(size(new_gps_times)) ins.pitch(idx+1:end)];
         ins.lat = [ins.lat(1:idx) NaN*zeros(size(new_gps_times)) ins.lat(idx+1:end)];
         ins.lon = [ins.lon(1:idx) NaN*zeros(size(new_gps_times)) ins.lon(idx+1:end)];
         ins.elev = [ins.elev(1:idx) NaN*zeros(size(new_gps_times)) ins.elev(idx+1:end)];
-
         inserted_heading = gps_interp1(gps.gps_time,est_heading,new_gps_times) ...
           + gps_interp1(edge_gps_times,est_heading_error,new_gps_times);
         ins.heading = [ins.heading(1:idx) inserted_heading ins.heading(idx+1:end)];
@@ -412,7 +410,6 @@ for file_idx = 1:length(in_fns)
         ins.gps_time = [ins.gps_time(1:idx) new_gps_times ins.gps_time(idx+1:end)];
 
       end
-
       if 0
         figure(4); clf;
         plot(gps.gps_time,est_heading*180/pi,'g.');
@@ -422,7 +419,7 @@ for file_idx = 1:length(in_fns)
         grid on
         keyboard
       end
-
+      
       % Insert filler points from gps (ensures that sparse ins data does not
       % create a sparse final dataset when gps data is available)
       new_gps_time = union(gps.gps_time,ins.gps_time);
@@ -438,7 +435,7 @@ for file_idx = 1:length(in_fns)
       ins.elev = interp1(ins.gps_time,ins.elev,new_gps_time);
       ins.gps_time = new_gps_time;
       gps = ins;
-
+      
       %% Remove records with NaN in gps_time or trajectory
       good_mask = ~(isnan(gps.gps_time) | isnan(gps.lat) ...
         | isnan(gps.lon) | isnan(gps.elev));
@@ -456,7 +453,7 @@ for file_idx = 1:length(in_fns)
         gps.comp_time = gps.comp_time(good_mask);
       end
       gps.gps_source = gps_source{file_idx};
-
+      
       %% Interpolate through NaN attitude data
       gps.roll = interp_finite(gps.roll,0);
       gps.pitch = interp_finite(gps.pitch,0);

@@ -19,7 +19,7 @@ function mdata = img_combine_check(data_fns, rlines)
 %
 % Author: John Paden
 %
-% See also: check_data_products.m, check_img_combine.m,
+% See also: check_data_products.m, img_combine_check.m,
 %   run_check_data_products.m
 
 %% Setup

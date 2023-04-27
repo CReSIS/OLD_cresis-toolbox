@@ -39,6 +39,7 @@ bad_mask = false(size(config_fns)); % Keep track of bad config files
 for config_idx = 1:length(config_fns)
   config_fn = config_fns{config_idx};
 
+  fprintf('Reading\t%s\n', config_fn);
   try
     configs(config_idx) = read_arena_xml(config_fn,'',param.config.board_map,param.config.tx_map);
   catch ME
@@ -549,6 +550,31 @@ for config_idx = 1:length(configs)
           configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale = 0;
         end
       end
+    else
+      % scale: Determines the transmit antenna array weights (e.g. which
+      % antenna phase centers were used and what the transmit weights were)
+      scale = [];
+      % use_tx_map_idx: Which transmit map index represents an active
+      % waveform. The assumption is that any non-zero scale output AWG will
+      % have the current Tpd, fc, BW, etc.
+      use_tx_map_idx = 1;
+      
+      for tx_map_idx = 1:length(param.config.tx_map)
+        for tx_paths_idx = 1:length(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx})
+          if isfinite(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx))
+            tx = oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx);
+            if tx_paths_idx > length(configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs) ...
+                || isempty(configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx})
+              scale(tx) = 0;
+            else
+              scale(tx) = configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx}.pulse{1}.scale;
+              if scale(tx) ~= 0
+                use_tx_map_idx = tx_map_idx;
+              end
+            end
+          end
+        end
+      end
     end
 
     % Explanation of how ADC and DAC map to cresis-toolbox values (e.g.
@@ -577,16 +603,17 @@ for config_idx = 1:length(configs)
     %   tx_paths and rx_paths except populated with 'H', 'V', 'L', 'R', 'U'
     %   for horizontal, vertical, left-circular, right-circular, unknown
     
-    fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.centerFreq;
-    BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.bandwidth;
+    
+    fc = configs(config_idx).dac{use_tx_map_idx,mode_latch+1}.wfs{1}.pulse{1}.centerFreq;
+    BW = configs(config_idx).dac{use_tx_map_idx,mode_latch+1}.wfs{1}.pulse{1}.bandwidth;
     if strcmpi(configs(config_idx).radar_name,'ku0002')
       fc = fc*param.config.defaults{1}.radar.wfs(wf).fmult + param.config.defaults{1}.radar.wfs(wf).fLO;
       BW = BW*param.config.defaults{1}.radar.wfs(wfs).fmult;
     end
-    Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.numPoints;
-    fs = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.sampFreq;
+    Nt = configs(config_idx).dac{use_tx_map_idx,mode_latch+1}.wfs{1}.pulse{1}.numPoints;
+    fs = configs(config_idx).dac{use_tx_map_idx,mode_latch+1}.wfs{1}.sampFreq;
     Tpd = Nt/fs;
-    t_dac = (configs(config_idx).dac{1}.delay) * 1e-6;
+    t_dac = (configs(config_idx).dac{use_tx_map_idx,1}.delay);
     
     switch (configs(config_idx).adc{adc_board_idx,1+mode_wfs(1),1+subchannel_wfs(1)}.adcMode)
       case 0
@@ -640,21 +667,6 @@ for config_idx = 1:length(configs)
     oparams{end}.radar.wfs(wf).tukey = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.pulse{1}.alpha;
     oparams{end}.radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
     oparams{end}.radar.wfs(wf).Tpd = Tpd;
-    scale = [];
-
-    for tx_map_idx = 1:length(param.config.tx_map)
-      for tx_paths_idx = 1:length(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx})
-        if isfinite(oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx))
-          tx = oparams{end}.radar.wfs(wf).tx_paths{tx_map_idx}(tx_paths_idx);
-          if tx_paths_idx > length(configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs) ...
-              || isempty(configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx})
-            scale(tx) = 0;
-          else
-            scale(tx) = configs(config_idx).dac{tx_map_idx,mode_latch+1}.wfs{tx_paths_idx}.pulse{1}.scale;
-          end
-        end
-      end
-    end
     oparams{end}.radar.wfs(wf).tx_weights = scale;
     oparams{end}.radar.wfs(wf).presums = configs(config_idx).adc{adc_board_idx,mode_latch+1,subchannel+1}.presums;
     adc_idxs = find(wfs_map == wf);

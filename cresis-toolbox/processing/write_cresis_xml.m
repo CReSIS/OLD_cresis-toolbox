@@ -586,7 +586,10 @@ out_xml_fn_dir = fileparts(out_xml_fn);
 if ~exist(out_xml_fn_dir,'dir')
   mkdir(out_xml_fn_dir);
 end
-fid = fopen(out_xml_fn,'w');
+[fid,msg] = fopen(out_xml_fn,'w');
+if fid == -1
+  error(msg);
+end
 fprintf(fid,'<?xml version=''1.0'' standalone=''yes'' ?>\n');
 fprintf(fid,'<LVData xmlns="http://www.ni.com/LVData">\n');
 write_ni_xml_object(settings_enc,fid,true,struct('array_list','Waveforms','enum_list','DDCZ20sel'));
@@ -662,7 +665,10 @@ if isfield(param,'arena')
       mkdir(arena_fn_dir);
     end
     fprintf('  Writing Arena XML: %s\n', xml_param.arena.fn);
-    fid = fopen(xml_param.arena.fn,'w');
+    [fid,msg] = fopen(xml_param.arena.fn,'w');
+    if fid == -1
+      error(msg);
+    end
     fwrite(fid,out_str,'char');
     fclose(fid);
   
