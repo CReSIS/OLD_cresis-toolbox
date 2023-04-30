@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include "mat.h"
 #include "mex.h"
 
@@ -442,7 +443,7 @@ mexFunction( int nlhs,
                 __LINE__, last_record_offset, idx, num_expected_original);
         // Uncomment next seven lines for debugging
         mexPrintf("Bytes around the expected location of the sync:\n");
-        for (int debug_idx=0; debug_idx<16; debug_idx++)
+        for (ptrdiff_t debug_idx=0; debug_idx<std::min((ptrdiff_t)16,idx); debug_idx++)
         {
           mexPrintf("  %d 0x%016llx\n", debug_idx-8, ((unsigned long long *)(data+idx-64))[debug_idx]);
         }
