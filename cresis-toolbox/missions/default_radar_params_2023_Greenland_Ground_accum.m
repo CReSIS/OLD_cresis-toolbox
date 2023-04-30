@@ -1,27 +1,28 @@
-function [param,defaults] = default_radar_params_2022_Greenland_Ground_accum
-% [param,defaults] = default_radar_params_2022_Greenland_Ground_accum
+function [param,defaults] = default_radar_params_2023_Greenland_Ground_accum
+% [param,defaults] = default_radar_params_2023_Greenland_Ground_accum
 %
-% Accum: 2022_Greenland_Ground
+% Accum: 2023_Greenland_Ground
 %
-% * Creates "param" struct for preprocess.m
-% * Creates "defaults" cell array for each type of radar setting. Each cell
-% array element contains the default "param" struct for a particular radar
-% setting.
+% Creates base "param" struct
+% Creates defaults cell array for each type of radar setting
 %
 % Set the param.season_name to the correct season before running.
 %
 % Author: John Paden
 
+physical_constants;
+
 %% Preprocess parameters
-param.season_name = '2022_Greenland_Ground';
+param.season_name = '2023_Greenland_Ground';
 param.radar_name = 'accum3';
 
 % Reading in files
 param.config.daq_type = 'arena';
 param.config.wg_type = 'arena';
 param.config.header_load_func = @basic_load_arena;
-param.config.board_map = {'digrx0','digrx1'};
-param.config.tx_map = {'awg0'};
+%param.config.board_map = {'digrx0'}; % H only polarization
+param.config.board_map = {'digrx0','digrx1'}; % HV polarization
+param.config.tx_map = {'awg0','awg1'};
 
 % Creating segments
 param.config.max_time_gap = 10;
@@ -33,25 +34,26 @@ param.config.max_duty_cycle = 0.1;
 param.config.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
 param.config.PRI_guard = 1e-6;
 param.config.PRI_guard_percentage = 450e6/500e6;
-param.config.tx_enable = [1];
+param.config.tx_enable = [1 1];
 param.config.max_tx = 1.0;
 param.config.max_tx_voltage = sqrt(400*50)*10^(-2/20); % voltage at max_tx
 
-%% BAS ACCUM Arena Parameters
+%% EAGER 1 ACCUM Arena Parameters
 arena = [];
 arena.clk = 10e6;
 fs = 1000e6;
 fs_dac = 2000e6;
 subsystem_idx = 0;
 subsystem_idx = subsystem_idx + 1;
-arena.subsystem(subsystem_idx).name = 'ARENA-CTU';
+arena.subsystem(subsystem_idx).name = 'CTU51';
 arena.subsystem(subsystem_idx).subSystem{1} = 'ctu';
 subsystem_idx = subsystem_idx + 1;
-arena.subsystem(subsystem_idx).name = 'ARENA0';
+arena.subsystem(subsystem_idx).name = 'ARENA60';
 arena.subsystem(subsystem_idx).subSystem{1} = 'awg0';
 arena.subsystem(subsystem_idx).subSystem{2} = 'digrx0';
 subsystem_idx = subsystem_idx + 1;
-arena.subsystem(subsystem_idx).name = 'ARENA1';
+arena.subsystem(subsystem_idx).name = 'ARENA61';
+arena.subsystem(subsystem_idx).subSystem{1} = 'awg1';
 arena.subsystem(subsystem_idx).subSystem{1} = 'digrx1';
 subsystem_idx = subsystem_idx + 1;
 arena.subsystem(subsystem_idx).name = 'Data Server';
@@ -61,8 +63,15 @@ dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg0';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = fs_dac;
+arena.dac(dac_idx).desiredAlignMin = -10;
+arena.dac(dac_idx).desiredAlignMax = 0;
+arena.dac(dac_idx).dcoPhase = 80;
+dac_idx = dac_idx + 1;
+arena.dac(dac_idx).name = 'awg1';
+arena.dac(dac_idx).type = 'dac-ad9129_0012';
+arena.dac(dac_idx).dacClk = fs_dac;
 arena.dac(dac_idx).desiredAlignMin = -4;
-arena.dac(dac_idx).desiredAlignMax = 10;
+arena.dac(dac_idx).desiredAlignMax = 6;
 arena.dac(dac_idx).dcoPhase = 80;
 
 adc_idx = 0;
@@ -71,10 +80,10 @@ arena.adc(adc_idx).name = 'digrx0';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
-arena.adc(adc_idx).desiredAlignMin = -15;
-arena.adc(adc_idx).desiredAlignMax = 0;
+arena.adc(adc_idx).desiredAlignMin = -8;
+arena.adc(adc_idx).desiredAlignMax = 2;
 arena.adc(adc_idx).stream = 'socket';
-arena.adc(adc_idx).ip = '10.0.0.100';
+arena.adc(adc_idx).ip = '172.16.0.118';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 1;
 arena.adc(adc_idx).gain_dB = [0 0];
@@ -83,10 +92,10 @@ arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
-arena.adc(adc_idx).desiredAlignMin = -14;
-arena.adc(adc_idx).desiredAlignMax = -0;
+arena.adc(adc_idx).desiredAlignMin = -2;
+arena.adc(adc_idx).desiredAlignMax = 8;
 arena.adc(adc_idx).stream = 'socket';
-arena.adc(adc_idx).ip = '10.0.0.100';
+arena.adc(adc_idx).ip = '172.16.0.118';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 2;
 arena.adc(adc_idx).gain_dB = [0 0];
@@ -97,7 +106,7 @@ arena.daq(daq_idx).name = 'daq0';
 arena.daq(daq_idx).type = 'daq_0001';
 arena.daq(daq_idx).auxDir = '/data/';
 arena.daq(daq_idx).fileStripe = '/data/%b/';
-arena.daq(daq_idx).fileName = 'accum3';
+arena.daq(daq_idx).fileName = 'accum';
 arena.daq.udp_packet_headers = false;
 
 arena.system.name = 'ku0001';
@@ -113,10 +122,10 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
-if 0
+if 1
   % External GPS
   arena.ctu.nmea = 31;
-  arena.ctu.nmea_baud = 9600;
+  arena.ctu.nmea_baud = 115200;
   arena.ctu.pps = 10;
   arena.ctu.pps_polarity = 1;
 else
@@ -138,27 +147,27 @@ arena.ctu.out.bit_group(idx).bits = 1;
 arena.ctu.out.bit_group(idx).epri = [1 0];
 arena.ctu.out.bit_group(idx).pri = [1 0];
 idx = idx + 1;
-arena.ctu.out.bit_group(idx).name = 'TR';
+arena.ctu.out.bit_group(idx).name = 'TX_EN'; % 1 enables the transmitter, sets the T/R to transmit
 arena.ctu.out.bit_group(idx).bits = 2;
 arena.ctu.out.bit_group(idx).epri = [1 0];
 arena.ctu.out.bit_group(idx).pri = [1 0];
 idx = idx + 1;
-arena.ctu.out.bit_group(idx).name = 'CalSwitch';
+arena.ctu.out.bit_group(idx).name = 'CAL_EN'; % 1 enables rx calibration switch
 arena.ctu.out.bit_group(idx).bits = 3;
 arena.ctu.out.bit_group(idx).epri = [1 0];
 arena.ctu.out.bit_group(idx).pri = [1 0];
 idx = idx + 1;
-arena.ctu.out.bit_group(idx).name = 'AttenFirst18dB'; % 1 is low gain/disables attenuator
+arena.ctu.out.bit_group(idx).name = 'Atten1_TRISO_NOT_USED'; % unused
 arena.ctu.out.bit_group(idx).bits = 4;
 arena.ctu.out.bit_group(idx).epri = [0 0];
 arena.ctu.out.bit_group(idx).pri = [0 0];
 idx = idx + 1;
-arena.ctu.out.bit_group(idx).name = 'AttenSecond7dB'; % 1 is high gain/disables attenuator
+arena.ctu.out.bit_group(idx).name = 'LOW_GAIN_EN'; % 1 is low gain
 arena.ctu.out.bit_group(idx).bits = 5;
 arena.ctu.out.bit_group(idx).epri = [1 1];
 arena.ctu.out.bit_group(idx).pri = [1 1];
 
-arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2e-6+param.wfs(wf).Tpd+0.1e-6' '2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
 %% Command worksheet
 param.cmd.records = 1;
@@ -170,9 +179,10 @@ param.records.gps.time_offset = 0;
 param.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
 param.records.frames.mode = 1;
 param.records.file.version = 103;
-param.records.file.prefix = param.radar_name;
+param.records.file.prefix = param.radar_name; 
 param.records.file.suffix = '.bin';
-param.records.file.boards = {'digrx0','digrx1'};
+%param.records.file.boards = {'digrx0'}; % H only polarization
+param.records.file.boards = {'digrx0','digrx1'}; % HV Polarization
 param.records.file.board_folder_name = '%b';
 param.records.file.clk = 10e6;
 
@@ -189,7 +199,6 @@ param.qlook.resample = [2 1];
 
 %% SAR worksheet
 param.sar.out_path = '';
-param.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 param.sar.frm_types = {0,[0 1],0,0,-1};
 param.sar.chunk_len = 5000;
 param.sar.chunk_overlap = 10;
@@ -235,24 +244,20 @@ param.array.Nsig = 2;
 
 %% Radar worksheet
 param.radar.adc_bits = 14;
-param.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
-param.radar.Tadc_adjust = -189e-9; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+param.radar.Vpp_scale = 1.5;
 param.radar.lever_arm_fh = @lever_arm;
-% param.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
-% param.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
-param.radar.wfs(1).adc_gains_dB = 32.7; % After radiometric calibration
-param.radar.wfs(2).adc_gains_dB = 50.7; % After radiometric calibration
-param.radar.wfs(3).adc_gains_dB = 32.7; % After radiometric calibration
-param.radar.wfs(4).adc_gains_dB = 50.7; % After radiometric calibration
-for wf = 1:4
-  param.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
-  param.radar.wfs(wf).gain_en = 1; % Enable fast-time gain correction
-  param.radar.wfs(wf).coh_noise_method = 'analysis'; % Coherent noise removal
-  param.radar.wfs(wf).Tadc_adjust = -0.0000003065;
+for wf = 1:4 
+  param.radar.wfs(wf).adc_gains_dB = [38 38]; % ADC gain
+  param.radar.wfs(wf).adcs = [1 2]; % ADC to rx path mapping
+  param.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
+  param.radar.wfs(wf).gain_en = [0 0]; % Disable fast-time gain correction
+  param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
+  param.radar.wfs(wf).Tadc_adjust = -150e-9 - 2*((2+2+1.5+0.5)/0.695+2/3+41/0.85)*12*2.54/100 / c; % Remove system delay plus cabling to antennas
+  param.radar.wfs(wf).bit_shifts = [6 8];
 end
-Tsys = [0]/1e9;
-chan_equal_dB = [0];
-chan_equal_deg = [0];
+Tsys = [0 0]/1e9;
+chan_equal_dB = [0 0];
+chan_equal_deg = [0 0];
 
 %% Post worksheet
 param.post.data_dirs = {'qlook'};
@@ -276,7 +281,6 @@ param.post.ops.location = 'arctic';
 
 %% Analysis worksheet
 param.analysis_noise.block_size = 10000;
-param.analysis_noise.imgs = {[1 1],[2 1],[3 1],[4 1]};
 cmd_idx = 0;
 cmd_idx = cmd_idx + 1;
 param.analysis_noise.cmd{cmd_idx}.method = 'coh_noise';
@@ -289,108 +293,86 @@ defaults = {};
 default = param;
 default.arena = arena;
 
-% Deconvolution Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
+
+% % Survey Mode Shallow Ice
+% % Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
+% % an error in the settings where mode 0 and mode 1 both acquired data that should have only
+% % gone to mode 0.
+% default.records.data_map = {[4 0 2 1;0 0 1 1;1 0 1 1],[4 0 2 2;0 0 1 2;1 0 1 2;]};
+% default.qlook.img_comb = [];
+% default.qlook.imgs = {[1 1],[2 1],[1 2],[2 2]};
+% default.sar.imgs = default.qlook.imgs;
+% default.array.imgs = default.qlook.imgs;
+% default.array.img_comb = default.qlook.img_comb;
+% default.analysis_noise.imgs = default.qlook.imgs;
+% default.radar.ref_fn = '';
+% default.radar.wfs = param.radar.wfs(1:2);
+% for wf = 1:2
+%   default.radar.wfs(wf).Tsys = Tsys;
+%   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+%   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+%   param.radar.wfs(wf).bit_shifts = [7 7];
+%   param.radar.wfs(wf).tx_paths = [1 2];
+% end
+% default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+300]';
+% % Note psc config name was incorrectly set, but it is for shallow ice:
+% default.config_regexp = 'psc_survey_600-900MHz_0usDelay_2us_LOOPBACK';
+% default.name = 'Survey Mode 600-900 MHz Shallow Ice';
+% defaults{end+1} = default;
+
+% % Survey Mode Thick Ice Single Polarization
+% % Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
+% % an error in the settings where mode 0 and mode 1 both acquired data that should have only
+% % gone to mode 0.
+% default.records.arena.total_presums = 300;
+% default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
+% default.qlook.img_comb = [];
+% default.qlook.imgs = {[1 1],[2 1]};
+% default.sar.imgs = default.qlook.imgs;
+% default.array.imgs = default.qlook.imgs;
+% default.array.img_comb = default.qlook.img_comb;
+% default.analysis_noise.imgs = default.qlook.imgs;
+% default.radar.ref_fn = '';
+% default.radar.wfs = param.radar.wfs(1:2);
+% for wf = 1:2
+%   default.radar.wfs(wf).Tsys = Tsys;
+%   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+%   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+%   default.radar.wfs(wf).bit_shifts = [6 8];
+%   default.radar.wfs(wf).tx_paths = [1 inf];
+% end
+% default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
+% % Note psc config name was incorrectly set, but it is for shallow ice:
+% default.config_regexp = 'psc_eager_config';
+% default.name = 'Survey Mode 600-900 MHz Thick Ice';
+% defaults{end+1} = default;
+
+% Survey Mode Thick Ice Polarimetric
+% Note data_map has unusual ordering with mode 4 first instead of mode 0. This is due to
+% an error in the settings where mode 0 and mode 1 both acquired data that should have only
+% gone to mode 0.
+default.records.arena.total_presums = 600;
+default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1;4 0 3 1;5 0 3 1;6 0 4 1;7 0 4 1], ...
+  [0 0 1 2;1 0 1 2;2 0 2 2;3 0 2 2;4 0 3 2;5 0 3 2;6 0 4 2;7 0 4 2]};
 default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
+default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1],[1 2],[2 2],[3 2],[4 2]};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
+default.analysis_noise.imgs = default.qlook.imgs;
 default.radar.ref_fn = '';
+default.radar.wfs = param.radar.wfs(1:4);
 for wf = 1:4
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).bit_shifts = [8];
-  default.radar.wfs(wf).tx_paths = {[1]};
+  default.radar.wfs(wf).bit_shifts = [6 8];
+  default.radar.wfs(wf).tx_paths = {[1],[2]};
 end
-
-default.config_regexp = '.*deconv.*';
-default.name = 'Deconv Mode 600-900 MHz';
+default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
+% Note psc config name was incorrectly set, but it is for shallow ice:
+default.config_regexp = 'psc_eager_configHV';
+default.name = 'Polarimetric Mode 600-900 MHz Thick Ice';
 defaults{end+1} = default;
 
-% Noise Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).bit_shifts = [8];
-  default.radar.wfs(wf).tx_paths = {[1]};
-end
 
-default.config_regexp = '.*noise.*';
-default.name = 'Noise Mode 600-900 MHz';
-defaults{end+1} = default;
-
-% Loopback Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).bit_shifts = [8];
-  default.radar.wfs(wf).tx_paths = {[1]};
-end
-
-default.config_regexp = '.*loopback.*';
-default.name = 'Loopback Mode 600-900 MHz';
-defaults{end+1} = default;
-
-% Survey Mode
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).bit_shifts = [8];
-  default.radar.wfs(wf).tx_paths = {[1]};
-end
-
-default.config_regexp = '.*survey.*';
-default.name = 'Survey Mode 600-900 MHz';
-defaults{end+1} = default;
-
-% Other settings
-
-default.records.data_map = {[2 0 1 1; 4 0 3 1],[2 0 2 1; 4 0 4 1]};
-default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1],[2 1],[3 1],[4 1]};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
-for wf = 1:4
-  default.radar.wfs(wf).Tsys = Tsys;
-  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
-  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).bit_shifts = [8];
-  default.radar.wfs(wf).tx_paths = {[1]};
-end
-
-default.config_regexp = '.*';
-default.name = 'Default 600-900 MHz';
-defaults{end+1} = default;

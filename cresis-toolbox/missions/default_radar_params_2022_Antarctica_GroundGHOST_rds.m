@@ -241,7 +241,7 @@ param.array.out_path = '';
 param.array.method = 'standard';
 param.array.window = @hanning;
 param.array.bin_rng = 0;
-param.array.rline_rng = -5:5;
+param.array.line_rng = -5:5;
 param.array.dbin = 1;
 param.array.dline = 6;
 param.array.DCM = [];
@@ -258,7 +258,7 @@ param.radar.lever_arm_fh = @lever_arm;
 for wf = 1:4 
   param.radar.wfs(wf).adc_gains_dB = [38 38 38 38 38 38 38 38]; % ADC gain
   param.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8]; % ADCs
-  param.radar.wfs(wf).rx_paths = [1 2 5 6 3 4 3 4]; % ADC to rx path mapping
+  param.radar.wfs(wf).rx_paths = [1 2 3 4 1 2 3 4]; % ADC to rx path mapping
   param.radar.wfs(wf).gain_en = [0 0 0 0 0 0 0 0]; % Disable fast-time gain correction
   param.radar.wfs(wf).coh_noise_method = ''; % No coherent noise removal
   param.radar.wfs(wf).Tadc_adjust = 0;
@@ -282,7 +282,7 @@ param.post.pdf_en = 1;
 param.post.map.location = 'Antarctica';
 param.post.map.type = 'combined';
 param.post.echo.elev_comp = 2;
-param.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+2900]';
+param.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1200]';
 % param.post.echo.elev_comp = 3;
 % param.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
 param.post.echo.er_ice = 3.15;
@@ -302,50 +302,59 @@ defaults = {};
 % Survey Mode Thick Ice Single Polarization
 % Note data_map has unusual ordering with profile 1 first instead of
 % profile 0. Profile 1 corresponds to mode 0 which was transmitted first.
-default.records.arena.total_presums = 240;
+default.records.arena.total_presums = 400;
 % default.records.data_map = {[0 0 1 1;1 0 1 1;2 0 2 1;3 0 2 1]};
-  default.records.data_map = {...
-    [1 0 0 2 1
-    0 4 0 1 1
-    2 2 0 3 1
-    3 4 1 1 2
-    4 0 1 2 2
-    5 2 1 3 2
-    6 4 2 1 3
-    7 0 2 2 3
-    8 2 2 3 3
-    9 4 3 1 4
-    10 0 3 2 4
-    11 2 3 3 4], ...
-    [1 0 0 2 5
-    0 4 0 1 5
-    2 2 0 3 5
-    3 4 1 1 6
-    4 0 1 2 6
-    5 2 1 3 6
-    6 4 2 1 7
-    7 0 2 2 7
-    8 2 2 3 7
-    9 4 3 1 8
-    10 0 3 2 8
-    11 2 3 3 8]}
-default.qlook.img_comb = [11e-06 -inf 1e-06];
-default.qlook.imgs = {[1 1; 1 2; 1 3; 1 4; 1 5; 1 6],[2 1; 2 2; 2 3; 2 4; 2 5; 2 6]};
+% Each row of param.records.data_map{board_idx} = [profile mode_latch subchannel wf adc]
+default.records.data_map = {...
+  [0 0 0 1 1
+  1 2 0 2 1
+  2 4 0 3 1
+  3 6 0 4 1
+  4 0 1 1 2
+  5 2 1 2 2
+  6 4 1 3 2
+  7 6 1 4 2
+  8 0 2 1 3
+  9 2 2 2 3
+  10 4 2 3 3
+  11 6 2 4 3
+  12 0 3 1 4
+  13 2 3 2 4
+  14 4 3 3 4
+  15 6 3 4 4], ...
+  [0 0 0 1 5
+  1 2 0 2 5
+  2 4 0 3 5
+  3 6 0 4 5
+  4 0 1 1 6
+  5 2 1 2 6
+  6 4 1 3 6
+  7 6 1 4 6
+  8 0 2 1 7
+  9 2 2 2 7
+  10 4 2 3 7
+  11 6 2 4 7
+  12 0 3 1 8
+  13 2 3 2 8
+  14 4 3 3 8
+  15 6 3 4 8]}
+default.qlook.img_comb = [3e-06 -inf 1e-06];
+default.qlook.imgs = {[1 1; 1 2; 1 3; 1 4;],[3 1; 3 2; 3 3; 3 4;]};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.analysis_noise.imgs = default.qlook.imgs;
 default.radar.ref_fn = '';
-default.radar.wfs = param.radar.wfs(1:3);
-for wf = 1:3
+default.radar.wfs = param.radar.wfs(1:4);
+for wf = 1:4
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).bit_shifts = [0 0 0 0 0 0 0 0];
-  default.radar.wfs(wf).tx_paths = {[1 2 5 6]}; % awg1-CH0-->ANT1, awg1-CH1-->ANT2, awg1-CH2-->ANT5, awg1-CH3-->ANT6
-  default.radar.wfs(wf).DDC_dec = 12;
+  default.radar.wfs(wf).tx_paths = {[1 2 3 4 5 6]}; % awg1-CH0-->ANT1, awg1-CH1-->ANT2, awg1-CH2-->ANT5, awg1-CH3-->ANT6
+  default.radar.wfs(wf).DDC_dec = 4;
 end
-default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4200]';
+default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+1200]';
 % Note psc config name was incorrectly set, but it is for shallow ice:
 default.config_regexp = 'ghost_config';
 default.name = 'Survey Mode 180-210 MHz Thick Ice';

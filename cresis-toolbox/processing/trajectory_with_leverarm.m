@@ -27,7 +27,7 @@ if isempty(param.lever_arm_fh)
   return;
 end
 
-physical_constants;
+physical_constants; % Load WGS84.spheroid
 
 % Get the phase center of the receiver in question in BCS
 [lever_arm_val] = param.lever_arm_fh(param, param.tx_weights, param.rx_path);
@@ -48,11 +48,9 @@ for rline = 1:length(gps.roll)
   % Convert from NED to ECEF (lv2ecef input is ENU, so we transpose the first
   % two inputs and negate the third)
   [phase_center(1,rline),phase_center(2,rline),phase_center(3,rline)] ...
-    = lv2ecef(phase_center(2,rline),phase_center(1,rline),-phase_center(3,rline), ...
-    gps.lat(rline)/180*pi,gps.lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+    = enu2ecef(phase_center(2,rline),phase_center(1,rline),-phase_center(3,rline), ...
+    gps.lat(rline),gps.lon(rline),gps.elev(rline),WGS84.spheroid);
 end
 
 % Convert from ECEF to geodetic
-[gps.lat,gps.lon,gps.elev] = ecef2geodetic(phase_center(1,:),phase_center(2,:),phase_center(3,:),WGS84.ellipsoid);
-gps.lat = gps.lat*180/pi;
-gps.lon = gps.lon*180/pi;
+[gps.lat,gps.lon,gps.elev] = ecef2geodetic(WGS84.spheroid, phase_center(1,:),phase_center(2,:),phase_center(3,:));

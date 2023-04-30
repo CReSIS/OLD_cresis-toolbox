@@ -41,10 +41,14 @@ function [success] = qlook_task(param)
 %  .roll_correction = boolean, whether or not to apply roll phase correction
 %  .lever_arm_fh = string containing function name
 %  .elev_correction = boolean, whether or not to apply elevation phase correction
-%  .B_filter = double vector, FIR filter coefficients to apply before
+%  .B_filter: double vector, FIR filter coefficients to apply before
 %    decimating, this function loads data before and after this frame
-%    (if available) to avoid transients at the beginning and end
-%  .dec = positive integer, decimation rate
+%    (if available) to avoid transients at the beginning and end of the
+%    processing block. This filter controls how coherent averaging is done
+%    (AKA stacking, presumming, or unfocused SAR). Default value is a
+%    boxcar filter of length equal to the decimation rate or
+%    ones(1,qlook.dec)/qlook.dec.
+%  .dec: positive integer, decimation rate
 %  .inc_B_filter: double vector, FIR filter coefficients to apply before
 %    incoherent average decimation. If not defined or empty, then
 %    inc_B_filter is set to ones(1,inc_dec)/inc_dec.

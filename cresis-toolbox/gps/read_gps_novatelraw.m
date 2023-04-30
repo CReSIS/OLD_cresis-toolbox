@@ -83,6 +83,7 @@ have_ins = false;
 roll = 0;
 pitch = 0;
 heading = 0;
+message_ID_list = [];
 try
   for frame = 1:length(frame_start_idxs)
     %fprintf('FRAME %10d of %10d\n', frame, length(frame_start_idxs));
@@ -115,7 +116,10 @@ try
       gps_msec = typecast(swapbytes(A(frame_start_idxs(frame)+(8:11))),'uint32');
     end
 
+    % Debug print out
     %fprintf('%s ID: %4d Length: %4d %5d Time: %4d %6.1f\n', message_type, message_ID, header_length, message_length, gps_week, gps_msec/1000);
+    % Debug message_ID_list:
+    %message_ID_list(end+1) = message_ID;
 
     next_start_idx = frame_start_idxs(frame)+header_length+message_length+4;
     %fprintf('%g %g %g\n', next_start_idx, frame_start_idxs(frame+1),frame_start_idxs(frame+1)-next_start_idx);

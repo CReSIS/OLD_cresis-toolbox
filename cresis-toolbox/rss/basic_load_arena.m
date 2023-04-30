@@ -102,6 +102,7 @@ hdr_debug.mode = [];
 hdr_debug.subchannel = [];
 hdr_debug.profile = [];
 profile = 0;
+adc = -1; wf = -1;
 while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
   
   if ~lock_state
@@ -118,7 +119,13 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
   else
     tmp = fread(fid,1,'uint64=>uint64');
     if tmp ~= arena_frame_sync
-      fprintf('Lost lock state at byte %d\n', ftell(fid)-8);
+      fprintf('Lost lock state at byte %d record %d/%d wf/adc %d/%d\n', ftell(fid)-8, rec_in, rec, wf, adc);
+      % Remove the last record
+      data{adc,wf} = data{adc,wf}(:,1:end-1);
+      hdr_fieldnames = fieldnames(hdr{adc,wf});
+      for field_idx = 1:length(hdr_fieldnames)
+        hdr{adc,wf}.(hdr_fieldnames{field_idx}) = hdr{adc,wf}.(hdr_fieldnames{field_idx})(1:end-1);
+      end
       lock_state = 0;
       continue;
     elseif feof(fid)
@@ -165,11 +172,16 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         mode = new_hdr.mode;
       elseif hdr_type == ghost_ku0001_radar_header_type
         new_hdr = basic_load_arena_ghost_ku0001(fid);
-        %fprintf('%3d %10d\n', new_hdr.processor, new_hdr.profile_cntr_latch);
-        new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
-        new_hdr.mode = param.processor_mode(new_hdr.processor+1);
+        if isempty(param.processor_subchannel)
+          new_hdr.subchannel = 0;
+          new_hdr.mode = new_hdr.processor;
+        else
+          new_hdr.subchannel = param.processor_subchannel(new_hdr.processor+1);
+          new_hdr.mode = param.processor_mode(new_hdr.processor+1);
+        end
         subchannel = new_hdr.subchannel;
         mode = new_hdr.mode;
+        profile = new_hdr.processor;
       elseif hdr_type == coldex_arena5xx_radar_header_type
         new_hdr = basic_load_arena_ghost_ku0001(fid);
         if isempty(param.processor_subchannel)

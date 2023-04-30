@@ -1889,7 +1889,7 @@ for dac_idx = 1:dacList.getLength
       end
       delay = nodeList.item(0);
       delay = delay.getTextContent.toCharArray;
-      delay = str2double(delay(:).');
+      delay = str2double(delay(:).') * 1e-6;
       configs.dac{mode_latch+1}.delay = delay;
       
       % 3. Get the config name and type for this DAC waveform
@@ -1945,21 +1945,21 @@ for dac_idx = 1:dacList.getLength
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           centerFreq = nodeList.item(0);
           centerFreq = centerFreq.getTextContent.toCharArray;
-          centerFreq = str2double(centerFreq(:).');
+          centerFreq = str2double(centerFreq(:).') * 1e6;
           configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.centerFreq = centerFreq;
           
           expression = xpath.compile('bandwidth');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           bandwidth = nodeList.item(0);
           bandwidth = bandwidth.getTextContent.toCharArray;
-          bandwidth = str2double(bandwidth(:).');
+          bandwidth = str2double(bandwidth(:).') * 1e6;
           configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.bandwidth = bandwidth;
           
           expression = xpath.compile('initialDelay');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           initialDelay = nodeList.item(0);
           initialDelay = initialDelay.getTextContent.toCharArray;
-          initialDelay = str2double(initialDelay(:).');
+          initialDelay = str2double(initialDelay(:).') * 1e-6;
           configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.initialDelay = initialDelay;
           
           expression = xpath.compile('initialPhase');
@@ -1973,7 +1973,7 @@ for dac_idx = 1:dacList.getLength
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           afterPulseDelay = nodeList.item(0);
           afterPulseDelay = afterPulseDelay.getTextContent.toCharArray;
-          afterPulseDelay = str2double(afterPulseDelay(:).');
+          afterPulseDelay = str2double(afterPulseDelay(:).') * 1e-6;
           configs.dac{tx_idx,mode_latch+1}.wfs{1}.pulse{pulse_idx}.afterPulseDelay = afterPulseDelay;
           
           expression = xpath.compile('taper');
@@ -2097,14 +2097,14 @@ for dac_idx = 1:dacList.getLength
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           centerFreq = nodeList.item(0);
           centerFreq = centerFreq.getTextContent.toCharArray;
-          centerFreq = str2double(centerFreq(:).');
+          centerFreq = str2double(centerFreq(:).') * 1e6;
           configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.pulse{pulse_idx}.centerFreq = centerFreq;
           
           expression = xpath.compile('bandwidth');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           bandwidth = nodeList.item(0);
           bandwidth = bandwidth.getTextContent.toCharArray;
-          bandwidth = str2double(bandwidth(:).');
+          bandwidth = str2double(bandwidth(:).') * 1e6;
           configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.pulse{pulse_idx}.bandwidth = bandwidth;
           
           configs.dac{tx_idx,mode_latch+1}.wfs{wf_idx}.pulse{pulse_idx}.initialDelay = 0;

@@ -1,6 +1,6 @@
-% script gps_create_2018_greenland_Polar6
+% script gps_create_2018_Greenland_Polar5
 %
-% Makes the GPS files for 2022_greenland_Polar5 field season
+% Makes the GPS files for 2022_Greenland_Polar5 field season
 
 %% Setup
 % =========================================================================
@@ -15,7 +15,7 @@ if isempty(support_path)
   support_path = gRadar.support_path;
 end
 
-season_name = '2022_greenland_Polar5';
+season_name = '2022_Greenland_Polar5';
 
 gps_path = fullfile(support_path,'gps',season_name);
 if ~exist(gps_path,'dir')
@@ -31,7 +31,7 @@ end
 
 in_base_path = fullfile(data_support_path,season_name);
 
-file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
+file_idx = 0; in_fns = {}; in_fns_ins = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 %% <== CHOOSE WHICH GPS SOURCE TO PROCESS
@@ -119,7 +119,6 @@ if strcmpi(gps_source_to_use,'NMEA')
 %   gps_source{file_idx} = 'nmea-field';
 %   sync_flag{file_idx} = 0;
 
-
 %    file_idx = file_idx + 1;
 %   year = 2022; month = 6; day = 12;
 %   in_fns{file_idx} = get_filenames(fullfile(in_base_path, ...
@@ -142,7 +141,7 @@ if strcmpi(gps_source_to_use,'NMEA')
 %   gps_source{file_idx} = 'nmea-field';
 %   sync_flag{file_idx} = 0;
 
-file_idx = file_idx + 1;
+  file_idx = file_idx + 1;
   year = 2022; month = 6; day = 16;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path, ...
     sprintf('%04d%02d%02d',year,month,day)),'GPS_','','.txt');
@@ -165,6 +164,7 @@ elseif strcmpi(gps_source_to_use,'AWI')
   in_fns{file_idx} = get_filenames(field_gps_in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
   gps_source{file_idx} = 'awi-field';
   sync_flag{file_idx} = 0;
@@ -190,6 +190,7 @@ elseif strcmpi(gps_source_to_use,'AWI_final')
   in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  date_str{file_idx} = sprintf('%04d%02d%02d',year,month,day);
   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
   gps_source{file_idx} = 'awi-final_20161109';
   sync_flag{file_idx} = 0;

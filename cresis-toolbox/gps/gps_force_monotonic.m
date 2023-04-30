@@ -76,7 +76,7 @@ end
 monotonic_idxs = sort_idxs(good_mask);
 
 %% Remove nonmonotonically increasing records from gps.radar_time
-if isfield(gps,'radar_time')
+if isfield(gps,'radar_time') && any(~isnan(gps.radar_time))
   [~,sort_idxs] = sort(gps.radar_time);
   if any(sort_idxs ~= 1:length(sort_idxs))
     warning('Radar time is not monotonically increasing. Manual inspection is suggested.');
