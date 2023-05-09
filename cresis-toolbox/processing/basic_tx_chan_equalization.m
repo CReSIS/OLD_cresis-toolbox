@@ -167,7 +167,7 @@ for file_idx = 1:length(fns)
   hdr.heading = fir_dec(hdr.heading,param.config.presums);
   
   %% Pulse compression
-  [pc_signal,pc_time] = pulse_compress(data,pc_param);
+  [pc_signal,pc_time,pc_freq] = pulse_compress(data,pc_param);
 
   %% Track surface
   ml_data = lp(fir_dec(abs(pc_signal(:,:,ref_wf_adc)).^2,ones(1,5)/5,1));
@@ -232,7 +232,25 @@ for file_idx = 1:length(fns)
   param.DDS_start_phase_units = 'deg';
   
   out_xml_fn_dir = param.basic_tx_chan_equal.out_xml_fn_dir;
-  
+
+  %% Hack to apply time delay, amplitude and phase.
+  % =======================================================================
+  if 0
+    t_delay_hack = zeros(size(data));
+    phase_hack = zeros(size(data));
+    amp_hack = ones(size(data));
+
+    % Usually enter the difference between the Original and Mean here:
+%     t_delay_hack = ([-4.19	-5.07	-3.85	-3.43	-5.39	-4.53	-5.31	-4.64]-[-7.35	-5.57	-2.39	-3.43	0.97	-0.75	-5.91	-4.64])*1e-9;
+%     phase_hack = (-[-2.6	0.0	41.5	39.4	8.2	-50.4	-51.2	-46.2]+[-138.4	145.2	-33.0	0.0	-163.3	-82.7	111.3	-85.6])/180*pi;
+%     amp_hack = [1426	3350	2957	3952	4000	3548	2615	273]./[443	894	1502	1751	1605	4000	902	462];
+
+    for chan = 1:length(data)
+      data{chan} = (amp_hack(chan) .* exp(1i*phase_hack(chan))) ...
+        * ifft(fft(data{chan}) .* exp(-1i*2*pi*pc_freq*t_delay_hack(chan)));
+    end
+  end
+
   %% Echogram plots
   % =======================================================================
   if param.basic_tx_chan_equalization.plot_en
