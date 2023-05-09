@@ -38,7 +38,6 @@ end
 %% Cell input: Recurse to load a list of worksheets
 % =======================================================================
 if iscell(generic_ws)
-  warning('off','MATLAB:xlsread:Mode');
   for idx = 1:size(generic_ws,1)
     tmp = read_param_xls_generic(param_fn,generic_ws{idx,1},params,read_param);
     if size(generic_ws,2) > 1
@@ -48,7 +47,6 @@ if iscell(generic_ws)
       params = tmp;
     end
   end
-  warning('on','MATLAB:xlsread:Mode');
   return;
 end
 
@@ -56,16 +54,46 @@ end
 % =======================================================================
 sheet_name = generic_ws;
 fprintf('Reading sheet %s of xls file: %s\n', sheet_name, param_fn);
-warning off MATLAB:xlsfinfo:ActiveX
-[status, sheets] = xlsfinfo(param_fn);
-warning on MATLAB:xlsfinfo:ActiveX
+
+[~,~,param_fn_ext] = fileparts(param_fn);
+matlab_ver = ver('matlab');
+use_read_table = str2double(matlab_ver.Version) >= 9.12 || any(strcmpi(param_fn_ext,{'xlsx','ods'}));
+clear('matlab_ver');
+if use_read_table
+  sheets = sheetnames(param_fn);
+else
+  warning off MATLAB:xlsfinfo:ActiveX
+  [status, sheets] = xlsfinfo(param_fn);
+  warning on MATLAB:xlsfinfo:ActiveX
+end
+
 sheet_idx = strmatch(generic_ws,sheets,'exact');
 if isempty(sheet_idx)
   fprintf('  Sheet not found\n');
   return
 end
 
-[num txt] = xlsread(param_fn,sheet_name,'','basic');
+if use_read_table
+  read_table_opts = detectImportOptions(param_fn,'NumHeaderLines',0,'Sheet',sheet_name,'ReadVariableNames',false);
+  read_table_opts.DataRange = 'A1';
+  for var_idx = 1:length(read_table_opts.VariableTypes)
+    read_table_opts.VariableTypes{var_idx} = 'char';
+  end
+  read_table_output = readtable(param_fn,read_table_opts);
+  txt = table2cell(read_table_output);
+  num = nan(size(txt));
+  for element_idx = 1:numel(txt)
+    num(element_idx) = str2double(txt{element_idx});
+    if ~isnan(num(element_idx))
+      txt{element_idx} = '';
+    end
+  end
+  clear('read_table_opts','read_table_output','var_idx','element_idx');
+else
+  warning('off','MATLAB:xlsread:Mode');
+  [num, txt] = xlsread(param_fn,sheet_name,'','basic');
+  warning('on','MATLAB:xlsread:Mode');
+end
 
 num_header_rows = find(strcmp( 'Date' , txt(1:end,1) )) + 1;
 if isempty(num_header_rows)
