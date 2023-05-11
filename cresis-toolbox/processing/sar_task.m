@@ -317,7 +317,15 @@ for img = 1:length(param.load.imgs)
     end
 
     % 3. Fill in any missing lines
-    fcs.pos(:,~good_rline) = interp1(output_along_track(good_rline),fcs.pos(:,good_rline).',output_along_track(~good_rline).','linear','extrap').';
+    if length(good_rline) > 1
+      fcs.pos(:,~good_rline) = interp1(output_along_track(good_rline),fcs.pos(:,good_rline).',output_along_track(~good_rline).','linear','extrap').';
+    elseif length(good_rline) == 1
+      fcs.pos(1,~good_rline) = fcs.pos(1,good_rline);
+      fcs.pos(2,~good_rline) = fcs.pos(2,good_rline);
+      fcs.pos(3,~good_rline) = fcs.pos(3,good_rline);
+    else
+      error('good_rline is empty; no good data?');
+    end
     
     
     %% SAR Processing

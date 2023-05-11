@@ -512,6 +512,7 @@ for frm_idx = 1:length(param.cmd.frms)
   % Estimate number of input range lines per chunk
   num_rlines_per_chunk = round((stop_rec-start_rec) / num_chunks);
   
+  cur_rec = start_rec;
   for chunk_idx = 1:num_chunks
     % Setup dynamic params
     % =====================================================================
@@ -523,6 +524,14 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       dparam.argsin{1}.load.recs = start_rec + num_rlines_per_chunk*(chunk_idx-1) + [0, num_rlines_per_chunk-1];
     end
+    if chunk_idx == num_chunks
+      dparam.argsin{1}.load.recs = [cur_rec, stop_rec];
+    else
+      dparam.argsin{1}.load.recs = cur_rec-1+[find(along_track_approx(cur_rec:end)-along_track_approx(start_rec) >= (chunk_idx-1)*param.sar.chunk_len,1), ...
+        find(along_track_approx(cur_rec:end)-along_track_approx(start_rec) < chunk_idx*param.sar.chunk_len,1,'last')];
+    end
+    dparam.argsin{1}.load.recs
+    cur_rec = dparam.argsin{1}.load.recs(2)+1;
     
     for imgs_idx = 1:length(imgs_list)
       if isempty(imgs_list{imgs_idx})

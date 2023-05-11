@@ -649,7 +649,6 @@ if param.post.concat_en
   fprintf(' Creating csv and kml files (%s)\n', datestr(now));
   
   csv_dir = fullfile(post_path,'csv',param.day_seg);
-  kml_base_dir = fullfile(post_path,'kml');
   
   if ~exist(csv_dir,'dir')
     warning('No csv files to concatenate.');
@@ -657,23 +656,10 @@ if param.post.concat_en
     [csv_dir_path csv_dir_name] = fileparts(csv_dir);
     out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
     concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
-  end
-  
-  if ~exist(kml_base_dir,'dir')
-    warning('No kml files to concatenate.');
-  else
-    % Create KML browse files for each segment
-    % Extract day_seg from filename
-    in_fn = out_fn;
-    [in_fn_dir in_fn_name] = fileparts(in_fn);
-    kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
-    day_seg = in_fn_name(6:end);
-    kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
   end
   
   % Repeat for csv_good and kml_good
   csv_dir = fullfile(post_path,'csv_good',param.day_seg);
-  kml_base_dir = fullfile(post_path,'kml_good');
   
   if ~exist(csv_dir,'dir')
     warning('No csv files to concatenate.');
@@ -681,18 +667,6 @@ if param.post.concat_en
     [csv_dir_path csv_dir_name] = fileparts(csv_dir);
     out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
     concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
-  end
-  
-  if ~exist(kml_base_dir,'dir')
-    warning('No kml files to concatenate.');
-  else
-    % Create KML browse files for each segment
-    % Extract day_seg from filename
-    in_fn = out_fn;
-    [in_fn_dir in_fn_name] = fileparts(in_fn);
-    kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
-    day_seg = in_fn_name(6:end);
-    kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
   end
 end
 
