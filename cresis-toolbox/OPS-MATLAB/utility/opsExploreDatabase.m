@@ -3,7 +3,7 @@
 % Prints out the contents of the OPS database for debugging
 
 % system: string containing accum, auth, kuband, opsuser, rds, or snow
-system = 'opsuser';
+system = 'rds';
 
 query = 'SELECT * FROM pg_catalog.pg_tables';
 [status,tables] = opsQuery(query);
@@ -22,19 +22,20 @@ if 0
   end
 end
 
-MAX_ROWS = 5;
+MAX_ROWS = 30;
 MAX_WIDTH = 50;
 for idx = 1:size(tables,2)
   if strncmp(tables{2,idx},system,length(system))
     fprintf('=============================================\n');
     fprintf('Table %s:\n', tables{2,idx})
-    query = sprintf('select column_name from information_schema.columns where table_name=''%s'';', tables{2,idx});
+    query = sprintf('select column_name from information_schema.columns where table_name=''%s'';', tables{2,idx})
     [status,columns] = opsQuery(query);
     
     %% Print the contents of the table out
-    query = sprintf('SELECT * FROM %s LIMIT %d', tables{2,idx}, MAX_ROWS);
+    query = sprintf('SELECT * FROM %s LIMIT %d', tables{2,idx}, MAX_ROWS)
     [status,data] = opsQuery(query);
     
+%     continue;
     data = data';
     
     if status == 1

@@ -15,6 +15,16 @@ switch nargin
     return;
 end
 
+if isfield(records, 'lat')
+  lat  = records.lat;
+  lon  = records.lon;
+  elev = records.elev;
+elseif isfield(records, 'Latitude')
+  lat  = records.Latitude;
+  lon  = records.Longitude;
+  elev = records.Elevation;
+end
+    
 debug_plots_en = 0;
 [c, WGS84] = physical_constants('c', 'WGS84');
 
@@ -23,7 +33,7 @@ debug_plots_en = 0;
 altra = [];
 % 1. Compute along-track vector (geodetic_to_along_track)
 [altra.along_track, altra.lat, altra.lon, altra.elev] = ...
-  geodetic_to_along_track(records.lat, records.lon, records.elev);
+  geodetic_to_along_track(lat, lon, elev);
 
 % 2. Find ECEF of trajectory
 [altra.x, altra.y, altra.z] = geodeticD2ecef(altra.lat, altra.lon, altra.elev, WGS84.ellipsoid);
