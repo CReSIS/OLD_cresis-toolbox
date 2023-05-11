@@ -12,7 +12,17 @@ function [params] = read_param_xls_generic(param_fn, generic_ws, params, read_pa
 % 
 % Author: Theresa Stumpf, John Paden
 %
-% See also: read_param_xls
+% See also: ct_set_params, master, read_param_xls
+%
+% See also for spreadsheet cell loading:
+%  read_param_xls_boolean.m, read_param_xls_general.m,
+%  read_param_xls_text.m
+%  
+% See also for worksheet loading:
+%  read_param_xls_generic.m, read_param_xls_radar.m: 
+%
+% See also for printing out spreadsheet to stdout:
+%  read_param_xls_print, read_param_xls_print_headers.m
 
 %% Input checks and setup
 % =======================================================================
@@ -130,6 +140,12 @@ end
 % =======================================================================
 for idx = 1:rows
   row = idx + num_header_rows;
+  if row > size(num,1)
+    error('xls row %d error: There is content on this or a later row, but there is no day segment. No content should be placed below the last day segment row.', row);
+  end
+  if size(num,2) < 2 || ~isfinite(num(row,1)) || ~isfinite(num(row,2))
+    error('xls row %d error: The day segment is not formed properly on this row.', row);
+  end
   day_seg = sprintf('%08.0f_%02.0f',num(row,1),num(row,2));
   if strcmpi(generic_ws,'cmd')
     params(idx).day_seg = day_seg;
@@ -141,7 +157,7 @@ for idx = 1:rows
         % Not found, so we skip this row
         continue;
       elseif length(idx) > 1
-        error('xls row %d error: More than one matching segment to "%s" found in input params.', day_seg);
+        error('xls row %d error: More than one matching segment to "%s" found in input params.', row, day_seg);
       end
     else
       error('The date segment order of sheets cmd and %s do not match at row %d in the excel spreadsheet. Each sheet must have the same date and segment list.',sheet_name,row);

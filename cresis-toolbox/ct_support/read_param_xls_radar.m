@@ -6,7 +6,17 @@ function [params] = read_param_xls_radar(param_fn, day_seg_filter)
 %
 % Author: Brady Maasen, John Paden
 %
-% See also: read_param_xls
+% See also: ct_set_params, master, read_param_xls
+%
+% See also for spreadsheet cell loading:
+%  read_param_xls_boolean.m, read_param_xls_general.m,
+%  read_param_xls_text.m
+%  
+% See also for worksheet loading:
+%  read_param_xls_generic.m, read_param_xls_radar.m: 
+%
+% See also for printing out spreadsheet to stdout:
+%  read_param_xls_print, read_param_xls_print_headers.m
 
 cell_boolean = @read_param_xls_boolean;
 cell_text = @read_param_xls_text;
@@ -50,6 +60,7 @@ if isnan(version)
   error('Could not find version field text in row 1, column 2 of the first worksheet.');
 end
 if version < 4
+  warning('Using an old version of the parameter spreadsheet. Please update the parameter spreadsheet to the newest version format.');
   num_header_rows = 5;
   rows = max(size(num,1), size(txt,1)) - num_header_rows;
   
@@ -61,19 +72,37 @@ if version < 4
     row = idx + num_header_rows;
     params(idx).day_seg                           = sprintf('%08.0f_%02.0f',num(row,1),num(row,2));
     col = 3;
-    params(idx).cmd.frms                          = cell_read(row,col,num,txt); col = col + 1;
-    params(idx).cmd.vectors                       = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.records                       = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.frames                        = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.qlook                         = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.sar                           = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.array                         = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.generic                       = cell_read(row,col,num,txt); col = col + 1;
-    if isempty(params(idx).cmd.generic)
-      params(idx).cmd.generic = 0;
+    
+    try
+      fieldname = 'frms';
+      params(idx).cmd.frms                          = cell_read(row,col,num,txt); col = col + 1;
+      fieldname = 'vectors';
+      params(idx).cmd.vectors                       = cell_boolean(row,col,num,txt); col = col + 1;
+      fieldname = 'records';
+      params(idx).cmd.records                       = cell_boolean(row,col,num,txt); col = col + 1;
+      fieldname = 'frames';
+      params(idx).cmd.frames                        = cell_boolean(row,col,num,txt); col = col + 1;
+      fieldname = 'qlook';
+      params(idx).cmd.qlook                         = cell_boolean(row,col,num,txt); col = col + 1;
+      fieldname = 'sar';
+      params(idx).cmd.sar                           = cell_boolean(row,col,num,txt); col = col + 1;
+      fieldname = 'array';
+      params(idx).cmd.array                         = cell_boolean(row,col,num,txt); col = col + 1;
+      fieldname = 'generic';
+      params(idx).cmd.generic                       = cell_read(row,col,num,txt); col = col + 1;
+      if isempty(params(idx).cmd.generic)
+        params(idx).cmd.generic = 0;
+      end
+      fieldname = 'mission_names';
+      params(idx).cmd.mission_names                 = cell_text(row,col,num,txt); col = col + 1;
+      fieldname = 'notes';
+      params(idx).cmd.notes                         = cell_text(row,col,num,txt); col = col + 1;
+    catch ME
+      if ~strcmp(ME.identifier,'read_param_xls_radar:eval_error')
+        fprintf('  Error in row %d, column %s/%d (field %s)\n', row, char(65+mod(col-1,26)), col, fieldname);
+      end
+      rethrow(ME)
     end
-    params(idx).cmd.mission_names                 = cell_text(row,col,num,txt); col = col + 1;
-    params(idx).cmd.notes                         = cell_text(row,col,num,txt); col = col + 1;
     params(idx).sw_version                        = sw_version;
     params(idx).param_file_version                = param_file_version;
   end
