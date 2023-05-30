@@ -1,29 +1,27 @@
 hara;
-global gRadar;
+% global gRadar;
 flag_load_xo = 0;
 
 %% initial setup
-seasons = eval(['{' sprintf('''201%d_Greenland_P3'' ', [4, 7:9]) '}']);
-seasons = eval(['{' sprintf('''201%d_Greenland_P3'' ', [0:9]) '}']);
-
-
+% seasons = eval(['{' sprintf('''201%d_Greenland_P3'' ', [4, 7:9]) '}']);
+% seasons = eval(['{' sprintf('''201%d_Greenland_P3'' ', [0:9]) '}']);
 
 %% specify table name to reuse mat file
 % or leave it blank to load csv from OPS
 
 %% 2009-2019
 
-seasons = {'2009_Greenland_P3', seasons{:}};
+% seasons = {'2009_Greenland_P3', seasons{:}};
 
-xo_table_name = 'OPS_CReSIS_Crossovers_WKT_E7WRX9shd4';
+% xo_table_name = 'OPS_CReSIS_Crossovers_WKT_E7WRX9shd4';
 % xo_angle_filter_str = 'le_0p02';
-xo_angle_filter_str = 'ge_89p9';
+% xo_angle_filter_str = 'ge_89p9';
 
 %% 2017
 
-% seasons = {'2017_Greenland_P3'};
+seasons = {'2017_Greenland_P3'};
 
-% xo_table_name = 'OPS_CReSIS_Crossovers_WKT_XYQQ1nEbE7';
+xo_table_name = 'OPS_CReSIS_Crossovers_WKT_XYQQ1nEbE7';
 % xo_angle_filter_str = 'le_0p5';
 % xo_angle_filter_str = 'ge_85';
 
@@ -60,7 +58,7 @@ while flag_load_xo<3
       ops_param.properties.bound = 'POLYGON((-60.21185297752899 79.28631607719494,-38.990142955064044 80.77748577534513,-26.620239884631797 77.47703730992983,-31.313132039002255 72.9805972146493,-34.605965673152475 69.07115740728769,-42.40508975888023 65.73463547624439,-45.52641898905595 61.826899702579475,-47.29065655063459 65.37043635921154,-46.72929098881992 69.88001876512513,-51.721320562340466 73.25388326368206,-57.07865805987291 76.6739823649063,-61.56467548263641 77.77118856865765,-60.21185297752899 79.28631607719494))';
       xo_table_name = 'OPS_CReSIS_Crossovers_WKT_E7WRX9shd4';
       
-    elseif 0
+    elseif 1
       % non-coastal 2017
       ops_param.properties.bound = 'POLYGON((-60.21185297752899 79.28631607719494,-38.990142955064044 80.77748577534513,-26.620239884631797 77.47703730992983,-31.313132039002255 72.9805972146493,-34.605965673152475 69.07115740728769,-42.40508975888023 65.73463547624439,-45.52641898905595 61.826899702579475,-47.29065655063459 65.37043635921154,-46.72929098881992 69.88001876512513,-51.721320562340466 73.25388326368206,-57.07865805987291 76.6739823649063,-61.56467548263641 77.77118856865765,-60.21185297752899 79.28631607719494))';
       xo_table_name = 'OPS_CReSIS_Crossovers_WKT_XYQQ1nEbE7';
@@ -73,7 +71,8 @@ while flag_load_xo<3
     
     %% Query OPS
     
-    if ~exist('xo_table_name', 'var') || isempty(xo_table_name)
+    if ( ~exist('xo_table_name', 'var') || isempty(xo_table_name) ) ...
+            && ( ~exist('xo_table_tag', 'var') || isempty(xo_table_tag) )
       fprintf('OPS >> New Query >>\n');
       keyboard;
       [~, ops_csv] = opsGetCrossoversWithinPolygon( ops_sys, ops_param );
@@ -141,7 +140,7 @@ while flag_load_xo<3
       end
       fprintf('\n');
       
-      % save XO table inct_tmp
+      % save XO table in ct_tmp
       try
         fprintf('Saving XO table in ct_tmp: %s ', ops_table_fn_tmp);
         if ~exist(fileparts(ops_table_fn_tmp), 'dir')
@@ -187,7 +186,7 @@ while flag_load_xo<3
     % filter xo angles
     %%% good_idxs = find(xo.cx_angle <= 0.02);
     xo_angle_filter_operator = 'ge';
-    xo_angle_filter_threshold = 89.9;
+    xo_angle_filter_threshold = 86;
       
     eval( sprintf('good_idxs = find( %s(xo.cx_angle, %f) );', ...
       xo_angle_filter_operator,  xo_angle_filter_threshold) );
@@ -242,15 +241,17 @@ while flag_load_xo<3
   else
     %% Load reuse_mat
     
-    xo_table_tag = strrep(xo_table_name, 'OPS_CReSIS_Crossovers_WKT_', '');
-    reuse_loc = fullfile(gRadar.ct_tmp_path, 'radcal_mat', ...
-      [xo_table_tag, '_', xo_angle_filter_str]);
-    reuse_fn = fullfile(reuse_loc, 'reuse.mat');
+   
     try
-      fprintf('Loading REUSE MAT: %s >>', reuse_fn);
-      load(reuse_fn);
-      fprintf('Loaded\n');
-      flag_load_xo = 10;
+        xo_table_tag = strrep(xo_table_name, 'OPS_CReSIS_Crossovers_WKT_', '');
+        reuse_loc = fullfile(gRadar.ct_tmp_path, 'radcal_mat', ...
+            [xo_table_tag, '_', xo_angle_filter_str]);
+        reuse_fn = fullfile(reuse_loc, 'reuse.mat');
+
+        fprintf('Loading REUSE MAT: %s >>', reuse_fn);
+        load(reuse_fn);
+        fprintf('Loaded\n');
+        flag_load_xo = 10;
     catch
       fprintf('\nERROR!!! NOT Loaded\n Trying again (%d/3)\n', flag_load_xo);
       flag_load_xo = flag_load_xo+1;

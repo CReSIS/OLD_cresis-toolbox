@@ -174,14 +174,9 @@ for xx=1:2
   
   if 1
     box_bounds_each_side = round(50/dd_dt_dist); % within 50 meter
-    box_bounds_max = Nt;
-    
-    idx_box_min = max([surf_closest_idx - box_bounds_each_side, 1]);
-    idx_box_max = min([surf_closest_idx + box_bounds_each_side, box_bounds_max]);
-    idxs_box = idx_box_min:idx_box_max;
-    
+    idxs_box = boxing_1D(surf_closest_idx, box_bounds_each_side, Nt);
     [~, box_peak_idx] = max(tmp(idxs_box));
-    surf_peak_idx = idx_box_min + box_peak_idx -1;
+    surf_peak_idx = idxs_box(1) + box_peak_idx -1;
     
     clear box_bounds_each_side box_bounds_max idx_box_min idx_box_max idxs_box box_peak_idx
   end
@@ -227,6 +222,9 @@ for xx=1:2
     % records
     figure(h_fig_records);
     plot(records{xx}.lon, records{xx}.lat, ':');
+    box_bounds_each_side = max(1, round(500/dx_rec)); % within 500 meter
+    plot_rec_idxs = boxing_1D(rec(xx), box_bounds_each_side, length(records{xx}.lon));
+
     plot(record{xx}.lon, record{xx}.lat, 'o', 'LineWidth', 1);
     
     plot(dd_full.Longitude, dd_full.Latitude, '+', 'LineWidth', 2);
