@@ -913,16 +913,27 @@ if ~param.load.raw_data
         gain_fn = fullfile(gain_dir,sprintf('gain_wf_%d_adc_%d.mat',wf,adc));
         if exist(gain_fn, 'file')
           ftg = load(gain_fn);
-          fprintf('Applying fast time gain compensation %d-%d\n',wf,adc);
-          corr_Time = ftg.param_analysis.radar.wfs(wf).time... % Actual Time axis
-            + (ftg.param_analysis.radar.wfs(wf).Tadc_adjust - 1*param.radar.wfs(wf).Tadc_adjust)... % Difference in Tadc_adjust
-            -1*ftg.param_analysis.radar.wfs(wf).time_correction;
-          %             +-ftg.param_analysis.radar.wfs(wf).time(1);
-          %           plot(wfs(wf).time_raw(1:hdr.Nt{img}(1))/1e-6,data{img}(:,1,wf_adc));
-          %           temp_data = bsxfun(@times,data{img}(:,:,wf_adc),interp1(corr_Time, 1./ftg.Gain_raw, wfs(wf).time_raw(1:hdr.Nt{img}(1)), 'linear','extrap'));
-          %           hold on; plot(wfs(wf).time_raw(1:hdr.Nt{img}(1))/1e-6,temp_data(:,1),'--');
-          data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(corr_Time, 1./ftg.Gain_raw, wfs(wf).time_raw(1:hdr.Nt{img}(1)), 'linear','extrap'));
-          %           hold on; plot(wfs(wf).time_raw(1:hdr.Nt{img}(1))/1e-6,data{img}(:,1,wf_adc))
+          fprintf('Applying fast time gain compensation %d-%d\n  %s\n',wf,adc,gain_fn);
+          corr_Time = ftg.param_collate_gain.radar.wfs(wf).time... % Actual Time axis
+            + (ftg.param_collate_gain.radar.wfs(wf).Tadc_adjust - 1*param.radar.wfs(wf).Tadc_adjust)... % Difference in Tadc_adjust
+            -1*ftg.param_collate_gain.radar.wfs(wf).time_correction;
+          if 0
+            figure(1);
+            if img == 1 && wf_adc == 1
+              clf;
+            end
+            plot(lp(mean(abs(data{img}(:,:,wf_adc)).^2,2)));
+            grid on;
+            keyboard
+          end
+          data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(corr_Time, ftg.Gain_raw, wfs(wf).time_raw(1:hdr.Nt{img}(1)), 'linear','extrap'));
+          if 0
+            hold on;
+            plot(lp(mean(abs(data{img}(:,:,wf_adc)).^2,2)));
+            figure(2); clf;
+            imagesc(lp(data{img}(:,:,wf_adc)));
+            keyboard
+          end 
         else
           error(sprintf('Fast-time Gain compensation file not found:\n  %s\nPlease run run_collate_ftg.m.',gain_fn));
         end
