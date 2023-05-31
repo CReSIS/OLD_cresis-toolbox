@@ -1315,27 +1315,29 @@ else
 
   % Create the parameters to output
   oparams = {};
+  [~,defaults] = param.config.default();
   for segment_idx = 1:length(segs)
     segment = segs(segment_idx);
     
     % Determine which default parameters to use
     % =======================================================================
     match_idx = 1;
-    oparams{end+1} = param.config.defaults{match_idx};
+
+    oparams{end+1} = defaults{match_idx};
     oparams{end} = rmfield(oparams{end},'config_regexp');
     oparams{end} = rmfield(oparams{end},'name');
     
     % Parameter spreadsheet
     % =======================================================================
     oparams{end}.day_seg = sprintf('%s_%02d',param.config.date_str,segment_idx);
-    oparams{end}.cmd.notes = param.config.defaults{match_idx}.name;
+    oparams{end}.cmd.notes = defaults{match_idx}.name;
     
     oparams{end}.records.file.start_idx = segment.start_idxs;
     oparams{end}.records.file.stop_idx = segment.stop_idxs;
-    oparams{end}.records.gps.time_offset = param.config.defaults{match_idx}.records.gps.time_offset + segment.day_wrap_offset;
+    oparams{end}.records.gps.time_offset = param.records.gps.time_offset + segment.day_wrap_offset;
     
     oparams{end}.records.file.base_dir = param.config.base_dir;
-    oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
+    oparams{end}.records.file.board_folder_name = param.config.board_folder_names;
     if ~isempty(oparams{end}.records.file.board_folder_name) ...
         && oparams{end}.records.file.board_folder_name(1) ~= filesep
       % Ensures that board_folder_name is not a text number which Excel
