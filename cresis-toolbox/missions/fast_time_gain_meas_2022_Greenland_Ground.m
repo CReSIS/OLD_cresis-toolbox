@@ -1,7 +1,15 @@
-% /scratch/metadata/2022_Greenland_Ground/fast_time_gain_2022_Greenland_Ground.m
+% Create fast-time gain compensation files for 2022_Greenland_Ground 
+%   accum/2022_Greenland_Ground/CSARP_analysis/gain_wf_[1-4]_adc_1.mat
+%
+% Created manually since there were no measurements of fast-time gain.
+
+param = read_param_xls(ct_filename_param('accum_param_2022_Greenland_Ground.xls'),'20220607_04',{'analysis_noise','analysis'});
+global gRadar;
+param = merge_structs(gRadar,param);
+fn_dir = ct_filename_out(param,'analysis',[],true);
 
 for wf = 1:4
-  fn = sprintf('/scratch/accum/2022_Greenland_Ground/CSARP_analysis/gain_wf_%d_adc_1.mat',wf);
+  fn = fullfile(fn_dir, sprintf('/gain_wf_%d_adc_1.mat',wf));
   ftg = struct();
   ftg.param_collate_gain.radar.wfs(wf).Tadc_adjust = -3.065000000000000e-07;
   ftg.param_collate_gain.radar.wfs(wf).time_correction = 0;
