@@ -10,13 +10,36 @@
 %% User Settings
 param_override = [];
 
-params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
+% params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
+params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'));
 
 % Example to run a specific segment and frame by overriding parameter spreadsheet values
-% params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20181015_04');
-% params = ct_set_params(params,'cmd.frms',6);
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
+params = ct_set_params(params,'cmd.frms',[3]);
+
+% param_override.post.layers = struct('name', 'surface', 'source', 'layerData');
+
+param_override.post.echo.elev_comp = 2;
+param_override.post.echo.depth = '[min(Surface_Elev)-6 max(Surface_Elev)+10 ]';
+param_override.post.echo.position = [1 1 1947 426];
+
+if 0
+  param_override.post.data_dirs = {'qlook_noise'};
+  param_override.post.out_path = 'post_noise_final';
+else
+  param_override.post.data_dirs = {'standard'};
+  param_override.post.out_path = 'post_standard_final';
+end
+
+params = ct_set_params(params,'post.maps_en',1);
+params = ct_set_params(params,'post.echo_en',1);
+params = ct_set_params(params,'post.layers_en',1);
+params = ct_set_params(params,'post.data_en',0);
+params = ct_set_params(params,'post.csv_en',0);
+params = ct_set_params(params,'post.concat_en',0);
+params = ct_set_params(params,'post.pdf_en',0);
 
 %% Automated Section
 % =====================================================================

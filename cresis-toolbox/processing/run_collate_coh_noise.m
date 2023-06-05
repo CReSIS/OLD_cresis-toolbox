@@ -9,17 +9,18 @@
 
 param_override = [];
 
-params = read_param_xls(ct_filename_param('snow_param_2017_Arctic_Polar5.xls'),'',{'analysis_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2017_Arctic_Polar5.xls'),'',{'analysis_noise','analysis'});
+params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'',{'analysis_noise' 'analysis'}); % analysis_noise
 
 % Enable a specific segment
 params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
 
 if 1
   % Near-DC removal
   param_override.collate_coh_noise.method = {'firdec'};
   param_override.collate_coh_noise.firdec_fcutoff = {@(t) 1/30}; % Update coherent noise estimate every 30 seconds
-  param_override.collate_coh_noise.firdec_fs = 1/7.5; % Should update about 4 times as often as the estimate: 30/4 = 7.5
+  param_override.collate_coh_noise.firdec_fs = {1/7.5}; % Should update about 4 times as often as the estimate: 30/4 = 7.5
 else
   % DC removal when dft_corr_time set to inf
   param_override.collate_coh_noise.method = {'dft'};

@@ -34,6 +34,9 @@ end
 if ~isfield(surf,'min_bin') || isempty(surf.min_bin)
   surf.min_bin = ones(1,size(data,2));
 end
+if length(surf.min_bin)==1
+  surf.min_bin = surf.min_bin*ones(1,size(data,2));
+end
 surf.min_bin(~isfinite(surf.min_bin)) = 1;
 if ~isfield(surf,'max_bin') || isempty(surf.max_bin)
   surf.max_bin = size(data,1)*ones(1,size(data,2));
@@ -80,7 +83,8 @@ if isfield(surf,'dem') && any(isfinite(surf.dem))
   end
 else
   [tmp surfBins_init] = max(data(surf.min_bin:surf.max_bin,start_idxs));
-  surfBins_init = surfBins_init + surf.min_bin - 1;
+  surfBins_init = surfBins_init + surf.min_bin(start_idxs) - 1;
+%   surfBins_init = surfBins_init + surf.min_bin - 1;
 end
 [tmp surfBins_init_sort_ind] = sort(surfBins_init);
 startInd = start_idxs(surfBins_init_sort_ind(sort_ind));

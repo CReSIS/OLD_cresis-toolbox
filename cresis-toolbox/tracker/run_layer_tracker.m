@@ -14,16 +14,17 @@ param_override = [];
 
 % params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
+% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
+params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'));
 
 if 1
   % Example to run a specific segment or frame
   params = ct_set_params(params,'cmd.generic',0);
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
-  params = ct_set_params(params,'cmd.frms',[21]);
-else
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
+  params = ct_set_params(params,'cmd.frms',[1:5]);
+elseif 0
   % Example to run all segments
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
@@ -38,7 +39,7 @@ param_override.layer_tracker.debug_plots = {'tracked_images','visible'}; % Uncom
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
-param_override.layer_tracker.echogram_source = 'qlook';
+param_override.layer_tracker.echogram_source = 'qlook_noise';
 % param_override.layer_tracker.echogram_source = 'standard';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/qlook';
 % param_override.layer_tracker.echogram_source = 'CSARP_post/mvdr';
@@ -392,10 +393,11 @@ switch ct_output_dir(params(1).radar_name)
         track.init.dem_layer.lidar_source = 'atm';
         track.init.max_diff = 0.3e-6;
         track.init.max_diff_method = 'merge_vectors';
-      elseif 0
+      elseif 1
         track.init.method  = 'snake';
         track.init.snake_rng = [-15e-9 15e-9];
         track.init.max_diff  = 0.3e-6;
+        track.init.min_bin = 6000;
         track.method = 'snake';
       end
     end

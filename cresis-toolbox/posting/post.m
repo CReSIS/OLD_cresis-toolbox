@@ -153,6 +153,12 @@ if ~isfield(param.post, 'surface_source')
   param.post.surface_source = struct('name', 'surface', 'source', 'layerData', 'existence_check', false);
 end
 
+if ~isfield(param.post.echo,'position') || isempty(param.post.echo.position)
+  param.post.echo.position_flag = 0;
+else
+  param.post.echo.position_flag = 1;
+end
+
 
 %% Loading layer data
 % =========================================================================
@@ -411,12 +417,20 @@ for frm_idx = 1:length(param.cmd.frms)
     if exist(echo_fn,'file')
       delete(echo_fn);
     end
-    set(echo_info.fig_hand(1),'PaperUnits','inches');
-    set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
-    set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
+%     set(echo_info.fig_hand(1),'PaperUnits','inches');
+%     set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
+%     set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
+    if param.post.echo.position_flag
+      set(echo_info.fig_hand(1),'Position', param.post.echo.position);
+    end
     if param.post.echo_with_no_layer_en
       fprintf('    Saving output %s\n', echo_fn);
       print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
+      print(echo_info.fig_hand(1),print_device,'-r600', ...
+        strrep(echo_fn,'.jpg', '_600dpi.jpg'));
+      %#######################################################
+      h_fig_fn = strrep(echo_fn, '.jpg', '.fig');
+      ct_saveas(echo_info.fig_hand(1), h_fig_fn);
     end
     
     if param.post.pdf_en
@@ -445,10 +459,18 @@ for frm_idx = 1:length(param.cmd.frms)
       if exist(echo_fn,'file')
         delete(echo_fn);
       end
-      set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
-      set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
+%       set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
+%       set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
+      if param.post.echo.position_flag
+        set(echo_info.fig_hand(1),'Position', param.post.echo.position);
+      end
       fprintf('    Saving output %s\n', echo_fn);
       print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
+      print(echo_info.fig_hand(1),print_device,'-r600', ...
+        strrep(echo_fn,'.jpg', '_600dpi.jpg'));
+      %#######################################################
+      h_fig_fn = strrep(echo_fn, '.jpg', '.fig');
+      ct_saveas(echo_info.fig_hand(1), h_fig_fn);
       
       if param.post.pdf_en
         % Remove current file and save new file

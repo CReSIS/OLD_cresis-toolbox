@@ -23,8 +23,8 @@ test_case_str = 'uniform_sampling';
 
 %% Examples
 
-param = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'20120330_04');
-[mdata,echo_fn] = echo_load(param,'CSARP_post/qlook',3);
+param = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'20180320_01');
+[mdata,echo_fn] = echo_load(param,'standard',3);
 
 if strcmpi(test_case_str,'no_layers')
   [mdata,x_axis,y_axis,surf_comp,layers_comp,h] = echo_plot(mdata);

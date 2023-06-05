@@ -109,14 +109,14 @@ for param_idx = 1:length(param_fns)
   end
   
   % Run all segments (except "do not process")
-  if 1
+  if 0
     params = ct_set_params(params,'cmd.generic',1);
     params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else
     % Debug: Enable to run only particular segments
-    keyboard
+%     keyboard
     params = ct_set_params(params,'cmd.generic',0);
-    params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+    params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
   end
   
   %% Load each segment

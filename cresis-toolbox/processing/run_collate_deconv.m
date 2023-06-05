@@ -6,22 +6,47 @@
 
 %% USER SETTINGS
 % =========================================================================
+
+% NONE FOUND YET
+% Hi John,
+%
+% The 20180320_01 operated at [2 - 14] GHz
+% BW_window used for analysis and qlook [2.4 - 12.99984] GHz
+% 
+% Could you please suggest a BW_window for deconv? 
+% 
+% If deconv [f0,f1] = [2.5 - 7.9] GHz
+% qlook.resample = 2*[ 2.5 - 7.9 ] / [ 2.4 - 13] = 2 * 5.4 / 10.6 = [54, 53]
+% qlook.trim = [12, 8]
+% 
+% params = ct_set_params(params,'collate_deconv.f0',2.5e9);
+% params = ct_set_params(params,'collate_deconv.f1',7.9e9);
+% params = ct_set_params(params,'collate_deconv.rbins',{[-100 100]});
+% params = ct_set_params(params,'collate_deconv.abs_metric',[58 9.8 -25 -35 inf inf]);
+% params = ct_set_params(params,'collate_deconv.SL_guard_bins',10);
+% 
+% ThanKU,
+% Hara
+%
+
 clear param_override;
 
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
+params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 
 % params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20180322_04');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
 
-params = ct_set_params(params,'collate_deconv.f0',2.85e9);
-params = ct_set_params(params,'collate_deconv.f1',7.5e9);
+params = ct_set_params(params,'collate_deconv.f0',2.5e9);
+params = ct_set_params(params,'collate_deconv.f1',7.9e9);
 params = ct_set_params(params,'collate_deconv.rbins',{[-100 100]});
 params = ct_set_params(params,'collate_deconv.abs_metric',[58 9.8 -25 -35 inf inf]);
 params = ct_set_params(params,'collate_deconv.SL_guard_bins',10);
+
+param_override.collate_deconv.out_path = 'analysis';
 
 % STEP 1: Check peakiness to ensure that enough waveforms qualify. If
 % peakiness threshold has to be adjusted to let more waveforms in, then
@@ -83,7 +108,7 @@ for param_idx = 1:length(params)
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
-  %collate_deconv(param,param_override);
-  collate_deconv
+  collate_deconv(param,param_override);
+%   collate_deconv
   
 end

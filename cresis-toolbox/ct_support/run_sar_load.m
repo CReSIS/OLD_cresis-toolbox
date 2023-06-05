@@ -11,7 +11,8 @@ warning('This is an example file, copy to personal directory, rename, and remove
 % =======================================================================
 
 % param = read_param_xls(ct_filename_param('rds_param_2019_Antarctica_Ground.xls'),'20200107_01');
-param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'20180501_01');
+% param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'20180501_01');
+param = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'), '20180320_01');
 
 % param.sar_load.in_path = ''; % Leave empty for default 'sar'
 
@@ -22,7 +23,7 @@ param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'201
 
 % param.sar_load.sar_type = ''; % Leave empty for default 'fk'
 
-param.sar_load.frms = [51 52]; % Specify data frames to load
+param.sar_load.frms = [1]; % Specify data frames to load
 
 % param.sar_load.subap = []; % Leave empty for default (all subapertures)
 

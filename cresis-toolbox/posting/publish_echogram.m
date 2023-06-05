@@ -73,7 +73,8 @@ lay.layers{1} = surface_layer.value{2}.data;
 for layer_idx = 1:length(lay.layerData)
   lay.layers{end + 1} = lay.layerData{layer_idx}.value{2}.data;
   if param.plot_quality
-    lay.qualities{end + 1} = lay.layerData{layer_idx}.quality;
+    %lay.qualities{end + 1} = lay.layerData{layer_idx}.quality;
+    lay.qualities{end + 1} = 1*ones(size(lay.layerData{layer_idx}.value{2}.data));
   end
 end
 
@@ -415,7 +416,8 @@ end
 % =======================================================================
 if isfield(param,'filter') && ~isempty(param.filter)
   %% Apply optional image filter
-  mdata.Data = param.filter(mdata.Data);
+  %mdata.Data = param.filter(mdata.Data);
+  mdata.Data = echo_filt(mdata.Data,[1 11]); % #######################
 end
 
 % =======================================================================
@@ -723,7 +725,7 @@ if ~isempty(param.caxis)
   end
 end
 
-echo_info.h_title = title(ah_echo,sprintf('Data Frame ID: %s', param.frm_id),'Interpreter','none','FontWeight','normal');
+% echo_info.h_title = title(ah_echo,sprintf('Data Frame ID: %s', param.frm_id),'Interpreter','none','FontWeight','normal');
 echo_info.h_layers = {};
 
 % Plot layers
@@ -737,7 +739,11 @@ if param.plot_quality
     
     tmp_layer = DLayers{layer_idx};
     tmp_layer(good_mask) = NaN;
-    good_handle = plot(ah_echo,tmp_layer,'g--');
+    if layer_idx == 1
+      good_handle = plot(ah_echo,tmp_layer,'g-', 'LineWidth', 2);
+    else
+      good_handle = plot(ah_echo,tmp_layer,'b-', 'LineWidth', 2);
+    end
     
     tmp_layer = DLayers{layer_idx};
     tmp_layer(moderate_mask) = NaN;

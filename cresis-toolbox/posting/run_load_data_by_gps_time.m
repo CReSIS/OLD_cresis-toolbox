@@ -17,7 +17,9 @@
 
 %% User Settings
 % ====================================================================
-clear param echo_param lay ds;
+close all; clear all; startup
+
+param.save_files = 0;
 
 % data_load_method: string containing "file" or "arbitrary"
 %   picker: Loads a GPS date range from cursor information from imb.picker
@@ -57,7 +59,26 @@ elseif strcmpi(data_load_method,'arbitrary')
   
 elseif strcmpi(data_load_method,'file')
   % Load data associated with a frame
-  load('X:/ct_data/snow/2012_Greenland_P3/CSARP_post/CSARP_qlook/20120330_04/Data_20120330_04_063.mat','GPS_time') % <== CHANGE HERE
+  
+  day_seg = '20180320_01';
+  frm = '003';
+  
+  param.out = 'standard';
+%   param.out = 'qlook_noise';
+  
+  echo_param.filter = 1;
+  
+  if 1
+    picksss = 1;
+    file_id = [param.out, '_', day_seg, '_', frm, 'picks'];
+  else
+    picksss = 0;
+    file_id = [param.out, '_', day_seg, '_', frm];
+  end
+  
+  tmp_fn =  ['/scratch/snow/2018_Greenland_P3/CSARP_',param.out,'/',day_seg,'/Data_',day_seg,'_',frm,'.mat']
+  
+  load(tmp_fn,'GPS_time') % <== CHANGE HERE
   param.start.gps_time = GPS_time(1);
   param.stop.gps_time = GPS_time(end);
   
@@ -68,16 +89,17 @@ end
 % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
 param.radar_name = 'snow'; % <== CHANGE HERE
 
-param.season_name = '2012_Greenland_P3'; % <== CHANGE HERE
+param.season_name = '2018_Greenland_P3'; % <== CHANGE HERE
 
 % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
 echo_param.elev_comp = 2; % <== CHANGE HERE
+echo_param.surf_filt_en = 0; %%%########################################
 
-echo_param.plot_quality = false; % <== CHANGE HERE
+echo_param.plot_quality = 1; % <== CHANGE HERE
 
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
+% param.out = 'standard'; % <== CHANGE HERE
 
 gaps_dist = [100 30];
 
@@ -85,7 +107,7 @@ gaps_dist = [100 30];
 % compensation). For example:
 %  struct('name','surface','source','layerdata', 'layerdata_source','layer')
 %  struct('name','surface','source','ops')
-surface_source = struct('name','surface','source','layerdata', 'layerdata_source','layer'); % <== CHANGE HERE
+surface_source = struct('name','bottom','source','layerdata', 'layerdata_source','layer'); % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_': image 1, , 'img_02_': image 2, etc.
@@ -95,19 +117,19 @@ if echo_param.elev_comp == 3
   echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
   %echo_param.depth = '[1594.9 1635.1]';
 else
-  echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % <== CHANGE HERE
+  echo_param.depth = '[min(Surface_Depth)-4 max(Surface_Depth) +2]'; % <== CHANGE HERE
   %echo_param.depth = '[-5 120]';
 end
 echo_param.depth_offset = 0;
 echo_param.time_offset = 0;
 echo_param.caxis = [];
-echo_param.er_ice = 3.15;
+echo_param.er_ice = (1+0.51*0.3)^3;
 
 % echo_param.axis_type: Units representation 'bars' or 'standard'
 echo_param.axis_type = 'standard';
 
 % param.create_map_en: set to true to produce a map
-param.create_map_en = false;
+param.create_map_en = 0;
 
 % param.post.map.type: 'combined', 'singles', 'contour', 'contour-singles', or 'ASCAT'
 param.post.map.type = 'combined';
@@ -134,11 +156,12 @@ param.use_master_surf = 0;
 
 % param.layer_params: set to plot layers on echograms
 layer_params = []; idx = 0;
-if 0 % Enable to plot layers on echograms
-  layer_params = struct('name','surface','source','layerdata','layerdata_source','layerData_koenig');
-  for idx = 2:30
-    layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerdata','layerdata_source','layerData_koenig');
-  end
+if picksss % Enable to plot layers on echograms
+  layer_params = [struct('name','surface','source','layerdata','layerdata_source','layer'),...
+                  struct('name','bottom','source','layerdata', 'layerdata_source','layer')];
+%   for idx = 2:30
+%     layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerdata','layerdata_source','layerData_koenig');
+%   end
 end
 param.layer_params = layer_params;
 
@@ -151,7 +174,7 @@ echo_params = echo_param;
 % Enable by changing to "1". Copy and paste this section to compare many
 % images. These images will all be interpolated onto the first image.
 
-if 1
+if 0
   % data_load_method: string containing "file" or "arbitrary"
   %   picker: Loads a GPS date range from cursor information from imb.picker
   %   arbitrary: Allows a specific GPS date range to be specified
@@ -191,7 +214,7 @@ if 1
     
   elseif strcmpi(data_load_method,'file')
     % Load data associated with a frame
-    load('X:/ct_data/snow/2012_Greenland_P3/CSARP_post/CSARP_qlook/20120330_04/Data_20120330_04_063.mat','GPS_time') % <== CHANGE HERE
+    load('/scratch/snow/2018_Greenland_P3/CSARP_qlook_noise/20180320_01/Data_20180320_01_003.mat','GPS_time') % <== CHANGE HERE
     param.start.gps_time = GPS_time(1);
     param.stop.gps_time = GPS_time(end);
     
@@ -202,7 +225,7 @@ if 1
   % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
   param.radar_name = 'snow'; % <== CHANGE HERE
   
-  param.season_name = '2012_Greenland_P3'; % <== CHANGE HERE
+  param.season_name = '2018_Greenland_P3'; % <== CHANGE HERE
   
   % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
   echo_param.elev_comp = 2; % <== CHANGE HERE
@@ -211,7 +234,7 @@ if 1
 
   % param.out: output data product to use. For example:
   %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-  param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
+  param.out = 'qlook_noise'; % <== CHANGE HERE
   
   % param.img_name: output data product image. For example:
   %   '': combined product, 'img_01_', , 'img_02_'
@@ -221,19 +244,19 @@ if 1
     echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
     %echo_param.depth = '[1594.9 1635.1]';
   else
-    echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % <== CHANGE HERE
+    echo_param.depth = '[min(Surface_Depth)-4 max(Surface_Depth) +2]'; % <== CHANGE HERE
     %echo_param.depth = '[-5 120]';
   end
   echo_param.depth_offset = 0;
   echo_param.time_offset = 0;
   echo_param.caxis = [];
-  echo_param.er_ice = 3.15;
+%   echo_param.er_ice = 3.15;
   
   % echo_param.axis_type: Units representation 'bars' or 'standard'
   echo_param.axis_type = 'standard';
   
   % param.create_map_en: set to true to produce a map
-  param.create_map_en = false;
+  param.create_map_en = 0;
   
   % param.post.map.type: 'combined', 'singles', 'contour', 'contour-singles', or 'ASCAT'
   param.post.map.type = 'combined';
@@ -287,6 +310,8 @@ for param_idx = 1:length(params)
   else
     out_fn_dir = fullfile(getenv('HOME'),'load_data_by_gps_time',out_fn_dir_name,datestr(epoch_to_datenum(param.start.gps_time),'yyyymmdd'));
   end
+  
+  out_fn_dir = '/scratch/snow/2018_Greenland_P3/fancy_figs/';
   
   [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
   
@@ -436,7 +461,7 @@ for param_idx = 1:length(params)
   end
 
   % Create output directory
-  param.save_files = false;
+%   param.save_files = 1;
   if param.save_files && ~exist(out_fn_dir,'dir')
     fprintf('Creating output directory %s\n', out_fn_dir);
     mkdir(out_fn_dir);
@@ -466,8 +491,8 @@ for param_idx = 1:length(params)
     
     % --------------------------------------------------
     % Create flight path variables for publish_map
-    vectors.lat = Latitude;
-    vectors.lon = Longitude;
+    vectors.lat = ds.Latitude;
+    vectors.lon = ds.Longitude;
     
     [x,y] = projfwd(map_info.proj,vectors.lat,vectors.lon);
     day_segs_idx(1) = 1;
@@ -478,7 +503,7 @@ for param_idx = 1:length(params)
     % Plot flightlines over geotiff using publish_map
     map_param.day_seg_x = day_seg_x{1}*1000;
     map_param.day_seg_y = day_seg_y{1}*1000;
-    [frame_X,frame_Y] = projfwd(map_info.proj,Latitude,Longitude);
+    [frame_X,frame_Y] = projfwd(map_info.proj,ds.Latitude,ds.Longitude);
     map_param.frame_X = {frame_X};
     map_param.frame_Y = {frame_Y};
     map_info = publish_map('delete',map_param,map_info);
@@ -582,20 +607,23 @@ for param_idx = 1:length(params)
   layers_to_plot.layerData = layers_to_plot.layerData(2:end);
 
   echo_info = publish_echogram(echo_param,ds,layers_to_plot,surface_layer);
+  
+  set(echo_info.fig_hand,'Position', [1 1 1993 426]);
+  
   season_name = param.season_name;
   season_name(season_name=='_') = ' ';
-  title(sprintf('%s %s %s to %s', param.radar_name, season_name, ...
-    datestr(epoch_to_datenum(param.start.gps_time)), datestr(epoch_to_datenum(param.stop.gps_time),'HH:MM:SS')));
+%   title(sprintf('%s %s %s to %s', param.radar_name, season_name, ...
+%     datestr(epoch_to_datenum(param.start.gps_time)), datestr(epoch_to_datenum(param.stop.gps_time),'HH:MM:SS')));
   % set(echo_info.echo_title,'Visible', 'off');
 
   %% Save echogram file
   if param.save_files
-    out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.jpg',start_time_stamp_str, ...
+    out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s_%s.jpg',file_id, start_time_stamp_str, ...
       stop_time_stamp_str, param.radar_name));
     fprintf('Saving to %s\n', out_fn);
     saveas(echo_param.fig_hand,out_fn);
 
-    out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.fig',start_time_stamp_str, ...
+    out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s_%s.fig',file_id, start_time_stamp_str, ...
       stop_time_stamp_str, param.radar_name));
     fprintf('Saving to %s\n', out_fn);
     saveas(echo_param.fig_hand,out_fn);

@@ -369,8 +369,7 @@ for wf = 1:4
 end
 default.post.echo.depth = '[min(Surface_Depth)-5 max(Surface_Depth)+4300]';
 % Note psc config name was incorrectly set, but it is for shallow ice:
-%default.config_regexp = 'psc_eager_configHV';
-default.config_regexp = '.*';
+default.config_regexp = 'psc_eager_configHV';
 default.name = 'Polarimetric Mode 600-900 MHz Thick Ice';
 defaults{end+1} = default;
 
