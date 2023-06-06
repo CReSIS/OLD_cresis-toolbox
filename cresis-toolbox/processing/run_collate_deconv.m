@@ -8,8 +8,6 @@
 % =========================================================================
 
 % NONE FOUND YET
-% Hi John,
-%
 % The 20180320_01 operated at [2 - 14] GHz
 % BW_window used for analysis and qlook [2.4 - 12.99984] GHz
 % 
@@ -24,10 +22,7 @@
 % params = ct_set_params(params,'collate_deconv.rbins',{[-100 100]});
 % params = ct_set_params(params,'collate_deconv.abs_metric',[58 9.8 -25 -35 inf inf]);
 % params = ct_set_params(params,'collate_deconv.SL_guard_bins',10);
-% 
-% ThanKU,
-% Hara
-%
+
 
 clear param_override;
 
@@ -40,8 +35,13 @@ params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),''
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
 
-params = ct_set_params(params,'collate_deconv.f0',2.5e9);
-params = ct_set_params(params,'collate_deconv.f1',7.9e9);
+if 1
+  params = ct_set_params(params,'collate_deconv.f0', 2.4e9);
+  params = ct_set_params(params,'collate_deconv.f1', 12.99984e9);
+elseif 0
+  params = ct_set_params(params,'collate_deconv.f0',2.5e9);
+  params = ct_set_params(params,'collate_deconv.f1',7.9e9);
+end
 params = ct_set_params(params,'collate_deconv.rbins',{[-100 100]});
 params = ct_set_params(params,'collate_deconv.abs_metric',[58 9.8 -25 -35 inf inf]);
 params = ct_set_params(params,'collate_deconv.SL_guard_bins',10);
@@ -62,7 +62,7 @@ param_override.collate_deconv.debug_plots = {'peakiness','metric','visible'}; pa
 % sidelobe suppression achieved):
 %param_override.collate_deconv.debug_rlines = [1];
 %param_override.collate_deconv.debug_plots = {'deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
-%param_override.collate_deconv.debug_plots = {'rbins','deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
+% param_override.collate_deconv.debug_plots = {'rbins','deconv','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
 % STEP 3 ALTERNATE: To evaluate just the best individual waveform, just enable
 % "rbins_best" and/or "deconv_best"
 % param_override.collate_deconv.debug_plots = {'deconv_best','metric','visible'}; param_override.collate_deconv.stage_two_en = false;
@@ -71,8 +71,11 @@ param_override.collate_deconv.debug_plots = {'peakiness','metric','visible'}; pa
 % STEP 4: Once rbins are set and waveforms appear to be deconvolving well,
 % run stage one and stage two (recommend disabling "visible" if many
 % segments or wf_adc pairs).
-%param_override.collate_deconv.debug_plots = {'deconv_best','metric','final','visible'};
+% param_override.collate_deconv.debug_plots = {'deconv_best','metric','final','visible'};
 %param_override.collate_deconv.debug_plots = {'deconv_best','metric','final'};
+
+%%%%##############
+param_override.collate_deconv.stage_two_en = false;
 
 if 0
   % For debugging, use this to test specific waveforms for the whole

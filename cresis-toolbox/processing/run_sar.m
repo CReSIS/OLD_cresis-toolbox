@@ -23,7 +23,7 @@ params = ct_set_params(params,'cmd.frms',[]);
 if 0
   params = ct_set_params(params,'cmd.frms',[3]);
   param_override.sar.sigma_x = 0.5;
-else
+elseif 0
   params = ct_set_params(params,'cmd.frms',[8]);
   param_override.sar.sigma_x = 1;
 end

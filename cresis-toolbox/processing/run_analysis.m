@@ -14,13 +14,15 @@ param_override = [];
 % params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'','analysis');
 % params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'','analysis');
 % params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'));
-params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'',{'analysis_noise' 'analysis'}); % analysis_noise
-% params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'}); % analysis_noise
+% params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'',{'analysis_noise' 'analysis'}); % analysis_noise
+params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'}); % analysis_noise
 
 % Example to run specific segments and frames by overriding parameter spreadsheet values
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20180320_01');
 params = ct_set_params(params,'cmd.frms',[]);
+
+params = ct_set_params(params,'analysis.cmd{1}.threshold',22);
 
 % dbstop if error;
 % param_override.cluster.type = 'torque';
