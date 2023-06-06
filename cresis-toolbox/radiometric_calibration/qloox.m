@@ -25,7 +25,7 @@ if figures_plot == 1
   
   h_fig_records = figure('Name','records', 'visible', figures_visible);
   hold on;
-  plot(xo.cx_lon, xo.cx_lat, '*', 'LineWidth', 4);
+%   plot(xo.cx_lon, xo.cx_lat, '*', 'LineWidth', 4);
   
   h_fig_waveform_elev = figure('Name','waveform', 'visible', figures_visible);
   hold on;
@@ -131,7 +131,7 @@ for xx=1:2
   
   %% struct_select rec_dd from dd
   
-  dd = struct_select(dd_full,length(dd_full.GPS_time), rec_dd(xx), 0);
+  dd = struct_select(dd_full, length(dd_full.GPS_time), rec_dd(xx), 0);
   
   %% Truncate data
   
@@ -177,7 +177,7 @@ for xx=1:2
     idxs_box = boxing_1D(surf_closest_idx, box_bounds_each_side, Nt);
     [~, box_peak_idx] = max(tmp(idxs_box));
     surf_peak_idx = idxs_box(1) + box_peak_idx -1;
-    
+
     clear box_bounds_each_side box_bounds_max idx_box_min idx_box_max idxs_box box_peak_idx
   end
   
@@ -221,15 +221,33 @@ for xx=1:2
     
     % records
     figure(h_fig_records);
-    plot(records{xx}.lon, records{xx}.lat, ':');
-    box_bounds_each_side = max(1, round(500/dx_rec)); % within 500 meter
+    
+    % plot only a few records on either side of xo
+    box_bounds_each_side = max(1, round(500/dx_rec(xx))); % within 500 meter
     plot_rec_idxs = boxing_1D(rec(xx), box_bounds_each_side, length(records{xx}.lon));
+    %plot(records{xx}.lon, records{xx}.lat, ':');
+    plot3(records{xx}.lon(plot_rec_idxs), records{xx}.lat(plot_rec_idxs), records{xx}.elev(plot_rec_idxs), ':');
+    plot3(record{xx}.lon, record{xx}.lat, record{xx}.elev, 'o', 'LineWidth', 1);
+    
+    % plot only a few dd_records on either side of xo
+    box_bounds_each_side = max(1, round(500/dx_dd(xx))); % within 500 meter
+    plot_rec_idxs = boxing_1D(rec_dd(xx), box_bounds_each_side, length(dd_full.Latitude));
+    %plot(dd_full.Longitude, dd_full.Latitude, '+', 'LineWidth', 2);
+    plot3(dd_full.Longitude(plot_rec_idxs), dd_full.Latitude(plot_rec_idxs), dd_full.Elevation(plot_rec_idxs), '+', 'LineWidth', 2);
+    % plot(dd.Longitude, dd.Latitude, 's', 'LineWidth', 1);
+    plot3(dd.Longitude, dd.Latitude, dd.Elevation, 's', 'LineWidth', 1);
 
-    plot(record{xx}.lon, record{xx}.lat, 'o', 'LineWidth', 1);
-    
-    plot(dd_full.Longitude, dd_full.Latitude, '+', 'LineWidth', 2);
-    plot(dd.Longitude, dd.Latitude, 's', 'LineWidth', 1);
-    
+    % pos_vect
+    line([1;1].*dd.Longitude, [1;1].*dd.Latitude, ...
+        [dd.Elevation; surface_calc(xx)], ...
+        'LineStyle','-', 'LineWidth',1, ...
+        'Color',[152,251,152]/256);
+    if xx==1
+        plot3(dd.Longitude, dd.Latitude, surface_calc(xx), 'o','LineWidth',2,'Color','r');
+    else
+        plot3(dd.Longitude, dd.Latitude, surface_calc(xx), 'o','LineWidth',2,'Color','b');
+    end
+
     figure(h_fig_waveform_elev);
     plot(dd.elev_axis, tmp,'.-');
     if xx==1
@@ -266,33 +284,45 @@ fig_hdr = [fig_hdr, local_hdr{1} local_hdr{2}];
 if figures_plot == 1
   
   figure(h_fig_instagram);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_instagram.fig', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('instagram_%s.fig', ident));
   fprintf('Saving %s\n', fig_fn);
   %   ct_saveas(h_fig_instagram,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_instagram.png', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('instagram_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_instagram,fig_fn);
   
   figure(h_fig_geoplot);
   title(fig_hdr, 'Interpreter', 'None');
-  fig_fn = fullfile(reuse_loc, sprintf('%s_geoplot.fig', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('geoplot_%s.fig', ident));
   fprintf('Saving %s\n', fig_fn);
   %   ct_saveas(h_fig_geoplot,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_geoplot.png', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('geoplot_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_geoplot,fig_fn);
   
   
   figure(h_fig_records);
+  
   grid on;
-  legend('xo',...
-    'records1','xo rec1','dd recs1', 'xo dd rec1',...
-    'records2','xo rec2','dd recs2', 'xo dd rec2');
+  xlabel('Longitude, deg');
+  ylabel('Latitude, deg');
+  zlabel('WGS-84 Elevation, m');
+  rotate3d on;
+  view([45,29]);
+  h_tmp=gca;
+  line([1 1].*xo.cx_lon(1), [1 1].*xo.cx_lat(1), h_tmp.ZLim, ...
+      'LineStyle', ':', 'Color', 'k', 'LineWidth', 2);
+  legend(...
+    'records1','xo rec1','dd recs1', 'xo dd rec1', 'pos_vect1', 'surf1', ...
+    'records2','xo rec2','dd recs2', 'xo dd rec2', 'pos_vect2', 'surf2', ...
+    'xo');
   title(fig_hdr, 'Interpreter', 'None');
-  fig_fn = fullfile(reuse_loc, sprintf('%s_records.fig', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('records_%s.fig', ident));
+  set(findobj(h_fig_records,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
+  set(h_fig_records, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
   %   ct_saveas(h_fig_records,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_records.png', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('records_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_records,fig_fn);
   
@@ -302,12 +332,12 @@ if figures_plot == 1
   xlabel('elev\_axis, meter');
   ylabel('Magnitude, dB');
   title(fig_hdr, 'Interpreter', 'None');
-  fig_fn = fullfile(reuse_loc, sprintf('%s_waveform_elev.fig', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('waveform_elev_%s.fig', ident));
   set(findobj(h_fig_waveform_elev,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_elev, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
   %   ct_saveas(h_fig_waveform_elev,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_waveform_elev.png', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('waveform_elev_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_elev,fig_fn);
   
@@ -336,12 +366,12 @@ if figures_plot == 1
   
   sgtitle(sprintf('(xo %d) Power levels: Estimated, Actual, Error', idx_xo), 'Interpreter', 'None');
   
-  fig_fn = fullfile(reuse_loc, sprintf('%s_waveform_time.fig', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('waveform_time_%s.fig', ident));
   set(findobj(h_fig_waveform_time,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_time, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
   %   ct_saveas(h_fig_waveform_time,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_waveform_time.png', ident));
+  fig_fn = fullfile(reuse_loc, sprintf('waveform_time_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_time,fig_fn);
   

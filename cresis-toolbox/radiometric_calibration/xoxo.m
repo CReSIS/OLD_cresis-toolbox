@@ -24,6 +24,7 @@ seasons = {'2017_Greenland_P3'};
 xo_table_name = 'OPS_CReSIS_Crossovers_WKT_XYQQ1nEbE7';
 % xo_angle_filter_str = 'le_0p5';
 % xo_angle_filter_str = 'ge_85';
+xo_angle_filter_str = 'ge_86';
 
 
 N_seasons = length(seasons);
@@ -305,12 +306,12 @@ if 1
   ylabel('Magnitude, dB');
   
   title(fig_hdr, 'Interpreter', 'None');
-  fig_fn = fullfile(reuse_loc, sprintf('%s_summary_elev.fig', fig_hdr));
+  fig_fn = fullfile(reuse_loc, sprintf('0summary_elev_%s.fig', fig_hdr));
   set(findobj(h_fig_waveform_elev,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_elev, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_elev,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_summary_elev.png', fig_hdr));
+  fig_fn = fullfile(reuse_loc, sprintf('0summary_elev_%s.png', fig_hdr));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_elev,fig_fn);
   
@@ -340,12 +341,12 @@ if 1
   ylabel('Magnitude, dB');
   
   title(fig_hdr, 'Interpreter', 'None');
-  fig_fn = fullfile(reuse_loc, sprintf('%s_summary_time.fig', fig_hdr));
+  fig_fn = fullfile(reuse_loc, sprintf('0summary_time_%s.fig', fig_hdr));
   set(findobj(h_fig_waveform_time,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_time, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_time,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_summary_time.png', fig_hdr));
+  fig_fn = fullfile(reuse_loc, sprintf('0summary_time_%s.png', fig_hdr));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_time,fig_fn);
   
@@ -381,12 +382,12 @@ if 1
   title('Difference in powers at each xo');
   
   sgtitle(fig_hdr, 'Interpreter', 'None');
-  fig_fn = fullfile(reuse_loc, sprintf('%s_power.fig', fig_hdr));
+  fig_fn = fullfile(reuse_loc, sprintf('0summary_power_%s.fig', fig_hdr));
   set(findobj(h_fig_power,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_power, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_power,fig_fn);
-  fig_fn = fullfile(reuse_loc, sprintf('%s_power.png', fig_hdr));
+  fig_fn = fullfile(reuse_loc, sprintf('0summary_power_%s.png', fig_hdr));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_power,fig_fn);
   
