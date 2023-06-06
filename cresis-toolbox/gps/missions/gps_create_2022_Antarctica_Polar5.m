@@ -98,12 +98,53 @@ elseif strcmpi(gps_source_to_use,'AWI_final')
   % =======================================================================
   
   file_idx = file_idx + 1;
+  year = 2022; month = 9; day = 14;
   in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
-  gps_source{file_idx} = 'awi-final_20161109';
+  gps_source{file_idx} = 'awi-final_20230127';
+  sync_flag{file_idx} = 0;
+  params{file_idx} = struct('time_reference','utc');
+  params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+  params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+  params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+  params_ins{file_idx} = struct('time_reference','utc');
+  params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+  params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+  params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+     
+  file_idx = file_idx + 1;
+  year = 2022; month = 12; day = 3;
+  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+  in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+  file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+  gps_source{file_idx} = 'awi-final_20230127';
+  sync_flag{file_idx} = 0;
+  params{file_idx} = struct('time_reference','utc');
+  params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+  params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+  params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+  params_ins{file_idx} = struct('time_reference','utc');
+  params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+  params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+  params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+
+  file_idx = file_idx + 1;
+  year = 2022; month = 12; day = 4;
+  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+  in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+  file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+  gps_source{file_idx} = 'awi-final_20230127';
   sync_flag{file_idx} = 0;
   params{file_idx} = struct('time_reference','utc');
   params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
@@ -116,6 +157,46 @@ elseif strcmpi(gps_source_to_use,'AWI_final')
   params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
   params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
   
+  file_idx = file_idx + 1;
+  year = 2022; month = 12; day = 5;
+  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+  in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+  file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+  gps_source{file_idx} = 'awi-final_20230127';
+  sync_flag{file_idx} = 0;
+  params{file_idx} = struct('time_reference','utc');
+  params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+  params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+  params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+  params_ins{file_idx} = struct('time_reference','utc');
+  params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+  params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+  params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+  
+  file_idx = file_idx + 1;
+  year = 2022; month = 12; day = 9;
+  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+  in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+  file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+  gps_source{file_idx} = 'awi-final_20230127';
+  sync_flag{file_idx} = 0;
+  params{file_idx} = struct('time_reference','utc');
+  params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+  params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+  params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+  params_ins{file_idx} = struct('time_reference','utc');
+  params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+  params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+  params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+  params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+ 
 end
 
 % ======================================================================
