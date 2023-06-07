@@ -337,7 +337,7 @@ default.records.data_map = {...
   12 0 3 1 8
   13 2 3 2 8
   14 4 3 3 8
-  15 6 3 4 8]}
+  15 6 3 4 8]};
 default.qlook.img_comb = [3e-06 -inf 1e-06];
 default.qlook.imgs = {[1 1; 1 2; 1 3; 1 4;],[3 1; 3 2; 3 3; 3 4;]};
 default.sar.imgs = default.qlook.imgs;
