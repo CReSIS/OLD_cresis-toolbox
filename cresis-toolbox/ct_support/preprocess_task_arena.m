@@ -139,6 +139,10 @@ for config_idx = 1:length(configs)
     old_fn_dir = [];
     for fn_idx = 1:length(configs(config_idx).fns{board_idx})
       fn = fullfile(configs(config_idx).fns{board_idx}{fn_idx});
+      fn_info = dir(fn);
+      if fn_info.bytes == 0
+        error('Zero length file found: %s\n  Remove zero-length files first. For example: find INSERT_RAW_FILE_PATH_HERE -size 0 -iname "*.dat" -exec rm {} \\;\n', fn);
+      end
       
       [fn_dir,fn_name] = fileparts(fn);
       if ~strcmpi(fn_dir,old_fn_dir)
@@ -695,7 +699,9 @@ end
 
 %% Print out segments
 % =========================================================================
-if ~isempty(param.config.param_fn)
+if ~exist(param.config.param_fn,'file')
+  warning('Could not find parameter spreadsheet file so not printing parameter values.\n  param.config.param_fn = ''%s''', param.config.param_fn);
+else
   % Print parameter spreadsheet values to stdout and param_txt_fn
   % =========================================================================
   fid = 1;

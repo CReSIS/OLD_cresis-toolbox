@@ -133,7 +133,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
-  profile(pidx).cluster.type                  = 'torque';
+  profile(pidx).cluster.type                  = 'slurm';
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
   profile(pidx).cluster.max_jobs_active       = 96;
@@ -149,8 +149,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_ppn               = 4;
   profile(pidx).cluster.max_mem_per_job       = 16e9;
   profile(pidx).cluster.mem_mult_mode          = 'debug';
-  %profile(pidx).cluster.qsub_submit_arguments = '-m n -q high -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
-  %profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
+  profile(pidx).cluster.slurm_submit_arguments = '--partition=cresis -N 1 -n 1 --cpus-per-task=%p --mem=%m --time=%t';
   %profile(pidx).cluster.cpu_time_mult         = 2;
   %profile(pidx).cluster.mem_mult              = 2;
   %profile(pidx).cluster.ppn_fixed             = 4;
