@@ -52,7 +52,7 @@ end
 % boards: List of subdirectories containing the files for each board (a
 % board is a data stream stored to disk and often contains the data stream
 % from multiple ADCs)
-if any(param.records.file.version == [1:5 8 11 101:102 405:406 409:411 413 414 415])
+if any(param.records.file.version == [1:5 8 11 101:102 405:406 409:411 413 414 415 420])
   if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
     % Assume a single channel system
     param.records.file.boards = {''};
