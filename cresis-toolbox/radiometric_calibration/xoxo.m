@@ -273,7 +273,7 @@ figures_visible = 1;
 xo_hdr_str = sprintf('%s_%s', xo_table_tag, xo_angle_filter_str);
 fig_hdr = xo_hdr_str; 
 
-if 0 % redo qloox
+if 1 % redo qloox
   N_xo = size(xo,1);
   for idx_xo = 1:N_xo
     ident = sprintf('%s_%s_xo_%04d', xo_table_tag, xo_angle_filter_str, idx_xo);
