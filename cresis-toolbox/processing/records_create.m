@@ -322,7 +322,7 @@ for board_idx = 1:length(boards)
         % Drop the last record of the last file since it is generally not a
         % complete record and there is no additional file to load which
         % contains the remainder of the record.
-        if any(param.records.file.version == [1:8 11 102 401:404 407:408])
+        if any(param.records.file.version == [1:8 11 102 401:404 407:408 420])
           board_hdrs{board_idx}.epri = board_hdrs{board_idx}.epri(1:end-1);
         end
         if param.records.file.version == 8

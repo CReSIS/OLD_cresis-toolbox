@@ -171,7 +171,7 @@ for board_idx = 1:num_board_to_load
     
   elseif any(param.records.file.version == [7 11 407 408])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
-    
+ 
   elseif any(param.records.file.version == [420])
     hdr_param.frame_sync = uint32(1212568132);
     hdr_param.field_offsets = int32([4 8 12]); % epri seconds fraction 
@@ -385,8 +385,8 @@ for board_idx = 1:num_board_to_load
         end
         wfs = hdr.wfs;
         for wf=1:length(wfs); wfs(wf).file_version = hdr.file_version; end;
-        elseif any(param.records.file.version == [420])
-        hdr = load_data_X6(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
+      elseif any(param.records.file.version == [420])
+        hdr = load_data_vapor(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       end
     catch ME
@@ -676,6 +676,7 @@ for board_idx = 1:num_board_to_load
       counter = double(counter(~bad_mask));
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
+     
     elseif any(param.records.file.version == [420])
       [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds,1);
