@@ -679,6 +679,7 @@ for board_idx = 1:num_board_to_load
      
     elseif any(param.records.file.version == [420])
       [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+      seconds = BCD_to_seconds(seconds,1);
       
       % Find bad records by checking their size (i.e. the distance between
       % frame syncs which should be constant).
