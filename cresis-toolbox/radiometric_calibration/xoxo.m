@@ -216,7 +216,7 @@ while flag_load_xo<3
     %% Find rec and load data
       
     N_xo = size(xo,1);
-    for idx_xo = 1:N_xo
+    for idx_xo = 167:N_xo
       ident = sprintf('%s_%s_xo_%04d', xo_table_tag, xo_angle_filter_str, idx_xo);
       fprintf('\n%s %d (of %d) >> qloox\n', ident, idx_xo, N_xo);
       [qq(idx_xo)] = qloox(xo(idx_xo,:), ident);

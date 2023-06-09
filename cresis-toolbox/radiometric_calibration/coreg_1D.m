@@ -57,6 +57,6 @@ if debug_fig
   fig_fn = fullfile(reuse_loc, sprintf('coreg_1D_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_coreg_1D,fig_fn);
-
+  close(h_fig_coreg_1D)
 
 end
