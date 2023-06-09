@@ -24,7 +24,7 @@ seasons = {'2017_Greenland_P3'};
 xo_table_name = 'OPS_CReSIS_Crossovers_WKT_XYQQ1nEbE7';
 % xo_angle_filter_str = 'le_0p5';
 % xo_angle_filter_str = 'ge_85';
-xo_angle_filter_str = 'ge_86';
+xo_angle_filter_str = 'ge_0';
 
 
 N_seasons = length(seasons);
@@ -187,7 +187,7 @@ while flag_load_xo<3
     % filter xo angles
     %%% good_idxs = find(xo.cx_angle <= 0.02);
     xo_angle_filter_operator = 'ge';
-    xo_angle_filter_threshold = 86;
+    xo_angle_filter_threshold = 0;
       
     eval( sprintf('good_idxs = find( %s(xo.cx_angle, %f) );', ...
       xo_angle_filter_operator,  xo_angle_filter_threshold) );
@@ -273,7 +273,7 @@ figures_visible = 1;
 xo_hdr_str = sprintf('%s_%s', xo_table_tag, xo_angle_filter_str);
 fig_hdr = xo_hdr_str; 
 
-if 1 % redo qloox
+if 0 % redo qloox
   N_xo = size(xo,1);
   for idx_xo = 1:N_xo
     ident = sprintf('%s_%s_xo_%04d', xo_table_tag, xo_angle_filter_str, idx_xo);

@@ -202,7 +202,7 @@ for xx=1:2
     a2 = tmp(surface_box(2,:));
 
     % Number of indixes to move a2 wrt a1
-    lagaan = coreg_1D(a1,a2);
+    lagaan = coreg_1D(a1,a2, ident);
 
     if isnan(lagaan) || lagaan == 0
       % no new flag necessary

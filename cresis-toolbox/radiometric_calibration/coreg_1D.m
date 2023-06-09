@@ -1,4 +1,4 @@
-function lagaan = coreg_1D(a1,a2)
+function lagaan = coreg_1D(a1,a2, ident)
 laggan = NaN;
 
 % if length(a1) ~= length(a2)
@@ -11,7 +11,7 @@ debug_fig = 1;
 method = {'none', 'biased', 'unbiased' , 'normalized'};
 
 if debug_fig
-  figure;
+  h_fig_coreg_1D = figure('Name', 'coreg_1D');
   subplot(121);
   hold on;
   plot(a1, '.-');
@@ -49,4 +49,14 @@ if debug_fig
   subplot(121);
   plot([1:length(a2)]+lagaan, a2, 'o-');
   legend('a1','a2','a2 coreg');
+
+  %save
+  [xo_table_tag, idx_xo, reuse_loc, xo_hdr] = de_ident(ident);
+  sgtitle(xo_hdr, 'Interpreter', 'None');
+
+  fig_fn = fullfile(reuse_loc, sprintf('coreg_1D_%s.png', ident));
+  fprintf('Saving %s\n', fig_fn);
+  ct_saveas(h_fig_coreg_1D,fig_fn);
+
+
 end
