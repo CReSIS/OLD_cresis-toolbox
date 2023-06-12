@@ -25,6 +25,7 @@ xo_table_name = 'OPS_CReSIS_Crossovers_WKT_XYQQ1nEbE7';
 % xo_angle_filter_str = 'le_0p5';
 % xo_angle_filter_str = 'ge_85';
 xo_angle_filter_str = 'ge_0';
+xo_angle_filter_str = 'le_0p239';
 
 
 N_seasons = length(seasons);
@@ -188,6 +189,9 @@ while flag_load_xo<3
     %%% good_idxs = find(xo.cx_angle <= 0.02);
     xo_angle_filter_operator = 'ge';
     xo_angle_filter_threshold = 0;
+
+    xo_angle_filter_operator = 'le';
+    xo_angle_filter_threshold = 0.239;
       
     eval( sprintf('good_idxs = find( %s(xo.cx_angle, %f) );', ...
       xo_angle_filter_operator,  xo_angle_filter_threshold) );
@@ -216,7 +220,7 @@ while flag_load_xo<3
     %% Find rec and load data
       
     N_xo = size(xo,1);
-    for idx_xo = 167:N_xo
+    for idx_xo = 1:N_xo
       ident = sprintf('%s_%s_xo_%04d', xo_table_tag, xo_angle_filter_str, idx_xo);
       fprintf('\n%s %d (of %d) >> qloox\n', ident, idx_xo, N_xo);
       [qq(idx_xo)] = qloox(xo(idx_xo,:), ident);
@@ -231,7 +235,7 @@ while flag_load_xo<3
     reuse_loc = fullfile(gRadar.ct_tmp_path, 'radcal_mat', ...
       [xo_table_tag, '_', xo_angle_filter_str]);
     reuse_fn = fullfile(reuse_loc, 'reuse.mat');
-    fprintf('Saving REUSE MAT: %s >>', reuse_fn);
+    fprintf('\n\nSaving REUSE MAT: %s >>', reuse_fn);
     if ~exist(reuse_loc, 'dir')
       mkdir(reuse_loc);
     end
@@ -266,7 +270,29 @@ while flag_load_xo<3
   
 end % while flag_load_xo
 
-% return;
+return;
+
+%% print gps times
+fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
+fprintf('point\t\txo\t\t\t\t\t\trecord\t\t\t\t\tqlook\n');
+fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
+for idx = 1:N_xo
+  fprintf('xo idx %d\n', idx);
+  fprintf('[1]gps:\t\t%f\t\t%f\t\t%f\n', ...
+    xo.pt1_gps_time(idx), qq(idx).record{1}.gps_time, qq(idx).dd{1}.GPS_time);
+%   fprintf('[1]date:\t%s\t%s\t%s\n', ...
+%     gps2date( xo.pt1_gps_time(idx) ), ...
+%     gps2date( qq(idx).record{1}.gps_time), ...
+%     gps2date( qq(idx).dd{1}.GPS_time) );
+  fprintf('[2]gps:\t\t%f\t\t%f\t\t%f\n', ...
+    xo.pt2_gps_time(idx), qq(idx).record{2}.gps_time, qq(idx).dd{2}.GPS_time);
+%   fprintf('[2]date:\t%s\t%s\t%s\n', ...
+%     gps2date( xo.pt2_gps_time(idx) ), ...
+%     gps2date( qq(idx).record{2}.gps_time), ...
+%     gps2date( qq(idx).dd{2}.GPS_time) );
+end
+fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
+% pick_idxs = find(xo.cx_angle<0.239);
 
 %% plots
 figures_visible = 1;

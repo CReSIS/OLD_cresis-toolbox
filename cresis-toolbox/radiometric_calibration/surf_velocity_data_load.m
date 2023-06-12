@@ -20,5 +20,9 @@ end
 projection = projcrs(3413); % EPSG
 [X, Y] = meshgrid(var.x,var.y);
 [lat, lon] = projinv(projection, X, Y);
-save(gcf, 'temp');
-save(gcf, 'temp', '-dpng');
+
+%%
+return;
+% surf(lat,lon, var.v.');
+% saveas(gcf, 'ttemp');
+% saveas(gcf, 'ttemp', 'png');

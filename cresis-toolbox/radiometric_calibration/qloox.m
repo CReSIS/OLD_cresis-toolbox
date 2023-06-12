@@ -301,7 +301,7 @@ if figures_plot == 1
   figure(h_fig_instagram);
   fig_fn = fullfile(reuse_loc, sprintf('instagram_%s.fig', ident));
   fprintf('Saving %s\n', fig_fn);
-  %   ct_saveas(h_fig_instagram,fig_fn);
+  ct_saveas(h_fig_instagram,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('instagram_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_instagram,fig_fn);
@@ -310,7 +310,7 @@ if figures_plot == 1
   title(fig_hdr, 'Interpreter', 'None');
   fig_fn = fullfile(reuse_loc, sprintf('geoplot_%s.fig', ident));
   fprintf('Saving %s\n', fig_fn);
-  %   ct_saveas(h_fig_geoplot,fig_fn);
+  ct_saveas(h_fig_geoplot,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('geoplot_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_geoplot,fig_fn);
@@ -336,7 +336,7 @@ if figures_plot == 1
   set(findobj(h_fig_records,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_records, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
-  %   ct_saveas(h_fig_records,fig_fn);
+  ct_saveas(h_fig_records,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('records_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_records,fig_fn);
@@ -351,7 +351,7 @@ if figures_plot == 1
   set(findobj(h_fig_waveform_elev,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_elev, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
-  %   ct_saveas(h_fig_waveform_elev,fig_fn);
+  ct_saveas(h_fig_waveform_elev,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('waveform_elev_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_elev,fig_fn);
@@ -385,7 +385,7 @@ if figures_plot == 1
   set(findobj(h_fig_waveform_time,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_time, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
-  %   ct_saveas(h_fig_waveform_time,fig_fn);
+  ct_saveas(h_fig_waveform_time,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('waveform_time_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_time,fig_fn);

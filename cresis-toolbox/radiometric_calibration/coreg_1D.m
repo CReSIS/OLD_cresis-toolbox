@@ -44,11 +44,11 @@ end
 if debug_fig
   xlabel('lags');
   ylabel('xcorr');
-  legend(method);
+  legend(method, 'Location', 'east');
 
   subplot(121);
   plot([1:length(a2)]+lagaan, a2, 'o-');
-  legend('a1','a2','a2 coreg');
+  legend('a1','a2','a2 coreg', 'Location', 'northwest');
 
   %save
   [xo_table_tag, idx_xo, reuse_loc, xo_hdr] = de_ident(ident);
