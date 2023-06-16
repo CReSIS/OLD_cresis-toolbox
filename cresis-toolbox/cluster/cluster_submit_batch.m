@@ -31,10 +31,10 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time,mem)
 %
 % EXAMPLES:
 % % Blocking example:
-% out = cluster_submit_batch('hanning',true,{10},1,60,500e6)
+% out = cluster_submit_batch('hanning',true,{10},1,60,1500e6)
 %
 % % Non-blocking example:
-% ctrl = cluster_submit_batch('hanning',false,{10},1,60,500e6);
+% ctrl = cluster_submit_batch('hanning',false,{10},1,60,1500e6);
 % ctrl_chain = {{ctrl}};
 % [~,chain_id] = cluster_save_chain(ctrl_chain);
 %

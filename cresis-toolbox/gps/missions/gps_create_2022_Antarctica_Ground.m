@@ -31,7 +31,7 @@ end
 
 in_base_path = fullfile(data_support_path,season_name);
 
-file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
+file_idx = 0; in_fns = {}; out_fns = {}; date_str = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 %% <== CHOOSE WHICH GPS SOURCE TO PROCESS
