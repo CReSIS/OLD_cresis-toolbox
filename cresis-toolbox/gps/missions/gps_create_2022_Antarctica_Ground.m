@@ -68,7 +68,72 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_file_type{file_idx} = 'arena';
 %   sync_params{file_idx} = struct('time_reference','utc');
   
-  year = 2022; month = 12; day = 21;
+%   year = 2022; month = 12; day = 21;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+  
+%   year = 2023; month = 1; day = 13;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2023; month = 1; day = 14;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+%   
+%   year = 2023; month = 1; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+% %   
+%   year = 2023; month = 1; day = 18;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
+  
+  year = 2023; month = 1; day = 19;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -80,6 +145,19 @@ if strcmpi(gps_source_to_use,'arena')
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   sync_file_type{file_idx} = 'arena';
   sync_params{file_idx} = struct('time_reference','utc');
+  
+%   year = 2023; month = 1; day = 21;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   date_str{file_idx} = sprintf('%04d%02d%02d', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('time_reference','utc');
   
 elseif strcmpi(gps_source_to_use,'cresis')
   %% CReSIS GPS SOURCE
@@ -120,7 +198,7 @@ for idx = 1:length(file_type)
     gps = load(out_fn);
     
     if length(gps.lat) >= 2
-      new_gps_time = [gps.gps_time(1)-10, gps.gps_time,gps.gps_time(end)+10];
+      new_gps_time = [gps.gps_time(1)-20, gps.gps_time,gps.gps_time(end)+10];
       gps.lat = interp1(gps.gps_time,gps.lat,new_gps_time,'linear','extrap');
       gps.lon = interp1(gps.gps_time,gps.lon,new_gps_time,'linear','extrap');
       gps.elev = interp1(gps.gps_time,gps.elev,new_gps_time,'linear','extrap');

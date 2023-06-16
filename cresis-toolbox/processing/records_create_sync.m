@@ -531,8 +531,6 @@ end
 
 %% Correlate GPS with radar data
 % ===================================================================
-fprintf('Loading GPS data (%s)\n', datestr(now));
-
 if param.records.gps.en
   records = records_create_sync_gps(param,records,radar_time,comp_time);
   
