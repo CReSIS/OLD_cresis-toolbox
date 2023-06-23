@@ -59,7 +59,7 @@ end
 %% Endian mode
 % ===================================================================
 [~,~,endian] = computer;
-if any(param.records.file.version==[9 10 103 412])
+if any(param.records.file.version==[9 10 103 412 420])
   if endian == 'B'
     % IEEE little endian files with IEEE big endian computer
     swap_bytes_en = true;

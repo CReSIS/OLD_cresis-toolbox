@@ -935,6 +935,23 @@ for wf = 1:length(param.radar.wfs)
           + WF_HEADER_SIZE;
       end
       
+   case 420
+      % 2022 Greenland Vapor
+      HEADER_SIZE = 16;
+      WF_HEADER_SIZE = 0;
+      wfs(wf).record_mode = 0;
+      wfs(wf).complex = 0;
+      wfs(wf).sample_size = 2;
+      wfs(wf).adc_per_board = 1;
+      wfs(wf).sample_type = 'int16';
+      if wf == 1
+        wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
+      else
+        wfs(wf).offset = wfs(wf-1).offset ...
+          + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
+          + WF_HEADER_SIZE;
+      end
+      
   end
 end
 
