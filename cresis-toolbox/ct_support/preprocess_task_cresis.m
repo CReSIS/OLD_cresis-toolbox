@@ -395,7 +395,7 @@ for board_idx = 1:num_board_to_load
         hdr = hfrds.basic_load_vapor(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.records.file.version == [421])
-        hdr = load_data_X6_v2(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
+        hdr = basic_load_X6(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       end
     catch ME
