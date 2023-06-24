@@ -2,28 +2,36 @@ function check_surface(param,param_override)
 % check_surface(param,param_override)
 %
 % 1. Loads coincident LIDAR data if it exists
+%
 % 2. Loads DTU sea surface DEM and arctic/antarctica land DEM, combines
-%    these two DEMS taking land DEM over sea surface DEM.
+% these two DEMS taking land DEM over sea surface DEM.
+%
 % 3. Combines LIDAR data and DEM data, taking LIDAR data over DEM data.
-%    Uses elevation to interpolate where data are not available.
+% Uses elevation to interpolate where data are not available.
+%
 % 4. Estimates Tadc_adjust or t_ref error by comparing radar surface from
-%    the specified layer source and the LIDAR/DEM combination.
-%    * The error is calculated as the correction that needs to be applied. In
-%      other words if the radar surface twtt is too large, then the error is
-%      reported as a negative number.
-%    * This error should be added to param.radar.wfs.Tadc_adjust for pulsed systems.
-%    * This error should be added to param.radar.wfs.t_ref for deramp systems.
-% 5. Estimates GPS offset by comparing radar surface and LIDAR/DEM. This offset
-%    should be added to param.records.gps.time_offset.
+% the specified layer source and the LIDAR/DEM combination.
+%    * The error is calculated as the correction that needs to be applied.
+%    In other words if the radar surface twtt is too large, then the error
+%    is reported as a negative number.
+%    * This error should be added to param.radar.wfs.Tadc_adjust for pulsed
+%    systems.
+%    * This error should be added to param.radar.wfs.t_ref for deramp
+%    systems.
+%
+% 5. Estimates GPS offset by comparing radar surface to LIDAR and/or DEM
+% surface. This offset should be added to the current
+% param.records.gps.time_offset in the parameter spreadsheet. See wiki:
+% https://gitlab.com/openpolarradar/opr/-/wikis/System-Time-Delay#updating-gps-offset
+%
 % 6. For deramp systems, uses the LIDAR/DEM data to determine the Nyquist
-%    zone and sets the records.settings.nyquist_zone based on this.
-%    The second decimal mask in frames.proc_mode is also set to one for
-%    frames that will be outside max_nyquist_zone.
+% zone and sets the records.settings.nyquist_zone based on this. The second
+% decimal mask in frames.proc_mode is also set to one for frames that will
+% be outside max_nyquist_zone.
 %
 % See run_check_surface.m for how to run.
 %
 % cat /N/dcwan/projects/cresis/output/ct_tmp/check_surface/snow/2017_Greenland_P3/*.txt
-%
 %
 % Author: John Paden
 
@@ -457,7 +465,7 @@ clf(h_fig(4));
 set(h_fig(4),'name','GPS');
 h_axes(4) = axes('parent',h_fig(4));
 plot(h_axes(4),-lags*dt,ref_corr)
-xlabel(h_axes(4),'GPS lag (sec)');
+xlabel(h_axes(4),'Radar''s time lag relative to actual time (sec)');
 ylabel(h_axes(4),'Cross correlation');
 grid(h_axes(4),'on');
 fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'gps');
@@ -560,7 +568,7 @@ fprintf(fid,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
+  1e9*nanmedian(twtt_error_all), numel(recs), lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
 fclose(fid);
 
 fprintf(1,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
@@ -576,7 +584,7 @@ fprintf(1,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n',
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
+  1e9*nanmedian(twtt_error_all), numel(recs), lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
 fprintf('All twtt times are in ns\n');
 
 % =====================================================================
