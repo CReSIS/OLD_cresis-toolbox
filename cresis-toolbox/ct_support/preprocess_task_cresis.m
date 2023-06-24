@@ -388,6 +388,9 @@ for board_idx = 1:num_board_to_load
       elseif any(param.records.file.version == [420])
         hdr = hfrds.basic_load_vapor(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
+      elseif any(param.records.file.version == [421])
+        hdr = basic_load_X6(fn, struct('file_version',param.records.file.version,'clk',param.config.cresis.clk));
+        wfs = hdr.wfs;
       end
     catch ME
       ME.getReport
@@ -695,6 +698,35 @@ for board_idx = 1:num_board_to_load
       fraction = double(fraction(~bad_mask));
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
+    elseif any(param.records.file.version == [421])
+      [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+      seconds = BCD_to_seconds(seconds,1);
+      if temporary == 0
+          epri = [epri(1):1:epri(1)+length(epri)-1];
+          temporary = epri(length(epri))+1;
+      else
+          epri = [temporary:1:temporary+length(epri)-1];
+          temporary = epri(length(epri))+1;
+      end
+      % offset = offset(:,1:2:length(offset));
+      % epri = epri(:,1:2:length(epri));
+      % seconds = seconds(:,1:2:length(seconds));
+      % fraction = fraction(:,1:2:length(fraction));
+      % Find bad records by checking their size (i.e. the distance between
+      % frame syncs which should be constant).
+      
+      expected_rec_size = median(diff(offset));
+      meas_rec_size = diff(offset);
+      bad_mask = meas_rec_size ~= expected_rec_size;
+      bad_mask(end+1) = file_size < offset(end) + expected_rec_size;
+      
+      % Remove bad records (i.e. ones with sizes that are not expected
+      offset = double(offset(~bad_mask));
+      epri = double(epri(~bad_mask));
+      seconds = double(seconds(~bad_mask));
+      fraction = double(fraction(~bad_mask));
+      
+      save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
     end
     
     % Load and concatenate temporary file
@@ -843,7 +875,7 @@ end
 % =========================================================================
 for board_idx = 1:numel(param.records.file.boards)
   
-  if any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 404 407 408 420])
+  if any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 404 407 408 420 421])
     utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.records.file.clk;
     epri = double(board_hdrs{board_idx}.epri);
     
