@@ -1358,7 +1358,7 @@ end
 %% Print out segments
 % =========================================================================
 if ~exist(param.config.param_fn,'file')
-  warning('Could not find parameter spreadsheet file so not printing parameter values.\n  param.config.param_fn = %s', param.config.param_fn);
+  warning('Could not find parameter spreadsheet file so not printing parameter values.\n  param.config.param_fn = ''%s''', param.config.param_fn);
 else
   % Print parameter spreadsheet values to stdout and param_txt_fn
   % =========================================================================
