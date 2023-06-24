@@ -1,23 +1,23 @@
-# cresis-toolbox
-CReSIS Toolbox: Polar radar software toolbox (mostly Matlab based)
+# Open Polar Radar (OPR) Toolbox
+OPR Toolbox: Polar radar software toolbox (currently mostly Matlab based)
 
-Contains code for calibrating, processing, analyzing, and viewing radar data. The tools are focused on cryospheric radar sounders.
+Contains code for calibrating, processing, analyzing, and viewing radar data. The tools are focused on radar sounders.
 
 Main guide for setting up and using the cresis toolbox:
-https://ops.cresis.ku.edu/wiki/
+https://gitlab.com/openpolarradar/opr/-/wikis/home
 
-cresis-toolbox: Matlab code. This is the main directory with all of the source code. This is primarily Matlab code with a few other languages used for certain specific operations that are called from the Matlab code.
+matlab: Matlab code. This is the main directory with most of the source code.
 
 idl: IDL code. Only includes support for reading data product files
 
-python: Python code. Only includes support for reading ECMWF weather model files.
+python: Python code. Includes support for reading ECMWF weather model files, tape library raw data retrieval.
 
 vim: Vim code. Only includes setup files for using vimdiff.
 
-## To cite usage of the CReSIS Toolbox please use the following:
+## To cite usage of the OPR Toolbox please use the following:
 
-CReSIS. (2021). cresis-toolbox (Version 3.0.1) [Computer software]. https://doi.org/10.5281/zenodo.5683959
-  
-## To acknowledge the use of the CReSIS Toolbox, please note Kansas, NSF and NASA contributions. For example:
+OPR Partners. (2023). opr (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.5683959
 
-We acknowledge the use of the CReSIS toolbox from CReSIS generated with support from the University of Kansas, NASA Operation IceBridge grant NNX16AH54G, and NSF grants ACI-1443054, OPP-1739003, and IIS-1838230.
+## To acknowledge the use of the OPR Toolbox. For example:
+
+We acknowledge the use of the OPR toolbox generated in part by the NSF EarthCube awards ICER-2126503, 2126468, and 2127606.
