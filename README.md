@@ -16,8 +16,8 @@ vim: Vim code. Only includes setup files for using vimdiff.
 
 ## To cite usage of the OPR Toolbox please use the following:
 
-OPR Partners. (2023). opr (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.5683959
+Open Polar Radar. (2023). opr (Version 3.0.1) [Computer software]. https://doi.org/10.5281/zenodo.5683959
 
 ## To acknowledge the use of the OPR Toolbox. For example:
 
-We acknowledge the use of the OPR toolbox generated in part by the NSF EarthCube awards ICER-2126503, 2126468, and 2127606.
+We acknowledge the use of software from Open Polar Radar generated with support from NSF EarthCube grants 2126503, 2127606, and 2126468.
