@@ -70,7 +70,7 @@ if ~isfield(param.records.file,'regexp') || isempty(param.records.file.regexp)
 end
 
 % Determine raw filename extension and check file version
-if any(param.records.file.version == [1 9:10 101 103 401 412 415 420])
+if any(param.records.file.version == [1 9:10 101 103 401 412 415 420 421])
   ext = '.dat';
 elseif any(param.records.file.version == [2:8 11 102 402:408 411])
   ext = '.bin';
