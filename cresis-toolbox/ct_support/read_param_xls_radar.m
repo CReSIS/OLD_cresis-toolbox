@@ -28,7 +28,7 @@ fprintf('Reading command/cmd of xls file: %s\n', param_fn);
 
 [~,~,param_fn_ext] = fileparts(param_fn);
 matlab_ver = ver('matlab');
-use_read_table = str2double(matlab_ver.Version) >= 9.12 || any(strcmpi(param_fn_ext,{'xlsx','ods'}));
+use_read_table = str2double(matlab_ver.Version) >= 9.10 || any(strcmpi(param_fn_ext,{'xlsx','ods'}));
 clear('matlab_ver');
 if use_read_table
   sheets = sheetnames(param_fn);

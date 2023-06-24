@@ -190,3 +190,12 @@ else
 end
 records.file_type = 'records';
 ct_save(records_fn,'-v7.3','-struct','records');
+
+%% Update reference trajectory
+ref_fn_dir = ct_filename_out(param,'reference_trajectory','',1);
+ref_fn = fullfile(ref_fn_dir,sprintf('ref_%s.mat', param.day_seg));
+% Only update the file if it exists
+if exist(ref_fn,'file')
+  fprintf('  Updating reference trajectory %s\n', ref_fn);
+  records_reference_trajectory(param,param_override);
+end
