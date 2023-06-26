@@ -1,8 +1,3 @@
-/cresis-toolbox-torque/mccExcludedFiles.log
-/cresis-toolbox-torque/readme.txt
-/cresis-toolbox-torque/requiredMCRProducts.txt
-/cresis-toolbox-torque/run_worker_task.sh
-/cresis-toolbox-torque/worker_task
 /cresis-toolbox/cluster/mccExcludedFiles.log
 /cresis-toolbox/cluster/readme.txt
 /cresis-toolbox/cluster/requiredMCRProducts.txt
@@ -11,3 +6,11 @@
 *~
 cresis-toolbox/cluster/unresolvedSymbols.txt
 cresis-toolbox/cluster/includedSupportPackages.txt
+/opr/cluster/mccExcludedFiles.log
+/opr/cluster/readme.txt
+/opr/cluster/requiredMCRProducts.txt
+/opr/cluster/run_cluster_job.sh
+/opr/cluster/cluster_job
+*~
+opr/cluster/unresolvedSymbols.txt
+opr/cluster/includedSupportPackages.txt
