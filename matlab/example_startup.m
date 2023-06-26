@@ -3,24 +3,21 @@
 % This is a template startup.m file.
 %
 % STEPS TO SETUP MATLAB ENVIRONMENT ARE ON WIKI:
-%  https://wiki.cresis.ku.edu/
+%   https://gitlab.com/openpolarradar/opr/-/wikis/home
 %
 % Step 1
-%  PC:
-%  Rename this file to startup.m and place in:
-%    C:\Users\USERNAME\Documents\MATLAB
-%
-%  LINUX-KU:
-%  Rename this file to startup.m and place in /users/USERNAME/.matlab/
-%  LINUX-IU:
-%  Rename this file to startup.m and place in /N/u/USERNAME/Quarry/.matlab/
+%  Rename this file to startup.m and save in the folder returned by the "userpath" Matlab command.
+%  You can also set the user path like this: userpath('/scratch/scripts/matlab') and then place
+%  startup.m in that folder.
 %
 % Step 2
-%  Modify one of the profiles below and set cur_profile
-%  - Probably just need to update path_override and tmp_file_path
+%  Modify one of the profiles below and set cur_profile to this profile.
+%  Often no changes are necessary and the default paths for one of the
+%  profiles below will work well
 %
 % Step 3
-%  Restart matlab making suring the this startup script runs.
+%  Run "startup" from Matlab; it should run this script if the userpath
+%  and startup.m are set up correctly.
 %
 % Authors: John Paden
 
@@ -35,7 +32,6 @@ if ~(~ismcc && isdeployed)
   % KU Desktop Profile Windows (PROFILE 5)
   % IU Profile Linux (PROFILE 6)
   % AWI Profile Field Windows (PROFILE 7)
-  % AWI Profile Field Linux (PROFILE 8)
   % AWI Profile Ollie (PROFILE 9)
   if ispc
     cur_profile = 1; % Put your default Windows profile here
@@ -53,7 +49,7 @@ if ~(~ismcc && isdeployed)
   base_dir = fullfile(getenv('USERPROFILE'),'My Documents','scripts');
   %base_dir = 'C:\git\';
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -86,7 +82,7 @@ if ~(~ismcc && isdeployed)
   pidx = 2; % profile index
   base_dir = fullfile(getenv('HOME'),'scripts');
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -122,7 +118,7 @@ if ~(~ismcc && isdeployed)
   pidx = 3; % profile index
   base_dir = fullfile('/cresis/snfs1/scratch',getenv('USER'),'scripts');
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -166,7 +162,7 @@ if ~(~ismcc && isdeployed)
   pidx = 4; % profile index
   base_dir = '/scratch/scripts/';
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -208,7 +204,7 @@ if ~(~ismcc && isdeployed)
   pidx = 5; % profile index
   base_dir = 'X:\scripts';
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -240,7 +236,7 @@ if ~(~ismcc && isdeployed)
   pidx = 6; % profile index
   base_dir = fullfile(getenv('HOME'),'scripts');
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -291,7 +287,7 @@ if ~(~ismcc && isdeployed)
   pidx = 7; % profile index
   base_dir = 'S:\Scratch\scripts\';
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -323,7 +319,7 @@ if ~(~ismcc && isdeployed)
   pidx = 9; % profile index
   base_dir = fullfile('/work/ollie',getenv('USER'),'scripts');
   profile(pidx).path_override             = fullfile(base_dir,'matlab');
-  profile(pidx).path                      = fullfile(base_dir,'cresis-toolbox','cresis-toolbox');
+  profile(pidx).path                      = fullfile(base_dir,'opr','matlab');
   profile(pidx).param_path                = fullfile(base_dir,'ct_params');
   profile(pidx).tmp_file_path             = fullfile(base_dir,'ct_user_tmp');
 
@@ -393,7 +389,7 @@ if ~(~ismcc && isdeployed)
   if ~exist(profile(cur_profile).path_override,'dir')
     fprintf('Personal toolbox not found: %s\n', profile(cur_profile).path_override);
   else
-    % Add personal path after cresis-toolbox so that it overrides cresis-toolbox
+    % Add personal path after OPR path so that it overrides OPR paths
     fprintf('  Adding personal path: %s\n',profile(cur_profile).path_override);
     fns = get_filenames(profile(cur_profile).path_override,'','','',struct('type','d','recursive',1));
     addpath(profile(cur_profile).path_override);
