@@ -25,10 +25,10 @@ if figures_plot == 1
 
   h_fig_records = figure('Name','records', 'visible', figures_visible);
   hold on;
-  %   plot(xo.cx_lon, xo.cx_lat, '*', 'LineWidth', 4);
 
   h_fig_waveform_elev = figure('Name','waveform', 'visible', figures_visible);
   hold on;
+
   h_fig_waveform_time = figure('Name','waveform2', 'visible', figures_visible);
   hold on;
 end
@@ -86,17 +86,41 @@ for xx=1:2
   %% Load data for frm + find(data_rec)
 
   dd_full = [];
+  fn = fullfile(ct_filename_out(param{xx},'qlook'), ...
+    sprintf('Data_img_01_%s_%03d.mat', param{xx}.day_seg, ...
+    frm(xx)));
+  dd_full = load(fn);
+
+  % for surface field
+  dd_surf = [];
   try
     fn = fullfile(ct_filename_out(param{xx},'qlook'), ...
       sprintf('Data_%s_%03d.mat', param{xx}.day_seg, ...
       frm(xx)));
-    dd_full = load(fn);
+    dd_surf = load(fn);
+    img_comb = 1;
   catch
     fn = fullfile(ct_filename_out(param{xx},'qlook'), ...
       sprintf('Data_img_01_%s_%03d.mat', param{xx}.day_seg, ...
       frm(xx)));
-    dd_full = load(fn);
+    dd_surf = load(fn);
+    img_comb = 0;
   end
+
+  if ~isempty(dd_surf)
+      if length(dd_full.GPS_time) == length(dd_surf.GPS_time)
+          surf_hint = dd_surf.Surface;
+      else
+          % reinterpolate
+          % surf_hint = interp();
+      end
+  else
+      % load from layer????
+  end
+
+  % xo.pt_surface vs surf_hint
+  
+
   %   dd_power_err = analyze_power_levels(dd_full, sprintf('%s (point %d) %s', xo_hdr ,xx, local_hdr) );
 
   dx_dd(xx) = mean(distance_geodetic(dd_full));
@@ -132,6 +156,8 @@ for xx=1:2
   %% struct_select rec_dd from dd
 
   dd = struct_select(dd_full, length(dd_full.GPS_time), rec_dd(xx), 0);
+  % temp hack
+  surf_hint = surf_hint(rec_dd(xx));
 
   %% Truncate data
 
@@ -148,17 +174,17 @@ for xx=1:2
   % max is not always the surface
 
   % compare (bad way)
-  [I,~,~] = find_multiple(dd.Time, '>=', dd.Surface, 1, 'first');
+  [I,~,~] = find_multiple(dd.Time, '>=', surf_hint, 1, 'first');
   surf_next_idx = [I{:}];
 
   % distance or closest (better way)
-  bb = abs(dd.Time - dd.Surface);
+  bb = abs(dd.Time - surf_hint);
   [~, surf_closest_idx] = min(bb,[],1);
 
 
   if 0
     figure('Name', 'debug');
-    plot(dd.Surface/1e-6,'.'); hold on; grid on;
+    plot(surf_hint/1e-6,'.'); hold on; grid on;
     % plot(dd.Time(tmp_rline_max_idxs)/1e-6,'o'); % dont
     plot(dd.Time(surf_next_idx)/1e-6,'rs'); % bad
     plot(dd.Time(surf_closest_idx)/1e-6,'go'); % good
@@ -178,7 +204,7 @@ for xx=1:2
     [~, box_peak_idx] = max(tmp(idxs_box));
     surf_peak_idx = idxs_box(1) + box_peak_idx -1;
 
-    surface_box(xx,:) = idxs_box;
+    surface_box{xx,:} = idxs_box;
     clear box_bounds_each_side box_bounds_max idx_box_min idx_box_max idxs_box box_peak_idx
   end
 
@@ -198,19 +224,30 @@ for xx=1:2
   end
 
   if xx==2 %coreg second onto first wf
-    a1 = ddd{1}.tmp(surface_box(1,:));
-    a2 = tmp(surface_box(2,:));
-
+    a1 = ddd{1}.tmp(surface_box{1,:});
+    a2 = tmp(surface_box{2,:});
+    x1 = ddd{1}.Time(surface_box{1,:});
+    x2 = dd.Time(surface_box{2,:});
     % Number of indixes to move a2 wrt a1
-    lagaan = coreg_1D(a1,a2, ident);
+    interp_factor = 20;
 
-    if isnan(lagaan) || lagaan == 0
+    % try 
+      lagaan = coreg_1D(a1,x1, a2,x2, interp_factor, ident);
+    % catch ME
+      % lagaan = coreg_1D(a1,a2, ident);
+    % end
+
+    if isnan(lagaan.t) || lagaan.t == 0
       % no new flag necessary
       % lagaan itself is aflag if not zero or NaN
       % do nothing
     else
-      % adjust surf_idx
-      surf_idx(xx) = surf_idx(xx) + lagaan;
+      % interp (x2+lagaan,a2) to (x1, new_a2)
+        
+
+        % adjust surf_idx
+
+      % surf_idx(xx) = surf_idx(xx) + lagaan;
     end
   end
 
@@ -224,6 +261,7 @@ for xx=1:2
 
   % Calc powers
   P_est(xx) = 10*log10(1/(4*pi*AGL(xx).^2));
+  P_est(xx) = 10*log10(1/(AGL(xx).^2));
   P_act(xx) = tmp(surf_idx(xx));
   P_err(xx) = P_est(xx) - P_act(xx);
 
@@ -301,7 +339,7 @@ if figures_plot == 1
   figure(h_fig_instagram);
   fig_fn = fullfile(reuse_loc, sprintf('instagram_%s.fig', ident));
   fprintf('Saving %s\n', fig_fn);
-  ct_saveas(h_fig_instagram,fig_fn);
+  % ct_saveas(h_fig_instagram,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('instagram_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_instagram,fig_fn);
@@ -310,14 +348,13 @@ if figures_plot == 1
   title(fig_hdr, 'Interpreter', 'None');
   fig_fn = fullfile(reuse_loc, sprintf('geoplot_%s.fig', ident));
   fprintf('Saving %s\n', fig_fn);
-  ct_saveas(h_fig_geoplot,fig_fn);
+  % ct_saveas(h_fig_geoplot,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('geoplot_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_geoplot,fig_fn);
 
 
   figure(h_fig_records);
-
   grid on;
   xlabel('Longitude, deg');
   ylabel('Latitude, deg');
@@ -336,7 +373,7 @@ if figures_plot == 1
   set(findobj(h_fig_records,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_records, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
-  ct_saveas(h_fig_records,fig_fn);
+  % ct_saveas(h_fig_records,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('records_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_records,fig_fn);
@@ -351,7 +388,7 @@ if figures_plot == 1
   set(findobj(h_fig_waveform_elev,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_elev, 'Position', get(0, 'Screensize'));
   fprintf('Saving %s\n', fig_fn);
-  ct_saveas(h_fig_waveform_elev,fig_fn);
+  % ct_saveas(h_fig_waveform_elev,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('waveform_elev_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_elev,fig_fn);
@@ -359,9 +396,7 @@ if figures_plot == 1
   figure(h_fig_waveform_time);
   subplot(121)
   grid on;
-  %set(gca, 'Xdir', 'reverse');
   axis tight;
-  % ylim([min(P_act)-100 max(P_act)+10]);
   ylim([-180 -40]);
   xlabel('surface-zeroed Fast-time, us');
   ylabel('Magnitude, dB');
@@ -369,28 +404,24 @@ if figures_plot == 1
   title(sprintf('Est-Act=Err [1]%0.2f-%0.2f=%0.2f] [2]%0.2f-%0.2f=%0.2f', ...
     P_est(1), P_act(1), P_err(1), ...
     P_est(2), P_act(2), P_err(2)))
-
   subplot(122)
   grid on;
   axis([-3 9 -110 -30]);
+  axis([-1 4 -110 -30]);
   xlabel('surface-zeroed Fast-time, us');
   ylabel('Magnitude, dB');
   legend(local_hdr, 'Interpreter','none');
   title(sprintf('diff(1,2) [Est, Act, Err] = [%0.2f, %0.2f, %0.2f]', ...
     diff(P_est), diff(P_act), diff(P_err) ));
-
   sgtitle(sprintf('(xo %d) Power levels: Estimated, Actual, Error', idx_xo), 'Interpreter', 'None');
-
   fig_fn = fullfile(reuse_loc, sprintf('waveform_time_%s.fig', ident));
   set(findobj(h_fig_waveform_time,'type','axes'),'FontWeight', 'Bold', 'FontSize',12);
   set(h_fig_waveform_time, 'Position', get(0, 'Screensize'));
-  fprintf('Saving %s\n', fig_fn);
+  % fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_time,fig_fn);
   fig_fn = fullfile(reuse_loc, sprintf('waveform_time_%s.png', ident));
   fprintf('Saving %s\n', fig_fn);
   ct_saveas(h_fig_waveform_time,fig_fn);
-
-
 
 end
 
