@@ -2037,7 +2037,7 @@ for dac_idx = 1:dacList.getLength
       end
       delay = nodeList.item(0);
       delay = delay.getTextContent.toCharArray;
-      delay = str2double(delay(:).');
+      delay = str2double(delay(:).') * 1e-6;
       configs.dac{mode_latch+1}.delay = delay;
       
       % 3. Get the config name and type for this DAC waveform

@@ -221,7 +221,7 @@ while ~feof(fid)
             fprintf(2, '    RADAR REPEAT LINE %d: %.0f\n', line_num, relTimeCntrTmp);
           end
           if relTimeCntrTmp < relTimeCntr(nmea_idx-1)
-            warning(2, 'Radar time is not monotonic on line %d: %.0f  <= %.0f\n', line_num, relTimeCntrTmp, relTimeCntr(nmea_idx-1));
+            fprintf(2, 'Radar time is not monotonic on line %d: %.0f  <= %.0f\n', line_num, relTimeCntrTmp, relTimeCntr(nmea_idx-1));
           end
         end
         

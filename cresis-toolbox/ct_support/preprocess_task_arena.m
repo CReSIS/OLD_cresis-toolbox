@@ -477,7 +477,7 @@ for config_idx = 1:length(configs)
   end
   oparams{end}.day_seg = sprintf('%s_%02d',config_fn_name(1:8),segment);
   last_day_seg = oparams{end}.day_seg;
-  oparams{end}.cmd.notes = configs(config_idx).psc.config_name(5:end);
+  oparams{end}.cmd.notes = configs(config_idx).psc.config_name(1:end);
   
   oparams{end}.records.file.version = 103;
   oparams{end}.records.file.boards = param.config.board_map;
