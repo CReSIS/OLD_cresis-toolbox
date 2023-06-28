@@ -275,12 +275,14 @@ while ~feof(fid)
         % If GPZDA comes before the GPGGA string, we do nothing now, but
         % use the gps_date_tmp and gps_date_time_tmp fields to update the
         % next GPGGA string when it comes.
-        gps_date_tmp = str2double([day_tmp{1},month_tmp{1},year_tmp{1}(3:4)]);
-        if UTC_time_file(nmea_idx-1) == gps_date_time_tmp
-          gps_date(nmea_idx-1) = gps_date_tmp;
-          gps_date_tmp = NaN;
-          gps_date_time_tmp = NaN;
-          % fprintf(2, '    GPZDA WITH DIFFERENT TIME THAN LAST GPGGA LINE %d: %.14g  ~= %.14g\n', line_num, UTC_time_file_tmp, UTC_time_file(nmea_idx-1));
+        if ~isempty(day_tmp{1}) && ~isempty(month_tmp{1}) && ~isempty(year_tmp{1})
+          gps_date_tmp = str2double([day_tmp{1},month_tmp{1},year_tmp{1}(3:4)]);
+          if UTC_time_file(nmea_idx-1) == gps_date_time_tmp
+            gps_date(nmea_idx-1) = gps_date_tmp;
+            gps_date_tmp = NaN;
+            gps_date_time_tmp = NaN;
+            % fprintf(2, '    GPZDA WITH DIFFERENT TIME THAN LAST GPGGA LINE %d: %.14g  ~= %.14g\n', line_num, UTC_time_file_tmp, UTC_time_file(nmea_idx-1));
+          end
         end
       end
     elseif numel(str)>=11 && strcmp(str(7:11),'GPRMC')

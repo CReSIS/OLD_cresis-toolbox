@@ -446,7 +446,7 @@ elseif any(param.records.file.version == [415])
   radar_time = board_hdrs{board_idx}.radar_time;
   comp_time = board_hdrs{board_idx}.comp_time;
   
-elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408])
+elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408 420 421])
   %% Radar time: CReSIS
  
   if 0
@@ -531,8 +531,6 @@ end
 
 %% Correlate GPS with radar data
 % ===================================================================
-fprintf('Loading GPS data (%s)\n', datestr(now));
-
 if param.records.gps.en
   records = records_create_sync_gps(param,records,radar_time,comp_time);
   
