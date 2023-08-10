@@ -152,6 +152,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.cpu_time_mult         = 2;
   %profile(pidx).cluster.mem_mult              = 2;
   %profile(pidx).cluster.ppn_fixed             = 4;
+  profile(pidx).cluster.matlab_mcr_path        = '/cresis/snfs1/projects/Active_projects/software/matlab/MCR_install/R2023a/';
 
   profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
   profile(pidx).ops.google_map_api_key = 'AIzaSyCNexiP6WcIda8ZEa2MnwznWrGotDoLu0w'; % Fill in with your Google API key
