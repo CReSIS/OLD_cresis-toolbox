@@ -703,10 +703,14 @@ for wf = 1:length(param.radar.wfs)
     BW = wfs(wf).f1 - wfs(wf).f0;
     dt = 1/wfs(wf).fs_pc;
     time = (0:dt:(wfs(wf).Nt_pc-1)*dt).';
+    time_Rx = time - 1 * 3e-6; % (3e-6<wfs(wf).Tpd/2)
     ref = tukeywin_cont(time/wfs(wf).Tpd-0.5, wfs(wf).tukey).*exp(1i*2*pi*-BW/2*time + 1i*pi*wfs(wf).chirp_rate*time.^2);
+    Rx  = tukeywin_cont(time_Rx/wfs(wf).Tpd-0.5, wfs(wf).tukey).*exp(1i*2*pi*-BW/2*time_Rx + 1i*pi*wfs(wf).chirp_rate*time_Rx.^2);
     if ~isempty(wfs(wf).ft_wind_time)
       ref = wfs(wf).ft_wind_time(wfs(wf).Nt_ref).*ref;
+      Rx  = wfs(wf).ft_wind_time(wfs(wf).Nt_ref).*Rx;
     end
+    
     
     for adc = adcs
       
@@ -719,6 +723,8 @@ for wf = 1:length(param.radar.wfs)
         wfs(wf).ref{adc} = conj(fft(ref,wfs(wf).Nt_pc) ...
           .* exp(-1i*2*pi*wfs(wf).freq_pc*wfs(wf).Tsys(wfs(wf).rx_paths(adc))) );
         wfs(wf).ref_windowed(adc) = false;
+        Rx               = fft(Rx,wfs(wf).Nt_pc) ...
+          .* exp(-1i*2*pi*wfs(wf).freq_pc*wfs(wf).Tsys(wfs(wf).rx_paths(adc))) ;
         
       else
         % Load reference function from collate_deconv.m (e.g. for deconvolution)
@@ -747,17 +753,31 @@ for wf = 1:length(param.radar.wfs)
         mask = ifftshift(freq>=wfs(wf).BW_window(1) & freq<=wfs(wf).BW_window(2));
         wfs(wf).ref{adc}(mask) = ifftshift(fftshift(wfs(wf).ref{adc}(mask)) .* wfs(wf).ft_wind(sum(mask)));
         wfs(wf).ref{adc}(~mask) = 0;
+        Rx(mask) = ifftshift(fftshift(Rx(mask)) .* wfs(wf).ft_wind(sum(mask)));
+        Rx(~mask) = 0;
       end
       
       % Apply time correction so that start time will be a multiple of
       % the sampling frequency of the radar
       wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*wfs(wf).freq_pc*wfs(wf).time_correction);
+      Rx = Rx .* exp(1i*2*pi*wfs(wf).freq_pc*wfs(wf).time_correction);
       
       % Normalize reference function so that it is an estimator
       %  -- Accounts for pulse duration differences
       time_domain_ref = ifft(wfs(wf).ref{adc});
       wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
         ./ dot(time_domain_ref,time_domain_ref);
+      
+      time_domain_Rx = ifft(Rx);
+      Rx = Rx ...
+        ./ dot(time_domain_Rx,time_domain_Rx);
+      
+      YY = wfs(wf).ref{adc} .* Rx;
+      
+      wfs(wf).ref_scaling{adc} = abs(max(YY)) / abs(max(wfs(wf).ref{adc}));
+%       wfs(wf).ref{adc} = wfs(wf).ref_scaling{adc} .* wfs(wf).ref{adc} ;
+      
+      
     end
   end
 end

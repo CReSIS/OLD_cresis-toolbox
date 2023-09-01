@@ -16,3 +16,5 @@ python/crossover-test-suite/postgres-conn.json
 python/crossover-test-suite/data
 python/crossover-test-suite/maps
 matplotlib_tools.py
+*.asv
+*.vs/

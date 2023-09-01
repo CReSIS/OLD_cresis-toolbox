@@ -403,6 +403,7 @@ for img = 1:length(param.load.imgs)
         % Check if any good records, skip processing if not
         if any(~hdr.bad_rec{img}(1,:,wf_adc))
           blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+          blocks = round(linspace(1,length(hdr.gps_time)+1, 8)); blocks = unique(blocks);
           for block = 1:length(blocks)-1
             rlines = blocks(block) : blocks(block+1)-1;
             

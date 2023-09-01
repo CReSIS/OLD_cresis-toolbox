@@ -66,6 +66,7 @@ classdef layerdata < handle
       obj.layer{frm}.file_type = 'layer';
       obj.layer{frm}.param.radar_name = obj.param.radar_name;
       obj.layer{frm}.param.season_name = obj.param.season_name;
+      
       obj.layer{frm}.param.day_seg = obj.param.day_seg;
       obj.layer{frm}.param.records.gps.time_offset = obj.param.records.gps.time_offset;
       obj.layer{frm}.param.radar.lever_arm_fh = obj.param.radar.lever_arm_fh;
@@ -127,6 +128,8 @@ classdef layerdata < handle
     %% load: load layer
     % DO NOT CALL THIS LOAD FUNCTION DIRECTLY: call check.m
     function load(obj,frm)
+      % For the full simulator, remove 'sim' at the end($) of param.season_name
+      obj.param.season_name = regexprep(obj.param.season_name,'sim$','','ignorecase');
       layer_fn = fullfile(ct_filename_out(obj.param,obj.layerdata_source,''),sprintf('Data_%s_%03d.mat',obj.param.day_seg,frm));
       if ~exist(layer_fn,'file')
         warning('Layer file does not exist. Creating %s\n', layer_fn);

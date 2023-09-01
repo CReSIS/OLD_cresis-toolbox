@@ -18,6 +18,8 @@ function [params] = read_param_xls_radar(param_fn, day_seg_filter)
 % See also for printing out spreadsheet to stdout:
 %  read_param_xls_print, read_param_xls_print_headers.m
 
+global gRadar;
+
 cell_boolean = @read_param_xls_boolean;
 cell_text = @read_param_xls_text;
 cell_read = @read_param_xls_general;
@@ -26,7 +28,9 @@ warning('off','MATLAB:xlsread:Mode');
 
 %% Create Command Parameters
 % =======================================================================
-fprintf('Reading command/cmd of xls file: %s\n', param_fn);
+if ~( isfield(gRadar, 'verbose_off') && any(~cellfun(@isempty,regexp(mfilename, gRadar.verbose_off))) )
+  fprintf('Reading command/cmd of xls file: %s\n', param_fn);
+end
 
 warning off MATLAB:xlsfinfo:ActiveX
 [status, sheets] = xlsfinfo(param_fn);

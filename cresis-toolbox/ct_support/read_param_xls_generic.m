@@ -27,6 +27,8 @@ function [params] = read_param_xls_generic(param_fn, generic_ws, params, read_pa
 %% Input checks and setup
 % =======================================================================
 
+global gRadar;
+
 if ~exist('read_param','var') || isempty(read_param)
   read_param = [];
 end
@@ -55,7 +57,9 @@ end
 %% Create Generic Parameters
 % =======================================================================
 sheet_name = generic_ws;
-fprintf('Reading sheet %s of xls file: %s\n', sheet_name, param_fn);
+if ~( isfield(gRadar, 'verbose_off') && any(~cellfun(@isempty,regexp(mfilename, gRadar.verbose_off))) )
+  fprintf('Reading sheet %s of xls file: %s\n', sheet_name, param_fn);
+end
 warning off MATLAB:xlsfinfo:ActiveX
 [status, sheets] = xlsfinfo(param_fn);
 warning on MATLAB:xlsfinfo:ActiveX
